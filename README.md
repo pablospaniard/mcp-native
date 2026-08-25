@@ -248,6 +248,8 @@ Useful commands:
 | `npm run test:coverage` | Run tests and enforce coverage thresholds                      |
 | `npm run clean`         | Remove TypeScript project build outputs                        |
 
+Maintainers should follow the tokenless [release and package-onboarding process](docs/releasing.md).
+
 ## Repository layout
 
 ```text

@@ -37,10 +37,6 @@ jobs:
         env:
           GITHUB_REF_NAME: ${{ github.event.release.tag_name || inputs.release_tag }}
       - name: Publish missing package versions
-        env:
-          # Manual recovery may temporarily use a granular token to bootstrap a new package.
-          # Normal release events keep using trusted publishing through OIDC.
-          NODE_AUTH_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.NPM_TOKEN || '' }}
         run: |
           publish_if_missing() {
             package_name="$1"
