@@ -9,6 +9,11 @@ import type {
 export const A2UI_VERSION = "0.1" as const;
 export const A2UI_MIME_TYPE = "application/a2ui+json" as const;
 
+/** Maximum nesting depth for container trees (root is depth 0). */
+export const A2UI_MAX_DEPTH = 32;
+/** Maximum number of nodes allowed in a single surface. */
+export const A2UI_MAX_NODES = 256;
+
 interface A2uiNodeBase {
   readonly id: string;
 }
@@ -136,11 +141,18 @@ export function parseA2uiSurface(input: string | unknown): A2uiSurface {
   const seenIds = new Set<string>();
   return {
     version: A2UI_VERSION,
-    root: parseNode(surface.root, "surface.root", seenIds),
+    root: parseNode(surface.root, "surface.root", seenIds, 0),
   };
 }
 
-function parseNode(value: unknown, path: string, seenIds: Set<string>): A2uiNode {
+function parseNode(value: unknown, path: string, seenIds: Set<string>, depth: number): A2uiNode {
+  if (depth > A2UI_MAX_DEPTH) {
+    throw new A2uiParseError(`A2UI surface exceeds maximum depth of ${A2UI_MAX_DEPTH} at ${path}`);
+  }
+  if (seenIds.size >= A2UI_MAX_NODES) {
+    throw new A2uiParseError(`A2UI surface exceeds maximum of ${A2UI_MAX_NODES} nodes`);
+  }
+
   const node = expectObject(value, path);
   const id = expectString(node.id, `${path}.id`);
   if (seenIds.has(id)) {
@@ -155,7 +167,7 @@ function parseNode(value: unknown, path: string, seenIds: Set<string>): A2uiNode
         id,
         type,
         children: expectArray(node.children, `${path}.children`).map((child, index) =>
-          parseNode(child, `${path}.children[${index}]`, seenIds),
+          parseNode(child, `${path}.children[${index}]`, seenIds, depth + 1),
         ),
       };
     case "text":
@@ -198,7 +210,17 @@ function expectObject(value: unknown, path: string): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new A2uiParseError(`Expected an object at ${path}`);
   }
-  return value as Record<string, unknown>;
+
+  const prototype = Object.getPrototypeOf(value) as unknown;
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new A2uiParseError(`Expected a plain object at ${path}`);
+  }
+
+  const ownProperties: Record<string, unknown> = Object.create(null);
+  for (const key of Object.keys(value as object)) {
+    ownProperties[key] = (value as Record<string, unknown>)[key];
+  }
+  return ownProperties;
 }
 
 function expectContentArray(value: unknown): readonly McpContent[] {

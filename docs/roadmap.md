@@ -25,7 +25,7 @@ Status: complete.
 - Strict resource and surface validation
 - Trusted native render plan
 - Host-owned React Native renderer and hooks
-- Deny-by-default HTML document primitive
+- Deny-by-default HTML document primitive with inline opt-in, http(s)-only remote loads, and required origin allowlists
 - CI, contribution controls, coordinated packages, and provenance releases
 - Explicit standards and compatibility inventory
 

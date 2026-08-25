@@ -93,9 +93,9 @@ Convenience package for the runtime and UI APIs. Transport adapters remain separ
 
 ## Capability model
 
-The host owns the effective component and action allowlists. A server can request only capabilities the host has declared. Unknown components, actions, bindings, MIME types, and protocol versions are rejected rather than silently interpreted.
+The host owns the effective component and action allowlists. A server can request only capabilities the host has declared. Unknown components, actions, MIME types, and protocol versions are rejected rather than silently interpreted. Binding strings are accepted as opaque host data and must be validated by the host before path-like writes.
 
-`McpNativeRuntime.dispatch()` applies this rule with a host-provided action policy and denies every surface action when no policy is configured. The lower-level `callTool()` operation remains available to trusted host code and is intentionally outside the surface-action policy.
+`McpNativeRuntime.dispatch()` applies a host-provided action policy and denies every surface action when no policy is configured. The lower-level `callTool()` operation remains available to trusted host code after JSON argument validation and is intentionally outside the surface-action policy. Prefer `createAllowlistActionPolicy()` so surface authorization includes exact or predicated arguments rather than tool names alone.
 
 Future capabilities that touch sensitive device APIs must be brokered by the host and may require user approval. Server declarations alone never grant device access.
 

@@ -182,6 +182,9 @@ export function parseMcpNativeAction(value: unknown, path = "action"): McpNative
   if (typeof action.name !== "string") {
     throw new JsonValidationError(`Expected a string at ${path}.name`);
   }
+  if (action.name.length === 0) {
+    throw new JsonValidationError(`Expected a non-empty string at ${path}.name`);
+  }
 
   return {
     type: "tool",
@@ -192,13 +195,87 @@ export function parseMcpNativeAction(value: unknown, path = "action"): McpNative
   };
 }
 
-/** A host-owned policy deciding which validated surface actions may execute. */
+/** A host-owned policy deciding which validated tool actions may execute. */
 export type McpNativeActionPolicy = (action: McpNativeAction) => boolean | Promise<boolean>;
+
+/**
+ * An allowlist entry that authorizes a tool by name and either exact arguments
+ * or a host-provided argument predicate. Name-only allowlists are intentionally
+ * unsupported — omit `arguments` to require empty/missing arguments, or supply
+ * `authorizeArguments` for dynamic checks.
+ *
+ * `authorizeArguments` may be sync or async, but must resolve to a boolean.
+ * Only an explicit `true` authorizes; thenables are awaited so a denied async
+ * predicate cannot be treated as a truthy Promise object.
+ */
+export type McpNativeToolAllowlistEntry =
+  | {
+      readonly name: string;
+      /** Exact JSON arguments required. Omit to allow only empty/missing arguments. */
+      readonly arguments?: JsonObject;
+    }
+  | {
+      readonly name: string;
+      readonly authorizeArguments: (arguments_?: JsonObject) => boolean | Promise<boolean>;
+    };
+
+/** Builds a fail-closed action policy from an explicit tool/argument allowlist. */
+export function createAllowlistActionPolicy(
+  allowlist: readonly McpNativeToolAllowlistEntry[],
+): McpNativeActionPolicy {
+  const entries = allowlist.map((entry) => {
+    if (typeof entry.name !== "string" || entry.name.length === 0) {
+      throw new JsonValidationError("Expected a non-empty allowlist tool name");
+    }
+    if ("authorizeArguments" in entry) {
+      if (typeof entry.authorizeArguments !== "function") {
+        throw new JsonValidationError(
+          `Expected authorizeArguments to be a function for tool ${entry.name}`,
+        );
+      }
+      return entry;
+    }
+    return {
+      name: entry.name,
+      arguments:
+        entry.arguments === undefined
+          ? undefined
+          : parseJsonObject(entry.arguments, `allowlist.${entry.name}.arguments`),
+    };
+  });
+
+  return async (action) => {
+    for (const entry of entries) {
+      if (entry.name !== action.name) {
+        continue;
+      }
+      if ("authorizeArguments" in entry) {
+        // Predicates must run sequentially so a denied match does not race later entries.
+        // eslint-disable-next-line no-await-in-loop -- intentional fail-closed short-circuit
+        const allowed = await entry.authorizeArguments(action.arguments);
+        if (allowed === true) {
+          return true;
+        }
+        if (allowed !== false) {
+          throw new JsonValidationError(
+            `authorizeArguments for tool ${entry.name} must return a boolean`,
+          );
+        }
+        continue;
+      }
+      if (jsonArgumentsMatch(entry.arguments, action.arguments)) {
+        return true;
+      }
+    }
+    return false;
+  };
+}
 
 export interface McpNativeRuntimeOptions {
   /**
-   * Authorizes surface-driven actions. When omitted, `dispatch()` denies every
-   * action; trusted host code can continue to use `callTool()` directly.
+   * Authorizes surface-driven actions through `dispatch()` only. When omitted,
+   * `dispatch()` denies every action. Trusted host code can continue to use
+   * `callTool()` directly after JSON argument validation.
    */
   readonly actionPolicy?: McpNativeActionPolicy;
 }
@@ -231,8 +308,13 @@ export class McpNativeRuntime {
     return this.#client.listTools();
   }
 
-  callTool(name: string, arguments_: JsonObject = {}): Promise<McpToolCallResult> {
-    return this.#client.callTool(name, arguments_);
+  async callTool(name: string, arguments_: JsonObject = {}): Promise<McpToolCallResult> {
+    const validatedAction = parseMcpNativeAction({
+      type: "tool",
+      name,
+      arguments: arguments_,
+    });
+    return this.#client.callTool(validatedAction.name, validatedAction.arguments ?? {});
   }
 
   readResource(uri: string): Promise<McpReadResourceResult> {
@@ -241,11 +323,61 @@ export class McpNativeRuntime {
 
   async dispatch(action: McpNativeAction): Promise<McpToolCallResult> {
     const validatedAction = parseMcpNativeAction(action);
-    if (this.#actionPolicy === undefined || !(await this.#actionPolicy(validatedAction))) {
+    if (this.#actionPolicy === undefined) {
       throw new McpNativeActionDeniedError(validatedAction.name);
     }
-    return this.callTool(validatedAction.name, validatedAction.arguments ?? {});
+    const allowed = await this.#actionPolicy(validatedAction);
+    if (allowed !== true) {
+      throw new McpNativeActionDeniedError(validatedAction.name);
+    }
+    return this.#client.callTool(validatedAction.name, validatedAction.arguments ?? {});
   }
+}
+
+function jsonArgumentsMatch(
+  expected: JsonObject | undefined,
+  actual: JsonObject | undefined,
+): boolean {
+  if (expected === undefined) {
+    return actual === undefined || Object.keys(actual).length === 0;
+  }
+  if (actual === undefined) {
+    return Object.keys(expected).length === 0;
+  }
+  return jsonValuesEqual(expected, actual);
+}
+
+function jsonValuesEqual(left: JsonValue, right: JsonValue): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (left === null || right === null || typeof left !== typeof right) {
+    return false;
+  }
+  if (typeof left !== "object" || typeof right !== "object") {
+    return false;
+  }
+  if (Array.isArray(left)) {
+    if (!Array.isArray(right) || left.length !== right.length) {
+      return false;
+    }
+    return left.every((value, index) => jsonValuesEqual(value, right[index]!));
+  }
+  if (Array.isArray(right)) {
+    return false;
+  }
+
+  const leftObject = left as JsonObject;
+  const rightObject = right as JsonObject;
+  const leftKeys = Object.keys(leftObject);
+  const rightKeys = Object.keys(rightObject);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+  return leftKeys.every(
+    (key) =>
+      Object.hasOwn(rightObject, key) && jsonValuesEqual(leftObject[key]!, rightObject[key]!),
+  );
 }
 
 function expectPlainObject(value: unknown, path: string): Record<string, unknown> {

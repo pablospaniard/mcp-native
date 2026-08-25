@@ -14,7 +14,7 @@
 
 > **Experimental:** this package implements MCP Native's deliberately small internal `0.1` proof-of-concept surface. `0.1` is not an A2UI protocol version, and this package does not currently claim A2UI v1.0 compatibility.
 
-`@mcp-native/a2ui` resolves explicitly typed resource links and parses untrusted JSON or JavaScript values into a validated, typed surface before a host renders anything. Unknown or ambiguous resources fail with `A2uiResourceError`; unknown versions, node types, action types, and invalid JSON values fail with `A2uiParseError`.
+`@mcp-native/a2ui` resolves explicitly typed resource links and parses untrusted JSON or JavaScript values into a validated, typed surface before a host renders anything. Unknown or ambiguous resources fail with `A2uiResourceError`; unknown versions, node types, action types, non-plain objects, oversized trees, and invalid JSON values fail with `A2uiParseError`. Surfaces are capped at `A2UI_MAX_DEPTH` (32) and `A2UI_MAX_NODES` (256).
 
 ## Install
 

@@ -5,6 +5,7 @@ import {
   JsonValidationError,
   McpNativeActionDeniedError,
   McpNativeRuntime,
+  createAllowlistActionPolicy,
 } from "../packages/core/dist/index.js";
 
 test("the core runtime routes a declared tool action", async () => {
@@ -23,7 +24,9 @@ test("the core runtime routes a declared tool action", async () => {
   };
 
   const runtime = new McpNativeRuntime(client, {
-    actionPolicy: (action) => action.name === "save_profile",
+    actionPolicy: createAllowlistActionPolicy([
+      { name: "save_profile", arguments: { displayName: "Ada" } },
+    ]),
   });
   const result = await runtime.dispatch({
     type: "tool",
@@ -33,6 +36,17 @@ test("the core runtime routes a declared tool action", async () => {
 
   assert.deepEqual(calls, [{ name: "save_profile", arguments: { displayName: "Ada" } }]);
   assert.equal(result.isError, undefined);
+
+  await assert.rejects(
+    () =>
+      runtime.dispatch({
+        type: "tool",
+        name: "save_profile",
+        arguments: { displayName: "Eve", amount: 1_000_000 },
+      }),
+    McpNativeActionDeniedError,
+  );
+  assert.equal(calls.length, 1);
 });
 
 test("the core runtime denies surface actions unless the host allows them", async () => {
@@ -60,6 +74,162 @@ test("the core runtime denies surface actions unless the host allows them", asyn
         type: "tool",
         name: "delete_all",
       }),
+    McpNativeActionDeniedError,
+  );
+  assert.deepEqual(calls, []);
+});
+
+test("callTool bypasses surface action policy for trusted host operations", async () => {
+  const calls = [];
+  const client = {
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool(name, arguments_) {
+      calls.push({ name, arguments: arguments_ });
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  };
+  const runtime = new McpNativeRuntime(client, {
+    actionPolicy: createAllowlistActionPolicy([{ name: "open_surface" }]),
+  });
+
+  await runtime.callTool("bootstrap_tool");
+  await runtime.callTool("open_surface", { unexpected: true });
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "open_surface", arguments: { unexpected: true } }),
+    McpNativeActionDeniedError,
+  );
+  assert.deepEqual(calls, [
+    { name: "bootstrap_tool", arguments: {} },
+    { name: "open_surface", arguments: { unexpected: true } },
+  ]);
+});
+
+test("callTool validates JSON arguments even without an action policy", async () => {
+  const calls = [];
+  const client = {
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool(name, arguments_) {
+      calls.push({ name, arguments: arguments_ });
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  };
+  const runtime = new McpNativeRuntime(client);
+
+  await assert.rejects(() => runtime.callTool("safe", { value: NaN }), JsonValidationError);
+  await assert.rejects(() => runtime.callTool(""), JsonValidationError);
+  assert.deepEqual(calls, []);
+});
+
+test("createAllowlistActionPolicy supports argument predicates", async () => {
+  const runtime = new McpNativeRuntime(
+    {
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool() {
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    {
+      actionPolicy: createAllowlistActionPolicy([
+        {
+          name: "transfer",
+          authorizeArguments: (arguments_) =>
+            arguments_ !== undefined &&
+            typeof arguments_.amount === "number" &&
+            arguments_.amount <= 100,
+        },
+      ]),
+    },
+  );
+
+  await runtime.dispatch({ type: "tool", name: "transfer", arguments: { amount: 50 } });
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "transfer", arguments: { amount: 500 } }),
+    McpNativeActionDeniedError,
+  );
+});
+
+test("createAllowlistActionPolicy awaits async predicates and only treats true as allow", async () => {
+  const calls = [];
+  const runtime = new McpNativeRuntime(
+    {
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool(name, arguments_) {
+        calls.push({ name, arguments: arguments_ });
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    {
+      actionPolicy: createAllowlistActionPolicy([
+        {
+          name: "denied_async",
+          authorizeArguments: async () => false,
+        },
+        {
+          name: "allowed_async",
+          authorizeArguments: async () => true,
+        },
+        {
+          name: "truthy_non_boolean",
+          authorizeArguments: async () => /** @type {any} */ ("yes"),
+        },
+      ]),
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "denied_async" }),
+    McpNativeActionDeniedError,
+  );
+  await runtime.dispatch({ type: "tool", name: "allowed_async" });
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "truthy_non_boolean" }),
+    JsonValidationError,
+  );
+  assert.deepEqual(calls, [{ name: "allowed_async", arguments: {} }]);
+});
+
+test("action policies authorize only when they resolve to true", async () => {
+  const calls = [];
+  const runtime = new McpNativeRuntime(
+    {
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool(name, arguments_) {
+        calls.push({ name, arguments: arguments_ });
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    {
+      actionPolicy: async () => /** @type {any} */ ({}),
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "looks_truthy" }),
     McpNativeActionDeniedError,
   );
   assert.deepEqual(calls, []);
