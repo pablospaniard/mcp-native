@@ -1,0 +1,14 @@
+{
+  "packageVersion": "0.2.0-alpha.11",
+  "sourceCommit": "c321dd32035556e6769d3724a8ee97d87c3faaac",
+  "protocolVersion": "2026-07-28",
+  "scenarios": [
+    "tools_call",
+    "request-metadata",
+    "http-standard-headers",
+    "http-custom-headers",
+    "http-invalid-tool-headers",
+    "json-schema-ref-no-deref",
+    "json-schema-2020-12-preservation"
+  ]
+}

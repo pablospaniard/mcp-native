@@ -6,7 +6,7 @@ This document defines the exact MCP core revisions and operations MCP Native del
 
 | Revision     | SDK era | MCP Native status         | Verified path                                                                       |
 | ------------ | ------- | ------------------------- | ----------------------------------------------------------------------------------- |
-| `2026-07-28` | modern  | Current target, partial   | Pinned Streamable HTTP through the official SDK handler/fetch implementation        |
+| `2026-07-28` | modern  | Current target, partial   | Pinned Streamable HTTP integration plus seven applicable official client scenarios  |
 | `2025-11-25` | legacy  | Compatibility lane        | SDK `auto` fallback through the linked in-memory transport                          |
 | Older dates  | legacy  | No support claim          | The SDK may negotiate them, but MCP Native does not test or deliberately offer them |
 | Future dates | modern  | Unsupported until adopted | Never inferred from date ordering or accepted without an explicit project update    |
@@ -50,7 +50,7 @@ The helper does not construct a client, choose a transport, connect, authenticat
 - A legacy revision is never claimed merely because the SDK can negotiate it.
 - Adding or removing a revision requires a reviewed policy change, pinned integration coverage, field-fidelity review, and release notes.
 - Breaking wire changes are handled by the official SDK's era-specific codecs rather than conditional logic in `@mcp-native/core`.
-- MCP Native documents support per operation and transport until the applicable official conformance scenarios pass.
+- MCP Native documents support per operation and transport. The current client boundary passes its selected official scenarios, but operations outside that boundary remain unclaimed.
 - The adapter rejects protocol results that cannot be represented faithfully and safely by its public contracts.
 
 ## Adoption gate for another revision
@@ -69,5 +69,6 @@ Before adding a revision to `MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS`:
 - [MCP `2026-07-28`](https://modelcontextprotocol.io/specification/2026-07-28)
 - [Official TypeScript SDK protocol-version guide](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/protocol-versions.md)
 - [Official SDK migration guidance for `2026-07-28`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/migration/support-2026-07-28.md)
+- [Pinned MCP conformance coverage](mcp-conformance.md)
 - [Standards and compatibility inventory](standards-compatibility.md)
 - [RFC-0001](RFC-0001-architecture.md)
