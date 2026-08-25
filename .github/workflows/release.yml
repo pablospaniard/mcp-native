@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'pablospaniard/mcp-native'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install --global npm@11.17.0
+      - run: npm ci
+      - run: npm run release:verify
+      - run: npm publish --workspace @mcp-native/core --access public
+      - run: npm publish --workspace @mcp-native/a2ui --access public
+      - run: npm publish --workspace @mcp-native/webview --access public
+      - run: npm publish --workspace @mcp-native/react-native --access public
+      - run: npm publish --workspace mcp-native --access public

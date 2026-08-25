@@ -3,6 +3,11 @@
   "version": "0.0.2",
   "description": "Convenience package for the MCP Native runtime.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pablospaniard/mcp-native.git",
+    "directory": "packages/mcp-native"
+  },
   "files": [
     "dist",
     "README.md"
