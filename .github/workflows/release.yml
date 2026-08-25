@@ -20,12 +20,62 @@ concurrency:
 
 jobs:
   publish:
-    if: github.repository == 'pablospaniard/mcp-native'
+    if: >-
+      github.repository == 'pablospaniard/mcp-native' &&
+      (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main')
+    environment: npm-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Resolve published release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${REQUESTED_TAG}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Release tag must be an exact stable semantic version."
+            exit 1
+          fi
+
+          release_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${REQUESTED_TAG}" --jq '.tag_name')"
+          if [[ "${release_tag}" != "${REQUESTED_TAG}" ]]; then
+            echo "::error::Resolved release tag does not match the requested tag."
+            exit 1
+          fi
+
+          IFS=$'\t' read -r object_type object_sha < <(
+            gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${release_tag}" \
+              --jq '[.object.type, .object.sha] | @tsv'
+          )
+
+          while [[ "${object_type}" == "tag" ]]; do
+            IFS=$'\t' read -r object_type object_sha < <(
+              gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" \
+                --jq '[.object.type, .object.sha] | @tsv'
+            )
+          done
+
+          if [[ "${object_type}" != "commit" || ! "${object_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Release tag does not resolve to an immutable commit."
+            exit 1
+          fi
+
+          echo "tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "commit=${object_sha}" >> "${GITHUB_OUTPUT}"
+      - name: Check out trusted release automation
+        uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.release.tag_name || inputs.release_tag }}
+          ref: ${{ github.workflow_sha }}
+          path: automation
+          persist-credentials: false
+      - name: Check out immutable release commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.release.outputs.commit }}
+          path: release
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 22.14.0
@@ -33,27 +83,11 @@ jobs:
           package-manager-cache: false
       - run: npm install --global npm@11.17.0
       - run: npm ci
+        working-directory: release
       - run: npm run release:verify
+        working-directory: release
         env:
-          GITHUB_REF_NAME: ${{ github.event.release.tag_name || inputs.release_tag }}
+          GITHUB_REF_NAME: ${{ steps.release.outputs.tag }}
       - name: Publish missing package versions
-        run: |
-          publish_if_missing() {
-            package_name="$1"
-            package_path="$2"
-            package_version="$(node -p "require('./${package_path}/package.json').version")"
-
-            if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
-              echo "${package_name}@${package_version} is already published; skipping."
-              return
-            fi
-
-            npm publish --workspace "${package_name}" --access public
-          }
-
-          publish_if_missing "@mcp-native/core" "packages/core"
-          publish_if_missing "@mcp-native/mcp" "packages/mcp"
-          publish_if_missing "@mcp-native/a2ui" "packages/a2ui"
-          publish_if_missing "@mcp-native/webview" "packages/webview"
-          publish_if_missing "@mcp-native/react-native" "packages/react-native"
-          publish_if_missing "mcp-native" "packages/mcp-native"
+        working-directory: release
+        run: node ../automation/scripts/publish-release.mjs

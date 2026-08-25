@@ -11,7 +11,7 @@ Before creating a release:
 1. Confirm every public package has the same version and that internal dependency ranges target
    that version.
 2. Confirm every package has `pablospaniard/mcp-native` and `release.yml` configured as its npm
-   trusted publisher, with `npm publish` allowed.
+   trusted publisher, with the `npm-release` environment and `npm publish` allowed.
 3. Run `npm run release:verify` and verify the release tag with
    `GITHUB_REF_NAME=v<version> node scripts/verify-release-version.mjs`.
 4. Merge the release pull request and publish the matching GitHub Release.
@@ -20,6 +20,10 @@ The release workflow publishes packages in dependency order. It first checks whe
 version already exists, so an interrupted release can be resumed without attempting to overwrite
 immutable npm versions. A maintainer can manually dispatch the same workflow with the existing
 release tag to resume publication.
+
+The `npm-release` GitHub environment is a release trust boundary. Configure required reviewers and
+allow deployments only from `main` and stable `v*` tags. The workflow resolves a published GitHub
+Release to its tag's immutable commit before it installs or executes release-package code.
 
 ## Onboarding a new package
 
@@ -35,6 +39,7 @@ Before including a new package in a coordinated release:
    - organization or user: `pablospaniard`
    - repository: `mcp-native`
    - workflow filename: `release.yml`
+   - environment: `npm-release`
    - allowed action: `npm publish`
 3. Disable token-based publishing for the package after verifying the trust configuration.
 4. Publish the first real package version only through the coordinated GitHub Release workflow.
