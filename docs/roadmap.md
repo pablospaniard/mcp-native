@@ -33,7 +33,7 @@ Status: complete.
 
 Status: in progress.
 
-- [ ] Declare the complete supported core revision and backwards-compatibility policy.
+- [x] Declare the complete supported core revision and backwards-compatibility policy.
 - [x] Preserve official tool, content, resource, schema, annotation, `_meta`, and cache semantics across the initial `@mcp-native/mcp` and `@mcp-native/core` boundary.
 - [x] Replace the lossy generic `{ type, data }` representation with official discriminated content types.
 - [x] Delegate transport framing, per-request envelopes, headers, cancellation, and protocol-version behavior to official SDK v2.
