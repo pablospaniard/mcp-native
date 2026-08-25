@@ -97,31 +97,31 @@ This is a foundation, not a complete MCP or A2UI implementation. In particular, 
 ## Tiny example
 
 ```ts
-import { parseA2uiSurface } from '@mcp-native/a2ui'
-import { createNativeRenderPlan } from '@mcp-native/react-native'
+import { parseA2uiSurface } from "@mcp-native/a2ui";
+import { createNativeRenderPlan } from "@mcp-native/react-native";
 
 const surface = parseA2uiSurface({
-    version: '0.1',
-    root: {
-        id: 'welcome',
-        type: 'container',
-        children: [
-            { id: 'title', type: 'text', text: 'Hello from MCP' },
-            {
-                id: 'continue',
-                type: 'button',
-                label: 'Continue',
-                action: {
-                    type: 'tool',
-                    name: 'continue_onboarding',
-                    arguments: { accepted: true },
-                },
-            },
-        ],
-    },
-})
+  version: "0.1",
+  root: {
+    id: "welcome",
+    type: "container",
+    children: [
+      { id: "title", type: "text", text: "Hello from MCP" },
+      {
+        id: "continue",
+        type: "button",
+        label: "Continue",
+        action: {
+          type: "tool",
+          name: "continue_onboarding",
+          arguments: { accepted: true },
+        },
+      },
+    ],
+  },
+});
 
-const renderPlan = createNativeRenderPlan(surface)
+const renderPlan = createNativeRenderPlan(surface);
 // The host maps the trusted component names in this plan to locally bundled
 // React Native components and dispatches declared actions through the runtime.
 ```
@@ -160,12 +160,18 @@ npm test
 
 Useful commands:
 
-| Command         | Purpose                                                  |
-| --------------- | -------------------------------------------------------- |
-| `npm run build` | Build every workspace with TypeScript project references |
-| `npm run check` | Run the repository type check                            |
-| `npm test`      | Build and run the Node test suite                        |
-| `npm run clean` | Remove TypeScript project build outputs                  |
+| Command                 | Purpose                                                        |
+| ----------------------- | -------------------------------------------------------------- |
+| `npm run build`         | Build every workspace with TypeScript project references       |
+| `npm run check`         | Run formatting, linting, type checking, tests, and coverage    |
+| `npm run format:check`  | Check formatting without changing files                        |
+| `npm run format:fix`    | Format supported project files with Oxfmt                      |
+| `npm run lint`          | Check source files with Oxlint                                 |
+| `npm run lint:fix`      | Apply safe Oxlint fixes, then report any remaining diagnostics |
+| `npm run typecheck`     | Type-check all TypeScript project references                   |
+| `npm test`              | Build and run the Node test suite                              |
+| `npm run test:coverage` | Run tests and enforce coverage thresholds                      |
+| `npm run clean`         | Remove TypeScript project build outputs                        |
 
 ## Repository layout
 
