@@ -6,32 +6,130 @@ export interface JsonObject {
   readonly [key: string]: JsonValue;
 }
 
-export interface McpTool {
-  readonly name: string;
-  readonly description?: string;
-  readonly inputSchema: JsonObject;
+export type McpRole = "assistant" | "user";
+
+export interface McpAnnotations {
+  readonly audience?: readonly McpRole[];
+  readonly priority?: number;
+  readonly lastModified?: string;
 }
 
-export interface McpContent {
-  readonly type: string;
-  readonly data: JsonObject;
+export interface McpIcon {
+  readonly src: string;
+  readonly mimeType?: string;
+  readonly sizes?: readonly string[];
+  readonly theme?: "dark" | "light";
 }
+
+export interface McpToolAnnotations {
+  readonly title?: string;
+  readonly readOnlyHint?: boolean;
+  readonly destructiveHint?: boolean;
+  readonly idempotentHint?: boolean;
+  readonly openWorldHint?: boolean;
+}
+
+export interface McpTool {
+  readonly icons?: readonly McpIcon[];
+  readonly name: string;
+  readonly title?: string;
+  readonly description?: string;
+  readonly inputSchema: JsonObject;
+  readonly outputSchema?: JsonObject;
+  readonly annotations?: McpToolAnnotations;
+  readonly _meta?: JsonObject;
+}
+
+export interface McpTextContent {
+  readonly type: "text";
+  readonly text: string;
+  readonly annotations?: McpAnnotations;
+  readonly _meta?: JsonObject;
+}
+
+export interface McpImageContent {
+  readonly type: "image";
+  readonly data: string;
+  readonly mimeType: string;
+  readonly annotations?: McpAnnotations;
+  readonly _meta?: JsonObject;
+}
+
+export interface McpAudioContent {
+  readonly type: "audio";
+  readonly data: string;
+  readonly mimeType: string;
+  readonly annotations?: McpAnnotations;
+  readonly _meta?: JsonObject;
+}
+
+export interface McpResourceLink {
+  readonly type: "resource_link";
+  readonly icons?: readonly McpIcon[];
+  readonly name: string;
+  readonly title?: string;
+  readonly uri: string;
+  readonly description?: string;
+  readonly mimeType?: string;
+  readonly annotations?: McpAnnotations;
+  readonly size?: number;
+  readonly _meta?: JsonObject;
+}
+
+interface McpResourceContentsBase {
+  readonly uri: string;
+  readonly mimeType?: string;
+  readonly _meta?: JsonObject;
+}
+
+export interface McpTextResourceContents extends McpResourceContentsBase {
+  readonly text: string;
+  readonly blob?: never;
+}
+
+export interface McpBlobResourceContents extends McpResourceContentsBase {
+  readonly blob: string;
+  readonly text?: never;
+}
+
+export type McpResource = McpTextResourceContents | McpBlobResourceContents;
+
+export interface McpEmbeddedResource {
+  readonly type: "resource";
+  readonly resource: McpResource;
+  readonly annotations?: McpAnnotations;
+  readonly _meta?: JsonObject;
+}
+
+export type McpContent =
+  | McpAudioContent
+  | McpEmbeddedResource
+  | McpImageContent
+  | McpResourceLink
+  | McpTextContent;
 
 export interface McpToolCallResult {
   readonly content: readonly McpContent[];
   readonly isError?: boolean;
   readonly structuredContent?: JsonValue;
+  readonly _meta?: JsonObject;
 }
 
-export interface McpResource {
-  readonly uri: string;
-  readonly mimeType?: string;
-  readonly text?: string;
-  readonly blob?: string;
+export type McpCacheScope = "private" | "public";
+
+export interface McpListToolsResult {
+  readonly tools: readonly McpTool[];
+  readonly nextCursor?: string;
+  readonly ttlMs?: number;
+  readonly cacheScope?: McpCacheScope;
+  readonly _meta?: JsonObject;
 }
 
 export interface McpReadResourceResult {
   readonly contents: readonly McpResource[];
+  readonly ttlMs?: number;
+  readonly cacheScope?: McpCacheScope;
+  readonly _meta?: JsonObject;
 }
 
 /**
@@ -39,7 +137,7 @@ export interface McpReadResourceResult {
  * implement this interface without coupling the core package to a transport.
  */
 export interface McpClient {
-  listTools(): Promise<readonly McpTool[]>;
+  listTools(): Promise<McpListToolsResult>;
   callTool(name: string, arguments_: JsonObject): Promise<McpToolCallResult>;
   readResource(uri: string): Promise<McpReadResourceResult>;
 }
@@ -64,7 +162,7 @@ export class McpNativeRuntime {
     this.#client = client;
   }
 
-  listTools(): Promise<readonly McpTool[]> {
+  listTools(): Promise<McpListToolsResult> {
     return this.#client.listTools();
   }
 

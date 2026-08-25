@@ -15,7 +15,7 @@
 
 > **Experimental:** MCP Native is a proof of concept, not a production-ready MCP or React Native runtime. APIs may change before `1.0.0`.
 
-> **Compatibility:** the current declarative `0.1` surface is not A2UI v1.0, and the WebView primitives are not a complete MCP Apps host. See the [standards compatibility matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+> **Compatibility:** the initial tool/resource boundary preserves MCP `2026-07-28` fields, but complete MCP conformance is still in progress. The current declarative `0.1` surface is not A2UI v1.0, and the WebView primitives are not a complete MCP Apps host. See the [standards compatibility matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 `mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, declarative surface parser, trusted native renderer and hooks, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
 
@@ -43,11 +43,12 @@ const components = { Button, Text, TextInput, View };
 
 const client: McpClient = {
   async listTools() {
-    return [];
+    return { tools: [] };
   },
   async callTool(name, arguments_) {
     return {
-      content: [{ type: "json", data: { name, arguments: arguments_ } }],
+      content: [{ type: "text", text: `Called ${name}` }],
+      structuredContent: { name, arguments: arguments_ },
     };
   },
   async readResource(uri) {
@@ -108,6 +109,8 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - mounting through host-provided components with action and text-binding event translation;
 - memoized render-plan and safely observed asynchronous action-dispatch hooks;
 - policy-gated inline and remote HTML document descriptions;
+- MCP `2026-07-28` tool/resource field preservation through the official SDK adapter;
+- pinned current-protocol integration coverage through the SDK HTTP handler/fetch path;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
 The project does not yet include local binding state, streaming UI updates, capability negotiation, authentication helpers, or a runnable mobile demo. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.

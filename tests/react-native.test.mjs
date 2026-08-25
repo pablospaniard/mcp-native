@@ -152,7 +152,7 @@ test("useMcpNativeActionDispatcher reports results and failures", async () => {
       if (action.name === "fail") {
         throw new Error("tool failed");
       }
-      return { content: [{ type: "text", data: { text: "saved" } }] };
+      return { content: [{ type: "text", text: "saved" }] };
     },
   };
   const options = {
@@ -184,7 +184,7 @@ test("useMcpNativeActionDispatcher reports results and failures", async () => {
     { type: "tool", name: "save" },
     { type: "tool", name: "fail" },
   ]);
-  assert.deepEqual(results, [{ content: [{ type: "text", data: { text: "saved" } }] }]);
+  assert.deepEqual(results, [{ content: [{ type: "text", text: "saved" }] }]);
   assert.equal(errors.length, 1);
   assert.match(errors[0]?.message, /tool failed/);
   await act(async () => root.unmount());

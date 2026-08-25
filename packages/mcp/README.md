@@ -10,7 +10,7 @@
 
 > **Experimental:** this package is an early proof of concept. Its public API may change before `1.0.0`.
 
-> **Compatibility:** SDK v2 is the correct implementation line for MCP `2026-07-28`, but this adapter currently exposes a deliberately minimal contract and has not completed field-fidelity or current HTTP conformance coverage.
+> **Compatibility:** SDK v2 is the correct implementation line for MCP `2026-07-28`. The initial tool/resource boundary preserves official fields and is covered through the SDK's current HTTP handler/fetch path, but the package does not yet claim complete MCP conformance.
 
 `@mcp-native/mcp` adapts a connected [`Client`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/client.md) from `@modelcontextprotocol/client` v2 to the transport-neutral `McpClient` interface in `@mcp-native/core`.
 
@@ -34,7 +34,10 @@ import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { McpNativeRuntime } from "@mcp-native/core";
 import { McpSdkClientAdapter } from "@mcp-native/mcp";
 
-const client = new Client({ name: "my-native-host", version: "1.0.0" });
+const client = new Client(
+  { name: "my-native-host", version: "1.0.0" },
+  { versionNegotiation: { mode: "auto" } },
+);
 const transport = new StdioClientTransport({
   command: "node",
   args: ["./dist/server.js"],
@@ -44,7 +47,7 @@ await client.connect(transport);
 
 const runtime = new McpNativeRuntime(new McpSdkClientAdapter(client));
 
-const tools = await runtime.listTools();
+const { tools } = await runtime.listTools();
 const result = await runtime.callTool(tools[0]!.name, {});
 const resources = await runtime.readResource("ui://example");
 
@@ -55,13 +58,13 @@ Use `createMcpSdkClientAdapter(client)` when a factory reads better than constru
 
 ## Mapping
 
-| Official SDK operation                 | MCP Native result                                              |
-| -------------------------------------- | -------------------------------------------------------------- |
-| `client.listTools()`                   | `readonly McpTool[]`                                           |
-| `client.callTool({ name, arguments })` | `McpToolCallResult` with JSON-safe blocks and structured data  |
-| `client.readResource({ uri })`         | `McpReadResourceResult` preserving every returned content item |
+| Official SDK operation                 | MCP Native result                                                           |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| `client.listTools()`                   | `McpListToolsResult` with definitions, `_meta`, pagination, and cache hints |
+| `client.callTool({ name, arguments })` | `McpToolCallResult` with official content shapes and result `_meta`         |
+| `client.readResource({ uri })`         | `McpReadResourceResult` preserving content, `_meta`, and cache hints        |
 
-SDK content blocks keep their discriminating `type`. All remaining block fields are copied into the JSON-safe `data` object used by core. Resource reads preserve text and blob items as separate entries.
+SDK content blocks retain MCP's official discriminated shapes: text, image, audio, resource link, and embedded resource. Tool definitions preserve titles, icons, complete input/output schemas, annotations, and JSON-safe `_meta`. Resource reads preserve text and blob items as separate entries.
 
 Install `@mcp-native/a2ui` to resolve an `application/a2ui+json` `resource_link` from an adapted tool result into a validated declarative surface.
 
@@ -70,7 +73,8 @@ Install `@mcp-native/a2ui` to resolve an `application/a2ui+json` `resource_link`
 Although the official SDK validates protocol traffic, MCP Native validates values again before they cross into renderer-facing contracts. `McpSdkAdapterError` is thrown for:
 
 - malformed result objects or collections;
-- non-string names, content types, URIs, MIME types, or bodies;
+- unknown content types and non-string names, URIs, MIME types, or bodies;
+- malformed icons, annotations, schemas, cache hints, or result metadata;
 - `undefined`, functions, symbols, bigints, or non-finite numbers inside JSON data;
 - class instances, circular objects, and circular arrays;
 - resource entries with neither body or with both `text` and `blob`.
@@ -88,11 +92,11 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 ## Scope
 
 - Official SDK client v2 integration only.
-- Current integration tests use the SDK's linked in-memory transport, which covers the older connection-era protocol; `2026-07-28` HTTP handler/fetch coverage is a roadmap requirement.
+- Integration tests pin `2026-07-28` through the official SDK HTTP handler/fetch path and retain the linked in-memory transport as explicit older-protocol compatibility coverage.
 - Connection setup, transport selection, authentication, retries, and shutdown remain host responsibilities.
 - Prompts, roots, subscriptions, sampling, elicitation, and task APIs are outside RFC-0001's initial client boundary.
-- Tool and resource `_meta.ui` fields required for MCP Apps discovery and policy are not preserved yet.
-- Tool annotations, output schemas, extension settings, and response cache hints are not preserved yet.
+- Generic JSON-safe `_meta` is preserved, including MCP Apps discovery and resource policy data, but Apps-specific validation and capability negotiation are not implemented yet.
+- Extension discovery/settings and official conformance-suite coverage remain roadmap work.
 - The adapter package remains independent of React Native, A2UI, and WebView packages.
 
 ## License
