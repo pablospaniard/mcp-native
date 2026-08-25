@@ -116,6 +116,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A transport-independent MCP client boundary
 - A validated adapter for connected clients from the official MCP TypeScript SDK v2
 - Typed `tools/call` action routing
+- Strict resolution of `application/a2ui+json` resource links from real tool results
 - Strict parsing of a deliberately small declarative UI subset
 - Conversion from a validated surface to a trusted native render plan
 - Fail-closed behavior for unknown nodes, actions, protocol versions, and WebView MIME types
@@ -155,6 +156,17 @@ const renderPlan = createNativeRenderPlan(surface);
 // The host maps the trusted component names in this plan to locally bundled
 // React Native components and dispatches declared actions through the runtime.
 ```
+
+Connected hosts can resolve the same validated surface from a tool result:
+
+```ts
+import { resolveA2uiResourceFromToolResult } from "@mcp-native/a2ui";
+
+const toolResult = await runtime.callTool("open_surface");
+const { surface } = await resolveA2uiResourceFromToolResult(runtime, toolResult);
+```
+
+The resolver requires exactly one `application/a2ui+json` resource link, reads the matching text resource, and passes it through the same strict parser. The current parser remains MCP Native's deliberately small `0.1` proof-of-concept subset, not complete A2UI specification coverage.
 
 ## Security model
 
@@ -228,7 +240,7 @@ mcp-native/
 - [x] Produce a trusted native render plan
 - [x] Establish a policy-gated WebView boundary
 - [x] Add an adapter for the official MCP TypeScript SDK
-- [ ] Resolve declarative UI resources from real tool results
+- [x] Resolve declarative UI resources from real tool results
 - [ ] Render production React Native components and hooks
 - [ ] Support local state bindings and streaming surface updates
 - [ ] Add capability negotiation, authentication, and host permissions

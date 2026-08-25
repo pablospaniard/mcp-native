@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { A2UI_VERSION, A2uiParseError, parseA2uiSurface } from "../packages/a2ui/dist/index.js";
+import {
+  A2UI_MIME_TYPE,
+  A2UI_VERSION,
+  A2uiParseError,
+  A2uiResourceError,
+  parseA2uiSurface,
+  resolveA2uiResourceFromToolResult,
+} from "../packages/a2ui/dist/index.js";
 import { createNativeRenderPlan } from "../packages/react-native/dist/index.js";
 
 test("a validated A2UI surface becomes a native render plan for every node type", () => {
@@ -135,4 +142,236 @@ test("invalid A2UI input fails closed with a parse error", () => {
   for (const input of invalidInputs) {
     assert.throws(() => parseA2uiSurface(input), A2uiParseError);
   }
+});
+
+test("an A2UI resource link resolves to a validated surface", async () => {
+  const reads = [];
+  const reader = {
+    async readResource(uri) {
+      reads.push(uri);
+      return {
+        contents: [
+          { uri: "ui://related", mimeType: "text/plain", text: "related" },
+          {
+            uri,
+            mimeType: A2UI_MIME_TYPE,
+            text: JSON.stringify({
+              version: A2UI_VERSION,
+              root: { id: "result", type: "text", text: "Resolved" },
+            }),
+          },
+        ],
+      };
+    },
+  };
+  const toolResult = {
+    content: [
+      { type: "text", data: { text: "Opening a native surface" } },
+      {
+        type: "resource_link",
+        data: {
+          name: "Result surface",
+          uri: "ui://result",
+          mimeType: A2UI_MIME_TYPE,
+        },
+      },
+      {
+        type: "resource_link",
+        data: { name: "Documentation", uri: "docs://result", mimeType: "text/markdown" },
+      },
+    ],
+  };
+
+  assert.deepEqual(await resolveA2uiResourceFromToolResult(reader, toolResult), {
+    uri: "ui://result",
+    mimeType: A2UI_MIME_TYPE,
+    surface: {
+      version: A2UI_VERSION,
+      root: { id: "result", type: "text", text: "Resolved" },
+    },
+  });
+  assert.deepEqual(reads, ["ui://result"]);
+});
+
+test("A2UI resource resolution fails closed", async (t) => {
+  const validLink = {
+    type: "resource_link",
+    data: { uri: "ui://result", mimeType: A2UI_MIME_TYPE },
+  };
+  const validResource = {
+    uri: "ui://result",
+    mimeType: A2UI_MIME_TYPE,
+    text: JSON.stringify({
+      version: A2UI_VERSION,
+      root: { id: "result", type: "text", text: "Resolved" },
+    }),
+  };
+
+  const cases = [
+    {
+      name: "errored tool result",
+      result: { content: [validLink], isError: true },
+      readResult: { contents: [validResource] },
+      message: /errored tool result/,
+    },
+    {
+      name: "invalid tool error flag",
+      result: { content: [validLink], isError: "false" },
+      readResult: { contents: [validResource] },
+      message: /isError to be a boolean/,
+    },
+    {
+      name: "missing A2UI link",
+      result: { content: [{ type: "text", data: { text: "none" } }] },
+      readResult: { contents: [validResource] },
+      message: /resource link, received 0/,
+    },
+    {
+      name: "malformed tool content collection",
+      result: { content: {} },
+      readResult: { contents: [validResource] },
+      message: /array at tool result\.content/,
+    },
+    {
+      name: "malformed content block",
+      result: { content: [null] },
+      readResult: { contents: [validResource] },
+      message: /content object/,
+    },
+    {
+      name: "missing content type",
+      result: { content: [{ data: {} }] },
+      readResult: { contents: [validResource] },
+      message: /content type/,
+    },
+    {
+      name: "ambiguous A2UI links",
+      result: { content: [validLink, validLink] },
+      readResult: { contents: [validResource] },
+      message: /resource link, received 2/,
+    },
+    {
+      name: "malformed resource link",
+      result: {
+        content: [{ type: "resource_link", data: { uri: 1, mimeType: A2UI_MIME_TYPE } }],
+      },
+      readResult: { contents: [validResource] },
+      message: /data\.uri/,
+    },
+    {
+      name: "malformed resource link data",
+      result: { content: [{ type: "resource_link", data: [] }] },
+      readResult: { contents: [validResource] },
+      message: /content\[0\]\.data/,
+    },
+    {
+      name: "malformed resource link MIME type",
+      result: {
+        content: [{ type: "resource_link", data: { uri: "ui://result", mimeType: 1 } }],
+      },
+      readResult: { contents: [validResource] },
+      message: /data\.mimeType/,
+    },
+    {
+      name: "missing resource content",
+      result: { content: [validLink] },
+      readResult: { contents: [] },
+      message: /text resource for ui:\/\/result, received 0/,
+    },
+    {
+      name: "ambiguous resource content",
+      result: { content: [validLink] },
+      readResult: { contents: [validResource, validResource] },
+      message: /text resource for ui:\/\/result, received 2/,
+    },
+    {
+      name: "binary resource content",
+      result: { content: [validLink] },
+      readResult: {
+        contents: [{ uri: "ui://result", mimeType: A2UI_MIME_TYPE, blob: "AA==" }],
+      },
+      message: /text-only A2UI resource/,
+    },
+    {
+      name: "malformed resource collection",
+      result: { content: [validLink] },
+      readResult: { contents: {} },
+      message: /array at resource result\.contents/,
+    },
+    {
+      name: "malformed resource result",
+      result: { content: [validLink] },
+      readResult: null,
+      message: /object from resources\/read/,
+    },
+    {
+      name: "malformed resource item",
+      result: { content: [validLink] },
+      readResult: { contents: [null] },
+      message: /object at resource result\.contents\[0\]/,
+    },
+    {
+      name: "malformed resource URI",
+      result: { content: [validLink] },
+      readResult: { contents: [{ ...validResource, uri: 1 }] },
+      message: /contents\[0\]\.uri/,
+    },
+    {
+      name: "malformed resource MIME type",
+      result: { content: [validLink] },
+      readResult: { contents: [{ ...validResource, mimeType: 1 }] },
+      message: /contents\[0\]\.mimeType/,
+    },
+    {
+      name: "malformed resource text",
+      result: { content: [validLink] },
+      readResult: { contents: [{ ...validResource, text: 1 }] },
+      message: /contents\[0\]\.text/,
+    },
+    {
+      name: "malformed resource blob",
+      result: { content: [validLink] },
+      readResult: { contents: [{ ...validResource, blob: 1 }] },
+      message: /contents\[0\]\.blob/,
+    },
+  ];
+
+  await Promise.all(
+    cases.map((invalidCase) =>
+      t.test(invalidCase.name, async () => {
+        const reader = {
+          async readResource() {
+            return invalidCase.readResult;
+          },
+        };
+        await assert.rejects(
+          () => resolveA2uiResourceFromToolResult(reader, invalidCase.result),
+          (error) => error instanceof A2uiResourceError && invalidCase.message.test(error.message),
+        );
+      }),
+    ),
+  );
+});
+
+test("invalid resolved A2UI text remains a parse error", async () => {
+  const reader = {
+    async readResource() {
+      return {
+        contents: [{ uri: "ui://invalid", mimeType: A2UI_MIME_TYPE, text: "not-json" }],
+      };
+    },
+  };
+
+  await assert.rejects(
+    () =>
+      resolveA2uiResourceFromToolResult(reader, {
+        content: [
+          {
+            type: "resource_link",
+            data: { uri: "ui://invalid", mimeType: A2UI_MIME_TYPE },
+          },
+        ],
+      }),
+    A2uiParseError,
+  );
 });

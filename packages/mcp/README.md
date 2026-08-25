@@ -61,6 +61,8 @@ Use `createMcpSdkClientAdapter(client)` when a factory reads better than constru
 
 SDK content blocks keep their discriminating `type`. All remaining block fields are copied into the JSON-safe `data` object used by core. Resource reads preserve text and blob items as separate entries.
 
+Install `@mcp-native/a2ui` to resolve an `application/a2ui+json` `resource_link` from an adapted tool result into a validated declarative surface.
+
 ## Validation boundary
 
 Although the official SDK validates protocol traffic, MCP Native validates values again before they cross into renderer-facing contracts. `McpSdkAdapterError` is thrown for:

@@ -14,7 +14,7 @@
 
 > **Experimental:** this package implements MCP Native's deliberately small `0.1` proof-of-concept surface. It is not a claim of complete A2UI specification compatibility.
 
-`@mcp-native/a2ui` parses untrusted JSON or JavaScript values into a validated, typed surface before a host renders anything. Unknown versions, node types, action types, and invalid JSON values fail closed with an `A2uiParseError`.
+`@mcp-native/a2ui` resolves explicitly typed resource links and parses untrusted JSON or JavaScript values into a validated, typed surface before a host renders anything. Unknown or ambiguous resources fail with `A2uiResourceError`; unknown versions, node types, action types, and invalid JSON values fail with `A2uiParseError`.
 
 ## Install
 
@@ -65,6 +65,32 @@ const surface = parseA2uiSurface(
 );
 ```
 
+## Resolve a tool-result resource
+
+An MCP tool may return a `resource_link` for a declarative surface. Pass the connected runtime or any `A2uiResourceReader` to the resolver:
+
+```ts
+import { resolveA2uiResourceFromToolResult } from "@mcp-native/a2ui";
+
+const toolResult = await runtime.callTool("open_profile");
+const resolved = await resolveA2uiResourceFromToolResult(runtime, toolResult);
+
+console.log(resolved.uri);
+console.log(resolved.surface.root);
+```
+
+Resolution succeeds only when:
+
+1. the tool result is not marked as an error;
+2. it contains exactly one `resource_link` with MIME type `application/a2ui+json`;
+3. `resources/read` returns exactly one item with the same URI and MIME type;
+4. that item contains text, not a blob;
+5. the text passes `parseA2uiSurface`.
+
+Other tool content and non-A2UI resource links may coexist with the surface link. MCP Native never guesses a MIME type or chooses between multiple matching surfaces.
+
+`application/a2ui+json` is the [A2UI media type](https://github.com/a2ui-project/a2ui/blob/main/specification/v0_9/docs/a2ui_extension_specification.md). The current MCP Native `0.1` parser is still a deliberately small proof-of-concept subset rather than full current-spec support.
+
 ## Supported surface
 
 | Node         | Required fields         | Purpose                                                |
@@ -78,17 +104,21 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 
 ## Public API
 
-| Export                    | Purpose                                              |
-| ------------------------- | ---------------------------------------------------- |
-| `parseA2uiSurface`        | Validates input and returns a typed `A2uiSurface`.   |
-| `A2uiParseError`          | Error thrown for malformed or unsupported input.     |
-| `A2UI_VERSION`            | Current proof-of-concept wire version, `"0.1"`.      |
-| `A2uiSurface`, `A2uiNode` | Validated surface and node unions.                   |
-| Node interfaces           | Typed container, text, button, and text-input nodes. |
+| Export                                | Purpose                                                          |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `resolveA2uiResourceFromToolResult`   | Reads and parses the single explicit A2UI link in a tool result. |
+| `parseA2uiSurface`                    | Validates input and returns a typed `A2uiSurface`.               |
+| `A2uiResourceError`, `A2uiParseError` | Specific resolution and parsing failures.                        |
+| `A2UI_MIME_TYPE`, `A2UI_VERSION`      | Exact media type and current proof-of-concept version.           |
+| `ResolvedA2uiResource`                | URI, MIME type, and validated surface returned by the resolver.  |
+| `A2uiSurface`, `A2uiNode`             | Validated surface and node unions.                               |
+| Node interfaces                       | Typed container, text, button, and text-input nodes.             |
 
 ## Security behavior
 
 - Input is treated as untrusted at the parser boundary.
+- Resolution requires an exact MIME type, URI match, and unambiguous text content.
+- Errored tool results and binary A2UI resources are rejected.
 - Unknown surface versions, nodes, and actions are rejected.
 - Tool arguments are recursively constrained to JSON values.
 - Parsing never resolves components or executes server-provided code.
