@@ -83,7 +83,7 @@ Returning a `WebViewDocument` is not permission to render it without further con
 - camera, microphone, location, clipboard, and filesystem permissions;
 - process isolation and platform-specific WebView hardening.
 
-See the repository's [security policy](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md) before expanding this boundary. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the complete public API.
+See the repository's [security policy](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md) before expanding this boundary. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
 
 ## License
 

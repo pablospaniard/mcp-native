@@ -83,7 +83,7 @@ The application host decides how each name maps to a locally bundled component a
 - The host must explicitly map component names, bind events, enforce permissions, and approve sensitive tool calls.
 - Future styling and component expansion must preserve allowlists rather than spreading unchecked server props.
 
-See [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui) for parsing and [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core) for action dispatch. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for every public API.
+See [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui) for parsing and [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core) for action dispatch. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
 
 ## License
 

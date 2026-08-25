@@ -15,7 +15,7 @@
 
 > **Experimental:** MCP Native is a proof of concept, not a production-ready MCP or React Native runtime. APIs may change before `1.0.0`.
 
-`mcp-native` is the convenience package for the complete public API. It re-exports the runtime contracts, declarative surface parser, trusted native render-plan builder, and policy-gated WebView compatibility primitives from the focused `@mcp-native/*` packages.
+`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, declarative surface parser, trusted native render-plan builder, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
 
 ## Install
 
@@ -45,7 +45,7 @@ const client: McpClient = {
     };
   },
   async readResource(uri) {
-    return { uri };
+    return { contents: [{ uri, text: "" }] };
   },
 };
 
@@ -89,6 +89,8 @@ The host maps the trusted names in `plan` to locally bundled native components. 
 
 Install an individual package instead when you only need one layer.
 
+Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospaniard/mcp-native/tree/main/packages/mcp) package to connect these APIs to the official MCP TypeScript SDK without forcing that SDK dependency on every `mcp-native` consumer.
+
 ## What works today
 
 - transport-independent MCP runtime contracts;
@@ -98,7 +100,7 @@ Install an individual package instead when you only need one layer.
 - policy-gated inline and remote HTML document descriptions;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-The project does not yet include an official MCP SDK adapter, mounted React Native components, streaming UI updates, capability negotiation, or a runnable mobile demo. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
+The project does not yet include mounted React Native components, streaming UI updates, capability negotiation, authentication helpers, or a runnable mobile demo. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
 
 ## Security model
 

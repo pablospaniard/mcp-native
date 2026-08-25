@@ -56,19 +56,15 @@ Recommended branch prefixes are `feat/`, `fix/`, `docs/`, `test/`, `refactor/`, 
 Keep dependencies flowing in the intended direction:
 
 ```text
-@mcp-native/core
-    ▲       ▲
-    │       │
-@mcp-native/a2ui     @mcp-native/webview
-    ▲
-    │
-@mcp-native/react-native
-    ▲
-    │
- mcp-native
+@mcp-native/mcp          ──► @mcp-native/core
+@mcp-native/a2ui         ──► @mcp-native/core
+@mcp-native/webview      ──► @mcp-native/core
+@mcp-native/react-native ──► @mcp-native/a2ui
+mcp-native               ──► core + a2ui + react-native + webview
 ```
 
 - `core` must remain independent of React Native, A2UI, and WebView implementations.
+- `mcp` adapts the official SDK and validates values before they enter `core`; it must not own UI behavior.
 - `a2ui` owns parsing and validation, not native component rendering.
 - `react-native` consumes validated models and maps only to host-owned components.
 - `webview` owns HTML compatibility policy and must fail closed by default.

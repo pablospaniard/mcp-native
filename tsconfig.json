@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/core" },
+    { "path": "./packages/mcp" },
     { "path": "./packages/a2ui" },
     { "path": "./packages/react-native" },
     { "path": "./packages/webview" },

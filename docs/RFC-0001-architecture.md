@@ -22,6 +22,12 @@ MCP server
     |
     | tools/list, tools/call, resources/read
     v
+official @modelcontextprotocol/client
+    |
+    v
+@mcp-native/mcp
+    | validated, JSON-safe contracts
+    v
 @mcp-native/core
     |
     +-- declarative resource
@@ -49,6 +55,14 @@ User actions take the reverse path. A component emits a typed action; the core r
 
 Owns protocol-independent runtime contracts, MCP client abstraction, resource access, action dispatch, and eventually the capability broker. It has no React Native or A2UI dependency.
 
+Its resource contract preserves every content item returned by `resources/read`; a single URI can resolve to more than one text or blob item. Tool results preserve JSON-safe content blocks, the error flag, and structured content without exposing SDK-specific transport types.
+
+### `@mcp-native/mcp`
+
+Owns the integration with the official MCP TypeScript SDK. It accepts an already connected SDK `Client` and adapts `listTools`, `callTool`, and `readResource` to the contracts in `@mcp-native/core`.
+
+This package is the validation boundary between SDK results and the runtime. It rejects malformed collections, non-JSON values, non-plain objects, circular values, invalid optional fields, and resource bodies that are missing or ambiguous. It does not choose a transport, own credentials, or silently manage connection lifecycle.
+
 ### `@mcp-native/a2ui`
 
 Owns parsing, validation, state bindings, and conversion from supported A2UI messages into the internal surface model. Unsupported versions, nodes, and actions fail closed.
@@ -65,7 +79,7 @@ Owns compatibility with HTML MCP Apps. WebView rendering is an explicit fallback
 
 ### `mcp-native`
 
-Convenience package that re-exports the public APIs. Applications may instead depend on individual scoped packages.
+Convenience package for the runtime and UI APIs. Transport adapters remain separately installable so applications do not acquire an SDK or transport dependency they do not use.
 
 ## Capability model
 
@@ -84,10 +98,37 @@ The first end-to-end proof should demonstrate:
 5. Render native text, button, text input, and container components.
 6. Route a button action back through `tools/call`.
 
+## Implementation status
+
+The official SDK adapter milestone is complete in the proof-of-concept workspace:
+
+- `@mcp-native/mcp` targets `@modelcontextprotocol/client` v2;
+- an integration test connects the official `Client` and `McpServer` through the SDK's linked in-memory transport;
+- `tools/list`, `tools/call`, and `resources/read` traverse the adapter and core runtime;
+- malformed SDK-like results fail with `McpSdkAdapterError` before reaching UI code.
+
+The next milestone is resolving a declarative A2UI resource referenced by a real tool result and passing its text through `@mcp-native/a2ui`.
+
+## Compatibility note
+
+The original proof-of-concept `McpClient.readResource(uri)` returned one `McpResource`. The official SDK and MCP response model return a `contents` collection, so RFC-0001 now defines `Promise<McpReadResourceResult>` with `contents: readonly McpResource[]`.
+
+Early adopters implementing `McpClient` must wrap their resource in `contents`:
+
+```ts
+// Before
+return { uri, text: "..." };
+
+// RFC-0001 adapter milestone
+return { contents: [{ uri, text: "..." }] };
+```
+
+This intentional pre-1.0 correction prevents silent data loss when a server returns multiple resource content items.
+
 ## Deferred work
 
 - Full A2UI protocol coverage and streaming updates
-- MCP SDK transport adapters and authentication
+- Authentication and production transport configuration
 - Production React Native components and hooks
 - Fine-grained capability negotiation and permissions
 - WebView bridge compatibility and origin isolation
