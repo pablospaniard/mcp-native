@@ -45,7 +45,7 @@ body:
     id: version
     attributes:
       label: Version or commit
-      placeholder: "0.0.2 or ae00598"
+      placeholder: "0.1.0 or ba40a81"
     validations:
       required: true
   - type: input

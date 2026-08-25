@@ -18,8 +18,6 @@ The adapter deliberately does not create a transport, manage credentials, or own
 
 ## Install
 
-The package is implemented in the monorepo and is scheduled for the next coordinated npm release. Once published:
-
 ```bash
 npm install @mcp-native/mcp @mcp-native/core @modelcontextprotocol/client
 ```

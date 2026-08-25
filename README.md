@@ -90,13 +90,13 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | Package                                                                              | Source                                           | Responsibility                                                           |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------ |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing |
-| `@mcp-native/mcp`                                                                    | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client             |
+| [`@mcp-native/mcp`](https://www.npmjs.com/package/@mcp-native/mcp)                   | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client             |
 | [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Strict parsing for the internal `0.1` proof-of-concept surface           |
 | [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans, React hooks, and a host-owned component renderer   |
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | HTML policy primitives for the planned MCP Apps compatibility path       |
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                  |
 
-The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. The new SDK adapter is implemented in the workspace and will be published in the next coordinated release.
+The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. Release `0.1.0` is the first coordinated experimental API baseline. Its package version is independent of the internal A2UI proof-of-concept surface value `"0.1"`.
 
 ## Installation
 
@@ -114,7 +114,13 @@ Or install only the layers your host needs:
 npm install @mcp-native/core @mcp-native/a2ui @mcp-native/react-native
 ```
 
-Every package is ESM-only and includes TypeScript declarations. Published packages are released from GitHub Actions with signed npm provenance; the SDK adapter joins them in the next coordinated release.
+Add the official SDK adapter when connecting an `@modelcontextprotocol/client` v2 client:
+
+```bash
+npm install @mcp-native/mcp @modelcontextprotocol/client
+```
+
+Every package is ESM-only and includes TypeScript declarations. Published packages are released from GitHub Actions with signed npm provenance.
 
 ## What works today
 
