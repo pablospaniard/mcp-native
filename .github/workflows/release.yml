@@ -87,7 +87,7 @@ jobs:
       - run: npm run release:verify
         working-directory: release
         env:
-          GITHUB_REF_NAME: ${{ steps.release.outputs.tag }}
+          MCP_NATIVE_RELEASE_TAG: ${{ steps.release.outputs.tag }}
       - name: Publish missing package versions
         working-directory: release
         run: node ../automation/scripts/publish-release.mjs

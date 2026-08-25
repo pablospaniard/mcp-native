@@ -19,7 +19,7 @@ if (versions.size !== 1) {
 }
 
 const [version] = versions;
-const releaseTag = process.env.GITHUB_REF_NAME;
+const releaseTag = process.env.MCP_NATIVE_RELEASE_TAG ?? process.env.GITHUB_REF_NAME;
 
 if (releaseTag !== undefined && releaseTag !== `v${version}`) {
   throw new Error(`Release tag ${releaseTag} does not match package version v${version}`);

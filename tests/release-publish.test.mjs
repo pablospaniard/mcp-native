@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
@@ -10,6 +11,7 @@ import {
 } from "../scripts/publish-release.mjs";
 
 const packageInfo = { name: "@mcp-native/example", version: "0.1.0" };
+const releaseVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
 
 test("release recovery skips an exact version that is already published", async () => {
   const published = [];
@@ -75,9 +77,28 @@ test("the recovery workflow resolves a published release to an immutable commit"
   const publishJob = workflow.jobs.publish;
   const steps = publishJob.steps;
   const releaseCheckout = steps.find(({ name }) => name === "Check out immutable release commit");
+  const verifyRelease = steps.find(({ run }) => run === "npm run release:verify");
 
   assert.equal(publishJob.environment, "npm-release");
   assert.match(publishJob.if, /github\.ref == 'refs\/heads\/main'/);
   assert.equal(releaseCheckout.with.ref, "${{ steps.release.outputs.commit }}");
   assert.equal(releaseCheckout.with["persist-credentials"], false);
+  assert.equal(verifyRelease.env.MCP_NATIVE_RELEASE_TAG, "${{ steps.release.outputs.tag }}");
+});
+
+test("release verification prefers the explicitly resolved tag", () => {
+  const result = spawnSync(process.execPath, ["scripts/verify-release-version.mjs"], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      GITHUB_REF_NAME: "main",
+      MCP_NATIVE_RELEASE_TAG: `v${releaseVersion}`,
+    },
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(
+    result.stdout.includes(`Verified release version ${releaseVersion} for tag v${releaseVersion}`),
+  );
 });
