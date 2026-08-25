@@ -6,16 +6,27 @@
   "workspaces": [
     "packages/*"
   ],
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
     "build": "tsc -b",
-    "check": "tsc -b --pretty false",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage",
     "clean": "tsc -b --clean",
-    "test": "npm run build && node --test tests/*.test.mjs"
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --deny-warnings --report-unused-disable-directives .",
+    "prepare": "husky",
+    "test": "npm run build && npm run test:unit",
+    "test:coverage": "npm run build && c8 node --test tests/*.test.mjs",
+    "test:unit": "node --test tests/*.test.mjs",
+    "typecheck": "tsc -b --pretty false"
   },
   "devDependencies": {
+    "c8": "^12.0.0",
+    "husky": "^9.1.7",
+    "oxfmt": "^0.65.0",
+    "oxlint": "^1.80.0",
     "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }

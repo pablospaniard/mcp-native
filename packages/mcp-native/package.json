@@ -3,7 +3,12 @@
   "version": "0.0.2",
   "description": "Convenience package for the MCP Native runtime.",
   "license": "MIT",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,9 +17,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
-  "sideEffects": false,
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@mcp-native/a2ui": "^0.0.2",
     "@mcp-native/core": "^0.0.2",

@@ -33,13 +33,27 @@ See [RFC-0001](docs/RFC-0001-architecture.md) for package boundaries, data flow,
 
 ## Development
 
-Requires Node.js 22 or newer.
+Requires Node.js 22.12 or newer.
 
 ```bash
 npm install
 npm run check
-npm test
 ```
+
+The full check verifies formatting, lint rules, TypeScript project references, tests, and
+coverage thresholds. Individual commands are also available:
+
+```bash
+npm run format
+npm run format:check
+npm run lint
+npm run typecheck
+npm test
+npm run test:coverage
+```
+
+Installing dependencies configures a pre-push hook that runs the full `npm run check` quality
+gate. A push is rejected if formatting, linting, type checking, tests, or coverage fail.
 
 ## Status
 

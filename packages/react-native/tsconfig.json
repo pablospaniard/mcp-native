@@ -6,9 +6,6 @@
     "outDir": "dist",
     "tsBuildInfoFile": "../../node_modules/.cache/mcp-native/react-native.tsbuildinfo"
   },
-  "references": [
-    { "path": "../core" },
-    { "path": "../a2ui" }
-  ],
+  "references": [{ "path": "../core" }, { "path": "../a2ui" }],
   "include": ["src/**/*.ts"]
 }

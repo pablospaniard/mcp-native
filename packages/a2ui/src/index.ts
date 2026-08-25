@@ -29,11 +29,7 @@ export interface A2uiTextInputNode extends A2uiNodeBase {
   readonly binding?: string;
 }
 
-export type A2uiNode =
-  | A2uiButtonNode
-  | A2uiContainerNode
-  | A2uiTextInputNode
-  | A2uiTextNode;
+export type A2uiNode = A2uiButtonNode | A2uiContainerNode | A2uiTextInputNode | A2uiTextNode;
 
 export interface A2uiSurface {
   readonly version: typeof A2UI_VERSION;
