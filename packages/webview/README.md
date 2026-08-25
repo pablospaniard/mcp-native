@@ -2,19 +2,21 @@
 
 # @mcp-native/webview
 
-### A deny-by-default HTML MCP App compatibility boundary
+### Deny-by-default HTML policy primitives for a future MCP Apps host
 
 [![npm](https://img.shields.io/npm/v/@mcp-native/webview)](https://www.npmjs.com/package/@mcp-native/webview)
 [![downloads](https://img.shields.io/npm/dm/@mcp-native/webview)](https://www.npmjs.com/package/@mcp-native/webview)
 [![license](https://img.shields.io/npm/l/@mcp-native/webview)](https://github.com/pablospaniard/mcp-native/blob/main/LICENSE)
 
-[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
+[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
 
 </div>
 
-> **Experimental:** this package defines document validation and policy decisions. It does not yet mount or sandbox a platform WebView.
+> **Experimental:** this package defines document validation and one policy decision. It does not mount or sandbox a platform WebView and is not a complete MCP Apps host.
 
 `@mcp-native/webview` handles the compatibility path for MCP resources that contain HTML. It recognizes supported MIME types, prefers inline documents, and rejects remote documents unless the host explicitly grants them through policy.
+
+Current support does not include tool `_meta.ui.resourceUri` discovery, `ui://` preloading, resource CSP or permission metadata, `ui/initialize`, AppBridge, the Apps JSON-RPC protocol, or a postMessage bridge. Those are required before this package can claim [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) host compatibility.
 
 ## Install
 
@@ -84,6 +86,8 @@ Returning a `WebViewDocument` is not permission to render it without further con
 - process isolation and platform-specific WebView hardening.
 
 See the repository's [security policy](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md) before expanding this boundary. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
+
+The planned compatibility work and the differences between browser iframe isolation and native WebView isolation are tracked in [Standards and compatibility](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 ## License
 

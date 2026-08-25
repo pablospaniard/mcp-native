@@ -45,3 +45,5 @@ Reports are particularly useful when they involve:
 ## Security design
 
 The foundational rule is documented in [RFC-0001](docs/RFC-0001-architecture.md): remote servers may provide declarative UI and actions, but MCP Native never downloads and executes arbitrary React Native JavaScript.
+
+Security-oriented architecture does not by itself establish protocol conformance. The current A2UI parser is an internal proof of concept, and the WebView package is not yet an MCP Apps sandbox or bridge. See [Standards and compatibility](docs/standards-compatibility.md) for the exact boundaries.

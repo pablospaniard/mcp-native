@@ -8,11 +8,11 @@
 [![downloads](https://img.shields.io/npm/dm/@mcp-native/a2ui)](https://www.npmjs.com/package/@mcp-native/a2ui)
 [![license](https://img.shields.io/npm/l/@mcp-native/a2ui)](https://github.com/pablospaniard/mcp-native/blob/main/LICENSE)
 
-[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
+[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
 
 </div>
 
-> **Experimental:** this package implements MCP Native's deliberately small `0.1` proof-of-concept surface. It is not a claim of complete A2UI specification compatibility.
+> **Experimental:** this package implements MCP Native's deliberately small internal `0.1` proof-of-concept surface. `0.1` is not an A2UI protocol version, and this package does not currently claim A2UI v1.0 compatibility.
 
 `@mcp-native/a2ui` resolves explicitly typed resource links and parses untrusted JSON or JavaScript values into a validated, typed surface before a host renders anything. Unknown or ambiguous resources fail with `A2uiResourceError`; unknown versions, node types, action types, and invalid JSON values fail with `A2uiParseError`.
 
@@ -89,7 +89,9 @@ Resolution succeeds only when:
 
 Other tool content and non-A2UI resource links may coexist with the surface link. MCP Native never guesses a MIME type or chooses between multiple matching surfaces.
 
-`application/a2ui+json` is the [A2UI media type](https://github.com/a2ui-project/a2ui/blob/main/specification/v0_9/docs/a2ui_extension_specification.md). The current MCP Native `0.1` parser is still a deliberately small proof-of-concept subset rather than full current-spec support.
+The prototype's `application/a2ui+json` resource convention comes from earlier A2UI-over-MCP work. The [A2UI v1.0 Candidate protocol](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md) is transport-agnostic and uses a stream of `v1.0` envelopes. Recognizing this media type does not establish v1.0 conformance.
+
+The next protocol milestone will parse official v1.0 envelopes and schemas into an internal trusted render plan. It will not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 ## Supported surface
 

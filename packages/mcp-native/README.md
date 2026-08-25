@@ -9,11 +9,13 @@
 [![license](https://img.shields.io/npm/l/mcp-native)](https://github.com/pablospaniard/mcp-native/blob/main/LICENSE)
 [![CI](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml/badge.svg)](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml)
 
-[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Contributing](https://github.com/pablospaniard/mcp-native/blob/main/CONTRIBUTING.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
+[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Contributing](https://github.com/pablospaniard/mcp-native/blob/main/CONTRIBUTING.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
 
 </div>
 
 > **Experimental:** MCP Native is a proof of concept, not a production-ready MCP or React Native runtime. APIs may change before `1.0.0`.
+
+> **Compatibility:** the current declarative `0.1` surface is not A2UI v1.0, and the WebView primitives are not a complete MCP Apps host. See the [standards compatibility matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 `mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, declarative surface parser, trusted native renderer and hooks, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
 
@@ -88,9 +90,9 @@ The host supplies the locally bundled native components. MCP Native never downlo
 | Package                                                                              | What it provides                                                                 |
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | MCP client contracts, runtime delegation, JSON types, and declared tool actions. |
-| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Strict parsing for the initial declarative surface model.                        |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Strict parsing for the internal `0.1` proof-of-concept surface.                  |
 | [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | Trusted render plans, React hooks, and a fixed host-owned component catalog.     |
-| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | MIME validation and deny-by-default remote HTML policy.                          |
+| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | HTML policy primitives for the planned MCP Apps compatibility path.              |
 
 Install an individual package instead when you only need one layer.
 

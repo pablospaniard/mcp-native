@@ -4,7 +4,7 @@
 
 ### A validated bridge from the official MCP TypeScript SDK to MCP Native
 
-[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Official SDK](https://github.com/modelcontextprotocol/typescript-sdk) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
+[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Official SDK](https://github.com/modelcontextprotocol/typescript-sdk) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
 
 </div>
 
@@ -88,6 +88,7 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 - Official SDK client v2 integration only.
 - Connection setup, transport selection, authentication, retries, and shutdown remain host responsibilities.
 - Prompts, roots, subscriptions, sampling, elicitation, and task APIs are outside RFC-0001's initial client boundary.
+- Tool and resource `_meta.ui` fields required for MCP Apps discovery and policy are not preserved yet.
 - The adapter package remains independent of React Native, A2UI, and WebView packages.
 
 ## License

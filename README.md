@@ -13,12 +13,15 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Architecture](docs/RFC-0001-architecture.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
+[Architecture](docs/RFC-0001-architecture.md) · [Standards status](docs/standards-compatibility.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
 
 </div>
 
 > [!IMPORTANT]
 > MCP Native is an experimental proof of concept, not a production-ready runtime. The npm packages contain working foundational APIs, but those APIs may change before the first stable release.
+
+> [!CAUTION]
+> The current `@mcp-native/a2ui` `0.1` surface is an internal proof-of-concept model, not A2UI v1.0. The WebView package contains policy primitives, not a complete MCP Apps host. See [Standards and compatibility](docs/standards-compatibility.md).
 
 ## The idea
 
@@ -88,9 +91,9 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | ------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------ |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing |
 | `@mcp-native/mcp`                                                                    | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client             |
-| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Strict parsing for the initial declarative UI surface                    |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Strict parsing for the internal `0.1` proof-of-concept surface           |
 | [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans, React hooks, and a host-owned component renderer   |
-| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | Policy-gated HTML MCP App compatibility                                  |
+| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | HTML policy primitives for the planned MCP Apps compatibility path       |
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                  |
 
 The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. The new SDK adapter is implemented in the workspace and will be published in the next coordinated release.
@@ -179,7 +182,13 @@ const toolResult = await runtime.callTool("open_surface");
 const { surface } = await resolveA2uiResourceFromToolResult(runtime, toolResult);
 ```
 
-The resolver requires exactly one `application/a2ui+json` resource link, reads the matching text resource, and passes it through the same strict parser. The current parser remains MCP Native's deliberately small `0.1` proof-of-concept subset, not complete A2UI specification coverage.
+The resolver requires exactly one `application/a2ui+json` resource link, reads the matching text resource, and passes it through the same strict parser. The current parser remains MCP Native's deliberately small `0.1` proof-of-concept model. It is not wire-compatible with the A2UI v1.0 Candidate protocol.
+
+## Standards status
+
+MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
+
+Those principles do not yet amount to protocol conformance. A2UI v1.0 requires official message envelopes, schema-defined catalogs, surface lifecycle, data-model semantics, action envelopes, and capability negotiation. MCP Apps requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 
@@ -255,8 +264,10 @@ mcp-native/
 - [x] Add an adapter for the official MCP TypeScript SDK
 - [x] Resolve declarative UI resources from real tool results
 - [x] Render host-provided React Native components through production-facing hooks
-- [ ] Support local state bindings and streaming surface updates
+- [ ] Implement an A2UI v1.0 conformance foundation from pinned official schemas
+- [ ] Support the A2UI surface lifecycle, local data model, bindings, and streaming updates
 - [ ] Add capability negotiation, authentication, and host permissions
+- [ ] Implement MCP Apps discovery, policy metadata, sandboxing, and AppBridge compatibility
 - [ ] Ship an end-to-end React Native example
 - [ ] Expand protocol coverage through reviewed RFCs and tests
 
