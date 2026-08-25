@@ -14,7 +14,7 @@
 
 > **Experimental:** this package defines document validation and one policy decision. It does not mount or sandbox a platform WebView and is not a complete MCP Apps host.
 
-`@mcp-native/webview` handles the compatibility path for MCP resources that contain HTML. It recognizes supported MIME types, prefers inline documents, and rejects remote documents unless the host explicitly grants them through policy.
+`@mcp-native/webview` handles the compatibility path for MCP resources that contain HTML. It recognizes supported MIME types and rejects both inline and remote documents unless the host explicitly grants them through policy. Inline base URLs are limited to non-network `ui:` / `mcp:` schemes. Remote loads require an exact origin allowlist, accept only credential-free `http:` / `https:` URIs, and use a dedicated `{ uri, mimeType }` input rather than an MCP blob/text body.
 
 Current support does not include tool `_meta.ui.resourceUri` discovery, `ui://` preloading, resource CSP or permission metadata, `ui/initialize`, AppBridge, the Apps JSON-RPC protocol, or a postMessage bridge. Those are required before this package can claim [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) host compatibility.
 
@@ -26,21 +26,26 @@ npm install @mcp-native/webview
 
 `@mcp-native/core` is installed as a dependency. The package is ESM-only and includes TypeScript declarations.
 
-## Inline HTML
+## Inline HTML (opt-in)
 
 ```ts
 import { createWebViewDocument } from "@mcp-native/webview";
 
-const document = createWebViewDocument({
-  uri: "mcp://example/app",
-  mimeType: "text/html",
-  text: "<main>Hello from an MCP App</main>",
-});
+const document = createWebViewDocument(
+  {
+    uri: "mcp://example/app",
+    mimeType: "text/html",
+    text: "<main>Hello from an MCP App</main>",
+  },
+  { allowInlineDocuments: true },
+);
 
 // { kind: "inline", html: "...", baseUrl: "mcp://example/app" }
 ```
 
-## Remote documents are denied by default
+Inline documents and remote documents are both denied by default. Inline base URLs must use a non-network allowlisted scheme (`ui:` or `mcp:`) so relative fetches cannot be steered at an arbitrary https origin. Embedded credentials are always rejected.
+
+## Remote documents require an origin allowlist
 
 ```ts
 import { createWebViewDocument, WebViewPolicyError } from "@mcp-native/webview";
@@ -60,18 +65,23 @@ try {
 
 const allowed = createWebViewDocument(resource, {
   allowRemoteDocuments: true,
+  allowedRemoteOrigins: ["https://example.com"],
 });
 ```
 
+Remote inputs are `{ uri, mimeType }` references (not MCP text/blob resource bodies). Only credential-free `http:` / `https:` URIs are accepted, and the URI origin must appear exactly in `allowedRemoteOrigins`. Binary `blob` resources are rejected.
+
 ## Public API
 
-| Export                  | Purpose                                                                        |
-| ----------------------- | ------------------------------------------------------------------------------ |
-| `isHtmlResource`        | Returns whether a resource declares a supported HTML MIME type.                |
-| `createWebViewDocument` | Validates a resource and returns an inline or policy-approved remote document. |
-| `WebViewPolicy`         | Host policy controlling whether remote documents are allowed.                  |
-| `WebViewDocument`       | Discriminated union for inline and remote documents.                           |
-| `WebViewPolicyError`    | Error thrown for unsupported MIME types or denied remote documents.            |
+| Export                  | Purpose                                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| `isHtmlResource`        | Returns whether a resource declares a supported HTML MIME type.                           |
+| `createWebViewDocument` | Validates a text or remote HTML input and returns a policy-approved document descriptor.  |
+| `WebViewDocumentInput`  | `McpTextResourceContents` or `{ uri, mimeType }` remote reference (never blob resources). |
+| `WebViewRemoteResource` | Remote HTML reference without a resource body.                                            |
+| `WebViewPolicy`         | Host policy for inline opt-in, remote opt-in, and remote origin allowlists.               |
+| `WebViewDocument`       | Discriminated union for inline and remote documents.                                      |
+| `WebViewPolicyError`    | Error thrown for unsupported MIME types, schemes, credentials, or denied documents.       |
 
 Supported MIME types are `text/html` and `text/html+skybridge`.
 

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  A2UI_MAX_DEPTH,
+  A2UI_MAX_NODES,
   A2UI_MIME_TYPE,
   A2UI_VERSION,
   A2uiParseError,
@@ -125,6 +127,7 @@ test("invalid A2UI input fails closed with a parse error", () => {
   const invalidInputs = [
     "{not-json",
     null,
+    Object.create({ version: "0.1", root: { id: "x", type: "text", text: "x" } }),
     { version: "1.0", root: { id: "x", type: "text", text: "x" } },
     { version: "0.1", root: { id: 1, type: "text", text: "x" } },
     { version: "0.1", root: { id: "x", type: "container", children: {} } },
@@ -183,6 +186,15 @@ test("invalid A2UI input fails closed with a parse error", () => {
         action: { type: "tool", name: "run", arguments: { value: new Date(0) } },
       },
     },
+    {
+      version: "0.1",
+      root: {
+        id: "x",
+        type: "button",
+        label: "Run",
+        action: { type: "tool", name: "" },
+      },
+    },
     { version: "0.1", root: { id: "x", type: "text-input", label: "X", value: 1 } },
     { version: "0.1", root: { id: "x", type: "script" } },
     {
@@ -209,6 +221,50 @@ test("invalid A2UI input fails closed with a parse error", () => {
   for (const input of invalidInputs) {
     assert.throws(() => parseA2uiSurface(input), A2uiParseError);
   }
+});
+
+test("A2UI parsing rejects inherited prototype fields on object input", () => {
+  const proto = {
+    type: "button",
+    label: "Evil",
+    action: { type: "tool", name: "exfiltrate" },
+  };
+  const root = Object.create(proto);
+  root.id = "x";
+
+  assert.throws(
+    () => parseA2uiSurface({ version: "0.1", root }),
+    (error) => error instanceof A2uiParseError && /plain object/.test(error.message),
+  );
+});
+
+test("A2UI parsing enforces depth and node-count limits", () => {
+  let nested = { id: "leaf", type: "text", text: "deep" };
+  for (let index = 0; index <= A2UI_MAX_DEPTH; index += 1) {
+    nested = {
+      id: `container-${index}`,
+      type: "container",
+      children: [nested],
+    };
+  }
+  assert.throws(
+    () => parseA2uiSurface({ version: "0.1", root: nested }),
+    (error) => error instanceof A2uiParseError && /maximum depth/.test(error.message),
+  );
+
+  const children = Array.from({ length: A2UI_MAX_NODES }, (_, index) => ({
+    id: `node-${index}`,
+    type: "text",
+    text: "x",
+  }));
+  assert.throws(
+    () =>
+      parseA2uiSurface({
+        version: "0.1",
+        root: { id: "root", type: "container", children },
+      }),
+    (error) => error instanceof A2uiParseError && /maximum of/.test(error.message),
+  );
 });
 
 test("circular tool arguments fail closed with a parse error", () => {

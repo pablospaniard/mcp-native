@@ -8,6 +8,7 @@ import {
   McpNativeActionDeniedError,
   McpNativeSurface,
   McpNativeRuntime,
+  createAllowlistActionPolicy,
   createNativeRenderPlan,
   createWebViewDocument,
   parseJsonObject,
@@ -26,6 +27,7 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof JsonValidationError, "function");
   assert.equal(typeof McpNativeSurface, "function");
   assert.equal(typeof createNativeRenderPlan, "function");
+  assert.equal(typeof createAllowlistActionPolicy, "function");
   assert.equal(typeof createWebViewDocument, "function");
   assert.equal(typeof parseJsonObject, "function");
   assert.equal(typeof parseJsonValue, "function");
