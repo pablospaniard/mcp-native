@@ -1,11 +1,22 @@
 {
   "name": "@mcp-native/a2ui",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A2UI parsing and bindings for MCP Native.",
+  "keywords": [
+    "a2ui",
+    "declarative-ui",
+    "mcp",
+    "model-context-protocol",
+    "typescript"
+  ],
+  "homepage": "https://github.com/pablospaniard/mcp-native#readme",
+  "bugs": {
+    "url": "https://github.com/pablospaniard/mcp-native/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pablospaniard/mcp-native.git",
+    "url": "git+https://github.com/pablospaniard/mcp-native.git",
     "directory": "packages/a2ui"
   },
   "files": [
@@ -26,6 +37,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@mcp-native/core": "^0.0.2"
+    "@mcp-native/core": "^0.0.3"
   }
 }

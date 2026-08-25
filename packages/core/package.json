@@ -1,11 +1,21 @@
 {
   "name": "@mcp-native/core",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Protocol-independent runtime primitives for MCP Native.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "runtime",
+    "typescript"
+  ],
+  "homepage": "https://github.com/pablospaniard/mcp-native#readme",
+  "bugs": {
+    "url": "https://github.com/pablospaniard/mcp-native/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pablospaniard/mcp-native.git",
+    "url": "git+https://github.com/pablospaniard/mcp-native.git",
     "directory": "packages/core"
   },
   "files": [

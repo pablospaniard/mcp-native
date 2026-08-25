@@ -8,6 +8,7 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 
 [![CI](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml/badge.svg)](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/mcp-native?label=mcp-native)](https://www.npmjs.com/package/mcp-native)
+[![npm downloads](https://img.shields.io/npm/dm/mcp-native?label=downloads)](https://www.npmjs.com/package/mcp-native)
 [![License: MIT](https://img.shields.io/github/license/pablospaniard/mcp-native)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -17,7 +18,7 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 </div>
 
 > [!IMPORTANT]
-> MCP Native is an early proof of concept, not a production-ready runtime. The npm names are reserved, and the APIs in this repository may change before the first stable release.
+> MCP Native is an experimental proof of concept, not a production-ready runtime. The npm packages contain working foundational APIs, but those APIs may change before the first stable release.
 
 ## The idea
 
@@ -72,15 +73,31 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 
 ## Packages
 
-| Package                                             | Responsibility                                                           | Current proof-of-concept surface                                         |
-| --------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| [`@mcp-native/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing | `McpClient`, `McpNativeRuntime`, typed tool actions                      |
-| [`@mcp-native/a2ui`](packages/a2ui)                 | Declarative surface parsing, validation, and eventually state bindings   | Strict `0.1` parser for container, text, button, and text input nodes    |
-| [`@mcp-native/react-native`](packages/react-native) | React Native host integration and trusted component catalog              | Serializable render plan using `View`, `Text`, `Button`, and `TextInput` |
-| [`@mcp-native/webview`](packages/webview)           | HTML MCP App compatibility boundary                                      | MIME validation and deny-by-default remote-document policy               |
-| [`mcp-native`](packages/mcp-native)                 | Convenience entry point                                                  | Re-exports the public package APIs                                       |
+| Package                                                                              | Source                                           | Responsibility                                                           |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------ |
+| [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Strict parsing for the initial declarative UI surface                    |
+| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans using an explicit native component catalog          |
+| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | Policy-gated HTML MCP App compatibility                                  |
+| [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point that re-exports every public API                 |
 
 The packages are intentionally separated so the core runtime does not depend on React Native or any single declarative UI protocol.
+
+## Installation
+
+Install the complete public API from the convenience package:
+
+```bash
+npm install mcp-native
+```
+
+Or install only the layers your host needs:
+
+```bash
+npm install @mcp-native/core @mcp-native/a2ui @mcp-native/react-native
+```
+
+Every package is ESM-only, includes TypeScript declarations, and is published from GitHub Actions with signed npm provenance. See each package's npm page for focused examples and its current API surface.
 
 ## What works today
 

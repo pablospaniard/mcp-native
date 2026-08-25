@@ -11,6 +11,7 @@ const packages = [
   "@mcp-native/react-native",
   "mcp-native",
 ];
+const expectedVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
 
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "mcp-native-packages-"));
 const npmEnvironment = {
@@ -56,7 +57,7 @@ try {
   const importPromises = packages.map((packageName) => {
     const packageJsonPath = join(consumerDirectory, "node_modules", packageName, "package.json");
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
-    if (packageJson.version !== "0.0.2") {
+    if (packageJson.version !== expectedVersion) {
       throw new Error(`${packageName} has unexpected version ${packageJson.version}`);
     }
     const entryPoint = join(consumerDirectory, "node_modules", packageName, "dist", "index.js");

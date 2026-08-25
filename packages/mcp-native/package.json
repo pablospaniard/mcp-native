@@ -1,11 +1,22 @@
 {
   "name": "mcp-native",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Convenience package for the MCP Native runtime.",
+  "keywords": [
+    "a2ui",
+    "mcp",
+    "model-context-protocol",
+    "native-ui",
+    "react-native"
+  ],
+  "homepage": "https://github.com/pablospaniard/mcp-native#readme",
+  "bugs": {
+    "url": "https://github.com/pablospaniard/mcp-native/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pablospaniard/mcp-native.git",
+    "url": "git+https://github.com/pablospaniard/mcp-native.git",
     "directory": "packages/mcp-native"
   },
   "files": [
@@ -26,9 +37,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@mcp-native/a2ui": "^0.0.2",
-    "@mcp-native/core": "^0.0.2",
-    "@mcp-native/react-native": "^0.0.2",
-    "@mcp-native/webview": "^0.0.2"
+    "@mcp-native/a2ui": "^0.0.3",
+    "@mcp-native/core": "^0.0.3",
+    "@mcp-native/react-native": "^0.0.3",
+    "@mcp-native/webview": "^0.0.3"
   }
 }

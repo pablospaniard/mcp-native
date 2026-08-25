@@ -1,11 +1,22 @@
 {
   "name": "@mcp-native/webview",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Policy-gated WebView fallback primitives for MCP Native.",
+  "keywords": [
+    "mcp",
+    "mcp-apps",
+    "model-context-protocol",
+    "security",
+    "webview"
+  ],
+  "homepage": "https://github.com/pablospaniard/mcp-native#readme",
+  "bugs": {
+    "url": "https://github.com/pablospaniard/mcp-native/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pablospaniard/mcp-native.git",
+    "url": "git+https://github.com/pablospaniard/mcp-native.git",
     "directory": "packages/webview"
   },
   "files": [
@@ -26,6 +37,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@mcp-native/core": "^0.0.2"
+    "@mcp-native/core": "^0.0.3"
   }
 }
