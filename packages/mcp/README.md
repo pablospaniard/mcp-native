@@ -10,6 +10,8 @@
 
 > **Experimental:** this package is an early proof of concept. Its public API may change before `1.0.0`.
 
+> **Compatibility:** SDK v2 is the correct implementation line for MCP `2026-07-28`, but this adapter currently exposes a deliberately minimal contract and has not completed field-fidelity or current HTTP conformance coverage.
+
 `@mcp-native/mcp` adapts a connected [`Client`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/client.md) from `@modelcontextprotocol/client` v2 to the transport-neutral `McpClient` interface in `@mcp-native/core`.
 
 The adapter deliberately does not create a transport, manage credentials, or own the SDK client's lifecycle. The host chooses and connects the official client, then hands it to MCP Native.
@@ -86,9 +88,11 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 ## Scope
 
 - Official SDK client v2 integration only.
+- Current integration tests use the SDK's linked in-memory transport, which covers the older connection-era protocol; `2026-07-28` HTTP handler/fetch coverage is a roadmap requirement.
 - Connection setup, transport selection, authentication, retries, and shutdown remain host responsibilities.
 - Prompts, roots, subscriptions, sampling, elicitation, and task APIs are outside RFC-0001's initial client boundary.
 - Tool and resource `_meta.ui` fields required for MCP Apps discovery and policy are not preserved yet.
+- Tool annotations, output schemas, extension settings, and response cache hints are not preserved yet.
 - The adapter package remains independent of React Native, A2UI, and WebView packages.
 
 ## License
