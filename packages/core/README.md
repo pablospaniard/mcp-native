@@ -8,7 +8,7 @@
 [![downloads](https://img.shields.io/npm/dm/@mcp-native/core)](https://www.npmjs.com/package/@mcp-native/core)
 [![license](https://img.shields.io/npm/l/@mcp-native/core)](https://github.com/pablospaniard/mcp-native/blob/main/LICENSE)
 
-[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
+[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
 
 </div>
 

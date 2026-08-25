@@ -42,6 +42,17 @@ try {
 
     return join(temporaryDirectory, packed.filename);
   });
+  const reactOutput = execFileSync(
+    "npm",
+    ["pack", "--json", "--pack-destination", temporaryDirectory, "."],
+    { cwd: join(process.cwd(), "node_modules", "react"), encoding: "utf8", env: npmEnvironment },
+  );
+  const [packedReact] = JSON.parse(reactOutput);
+
+  if (!packedReact?.filename) {
+    throw new Error("npm pack did not return a filename for the React peer dependency");
+  }
+  const reactTarball = join(temporaryDirectory, packedReact.filename);
 
   const consumerDirectory = join(temporaryDirectory, "consumer");
   mkdirSync(consumerDirectory);
@@ -58,6 +69,7 @@ try {
       "--no-fund",
       "--offline",
       "--legacy-peer-deps",
+      reactTarball,
       ...tarballs,
     ],
     {

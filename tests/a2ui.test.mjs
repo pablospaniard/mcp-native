@@ -137,11 +137,48 @@ test("invalid A2UI input fails closed with a parse error", () => {
     },
     { version: "0.1", root: { id: "x", type: "text-input", label: "X", value: 1 } },
     { version: "0.1", root: { id: "x", type: "script" } },
+    {
+      version: "0.1",
+      root: {
+        id: "root",
+        type: "container",
+        children: [
+          { id: "dup", type: "text", text: "one" },
+          { id: "dup", type: "text", text: "two" },
+        ],
+      },
+    },
+    {
+      version: "0.1",
+      root: {
+        id: "shared",
+        type: "container",
+        children: [{ id: "shared", type: "text", text: "nested" }],
+      },
+    },
   ];
 
   for (const input of invalidInputs) {
     assert.throws(() => parseA2uiSurface(input), A2uiParseError);
   }
+});
+
+test("duplicate node ids fail closed with a parse error", () => {
+  assert.throws(
+    () =>
+      parseA2uiSurface({
+        version: "0.1",
+        root: {
+          id: "root",
+          type: "container",
+          children: [
+            { id: "title", type: "text", text: "one" },
+            { id: "title", type: "text", text: "two" },
+          ],
+        },
+      }),
+    (error) => error instanceof A2uiParseError && /Duplicate node id.*title/.test(error.message),
+  );
 });
 
 test("an A2UI resource link resolves to a validated surface", async () => {

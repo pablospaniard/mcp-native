@@ -1,13 +1,17 @@
 # RFC-0001: MCP Native architecture
 
 - Status: Accepted for initial proof of concept
+- Protocol conformance: None claimed
 - Date: 2026-08-25
+- Last updated: 2026-08-25
 
 ## Summary
 
-MCP Native turns MCP resources and actions into host-controlled native UI. A server may describe a surface using a supported declarative protocol such as A2UI. The host parses that data, maps it to a local component catalog, renders it, and routes declared user actions back through MCP.
+MCP Native turns MCP resources and actions into host-controlled native UI. The initial implementation uses a small internal surface model inspired by A2UI. The intended production architecture will parse a supported declarative protocol into an internal trusted render plan, map that plan to a local component catalog, and route declared user actions back through its protocol binding.
 
-HTML MCP Apps remain available through a separately policy-gated WebView fallback.
+HTML MCP Apps are planned through a separately policy-gated WebView path. The current WebView package does not implement the MCP Apps bridge or sandbox.
+
+RFC-0001 defines the proof-of-concept architecture, not A2UI v1.0 or MCP Apps conformance. See [Standards and compatibility](standards-compatibility.md) for the normative baselines and tracked gaps.
 
 ## Non-negotiable security rule
 
@@ -67,17 +71,21 @@ This package is the validation boundary between SDK results and the runtime. It 
 
 ### `@mcp-native/a2ui`
 
-Owns resource-link resolution, parsing, validation, state bindings, and conversion from supported A2UI messages into the internal surface model. Unsupported MIME types, ambiguous links or contents, binary surfaces, versions, nodes, and actions fail closed.
+Owns the current resource-link resolution, parser, validation, and conversion into the internal surface model. Unsupported MIME types, ambiguous links or contents, binary surfaces, versions, nodes, and actions fail closed.
 
-The resolver recognizes the A2UI media type `application/a2ui+json`. The proof-of-concept parser starts with its own deliberately small `0.1` subset containing four nodes: container, text, button, and text input. This is not complete coverage of the current A2UI specification. Supporting more of A2UI must not weaken validation or introduce remote code execution.
+The resolver recognizes the prototype's `application/a2ui+json` resource convention. Its deliberately small `0.1` input contains four nested node types: container, text, button, and text input. This format is not an A2UI protocol version and is not wire-compatible with A2UI v1.0, which uses `v1.0` message envelopes, catalogs, ID-referenced component graphs, data-model updates, and renderer-to-agent messages. Future support must enter through a conforming adapter rather than incrementally redefining the custom wire format.
 
 ### `@mcp-native/react-native`
 
-Owns the native component catalog, React Native rendering, event translation, accessibility defaults, and host customization. The first typed render plan uses only `View`, `Text`, `Button`, and `TextInput`.
+Owns the native component catalog, React Native rendering, event translation, accessibility defaults, and host customization. The first typed render plan and renderer use only `View`, `Text`, `Button`, and `TextInput`.
+
+The renderer accepts a catalog of locally bundled components instead of importing or resolving components named by the server. It explicitly selects every prop crossing into that catalog: text becomes children, button labels become titles and accessibility labels, declared actions become callbacks, and text-input labels become placeholders and accessibility labels. It never spreads unchecked plan or server props.
+
+`useNativeRenderPlan` memoizes conversion for a validated surface identity. `useMcpNativeActionDispatcher` adapts asynchronous runtime dispatch to a synchronous component event and requires an error callback so action failures are observed. Text inputs emit `(binding, value)` changes only when the validated node declares a binding and the host provides a handler. Local binding state and synchronization remain host responsibilities in this milestone.
 
 ### `@mcp-native/webview`
 
-Owns compatibility with HTML MCP Apps. WebView rendering is an explicit fallback and has a separate policy surface for navigation, remote documents, origins, bridge messages, storage, and permissions.
+Owns the planned compatibility path for HTML MCP Apps. The current implementation only validates HTML resource MIME types and applies a minimal remote-document policy. Complete support still requires tool `_meta.ui.resourceUri` discovery, `ui://` loading, CSP and permission metadata, an isolated platform WebView, and the Apps JSON-RPC/AppBridge protocol.
 
 ### `mcp-native`
 
@@ -102,7 +110,7 @@ The first end-to-end proof should demonstrate:
 
 ## Implementation status
 
-The official SDK adapter and declarative resource-resolution milestones are complete in the proof-of-concept workspace:
+The official SDK adapter, declarative resource-resolution, and initial React Native rendering milestones are complete in the proof-of-concept workspace:
 
 - `@mcp-native/mcp` targets `@modelcontextprotocol/client` v2;
 - an integration test connects the official `Client` and `McpServer` through the SDK's linked in-memory transport;
@@ -111,8 +119,15 @@ The official SDK adapter and declarative resource-resolution milestones are comp
 - an official SDK tool result can return an `application/a2ui+json` `resource_link` that is read and parsed through `@mcp-native/a2ui`;
 - resolution requires exactly one matching link and one matching text resource, preventing server-controlled ambiguity or MIME guessing;
 - errored tool results, malformed links and contents, binary bodies, and invalid surfaces fail before rendering.
+- validated surfaces mount through a host-provided catalog containing `View`, `Text`, `Button`, and `TextInput`;
+- buttons dispatch only their validated tool actions, and text inputs emit only declared binding changes;
+- renderer-selected accessibility labels are supplied for interactive components;
+- renderer hooks memoize plans and route asynchronous dispatch results or failures to explicit host callbacks;
+- component, interaction, hook, malformed-plan, public-export, and isolated package-consumer tests cover the boundary.
 
-The next milestone is mounting production React Native components and hooks on the trusted render plan while preserving the host-owned catalog boundary.
+The next milestone is an A2UI v1.0 conformance foundation based on a pinned official schema revision. It will introduce official envelopes and an ordered surface state engine before adding richer renderer behavior. The existing host-owned React Native catalog remains the internal rendering boundary.
+
+MCP Apps compatibility remains a separate track. A malformed or unsupported native surface must fail closed rather than silently becoming executable HTML, and an invalid Apps resource must not be interpreted as native UI.
 
 ## Compatibility note
 
@@ -132,9 +147,10 @@ This intentional pre-1.0 correction prevents silent data loss when a server retu
 
 ## Deferred work
 
-- Full A2UI protocol coverage and streaming updates
+- A2UI v1.0 envelopes, schema validation, catalogs, surface lifecycle, and conformance tests
+- A2UI data-model bindings, actions, functions, capabilities, and streaming updates
 - Authentication and production transport configuration
-- Production React Native components and hooks
+- Richer React Native catalog components, styling, and platform-specific accessibility behavior
 - Fine-grained capability negotiation and permissions
-- WebView bridge compatibility and origin isolation
+- MCP Apps discovery metadata, AppBridge compatibility, WebView sandboxing, and origin isolation
 - SwiftUI, Jetpack Compose, or other native renderers
