@@ -171,6 +171,15 @@ test("invalid A2UI input fails closed with a parse error", () => {
         id: "x",
         type: "button",
         label: "Run",
+        action: { type: "tool", name: "run", arguments: { values: Array(1) } },
+      },
+    },
+    {
+      version: "0.1",
+      root: {
+        id: "x",
+        type: "button",
+        label: "Run",
         action: { type: "tool", name: "run", arguments: { value: new Date(0) } },
       },
     },

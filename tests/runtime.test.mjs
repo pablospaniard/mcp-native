@@ -113,6 +113,15 @@ test("the core runtime validates and safely reconstructs actions before policy e
     () => runtime.dispatch({ type: "tool", name: "safe", arguments: [] }),
     JsonValidationError,
   );
+  await assert.rejects(
+    () =>
+      runtime.dispatch({
+        type: "tool",
+        name: "safe",
+        arguments: { values: Array(1) },
+      }),
+    (error) => error instanceof JsonValidationError && /Sparse JSON array item/.test(error.message),
+  );
   assert.equal(policyActions.length, 1);
   assert.equal(calls.length, 1);
 });

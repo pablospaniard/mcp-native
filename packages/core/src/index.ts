@@ -303,9 +303,13 @@ function parseJsonValueWithAncestors(
       throw new JsonValidationError(`Circular JSON value at ${path}`);
     }
     ancestors.add(value);
-    const result = value.map((child, index) =>
-      parseJsonValueWithAncestors(child, `${path}[${index}]`, ancestors),
-    );
+    const result: JsonValue[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      if (!Object.hasOwn(value, index)) {
+        throw new JsonValidationError(`Sparse JSON array item at ${path}[${index}]`);
+      }
+      result.push(parseJsonValueWithAncestors(value[index], `${path}[${index}]`, ancestors));
+    }
     ancestors.delete(value);
     return result;
   }

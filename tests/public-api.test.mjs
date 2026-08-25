@@ -34,3 +34,10 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof useMcpNativeActionDispatcher, "function");
   assert.equal(typeof useNativeRenderPlan, "function");
 });
+
+test("the public JSON validator rejects sparse arrays", () => {
+  assert.throws(
+    () => parseJsonValue(Array(1)),
+    (error) => error instanceof JsonValidationError && /Sparse JSON array item/.test(error.message),
+  );
+});
