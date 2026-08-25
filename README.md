@@ -123,6 +123,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - MCP `2026-07-28` tool/resource field preservation and HTTP handler/fetch integration coverage
 - Exact protocol options for the `2026-07-28` target and tested `2025-11-25` compatibility lane
 - Seven pinned official MCP client scenarios covering the implemented modern HTTP boundary
+- Frozen official requirement accounting and shared-cache isolation tests across principals
 - Typed `tools/call` action routing with a fail-closed host policy
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results

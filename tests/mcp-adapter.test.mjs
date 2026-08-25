@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   Client,
+  InMemoryResponseCacheStore,
   InMemoryTransport,
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
@@ -21,6 +22,71 @@ import {
 } from "../packages/mcp/dist/index.js";
 
 const MODERN_SERVER_INFO = { name: "mcp-native-modern-test", version: "1.0.0" };
+const CACHE_SERVER_INFO = { name: "mcp-native-cache-test", version: "1.0.0" };
+const CACHE_RESOURCE_URI = "ui://cache-test/profile";
+
+function createCacheTestEndpoint(principal, cacheScope) {
+  const requests = new Map();
+  const handler = createMcpHandler(
+    () => {
+      const server = new McpServer(CACHE_SERVER_INFO, {
+        cacheHints: {
+          "tools/list": { ttlMs: 60_000, cacheScope },
+          "resources/read": { ttlMs: 60_000, cacheScope },
+        },
+      });
+      server.registerTool(
+        `profile-${principal}`,
+        { description: `Profile tool for ${principal}` },
+        async () => ({ content: [{ type: "text", text: principal }] }),
+      );
+      server.registerResource(
+        "profile",
+        CACHE_RESOURCE_URI,
+        { mimeType: "application/json" },
+        async (uri) => ({
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: "application/json",
+              text: JSON.stringify({ principal }),
+            },
+          ],
+        }),
+      );
+      return server;
+    },
+    { legacy: "reject" },
+  );
+
+  const fetch = async (input, init) => {
+    const request = new Request(input, init);
+    if (request.method === "POST") {
+      const body = await request.clone().json();
+      requests.set(body.method, (requests.get(body.method) ?? 0) + 1);
+    }
+    return handler.fetch(request);
+  };
+
+  return { fetch, handler, requests };
+}
+
+async function connectCacheTestClient(endpoint, store, cachePartition) {
+  const transport = new StreamableHTTPClientTransport(
+    new URL("https://mcp-native-cache.test/mcp"),
+    { fetch: endpoint.fetch },
+  );
+  const client = new Client(
+    { name: `cache-client-${cachePartition}`, version: "1.0.0" },
+    {
+      ...createMcpNativeClientOptions("modern-only"),
+      responseCacheStore: store,
+      cachePartition,
+    },
+  );
+  await client.connect(transport);
+  return { adapter: new McpSdkClientAdapter(client), client };
+}
 
 test("the adapter exports an exact, fail-closed protocol compatibility policy", () => {
   assert.deepEqual(MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS, ["2026-07-28", "2025-11-25"]);
@@ -483,6 +549,85 @@ test("the adapter preserves MCP 2026-07-28 results through the official HTTP han
   } finally {
     await client.close();
     await handler.close();
+  }
+});
+
+test("private MCP cache entries stay isolated across principals sharing one store", async () => {
+  const store = new InMemoryResponseCacheStore();
+  const aliceEndpoint = createCacheTestEndpoint("alice", "private");
+  const bobEndpoint = createCacheTestEndpoint("bob", "private");
+  const alice = await connectCacheTestClient(aliceEndpoint, store, "subject:alice");
+  const bob = await connectCacheTestClient(bobEndpoint, store, "subject:bob");
+
+  try {
+    const aliceTools = await alice.adapter.listTools();
+    const bobTools = await bob.adapter.listTools();
+    const aliceResource = await alice.adapter.readResource(CACHE_RESOURCE_URI);
+    const bobResource = await bob.adapter.readResource(CACHE_RESOURCE_URI);
+
+    assert.equal(aliceTools.tools[0]?.name, "profile-alice");
+    assert.equal(bobTools.tools[0]?.name, "profile-bob");
+    assert.equal(aliceResource.contents[0]?.text, JSON.stringify({ principal: "alice" }));
+    assert.equal(bobResource.contents[0]?.text, JSON.stringify({ principal: "bob" }));
+    assert.equal(aliceTools.cacheScope, "private");
+    assert.equal(bobTools.cacheScope, "private");
+
+    assert.equal((await alice.adapter.listTools()).tools[0]?.name, "profile-alice");
+    assert.equal((await bob.adapter.listTools()).tools[0]?.name, "profile-bob");
+    assert.equal(
+      (await alice.adapter.readResource(CACHE_RESOURCE_URI)).contents[0]?.text,
+      JSON.stringify({ principal: "alice" }),
+    );
+    assert.equal(
+      (await bob.adapter.readResource(CACHE_RESOURCE_URI)).contents[0]?.text,
+      JSON.stringify({ principal: "bob" }),
+    );
+
+    assert.equal(aliceEndpoint.requests.get("tools/list"), 1);
+    assert.equal(bobEndpoint.requests.get("tools/list"), 1);
+    assert.equal(aliceEndpoint.requests.get("resources/read"), 1);
+    assert.equal(bobEndpoint.requests.get("resources/read"), 1);
+  } finally {
+    await Promise.all([
+      alice.client.close(),
+      bob.client.close(),
+      aliceEndpoint.handler.close(),
+      bobEndpoint.handler.close(),
+    ]);
+  }
+});
+
+test("public MCP cache entries may be reused across principals for the same server", async () => {
+  const store = new InMemoryResponseCacheStore();
+  const primaryEndpoint = createCacheTestEndpoint("shared", "public");
+  const secondaryEndpoint = createCacheTestEndpoint("should-not-be-fetched", "public");
+  const primary = await connectCacheTestClient(primaryEndpoint, store, "subject:alice");
+  const secondary = await connectCacheTestClient(secondaryEndpoint, store, "subject:bob");
+
+  try {
+    const primaryTools = await primary.adapter.listTools();
+    const primaryResource = await primary.adapter.readResource(CACHE_RESOURCE_URI);
+    const secondaryTools = await secondary.adapter.listTools();
+    const secondaryResource = await secondary.adapter.readResource(CACHE_RESOURCE_URI);
+
+    assert.equal(primaryTools.tools[0]?.name, "profile-shared");
+    assert.equal(secondaryTools.tools[0]?.name, "profile-shared");
+    assert.equal(primaryResource.contents[0]?.text, JSON.stringify({ principal: "shared" }));
+    assert.equal(secondaryResource.contents[0]?.text, JSON.stringify({ principal: "shared" }));
+    assert.equal(primaryTools.cacheScope, "public");
+    assert.equal(secondaryTools.cacheScope, "public");
+
+    assert.equal(primaryEndpoint.requests.get("tools/list"), 1);
+    assert.equal(primaryEndpoint.requests.get("resources/read"), 1);
+    assert.equal(secondaryEndpoint.requests.get("tools/list") ?? 0, 0);
+    assert.equal(secondaryEndpoint.requests.get("resources/read") ?? 0, 0);
+  } finally {
+    await Promise.all([
+      primary.client.close(),
+      secondary.client.close(),
+      primaryEndpoint.handler.close(),
+      secondaryEndpoint.handler.close(),
+    ]);
   }
 });
 

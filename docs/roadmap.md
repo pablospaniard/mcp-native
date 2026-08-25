@@ -31,7 +31,7 @@ Status: complete.
 
 ## Milestone 1: MCP `2026-07-28` conformance foundation
 
-Status: in progress.
+Status: complete for RFC-0001's initial client boundary.
 
 - [x] Declare the complete supported core revision and backwards-compatibility policy.
 - [x] Preserve official tool, content, resource, schema, annotation, `_meta`, and cache semantics across the initial `@mcp-native/mcp` and `@mcp-native/core` boundary.
@@ -40,7 +40,7 @@ Status: in progress.
 - [x] Test real `2026-07-28` behavior through the SDK HTTP handler/fetch path.
 - [x] Retain linked in-memory tests only as explicit older-protocol compatibility coverage.
 - [x] Pin and run the applicable official MCP conformance scenarios; never rely on an unversioned suite result.
-- [ ] Add official fixture ingestion and cross-principal cache-scope isolation tests.
+- [x] Add official fixture ingestion and cross-principal cache-scope isolation tests.
 
 Exit criterion: the supported MCP operations pass documented `2026-07-28` scenarios without losing fields needed by A2UI or MCP Apps.
 

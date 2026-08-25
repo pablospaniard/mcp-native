@@ -4,12 +4,12 @@ This document defines the exact MCP core revisions and operations MCP Native del
 
 ## Revision matrix
 
-| Revision     | SDK era | MCP Native status         | Verified path                                                                       |
-| ------------ | ------- | ------------------------- | ----------------------------------------------------------------------------------- |
-| `2026-07-28` | modern  | Current target, partial   | Pinned Streamable HTTP integration plus seven applicable official client scenarios  |
-| `2025-11-25` | legacy  | Compatibility lane        | SDK `auto` fallback through the linked in-memory transport                          |
-| Older dates  | legacy  | No support claim          | The SDK may negotiate them, but MCP Native does not test or deliberately offer them |
-| Future dates | modern  | Unsupported until adopted | Never inferred from date ordering or accepted without an explicit project update    |
+| Revision     | SDK era | MCP Native status         | Verified path                                                                                           |
+| ------------ | ------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `2026-07-28` | modern  | Current target, partial   | Pinned HTTP integration, official requirement accounting, selected scenarios, and cache-isolation tests |
+| `2025-11-25` | legacy  | Compatibility lane        | SDK `auto` fallback through the linked in-memory transport                                              |
+| Older dates  | legacy  | No support claim          | The SDK may negotiate them, but MCP Native does not test or deliberately offer them                     |
+| Future dates | modern  | Unsupported until adopted | Never inferred from date ordering or accepted without an explicit project update                        |
 
 Neither tested lane is an unqualified whole-protocol conformance claim. The current adapter boundary covers:
 
