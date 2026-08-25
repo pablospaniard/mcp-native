@@ -122,7 +122,8 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 - Resolution requires an exact MIME type, URI match, and unambiguous text content.
 - Errored tool results and binary A2UI resources are rejected.
 - Unknown surface versions, nodes, and actions are rejected.
-- Tool arguments are recursively constrained to JSON values.
+- Tool arguments are recursively constrained to finite, acyclic JSON values in plain objects.
+- JSON keys such as `__proto__` are preserved as ordinary own data properties without changing object prototypes.
 - Parsing never resolves components or executes server-provided code.
 - Successful parsing does not grant device capabilities or permission to call a tool; the host still owns those decisions.
 

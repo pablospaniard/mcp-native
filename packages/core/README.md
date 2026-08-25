@@ -56,7 +56,10 @@ const client: McpClient = {
   },
 };
 
-const runtime = new McpNativeRuntime(client);
+const allowedSurfaceTools = new Set(["save_profile"]);
+const runtime = new McpNativeRuntime(client, {
+  actionPolicy: (action) => allowedSurfaceTools.has(action.name),
+});
 
 await runtime.dispatch({
   type: "tool",
@@ -75,6 +78,10 @@ await runtime.dispatch({
 | `McpContent` and its discriminated content interfaces                                        | Exact text, image, audio, resource-link, and embedded-resource shapes.                      |
 | `McpAnnotations`, `McpToolAnnotations`, `McpIcon`, `McpCacheScope`                           | Official metadata, presentation hints, and response-cache contracts.                        |
 | `ToolAction`, `McpNativeAction`                                                              | Declarative actions that can be dispatched through the runtime.                             |
+| `McpNativeRuntimeOptions`, `McpNativeActionPolicy`                                           | Host policy controlling which validated surface actions `dispatch()` may execute.           |
+| `McpNativeActionDeniedError`                                                                 | Fail-closed error for actions not explicitly allowed by the host.                           |
+| `parseMcpNativeAction`, `parseJsonObject`, `parseJsonValue`                                  | Strict validators that return safely reconstructed untrusted data.                          |
+| `JsonValidationError`                                                                        | Error for non-JSON, circular, non-plain, or non-finite input.                               |
 | `JsonPrimitive`, `JsonValue`, `JsonObject`                                                   | JSON-safe value types for untrusted protocol data.                                          |
 
 ## Pre-1.0 MCP result migration
@@ -109,6 +116,9 @@ Content blocks now use MCP's official discriminated fields. Replace `{ type: "te
 - No A2UI or WebView dependency.
 - No transport or official MCP SDK dependency.
 - No remote code loading or execution.
+- Surface-driven `dispatch()` is denied unless the host's action policy explicitly allows it.
+- Direct `callTool()` is a lower-level API for trusted host code and does not apply the surface action policy.
+- Untrusted JSON is reconstructed without prototype mutation and rejects cycles, non-plain objects, and non-finite numbers.
 - Host applications remain responsible for authentication, permissions, transport security, and user approval.
 
 ## Related packages

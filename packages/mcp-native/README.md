@@ -56,7 +56,10 @@ const client: McpClient = {
   },
 };
 
-const runtime = new McpNativeRuntime(client);
+const allowedSurfaceTools = new Set(["continue_flow"]);
+const runtime = new McpNativeRuntime(client, {
+  actionPolicy: (action) => allowedSurfaceTools.has(action.name),
+});
 
 const surface = parseA2uiSurface({
   version: "0.1",
@@ -84,7 +87,7 @@ function NativeScreen() {
 }
 ```
 
-The host supplies the locally bundled native components. MCP Native never downloads and executes server-provided React Native JavaScript.
+The host supplies the locally bundled native components and explicitly allows the tools a surface may dispatch. Without an `actionPolicy`, surface action dispatch is denied. MCP Native never downloads and executes server-provided React Native JavaScript.
 
 ## Included packages
 

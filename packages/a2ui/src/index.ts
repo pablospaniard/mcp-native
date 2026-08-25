@@ -1,6 +1,5 @@
+import { parseMcpNativeAction } from "@mcp-native/core";
 import type {
-  JsonObject,
-  JsonValue,
   McpContent,
   McpReadResourceResult,
   McpToolCallResult,
@@ -55,8 +54,8 @@ export interface ResolvedA2uiResource {
 }
 
 export class A2uiParseError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "A2uiParseError";
   }
 }
@@ -187,20 +186,12 @@ function parseNode(value: unknown, path: string, seenIds: Set<string>): A2uiNode
 }
 
 function parseToolAction(value: unknown, path: string): ToolAction {
-  const action = expectObject(value, path);
-  const type = expectString(action.type, `${path}.type`);
-  if (type !== "tool") {
-    throw new A2uiParseError(`Unsupported action type at ${path}: ${type}`);
+  try {
+    return parseMcpNativeAction(value, path);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : `Invalid tool action at ${path}`;
+    throw new A2uiParseError(message, { cause: error });
   }
-
-  const arguments_ = action.arguments;
-  return {
-    type,
-    name: expectString(action.name, `${path}.name`),
-    ...(arguments_ === undefined
-      ? {}
-      : { arguments: expectJsonObject(arguments_, `${path}.arguments`) }),
-  };
 }
 
 function expectObject(value: unknown, path: string): Record<string, unknown> {
@@ -301,30 +292,4 @@ function expectString(value: unknown, path: string): string {
 
 function optionalString(value: unknown, path: string): string | undefined {
   return value === undefined ? undefined : expectString(value, path);
-}
-
-function expectJsonObject(value: unknown, path: string): JsonObject {
-  const object = expectObject(value, path);
-  const result: Record<string, JsonValue> = {};
-
-  for (const [key, child] of Object.entries(object)) {
-    result[key] = expectJsonValue(child, `${path}.${key}`);
-  }
-
-  return result;
-}
-
-function expectJsonValue(value: unknown, path: string): JsonValue {
-  if (
-    value === null ||
-    typeof value === "boolean" ||
-    typeof value === "number" ||
-    typeof value === "string"
-  ) {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map((child, index) => expectJsonValue(child, `${path}[${index}]`));
-  }
-  return expectJsonObject(value, path);
 }

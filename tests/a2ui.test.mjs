@@ -90,6 +90,18 @@ test("a JSON string preserves nested tool arguments", () => {
   });
 });
 
+test("tool arguments preserve prototype-named JSON keys without changing prototypes", () => {
+  const surface = parseA2uiSurface(
+    '{"version":"0.1","root":{"id":"safe","type":"button","label":"Safe","action":{"type":"tool","name":"safe","arguments":{"__proto__":{"polluted":true}}}}}',
+  );
+  const arguments_ = surface.root.action.arguments;
+
+  assert.equal(Object.getPrototypeOf(arguments_), Object.prototype);
+  assert.equal(Object.hasOwn(arguments_, "__proto__"), true);
+  assert.equal(arguments_.polluted, undefined);
+  assert.deepEqual(arguments_["__proto__"], { polluted: true });
+});
+
 test("a tool action may omit arguments", () => {
   const surface = parseA2uiSurface({
     version: "0.1",
@@ -135,6 +147,33 @@ test("invalid A2UI input fails closed with a parse error", () => {
         action: { type: "tool", name: "run", arguments: [] },
       },
     },
+    {
+      version: "0.1",
+      root: {
+        id: "x",
+        type: "button",
+        label: "Run",
+        action: { type: "tool", name: "run", arguments: { value: NaN } },
+      },
+    },
+    {
+      version: "0.1",
+      root: {
+        id: "x",
+        type: "button",
+        label: "Run",
+        action: { type: "tool", name: "run", arguments: { value: Infinity } },
+      },
+    },
+    {
+      version: "0.1",
+      root: {
+        id: "x",
+        type: "button",
+        label: "Run",
+        action: { type: "tool", name: "run", arguments: { value: new Date(0) } },
+      },
+    },
     { version: "0.1", root: { id: "x", type: "text-input", label: "X", value: 1 } },
     { version: "0.1", root: { id: "x", type: "script" } },
     {
@@ -161,6 +200,25 @@ test("invalid A2UI input fails closed with a parse error", () => {
   for (const input of invalidInputs) {
     assert.throws(() => parseA2uiSurface(input), A2uiParseError);
   }
+});
+
+test("circular tool arguments fail closed with a parse error", () => {
+  const arguments_ = {};
+  arguments_.self = arguments_;
+
+  assert.throws(
+    () =>
+      parseA2uiSurface({
+        version: "0.1",
+        root: {
+          id: "run",
+          type: "button",
+          label: "Run",
+          action: { type: "tool", name: "run", arguments: arguments_ },
+        },
+      }),
+    (error) => error instanceof A2uiParseError && /Circular JSON value/.test(error.message),
+  );
 });
 
 test("duplicate node ids fail closed with a parse error", () => {

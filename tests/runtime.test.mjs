@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { McpNativeRuntime } from "../packages/core/dist/index.js";
+import {
+  JsonValidationError,
+  McpNativeActionDeniedError,
+  McpNativeRuntime,
+} from "../packages/core/dist/index.js";
 
 test("the core runtime routes a declared tool action", async () => {
   const calls = [];
@@ -18,7 +22,9 @@ test("the core runtime routes a declared tool action", async () => {
     },
   };
 
-  const runtime = new McpNativeRuntime(client);
+  const runtime = new McpNativeRuntime(client, {
+    actionPolicy: (action) => action.name === "save_profile",
+  });
   const result = await runtime.dispatch({
     type: "tool",
     name: "save_profile",
@@ -27,6 +33,88 @@ test("the core runtime routes a declared tool action", async () => {
 
   assert.deepEqual(calls, [{ name: "save_profile", arguments: { displayName: "Ada" } }]);
   assert.equal(result.isError, undefined);
+});
+
+test("the core runtime denies surface actions unless the host allows them", async () => {
+  const calls = [];
+  const client = {
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool(name, arguments_) {
+      calls.push({ name, arguments: arguments_ });
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  };
+
+  await assert.rejects(
+    () => new McpNativeRuntime(client).dispatch({ type: "tool", name: "delete_all" }),
+    (error) => error instanceof McpNativeActionDeniedError && error.toolName === "delete_all",
+  );
+  await assert.rejects(
+    () =>
+      new McpNativeRuntime(client, { actionPolicy: () => false }).dispatch({
+        type: "tool",
+        name: "delete_all",
+      }),
+    McpNativeActionDeniedError,
+  );
+  assert.deepEqual(calls, []);
+});
+
+test("the core runtime validates and safely reconstructs actions before policy evaluation", async () => {
+  const calls = [];
+  const policyActions = [];
+  const client = {
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool(name, arguments_) {
+      calls.push({ name, arguments: arguments_ });
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  };
+  const runtime = new McpNativeRuntime(client, {
+    actionPolicy(action) {
+      policyActions.push(action);
+      return action.name === "safe";
+    },
+  });
+  const action = JSON.parse(
+    '{"type":"tool","name":"safe","arguments":{"__proto__":{"polluted":true}}}',
+  );
+
+  await runtime.dispatch(action);
+
+  const arguments_ = calls[0].arguments;
+  assert.equal(Object.getPrototypeOf(arguments_), Object.prototype);
+  assert.equal(Object.hasOwn(arguments_, "__proto__"), true);
+  assert.equal(arguments_.polluted, undefined);
+  assert.deepEqual(arguments_["__proto__"], { polluted: true });
+  assert.equal(policyActions[0].arguments, arguments_);
+
+  const circular = {};
+  circular.self = circular;
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "safe", arguments: circular }),
+    JsonValidationError,
+  );
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "safe", arguments: { value: NaN } }),
+    JsonValidationError,
+  );
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "safe", arguments: [] }),
+    JsonValidationError,
+  );
+  assert.equal(policyActions.length, 1);
+  assert.equal(calls.length, 1);
 });
 
 test("the core runtime delegates every client operation", async () => {
