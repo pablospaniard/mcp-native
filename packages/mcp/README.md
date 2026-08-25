@@ -4,7 +4,7 @@
 
 ### A validated bridge from the official MCP TypeScript SDK to MCP Native
 
-[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Official SDK](https://github.com/modelcontextprotocol/typescript-sdk) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
+[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Protocol support](https://github.com/pablospaniard/mcp-native/blob/main/docs/protocol-support.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Official SDK](https://github.com/modelcontextprotocol/typescript-sdk) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
 
 </div>
 
@@ -32,11 +32,11 @@ The package is ESM-only and includes TypeScript declarations.
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { McpNativeRuntime } from "@mcp-native/core";
-import { McpSdkClientAdapter } from "@mcp-native/mcp";
+import { createMcpNativeClientOptions, McpSdkClientAdapter } from "@mcp-native/mcp";
 
 const client = new Client(
   { name: "my-native-host", version: "1.0.0" },
-  { versionNegotiation: { mode: "auto" } },
+  createMcpNativeClientOptions("auto"),
 );
 const transport = new StdioClientTransport({
   command: "node",
@@ -55,6 +55,8 @@ await client.close();
 ```
 
 Use `createMcpSdkClientAdapter(client)` when a factory reads better than constructing the class directly.
+
+The options helper deliberately offers only the current `2026-07-28` target and tested `2025-11-25` fallback. Use `"modern-only"` to pin the current revision without fallback or `"legacy-only"` for a server known to implement the tested legacy revision.
 
 ## Mapping
 
@@ -76,7 +78,7 @@ Although the official SDK validates protocol traffic, MCP Native validates value
 - unknown content types and non-string names, URIs, MIME types, or bodies;
 - malformed icons, annotations, schemas, cache hints, or result metadata;
 - `undefined`, functions, symbols, bigints, or non-finite numbers inside JSON data;
-- class instances, circular objects, circular arrays, and non-finite numbers;
+- class instances, circular objects, circular arrays, and sparse arrays;
 - prototype-named JSON keys are preserved as ordinary own data properties without changing object prototypes;
 - resource entries with neither body or with both `text` and `blob`.
 
@@ -84,16 +86,18 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 
 ## Public API
 
-| Export                      | Purpose                                                              |
-| --------------------------- | -------------------------------------------------------------------- |
-| `McpSdkClientAdapter`       | Implements the core `McpClient` boundary for a connected SDK client. |
-| `createMcpSdkClientAdapter` | Factory returning an adapter for a connected SDK client.             |
-| `McpSdkAdapterError`        | Specific validation error for results that cannot safely map.        |
+| Export                                                                                                           | Purpose                                                                          |
+| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `McpSdkClientAdapter`                                                                                            | Implements the core `McpClient` boundary for a connected SDK client.             |
+| `createMcpSdkClientAdapter`                                                                                      | Factory returning an adapter for a connected SDK client.                         |
+| `McpSdkAdapterError`                                                                                             | Specific validation error for results that cannot safely map.                    |
+| `createMcpNativeClientOptions`, `McpNativeProtocolMode`                                                          | Exact official SDK options for automatic, modern-only, or legacy-only operation. |
+| `MCP_NATIVE_PROTOCOL_REVISION`, `MCP_NATIVE_LEGACY_PROTOCOL_REVISION`, `MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS` | The current target and deliberately tested revision list.                        |
 
 ## Scope
 
 - Official SDK client v2 integration only.
-- Integration tests pin `2026-07-28` through the official SDK HTTP handler/fetch path and retain the linked in-memory transport as explicit older-protocol compatibility coverage.
+- Integration tests pin `2026-07-28` through the official SDK HTTP handler/fetch path and verify `auto` fallback to exactly `2025-11-25` through the linked in-memory transport.
 - Connection setup, transport selection, authentication, retries, and shutdown remain host responsibilities.
 - Prompts, roots, subscriptions, sampling, elicitation, and task APIs are outside RFC-0001's initial client boundary.
 - Generic JSON-safe `_meta` is preserved, including MCP Apps discovery and resource policy data, but Apps-specific validation and capability negotiation are not implemented yet.

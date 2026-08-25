@@ -12,12 +12,36 @@ import { A2UI_MIME_TYPE, resolveA2uiResourceFromToolResult } from "../packages/a
 import { McpNativeRuntime } from "../packages/core/dist/index.js";
 import {
   createMcpSdkClientAdapter,
+  createMcpNativeClientOptions,
+  MCP_NATIVE_LEGACY_PROTOCOL_REVISION,
+  MCP_NATIVE_PROTOCOL_REVISION,
+  MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS,
   McpSdkAdapterError,
   McpSdkClientAdapter,
 } from "../packages/mcp/dist/index.js";
 
-const MCP_CURRENT_PROTOCOL_VERSION = "2026-07-28";
 const MODERN_SERVER_INFO = { name: "mcp-native-modern-test", version: "1.0.0" };
+
+test("the adapter exports an exact, fail-closed protocol compatibility policy", () => {
+  assert.deepEqual(MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS, ["2026-07-28", "2025-11-25"]);
+  assert.equal(Object.isFrozen(MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS), true);
+  assert.deepEqual(createMcpNativeClientOptions(), {
+    supportedProtocolVersions: ["2026-07-28", "2025-11-25"],
+    versionNegotiation: { mode: "auto" },
+  });
+  assert.deepEqual(createMcpNativeClientOptions("modern-only"), {
+    supportedProtocolVersions: ["2026-07-28"],
+    versionNegotiation: { mode: { pin: "2026-07-28" } },
+  });
+  assert.deepEqual(createMcpNativeClientOptions("legacy-only"), {
+    supportedProtocolVersions: ["2025-11-25"],
+    versionNegotiation: { mode: "legacy" },
+  });
+  assert.throws(
+    () => createMcpNativeClientOptions("future"),
+    /Unsupported MCP Native protocol mode/,
+  );
+});
 
 test("the SDK adapter maps the complete core client boundary", async () => {
   const calls = [];
@@ -299,12 +323,18 @@ test("a real SDK tool result resolves an A2UI resource through the runtime", asy
     }),
   );
 
-  const client = new Client({ name: "mcp-native-test-client", version: "1.0.0" });
+  const client = new Client(
+    { name: "mcp-native-test-client", version: "1.0.0" },
+    createMcpNativeClientOptions("auto"),
+  );
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
   try {
     await server.connect(serverTransport);
     await client.connect(clientTransport);
+
+    assert.equal(client.getProtocolEra(), "legacy");
+    assert.equal(client.getNegotiatedProtocolVersion(), MCP_NATIVE_LEGACY_PROTOCOL_REVISION);
 
     const runtime = new McpNativeRuntime(new McpSdkClientAdapter(client));
     const { tools } = await runtime.listTools();
@@ -354,7 +384,7 @@ test("the adapter preserves MCP 2026-07-28 results through the official HTTP han
               _meta: { "com.example/link": "modern" },
             },
           ],
-          structuredContent: { protocol: MCP_CURRENT_PROTOCOL_VERSION },
+          structuredContent: { protocol: MCP_NATIVE_PROTOCOL_REVISION },
           _meta: { "com.example/result": "modern" },
         }),
       );
@@ -397,11 +427,13 @@ test("the adapter preserves MCP 2026-07-28 results through the official HTTP han
   });
   const client = new Client(
     { name: "mcp-native-modern-client", version: "1.0.0" },
-    { versionNegotiation: { mode: { pin: MCP_CURRENT_PROTOCOL_VERSION } } },
+    createMcpNativeClientOptions("modern-only"),
   );
 
   try {
     await client.connect(transport);
+    assert.equal(client.getProtocolEra(), "modern");
+    assert.equal(client.getNegotiatedProtocolVersion(), MCP_NATIVE_PROTOCOL_REVISION);
     const runtime = new McpNativeRuntime(new McpSdkClientAdapter(client));
     const toolsResult = await runtime.listTools();
     const callResult = await runtime.callTool("open-modern-surface");
@@ -437,11 +469,11 @@ test("the adapter preserves MCP 2026-07-28 results through the official HTTP han
       false,
     );
     for (const request of requests) {
-      assert.equal(request.protocolVersion, MCP_CURRENT_PROTOCOL_VERSION);
+      assert.equal(request.protocolVersion, MCP_NATIVE_PROTOCOL_REVISION);
       assert.equal(request.method, request.body.method);
       assert.equal(
         request.body.params["_meta"]["io.modelcontextprotocol/protocolVersion"],
-        MCP_CURRENT_PROTOCOL_VERSION,
+        MCP_NATIVE_PROTOCOL_REVISION,
       );
       assert.deepEqual(
         request.body.params["_meta"]["io.modelcontextprotocol/clientCapabilities"],

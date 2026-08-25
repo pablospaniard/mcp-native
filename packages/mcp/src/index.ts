@@ -1,4 +1,4 @@
-import type { Client } from "@modelcontextprotocol/client";
+import type { Client, ClientOptions } from "@modelcontextprotocol/client";
 import {
   parseJsonObject as parseCoreJsonObject,
   parseJsonValue as parseCoreJsonValue,
@@ -20,6 +20,46 @@ import type {
 } from "@mcp-native/core";
 
 type OfficialMcpClient = Pick<Client, "callTool" | "listTools" | "readResource">;
+
+/** The exact MCP core revision targeted by MCP Native's modern compatibility lane. */
+export const MCP_NATIVE_PROTOCOL_REVISION = "2026-07-28" as const;
+
+/** The only pre-2026 revision covered by MCP Native's compatibility tests. */
+export const MCP_NATIVE_LEGACY_PROTOCOL_REVISION = "2025-11-25" as const;
+
+/** Exact revisions MCP Native deliberately offers; no future revision is implied. */
+export const MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS = Object.freeze([
+  MCP_NATIVE_PROTOCOL_REVISION,
+  MCP_NATIVE_LEGACY_PROTOCOL_REVISION,
+] as const);
+
+export type McpNativeProtocolMode = "auto" | "legacy-only" | "modern-only";
+
+/**
+ * Creates official SDK client options matching MCP Native's documented
+ * protocol policy. The host still owns client construction and connection.
+ */
+export function createMcpNativeClientOptions(mode: McpNativeProtocolMode = "auto"): ClientOptions {
+  switch (mode) {
+    case "auto":
+      return {
+        supportedProtocolVersions: [...MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS],
+        versionNegotiation: { mode: "auto" },
+      };
+    case "modern-only":
+      return {
+        supportedProtocolVersions: [MCP_NATIVE_PROTOCOL_REVISION],
+        versionNegotiation: { mode: { pin: MCP_NATIVE_PROTOCOL_REVISION } },
+      };
+    case "legacy-only":
+      return {
+        supportedProtocolVersions: [MCP_NATIVE_LEGACY_PROTOCOL_REVISION],
+        versionNegotiation: { mode: "legacy" },
+      };
+    default:
+      throw new TypeError(`Unsupported MCP Native protocol mode: ${String(mode)}`);
+  }
+}
 
 /** Thrown when an SDK result cannot be represented by MCP Native's JSON-safe contracts. */
 export class McpSdkAdapterError extends Error {

@@ -11,6 +11,8 @@ This document separates MCP Native's architectural goals from protocol-conforman
 
 MCP Native does **not** currently claim complete MCP `2026-07-28`, A2UI v1.0, or MCP Apps host conformance.
 
+MCP Native targets `2026-07-28` and deliberately offers only `2025-11-25` as its tested legacy lane. See the [MCP protocol support policy](protocol-support.md) for exact modes, covered operations, exclusions, and the adoption gate for future revisions.
+
 ## Official references
 
 ### Protocol and wire contracts
@@ -120,7 +122,7 @@ The implementation order is maintained in [the project roadmap](roadmap.md). The
 1. **Implemented for the initial boundary:** preserve official tools, content blocks, resources, schemas, annotations, `_meta`, and cache hints without a lossy parallel content shape.
 2. **Implemented:** keep wire versioning, headers, framing, and transport behavior inside the official SDK.
 3. **Implemented:** exercise `2026-07-28` through the SDK HTTP handler/fetch path while retaining in-memory coverage only for the older protocol.
-4. Declare the complete supported-operation and backwards-compatibility policy.
+4. **Implemented:** declare the complete supported-operation and backwards-compatibility policy, with exact executable SDK options.
 5. Pin and run applicable scenarios from the official MCP conformance suite, recording the tool version and any explicitly expected failures.
 6. Add official fixture ingestion and cross-principal cache-scope isolation tests.
 

@@ -13,7 +13,7 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Architecture](docs/RFC-0001-architecture.md) · [Standards status](docs/standards-compatibility.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
+[Architecture](docs/RFC-0001-architecture.md) · [Protocol support](docs/protocol-support.md) · [Standards status](docs/standards-compatibility.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
 
 </div>
 
@@ -121,6 +121,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A transport-independent MCP client boundary
 - A validated adapter for connected clients from the official MCP TypeScript SDK v2
 - MCP `2026-07-28` tool/resource field preservation and HTTP handler/fetch integration coverage
+- Exact protocol options for the `2026-07-28` target and tested `2025-11-25` compatibility lane
 - Typed `tools/call` action routing with a fail-closed host policy
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
