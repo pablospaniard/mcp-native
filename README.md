@@ -278,8 +278,10 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [ ] Implement an A2UI v1.0 conformance foundation from pinned official schemas
 - [ ] Support the A2UI surface lifecycle, local data model, bindings, and streaming updates
 - [ ] Complete native accessibility and action-context behavior
+- [ ] Establish native performance budgets, parser/renderer fuzzing, and a supported iOS/Android CI matrix
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility
 - [ ] Add MCP HTTP authorization, consent, and host permission controls
+- [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
 - [ ] Ship an end-to-end React Native example
 - [ ] Expand protocol coverage through reviewed RFCs and tests
 

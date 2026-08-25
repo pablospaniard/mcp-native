@@ -72,9 +72,12 @@ Exit criterion: conformance is reported per implemented A2UI feature against the
 - Add richer host-owned components and styling without unchecked prop spreading.
 - Implement explicit accessibility attributes and inferred fallbacks.
 - Test VoiceOver and Android accessibility behavior, dynamic type, focus, reduced motion, contrast, touch targets, orientation, and screen-reader actions.
+- Define the supported iOS and Android version matrix and exercise real host applications in simulator, emulator, and device CI where available.
+- Establish parse, update, render-latency, and memory budgets for supported surface sizes, with large-surface and rapid-update stress tests.
+- Add fuzz and property-based tests for protocol parsing, render-plan conversion, and renderer failure paths.
 - Target applicable WCAG 2.2 Level AA outcomes and document exceptions.
 
-Exit criterion: a native host renders and interacts with the supported A2UI subset accessibly without weakening the component or capability boundary.
+Exit criterion: supported iOS and Android hosts render and interact with the supported A2UI subset accessibly, within documented performance budgets, and without weakening the component or capability boundary.
 
 ## Milestone 5: stable MCP Apps compatibility
 
@@ -94,10 +97,14 @@ Exit criterion: `@mcp-native/webview` satisfies the stable Apps profile for docu
 - Use PKCE, protected-resource and authorization-server discovery, resource indicators, issuer validation, least-privilege scopes, and secure platform token storage.
 - Never pass an MCP access token through to an upstream API.
 - Add consent, tool-risk review, capability approval, and privacy controls in the host layer.
+- Define production connection lifecycle behavior for timeouts, cancellation, bounded retry and backoff, reconnection, offline transitions, and graceful shutdown while leaving wire behavior to the official SDK.
+- Add structured logs, metrics, and traces with explicit credential, token, server-data, and user-data redaction rules.
+- Provide actionable loading, empty, denied, disconnected, retryable, and terminal error states for host applications.
+- Publish a host-integration checklist covering component catalogs, action policies, permissions, binding state ownership, error handling, transport configuration, and lifecycle cleanup.
 - Continue npm trusted publishing with OIDC, provenance, protected release environments, and exact version verification.
 - Ship an end-to-end React Native example and document its supported protocol matrix.
 
-Exit criterion: a release candidate passes protocol, security, accessibility, package, and end-to-end interoperability gates.
+Exit criterion: a release candidate passes protocol, security, accessibility, performance, reliability, operability, package, real-platform, and end-to-end interoperability gates.
 
 ## Out of scope until requested
 
