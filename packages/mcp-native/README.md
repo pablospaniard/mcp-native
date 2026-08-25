@@ -87,7 +87,7 @@ function NativeScreen() {
 }
 ```
 
-The host supplies the locally bundled native components and explicitly allows the tools a surface may dispatch, including their arguments. Without an `actionPolicy`, surface action dispatch is denied; with a policy, `callTool()` is gated the same way. MCP Native never downloads and executes server-provided React Native JavaScript.
+The host supplies the locally bundled native components and explicitly allows the tools a surface may dispatch, including their arguments. Without an `actionPolicy`, surface action dispatch is denied; trusted host code can still call `callTool()` directly after JSON validation. MCP Native never downloads and executes server-provided React Native JavaScript.
 
 ## Included packages
 

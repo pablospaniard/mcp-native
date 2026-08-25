@@ -79,7 +79,7 @@ test("the core runtime denies surface actions unless the host allows them", asyn
   assert.deepEqual(calls, []);
 });
 
-test("callTool applies the action policy when one is configured", async () => {
+test("callTool bypasses surface action policy for trusted host operations", async () => {
   const calls = [];
   const client = {
     async listTools() {
@@ -97,13 +97,16 @@ test("callTool applies the action policy when one is configured", async () => {
     actionPolicy: createAllowlistActionPolicy([{ name: "open_surface" }]),
   });
 
-  await runtime.callTool("open_surface");
-  await assert.rejects(() => runtime.callTool("delete_all"), McpNativeActionDeniedError);
+  await runtime.callTool("bootstrap_tool");
+  await runtime.callTool("open_surface", { unexpected: true });
   await assert.rejects(
-    () => runtime.callTool("open_surface", { unexpected: true }),
+    () => runtime.dispatch({ type: "tool", name: "open_surface", arguments: { unexpected: true } }),
     McpNativeActionDeniedError,
   );
-  assert.deepEqual(calls, [{ name: "open_surface", arguments: {} }]);
+  assert.deepEqual(calls, [
+    { name: "bootstrap_tool", arguments: {} },
+    { name: "open_surface", arguments: { unexpected: true } },
+  ]);
 });
 
 test("callTool validates JSON arguments even without an action policy", async () => {

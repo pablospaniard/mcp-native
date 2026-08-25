@@ -273,9 +273,9 @@ export function createAllowlistActionPolicy(
 
 export interface McpNativeRuntimeOptions {
   /**
-   * Authorizes tool invocation through both `dispatch()` and `callTool()`.
-   * When omitted, `dispatch()` denies every action while `callTool()` remains
-   * available to trusted host code after JSON argument validation.
+   * Authorizes surface-driven actions through `dispatch()` only. When omitted,
+   * `dispatch()` denies every action. Trusted host code can continue to use
+   * `callTool()` directly after JSON argument validation.
    */
   readonly actionPolicy?: McpNativeActionPolicy;
 }
@@ -314,7 +314,6 @@ export class McpNativeRuntime {
       name,
       arguments: arguments_,
     });
-    await this.#assertActionAllowed(validatedAction);
     return this.#client.callTool(validatedAction.name, validatedAction.arguments ?? {});
   }
 
@@ -327,18 +326,11 @@ export class McpNativeRuntime {
     if (this.#actionPolicy === undefined) {
       throw new McpNativeActionDeniedError(validatedAction.name);
     }
-    await this.#assertActionAllowed(validatedAction);
-    return this.#client.callTool(validatedAction.name, validatedAction.arguments ?? {});
-  }
-
-  async #assertActionAllowed(action: McpNativeAction): Promise<void> {
-    if (this.#actionPolicy === undefined) {
-      return;
-    }
-    const allowed = await this.#actionPolicy(action);
+    const allowed = await this.#actionPolicy(validatedAction);
     if (allowed !== true) {
-      throw new McpNativeActionDeniedError(action.name);
+      throw new McpNativeActionDeniedError(validatedAction.name);
     }
+    return this.#client.callTool(validatedAction.name, validatedAction.arguments ?? {});
   }
 }
 

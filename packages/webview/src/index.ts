@@ -63,6 +63,8 @@ export function createWebViewDocument(
     );
   }
 
+  const uri = expectDocumentUri(resource.uri, "resource.uri");
+
   if (hasOwnDefined(resource, "blob")) {
     throw new WebViewPolicyError("Binary WebView resources are not supported");
   }
@@ -75,8 +77,8 @@ export function createWebViewDocument(
     if (policy.allowInlineDocuments !== true) {
       throw new WebViewPolicyError("Inline WebView documents are disabled by policy");
     }
-    assertInlineBaseUrl(resource.uri);
-    return { kind: "inline", html: text, baseUrl: resource.uri };
+    assertInlineBaseUrl(uri);
+    return { kind: "inline", html: text, baseUrl: uri };
   }
 
   if (policy.allowRemoteDocuments !== true) {
@@ -89,13 +91,13 @@ export function createWebViewDocument(
       "Remote WebView documents require a non-empty allowedRemoteOrigins allowlist",
     );
   }
-  for (const origin of allowedOrigins) {
-    assertOriginAllowlistEntry(origin);
+  for (const [index, origin] of allowedOrigins.entries()) {
+    assertOriginAllowlistEntry(expectDocumentUri(origin, `allowedRemoteOrigins[${index}]`));
   }
 
   return {
     kind: "remote",
-    uri: assertAllowedRemoteUri(resource.uri, allowedOrigins),
+    uri: assertAllowedRemoteUri(uri, allowedOrigins),
   };
 }
 
@@ -109,6 +111,13 @@ type ParsedDocumentUrl = {
 
 function hasOwnDefined(value: object, key: string): boolean {
   return Object.hasOwn(value, key) && (value as Record<string, unknown>)[key] !== undefined;
+}
+
+function expectDocumentUri(value: unknown, path: string): string {
+  if (typeof value !== "string") {
+    throw new WebViewPolicyError(`Expected a string at ${path}`);
+  }
+  return value;
 }
 
 function parseDocumentUrl(uri: string, path: string): ParsedDocumentUrl {

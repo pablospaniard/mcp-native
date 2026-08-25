@@ -79,7 +79,7 @@ await runtime.dispatch({
 | `McpContent` and its discriminated content interfaces                                        | Exact text, image, audio, resource-link, and embedded-resource shapes.                      |
 | `McpAnnotations`, `McpToolAnnotations`, `McpIcon`, `McpCacheScope`                           | Official metadata, presentation hints, and response-cache contracts.                        |
 | `ToolAction`, `McpNativeAction`                                                              | Declarative actions that can be dispatched through the runtime.                             |
-| `McpNativeRuntimeOptions`, `McpNativeActionPolicy`                                           | Host policy controlling which validated actions `dispatch()` and `callTool()` may execute.  |
+| `McpNativeRuntimeOptions`, `McpNativeActionPolicy`                                           | Host policy controlling which validated surface actions `dispatch()` may execute.           |
 | `createAllowlistActionPolicy`, `McpNativeToolAllowlistEntry`                                 | Fail-closed helper that authorizes tools by name and exact or predicated arguments.         |
 | `McpNativeActionDeniedError`                                                                 | Fail-closed error for actions not explicitly allowed by the host.                           |
 | `parseMcpNativeAction`, `parseJsonObject`, `parseJsonValue`                                  | Strict validators that return safely reconstructed untrusted data.                          |
@@ -119,9 +119,8 @@ Content blocks now use MCP's official discriminated fields. Replace `{ type: "te
 - No transport or official MCP SDK dependency.
 - No remote code loading or execution.
 - Surface-driven `dispatch()` is denied unless the host's action policy explicitly allows it.
-- When an `actionPolicy` is configured, `callTool()` is subject to the same policy after JSON argument validation.
-- Without an `actionPolicy`, `callTool()` remains available to trusted host code and still rejects non-JSON arguments.
-- Prefer `createAllowlistActionPolicy()` so authorization covers tool arguments, not only tool names.
+- Direct `callTool()` is a lower-level API for trusted host code. It validates JSON arguments but does not apply the surface action policy.
+- Prefer `createAllowlistActionPolicy()` so surface authorization covers tool arguments, not only tool names.
 - Untrusted JSON is reconstructed without prototype mutation and rejects cycles, non-plain objects, and non-finite numbers.
 - Host applications remain responsible for authentication, permissions, transport security, and user approval.
 

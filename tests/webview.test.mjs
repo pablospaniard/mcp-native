@@ -237,6 +237,32 @@ test("remote WebView documents reject dangerous schemes, credentials, and foreig
   );
 });
 
+test("WebView document URIs must be strings before URL parsing", () => {
+  assert.throws(
+    () =>
+      createWebViewDocument(
+        /** @type {any} */ ({
+          uri: ["https://example.com/app"],
+          mimeType: "text/html",
+          text: "<main>x</main>",
+        }),
+        { allowInlineDocuments: true },
+      ),
+    /Expected a string at resource.uri/,
+  );
+  assert.throws(
+    () =>
+      createWebViewDocument(
+        /** @type {any} */ ({ uri: ["https://example.com/app"], mimeType: "text/html" }),
+        {
+          allowRemoteDocuments: true,
+          allowedRemoteOrigins: ["https://example.com"],
+        },
+      ),
+    /Expected a string at resource.uri/,
+  );
+});
+
 test("unsupported WebView resources fail closed", () => {
   assert.throws(
     () =>

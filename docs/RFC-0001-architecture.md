@@ -95,7 +95,7 @@ Convenience package for the runtime and UI APIs. Transport adapters remain separ
 
 The host owns the effective component and action allowlists. A server can request only capabilities the host has declared. Unknown components, actions, MIME types, and protocol versions are rejected rather than silently interpreted. Binding strings are accepted as opaque host data and must be validated by the host before path-like writes.
 
-`McpNativeRuntime.dispatch()` and `callTool()` both apply a host-provided action policy when one is configured. `dispatch()` denies every action when no policy is set. Without a policy, `callTool()` remains available to trusted host code after JSON argument validation. Prefer `createAllowlistActionPolicy()` so tool authorization includes exact or predicated arguments rather than tool names alone.
+`McpNativeRuntime.dispatch()` applies a host-provided action policy and denies every surface action when no policy is configured. The lower-level `callTool()` operation remains available to trusted host code after JSON argument validation and is intentionally outside the surface-action policy. Prefer `createAllowlistActionPolicy()` so surface authorization includes exact or predicated arguments rather than tool names alone.
 
 Future capabilities that touch sensitive device APIs must be brokered by the host and may require user approval. Server declarations alone never grant device access.
 
