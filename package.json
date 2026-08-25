@@ -1,0 +1,7 @@
+{
+  "name": "mcp-native",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Native application runtime for MCP, focused first on React Native.",
+  "workspaces": ["packages/*"]
+}
