@@ -190,6 +190,34 @@ test("useMcpNativeActionDispatcher reports results and failures", async () => {
   await act(async () => root.unmount());
 });
 
+test("useMcpNativeActionDispatcher routes synchronous dispatcher throws to onError", async () => {
+  const errors = [];
+  let handler;
+  const dispatcher = {
+    dispatch() {
+      throw new Error("sync boom");
+    },
+  };
+  const root = createRoot();
+
+  function DispatcherProbe() {
+    handler = useMcpNativeActionDispatcher(dispatcher, {
+      onError: (error) => errors.push(error),
+    });
+    return createElement("View");
+  }
+
+  await act(async () => root.render(createElement(DispatcherProbe)));
+  await act(async () => {
+    handler({ type: "tool", name: "save" });
+    await Promise.resolve();
+  });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0]?.message, /sync boom/);
+  await act(async () => root.unmount());
+});
+
 test("the mounted renderer rejects malformed trusted-plan fields", async (t) => {
   const cases = [
     {

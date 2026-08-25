@@ -134,15 +134,20 @@ export function parseA2uiSurface(input: string | unknown): A2uiSurface {
     throw new A2uiParseError(`Unsupported A2UI version: ${version}`);
   }
 
+  const seenIds = new Set<string>();
   return {
     version: A2UI_VERSION,
-    root: parseNode(surface.root, "surface.root"),
+    root: parseNode(surface.root, "surface.root", seenIds),
   };
 }
 
-function parseNode(value: unknown, path: string): A2uiNode {
+function parseNode(value: unknown, path: string, seenIds: Set<string>): A2uiNode {
   const node = expectObject(value, path);
   const id = expectString(node.id, `${path}.id`);
+  if (seenIds.has(id)) {
+    throw new A2uiParseError(`Duplicate node id at ${path}: ${id}`);
+  }
+  seenIds.add(id);
   const type = expectString(node.type, `${path}.type`);
 
   switch (type) {
@@ -151,7 +156,7 @@ function parseNode(value: unknown, path: string): A2uiNode {
         id,
         type,
         children: expectArray(node.children, `${path}.children`).map((child, index) =>
-          parseNode(child, `${path}.children[${index}]`),
+          parseNode(child, `${path}.children[${index}]`, seenIds),
         ),
       };
     case "text":

@@ -82,7 +82,8 @@ export function useNativeRenderPlan(surface: A2uiSurface): NativeElement {
 
 /**
  * Creates a stable, synchronous event handler for a runtime's asynchronous
- * action dispatcher. Rejections are always routed to the required error hook.
+ * action dispatcher. Synchronous throws and promise rejections are always
+ * routed to the required error hook.
  */
 export function useMcpNativeActionDispatcher(
   dispatcher: McpNativeDispatcher,
@@ -92,10 +93,12 @@ export function useMcpNativeActionDispatcher(
 
   return useCallback(
     (action) => {
-      void dispatcher.dispatch(action).then(
-        (result) => onResult?.(result),
-        (error: unknown) => onError(error),
-      );
+      void Promise.resolve()
+        .then(() => dispatcher.dispatch(action))
+        .then(
+          (result) => onResult?.(result),
+          (error: unknown) => onError(error),
+        );
     },
     [dispatcher, onError, onResult],
   );
