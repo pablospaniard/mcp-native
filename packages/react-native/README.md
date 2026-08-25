@@ -109,8 +109,9 @@ The application host decides how each name maps to a locally bundled component a
 - The server cannot select components outside the catalog.
 - The server cannot send executable React Native code.
 - Render plans should only be created from a successfully validated surface.
+- Declared actions and their complete JSON arguments are validated again immediately before emission.
 - Rendered component props are selected explicitly; unchecked server props are never spread into host components.
-- The host must explicitly map components, own state, enforce permissions, and approve sensitive tool calls.
+- The host must explicitly map components, own state, enforce permissions, and configure the runtime action policy; dispatch is denied when no policy allows it.
 - Asynchronous action failures cannot become unhandled rejections because `useMcpNativeActionDispatcher` requires an error callback.
 - Future styling and component expansion must preserve allowlists rather than spreading unchecked server props.
 

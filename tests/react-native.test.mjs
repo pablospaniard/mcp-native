@@ -123,6 +123,33 @@ test("McpNativeSurface does not create binding handlers without a host callback"
   await act(async () => root.unmount());
 });
 
+test("McpNativeSurface safely reconstructs action arguments before emitting them", async () => {
+  const actions = [];
+  const root = createRoot();
+  const untrustedSurface = JSON.parse(
+    '{"version":"0.1","root":{"id":"safe","type":"button","label":"Safe","action":{"type":"tool","name":"safe","arguments":{"__proto__":{"polluted":true}}}}}',
+  );
+
+  await act(async () => {
+    root.render(
+      createElement(McpNativeSurface, {
+        surface: untrustedSurface,
+        components,
+        onAction: (action) => actions.push(action),
+      }),
+    );
+  });
+
+  root.container.queryAll((element) => element.type === "Button")[0].props.onPress();
+  const arguments_ = actions[0].arguments;
+  assert.equal(Object.getPrototypeOf(arguments_), Object.prototype);
+  assert.equal(Object.hasOwn(arguments_, "__proto__"), true);
+  assert.equal(arguments_.polluted, undefined);
+  assert.deepEqual(arguments_["__proto__"], { polluted: true });
+
+  await act(async () => root.unmount());
+});
+
 test("useNativeRenderPlan preserves a plan until the surface identity changes", async () => {
   const plans = [];
   const root = createRoot();
@@ -234,6 +261,16 @@ test("the mounted renderer rejects malformed trusted-plan fields", async (t) => 
       name: "button action",
       root: { id: "bad", type: "button", label: "Run", action: { type: "script" } },
       message: /bad\.action/,
+    },
+    {
+      name: "button action arguments",
+      root: {
+        id: "bad",
+        type: "button",
+        label: "Run",
+        action: { type: "tool", name: "run", arguments: { value: NaN } },
+      },
+      message: /bad\.action\.arguments\.value/,
     },
     {
       name: "input label",

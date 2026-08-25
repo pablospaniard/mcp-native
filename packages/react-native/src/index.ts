@@ -1,4 +1,5 @@
 import type { A2uiNode, A2uiSurface } from "@mcp-native/a2ui";
+import { parseMcpNativeAction } from "@mcp-native/core";
 import type { McpNativeAction, McpToolCallResult } from "@mcp-native/core";
 import {
   createElement,
@@ -211,16 +212,11 @@ function optionalStringProp(element: NativeElement, name: string): string | unde
 
 function expectActionProp(element: NativeElement): McpNativeAction {
   const value = element.props.action;
-  if (
-    value === null ||
-    typeof value !== "object" ||
-    Array.isArray(value) ||
-    !("type" in value) ||
-    value.type !== "tool" ||
-    !("name" in value) ||
-    typeof value.name !== "string"
-  ) {
-    throw new TypeError(`Expected a tool action at native element ${element.key}.action`);
+  const path = `native element ${element.key}.action`;
+  try {
+    return parseMcpNativeAction(value, path);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : `Expected a tool action at ${path}`;
+    throw new TypeError(message, { cause: error });
   }
-  return value as McpNativeAction;
 }

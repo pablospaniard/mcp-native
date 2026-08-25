@@ -53,13 +53,13 @@ official @modelcontextprotocol/client
     `-- HTML resource --> @mcp-native/webview --> policy-gated WebView
 ```
 
-User actions take the reverse path. A component emits a typed action; the core runtime dispatches the corresponding `tools/call` through the connected MCP client.
+User actions take the reverse path. A component emits a typed action; the core runtime validates the complete action and dispatches the corresponding `tools/call` through the connected MCP client only when the host's action policy explicitly allows it.
 
 ## Package boundaries
 
 ### `@mcp-native/core`
 
-Owns protocol-independent runtime contracts, MCP client abstraction, resource access, action dispatch, and eventually the capability broker. It has no React Native or A2UI dependency.
+Owns protocol-independent runtime contracts, MCP client abstraction, resource access, strict JSON/action validation, fail-closed action dispatch, and eventually the broader capability broker. It has no React Native or A2UI dependency.
 
 Its resource contract preserves every content item returned by `resources/read`; a single URI can resolve to more than one text or blob item. Tool results preserve JSON-safe content blocks, the error flag, and structured content without exposing SDK-specific transport types.
 
@@ -95,6 +95,8 @@ Convenience package for the runtime and UI APIs. Transport adapters remain separ
 
 The host owns the effective component and action allowlists. A server can request only capabilities the host has declared. Unknown components, actions, bindings, MIME types, and protocol versions are rejected rather than silently interpreted.
 
+`McpNativeRuntime.dispatch()` applies this rule with a host-provided action policy and denies every surface action when no policy is configured. The lower-level `callTool()` operation remains available to trusted host code and is intentionally outside the surface-action policy.
+
 Future capabilities that touch sensitive device APIs must be brokered by the host and may require user approval. Server declarations alone never grant device access.
 
 ## Initial milestone
@@ -121,6 +123,9 @@ The official SDK adapter, declarative resource-resolution, and initial React Nat
 - errored tool results, malformed links and contents, binary bodies, and invalid surfaces fail before rendering.
 - validated surfaces mount through a host-provided catalog containing `View`, `Text`, `Button`, and `TextInput`;
 - buttons dispatch only their validated tool actions, and text inputs emit only declared binding changes;
+- action arguments are validated again at the renderer and runtime boundaries;
+- surface dispatch is deny-by-default and requires an explicit host action policy;
+- all protocol-facing JSON reconstruction rejects cycles, non-plain objects, and non-finite numbers while preserving prototype-named keys as own data properties;
 - renderer-selected accessibility labels are supplied for interactive components;
 - renderer hooks memoize plans and route asynchronous dispatch results or failures to explicit host callbacks;
 - component, interaction, hook, malformed-plan, public-export, and isolated package-consumer tests cover the boundary.

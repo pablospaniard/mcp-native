@@ -1,4 +1,8 @@
 import type { Client } from "@modelcontextprotocol/client";
+import {
+  parseJsonObject as parseCoreJsonObject,
+  parseJsonValue as parseCoreJsonValue,
+} from "@mcp-native/core";
 import type {
   JsonObject,
   JsonValue,
@@ -19,8 +23,8 @@ type OfficialMcpClient = Pick<Client, "callTool" | "listTools" | "readResource">
 
 /** Thrown when an SDK result cannot be represented by MCP Native's JSON-safe contracts. */
 export class McpSdkAdapterError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "McpSdkAdapterError";
   }
 }
@@ -369,7 +373,12 @@ function optionalBoundedNumber(
 }
 
 function expectJsonObject(value: unknown, path: string): JsonObject {
-  return expectJsonObjectWithAncestors(value, path, new Set());
+  try {
+    return parseCoreJsonObject(value, path);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : `Invalid JSON object at ${path}`;
+    throw new McpSdkAdapterError(message, { cause: error });
+  }
 }
 
 function optionalJsonObject(value: unknown, path: string): JsonObject | undefined {
@@ -407,56 +416,11 @@ function isValidMetaKey(key: string): boolean {
   return prefix.length > 0 && prefix.split(".").every((label) => labelPattern.test(label));
 }
 
-function expectJsonObjectWithAncestors(
-  value: unknown,
-  path: string,
-  ancestors: Set<object>,
-): JsonObject {
-  const object = expectObject(value, path);
-  if (ancestors.has(object)) {
-    throw new McpSdkAdapterError(`Circular JSON value at ${path}`);
-  }
-
-  ancestors.add(object);
-  const result: Record<string, JsonValue> = {};
-  for (const [key, child] of Object.entries(object)) {
-    result[key] = expectJsonValueWithAncestors(child, `${path}.${key}`, ancestors);
-  }
-  ancestors.delete(object);
-  return result;
-}
-
 function expectJsonValue(value: unknown, path: string): JsonValue {
-  return expectJsonValueWithAncestors(value, path, new Set());
-}
-
-function expectJsonValueWithAncestors(
-  value: unknown,
-  path: string,
-  ancestors: Set<object>,
-): JsonValue {
-  if (value === null || typeof value === "boolean" || typeof value === "string") {
-    return value;
+  try {
+    return parseCoreJsonValue(value, path);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : `Invalid JSON value at ${path}`;
+    throw new McpSdkAdapterError(message, { cause: error });
   }
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      throw new McpSdkAdapterError(`Expected a finite number at ${path}`);
-    }
-    return value;
-  }
-  if (Array.isArray(value)) {
-    if (ancestors.has(value)) {
-      throw new McpSdkAdapterError(`Circular JSON value at ${path}`);
-    }
-    ancestors.add(value);
-    const result = value.map((child, index) =>
-      expectJsonValueWithAncestors(child, `${path}[${index}]`, ancestors),
-    );
-    ancestors.delete(value);
-    return result;
-  }
-  if (typeof value === "object") {
-    return expectJsonObjectWithAncestors(value, path, ancestors);
-  }
-  throw new McpSdkAdapterError(`Expected a JSON value at ${path}`);
 }

@@ -121,7 +121,8 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A transport-independent MCP client boundary
 - A validated adapter for connected clients from the official MCP TypeScript SDK v2
 - MCP `2026-07-28` tool/resource field preservation and HTTP handler/fetch integration coverage
-- Typed `tools/call` action routing
+- Typed `tools/call` action routing with a fail-closed host policy
+- Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
 - Strict parsing of a deliberately small declarative UI subset
 - Conversion from a validated surface to a trusted native render plan

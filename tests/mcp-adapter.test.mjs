@@ -206,6 +206,27 @@ test("the SDK adapter omits absent optional tool result fields", async () => {
   assert.deepEqual(await adapter.readResource("ui://empty"), { contents: [] });
 });
 
+test("the SDK adapter preserves prototype-named JSON keys as own data properties", async () => {
+  const structuredContent = JSON.parse('{"__proto__":{"polluted":true}}');
+  const adapter = new McpSdkClientAdapter({
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [], structuredContent };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  });
+
+  const result = await adapter.callTool("safe", {});
+  assert.equal(Object.getPrototypeOf(result.structuredContent), Object.prototype);
+  assert.equal(Object.hasOwn(result.structuredContent, "__proto__"), true);
+  assert.equal(result.structuredContent.polluted, undefined);
+  assert.deepEqual(result.structuredContent["__proto__"], { polluted: true });
+});
+
 test("the SDK adapter preserves every official MCP content block shape", async () => {
   const content = [
     {

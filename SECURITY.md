@@ -46,4 +46,6 @@ Reports are particularly useful when they involve:
 
 The foundational rule is documented in [RFC-0001](docs/RFC-0001-architecture.md): remote servers may provide declarative UI and actions, but MCP Native never downloads and executes arbitrary React Native JavaScript.
 
+Surface-driven actions are validated and denied unless an explicit host policy allows them. Protocol-facing JSON rejects circular, non-plain, and non-finite values, and reconstructs prototype-named keys as ordinary own properties. These protections do not authorize a tool, replace application permissions, or make the current WebView primitives a browser sandbox.
+
 Security-oriented architecture does not by itself establish protocol conformance. The current A2UI parser is an internal proof of concept, and the WebView package is not yet an MCP Apps sandbox or bridge. See [Standards and compatibility](docs/standards-compatibility.md) for the exact boundaries.
