@@ -20,6 +20,7 @@ export interface McpContent {
 export interface McpToolCallResult {
   readonly content: readonly McpContent[];
   readonly isError?: boolean;
+  readonly structuredContent?: JsonValue;
 }
 
 export interface McpResource {
@@ -29,6 +30,10 @@ export interface McpResource {
   readonly blob?: string;
 }
 
+export interface McpReadResourceResult {
+  readonly contents: readonly McpResource[];
+}
+
 /**
  * The small client boundary consumed by the runtime. SDK-specific clients can
  * implement this interface without coupling the core package to a transport.
@@ -36,7 +41,7 @@ export interface McpResource {
 export interface McpClient {
   listTools(): Promise<readonly McpTool[]>;
   callTool(name: string, arguments_: JsonObject): Promise<McpToolCallResult>;
-  readResource(uri: string): Promise<McpResource>;
+  readResource(uri: string): Promise<McpReadResourceResult>;
 }
 
 export interface ToolAction {
@@ -67,7 +72,7 @@ export class McpNativeRuntime {
     return this.#client.callTool(name, arguments_);
   }
 
-  readResource(uri: string): Promise<McpResource> {
+  readResource(uri: string): Promise<McpReadResourceResult> {
     return this.#client.readResource(uri);
   }
 

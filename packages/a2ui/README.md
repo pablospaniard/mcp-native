@@ -96,7 +96,7 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 
 ## Next layer
 
-Use [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) to convert a validated surface into a trusted native render plan, or install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the complete public API.
+Use [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) to convert a validated surface into a trusted native render plan, or install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
 
 ## License
 

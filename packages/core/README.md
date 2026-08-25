@@ -47,7 +47,9 @@ const client: McpClient = {
     };
   },
   async readResource(uri) {
-    return { uri, mimeType: "text/plain", text: "Hello from MCP" };
+    return {
+      contents: [{ uri, mimeType: "text/plain", text: "Hello from MCP" }],
+    };
   },
 };
 
@@ -62,28 +64,43 @@ await runtime.dispatch({
 
 ## Public API
 
-| Export                                        | Purpose                                                                                     |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `McpNativeRuntime`                            | Delegates tool listing, tool calls, resource reads, and declared actions to an `McpClient`. |
-| `McpClient`                                   | Minimal interface implemented by an SDK- or transport-specific adapter.                     |
-| `McpTool`, `McpResource`, `McpToolCallResult` | Transport-neutral MCP data contracts used by the runtime.                                   |
-| `ToolAction`, `McpNativeAction`               | Declarative actions that can be dispatched through the runtime.                             |
-| `JsonPrimitive`, `JsonValue`, `JsonObject`    | JSON-safe value types for untrusted protocol data.                                          |
+| Export                                                                 | Purpose                                                                                     |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `McpNativeRuntime`                                                     | Delegates tool listing, tool calls, resource reads, and declared actions to an `McpClient`. |
+| `McpClient`                                                            | Minimal interface implemented by an SDK- or transport-specific adapter.                     |
+| `McpTool`, `McpResource`, `McpReadResourceResult`, `McpToolCallResult` | Transport-neutral MCP data contracts used by the runtime.                                   |
+| `ToolAction`, `McpNativeAction`                                        | Declarative actions that can be dispatched through the runtime.                             |
+| `JsonPrimitive`, `JsonValue`, `JsonObject`                             | JSON-safe value types for untrusted protocol data.                                          |
+
+## Resource result migration
+
+The initial `0.0.x` proof of concept returned one `McpResource` directly from `readResource`. The official SDK returns a content collection, so implementations now return `McpReadResourceResult`:
+
+```ts
+// Before
+return { uri, text: "Hello" };
+
+// Current RFC-0001 contract
+return { contents: [{ uri, text: "Hello" }] };
+```
+
+Preserving the collection avoids silently discarding valid resource items.
 
 ## Design boundaries
 
 - No React Native dependency.
 - No A2UI or WebView dependency.
-- No transport or official MCP SDK dependency yet.
+- No transport or official MCP SDK dependency.
 - No remote code loading or execution.
 - Host applications remain responsible for authentication, permissions, transport security, and user approval.
 
 ## Related packages
 
 - [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui) validates declarative surfaces and actions.
+- [`@mcp-native/mcp`](https://github.com/pablospaniard/mcp-native/tree/main/packages/mcp) adapts connected official SDK clients to this package's contracts.
 - [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) converts validated surfaces into trusted native render plans.
 - [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview) defines the HTML compatibility policy boundary.
-- [`mcp-native`](https://www.npmjs.com/package/mcp-native) re-exports the complete public API.
+- [`mcp-native`](https://www.npmjs.com/package/mcp-native) re-exports the runtime and UI APIs.
 
 ## License
 

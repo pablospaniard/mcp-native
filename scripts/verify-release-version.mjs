@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 const packageJsonPaths = [
   "packages/core/package.json",
+  "packages/mcp/package.json",
   "packages/a2ui/package.json",
   "packages/webview/package.json",
   "packages/react-native/package.json",

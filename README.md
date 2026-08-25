@@ -42,6 +42,17 @@ The result should feel native to the device while preserving a clear trust bound
                   tools/list · tools/call · resources/read
                                       │
                                       ▼
+                         ┌────────────────────────┐
+                         │ official MCP TS client │
+                         └────────────┬───────────┘
+                                      │
+                                      ▼
+                           ┌─────────────────────┐
+                           │  @mcp-native/mcp    │
+                           │ validated SDK bridge│
+                           └──────────┬──────────┘
+                                      │
+                                      ▼
                             ┌───────────────────┐
                             │ @mcp-native/core  │
                             │ runtime + actions │
@@ -76,16 +87,17 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | Package                                                                              | Source                                           | Responsibility                                                           |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------ |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing |
+| `@mcp-native/mcp`                                                                    | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client             |
 | [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Strict parsing for the initial declarative UI surface                    |
 | [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans using an explicit native component catalog          |
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | Policy-gated HTML MCP App compatibility                                  |
-| [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point that re-exports every public API                 |
+| [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                  |
 
-The packages are intentionally separated so the core runtime does not depend on React Native or any single declarative UI protocol.
+The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. The new SDK adapter is implemented in the workspace and will be published in the next coordinated release.
 
 ## Installation
 
-Install the complete public API from the convenience package:
+Install the runtime and UI APIs from the convenience package:
 
 ```bash
 npm install mcp-native
@@ -97,11 +109,12 @@ Or install only the layers your host needs:
 npm install @mcp-native/core @mcp-native/a2ui @mcp-native/react-native
 ```
 
-Every package is ESM-only, includes TypeScript declarations, and is published from GitHub Actions with signed npm provenance. See each package's npm page for focused examples and its current API surface.
+Every package is ESM-only and includes TypeScript declarations. Published packages are released from GitHub Actions with signed npm provenance; the SDK adapter joins them in the next coordinated release.
 
 ## What works today
 
 - A transport-independent MCP client boundary
+- A validated adapter for connected clients from the official MCP TypeScript SDK v2
 - Typed `tools/call` action routing
 - Strict parsing of a deliberately small declarative UI subset
 - Conversion from a validated surface to a trusted native render plan
@@ -109,7 +122,7 @@ Every package is ESM-only, includes TypeScript declarations, and is published fr
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the repository does not yet include an MCP SDK transport adapter, production React Native components, streaming surface updates, or a runnable mobile demo.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, the repository does not yet include production React Native components, streaming surface updates, authentication helpers, or a runnable mobile demo.
 
 ## Tiny example
 
@@ -200,6 +213,7 @@ mcp-native/
 │   └── react-native-demo/     # Target home of the end-to-end mobile demo
 ├── packages/
 │   ├── core/
+│   ├── mcp/
 │   ├── a2ui/
 │   ├── react-native/
 │   ├── webview/
@@ -213,7 +227,7 @@ mcp-native/
 - [x] Validate a minimal declarative UI surface
 - [x] Produce a trusted native render plan
 - [x] Establish a policy-gated WebView boundary
-- [ ] Add an adapter for the official MCP TypeScript SDK
+- [x] Add an adapter for the official MCP TypeScript SDK
 - [ ] Resolve declarative UI resources from real tool results
 - [ ] Render production React Native components and hooks
 - [ ] Support local state bindings and streaming surface updates

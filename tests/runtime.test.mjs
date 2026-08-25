@@ -14,7 +14,7 @@ test("the core runtime routes a declared tool action", async () => {
       return { content: [{ type: "text", data: { text: "saved" } }] };
     },
     async readResource(uri) {
-      return { uri, mimeType: "application/json", text: "{}" };
+      return { contents: [{ uri, mimeType: "application/json", text: "{}" }] };
     },
   };
 
@@ -32,7 +32,9 @@ test("the core runtime routes a declared tool action", async () => {
 test("the core runtime delegates every client operation", async () => {
   const calls = [];
   const tools = [{ name: "save", inputSchema: { type: "object" } }];
-  const resource = { uri: "ui://profile", mimeType: "application/json", text: "{}" };
+  const resource = {
+    contents: [{ uri: "ui://profile", mimeType: "application/json", text: "{}" }],
+  };
   const client = {
     async listTools() {
       calls.push(["listTools"]);

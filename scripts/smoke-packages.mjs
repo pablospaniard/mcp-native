@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 
 const packages = [
   "@mcp-native/core",
+  "@mcp-native/mcp",
   "@mcp-native/a2ui",
   "@mcp-native/webview",
   "@mcp-native/react-native",
@@ -50,8 +51,20 @@ try {
   );
   execFileSync(
     "npm",
-    ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--offline", ...tarballs],
-    { cwd: consumerDirectory, env: npmEnvironment, stdio: "inherit" },
+    [
+      "install",
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+      "--offline",
+      "--legacy-peer-deps",
+      ...tarballs,
+    ],
+    {
+      cwd: consumerDirectory,
+      env: npmEnvironment,
+      stdio: "inherit",
+    },
   );
 
   const importPromises = packages.map((packageName) => {
