@@ -27,6 +27,7 @@ jobs:
       - run: npm ci
       - run: npm run release:verify
       - run: npm publish --workspace @mcp-native/core --access public
+      - run: npm publish --workspace @mcp-native/mcp --access public
       - run: npm publish --workspace @mcp-native/a2ui --access public
       - run: npm publish --workspace @mcp-native/webview --access public
       - run: npm publish --workspace @mcp-native/react-native --access public

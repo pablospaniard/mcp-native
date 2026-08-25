@@ -137,6 +137,14 @@ Every pull request should:
 - pass the required `verify` check;
 - resolve all review conversations before merging.
 
+Protocol- or compatibility-affecting pull requests must also:
+
+- identify the exact released specification version or pinned Candidate commit;
+- link the relevant normative section and distinguish `MUST`, `SHOULD`, and project policy;
+- include official fixtures or interoperability scenarios where available;
+- update the [compatibility matrix](docs/standards-compatibility.md) and [roadmap](docs/roadmap.md) when support changes;
+- avoid unqualified conformance claims when only a subset is implemented.
+
 Draft pull requests are welcome for early feedback. They are not mergeable until marked ready for review.
 
 The repository prefers squash merging so each pull request becomes one coherent commit on `main`. Maintainers may edit the squash commit message for clarity.

@@ -125,7 +125,9 @@ The official SDK adapter, declarative resource-resolution, and initial React Nat
 - renderer hooks memoize plans and route asynchronous dispatch results or failures to explicit host callbacks;
 - component, interaction, hook, malformed-plan, public-export, and isolated package-consumer tests cover the boundary.
 
-The next milestone is an A2UI v1.0 conformance foundation based on a pinned official schema revision. It will introduce official envelopes and an ordered surface state engine before adding richer renderer behavior. The existing host-owned React Native catalog remains the internal rendering boundary.
+The next milestone is MCP `2026-07-28` contract fidelity and transport-level integration coverage. The official SDK continues to own wire behavior, while MCP Native must stop discarding metadata, schemas, annotations, extension settings, and cache semantics needed by UI protocols. Tests must exercise the SDK's current HTTP handler/fetch path because its linked in-memory transport covers the older connection-era protocol.
+
+After that foundation, extension negotiation and a pinned A2UI v1.0 Candidate adapter will introduce official envelopes and an ordered surface state engine. The existing host-owned React Native catalog remains the internal rendering boundary. See the [standards-first roadmap](roadmap.md).
 
 MCP Apps compatibility remains a separate track. A malformed or unsupported native surface must fail closed rather than silently becoming executable HTML, and an invalid Apps resource must not be interpreted as native UI.
 
@@ -148,6 +150,7 @@ This intentional pre-1.0 correction prevents silent data loss when a server retu
 ## Deferred work
 
 - A2UI v1.0 envelopes, schema validation, catalogs, surface lifecycle, and conformance tests
+- MCP `2026-07-28` field fidelity, extension negotiation, backwards compatibility, and HTTP integration tests
 - A2UI data-model bindings, actions, functions, capabilities, and streaming updates
 - Authentication and production transport configuration
 - Richer React Native catalog components, styling, and platform-specific accessibility behavior

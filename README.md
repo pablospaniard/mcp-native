@@ -13,7 +13,7 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Architecture](docs/RFC-0001-architecture.md) · [Standards status](docs/standards-compatibility.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
+[Architecture](docs/RFC-0001-architecture.md) · [Standards status](docs/standards-compatibility.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
 
 </div>
 
@@ -257,6 +257,8 @@ mcp-native/
 
 ## Roadmap
 
+The detailed [standards-first roadmap](docs/roadmap.md) records retained architecture, milestone exit criteria, and deferred optional extensions.
+
 - [x] Define protocol-independent runtime and action contracts
 - [x] Validate a minimal declarative UI surface
 - [x] Produce a trusted native render plan
@@ -264,10 +266,14 @@ mcp-native/
 - [x] Add an adapter for the official MCP TypeScript SDK
 - [x] Resolve declarative UI resources from real tool results
 - [x] Render host-provided React Native components through production-facing hooks
+- [x] Inventory normative standards and publish explicit compatibility status
+- [ ] Align core contracts and integration tests with MCP `2026-07-28`
+- [ ] Add extension negotiation and metadata-preserving capability contracts
 - [ ] Implement an A2UI v1.0 conformance foundation from pinned official schemas
 - [ ] Support the A2UI surface lifecycle, local data model, bindings, and streaming updates
-- [ ] Add capability negotiation, authentication, and host permissions
-- [ ] Implement MCP Apps discovery, policy metadata, sandboxing, and AppBridge compatibility
+- [ ] Complete native accessibility and action-context behavior
+- [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility
+- [ ] Add MCP HTTP authorization, consent, and host permission controls
 - [ ] Ship an end-to-end React Native example
 - [ ] Expand protocol coverage through reviewed RFCs and tests
 
