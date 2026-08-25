@@ -1,7 +1,7 @@
 {
-  "name": "@mcp-native/react-native",
+  "name": "mcp-native",
   "version": "0.0.2",
-  "description": "React Native renderer primitives for MCP Native.",
+  "description": "Convenience package for the MCP Native runtime.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,16 +12,13 @@
       "import": "./dist/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "README.md"],
   "sideEffects": false,
-  "publishConfig": {
-    "access": "public"
-  },
+  "publishConfig": { "access": "public" },
   "dependencies": {
     "@mcp-native/a2ui": "^0.0.2",
-    "@mcp-native/core": "^0.0.2"
+    "@mcp-native/core": "^0.0.2",
+    "@mcp-native/react-native": "^0.0.2",
+    "@mcp-native/webview": "^0.0.2"
   }
 }

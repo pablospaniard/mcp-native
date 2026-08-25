@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "../../node_modules/.cache/mcp-native/a2ui.tsbuildinfo"
+  },
+  "references": [{ "path": "../core" }],
+  "include": ["src/**/*.ts"]
+}

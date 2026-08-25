@@ -1,0 +1,94 @@
+# RFC-0001: MCP Native architecture
+
+- Status: Accepted for initial proof of concept
+- Date: 2026-08-25
+
+## Summary
+
+MCP Native turns MCP resources and actions into host-controlled native UI. A server may describe a surface using a supported declarative protocol such as A2UI. The host parses that data, maps it to a local component catalog, renders it, and routes declared user actions back through MCP.
+
+HTML MCP Apps remain available through a separately policy-gated WebView fallback.
+
+## Non-negotiable security rule
+
+Remote MCP servers may provide declarative UI and actions, but MCP Native never downloads and executes arbitrary React Native JavaScript.
+
+All executable application code and native components are supplied by the host application. Server-provided input is untrusted data and must be validated before it reaches a renderer.
+
+## Data flow
+
+```text
+MCP server
+    |
+    | tools/list, tools/call, resources/read
+    v
+@mcp-native/core
+    |
+    +-- declarative resource
+    |       |
+    |       v
+    |   @mcp-native/a2ui
+    |       |
+    |       v
+    |   validated surface
+    |       |
+    |       v
+    |   @mcp-native/react-native
+    |       |
+    |       v
+    |   host-owned native components
+    |
+    `-- HTML resource --> @mcp-native/webview --> policy-gated WebView
+```
+
+User actions take the reverse path. A component emits a typed action; the core runtime dispatches the corresponding `tools/call` through the connected MCP client.
+
+## Package boundaries
+
+### `@mcp-native/core`
+
+Owns protocol-independent runtime contracts, MCP client abstraction, resource access, action dispatch, and eventually the capability broker. It has no React Native or A2UI dependency.
+
+### `@mcp-native/a2ui`
+
+Owns parsing, validation, state bindings, and conversion from supported A2UI messages into the internal surface model. Unsupported versions, nodes, and actions fail closed.
+
+The proof of concept starts with four nodes: container, text, button, and text input. Supporting more of A2UI must not weaken validation or introduce remote code execution.
+
+### `@mcp-native/react-native`
+
+Owns the native component catalog, React Native rendering, event translation, accessibility defaults, and host customization. The first typed render plan uses only `View`, `Text`, `Button`, and `TextInput`.
+
+### `@mcp-native/webview`
+
+Owns compatibility with HTML MCP Apps. WebView rendering is an explicit fallback and has a separate policy surface for navigation, remote documents, origins, bridge messages, storage, and permissions.
+
+### `mcp-native`
+
+Convenience package that re-exports the public APIs. Applications may instead depend on individual scoped packages.
+
+## Capability model
+
+The host owns the effective component and action allowlists. A server can request only capabilities the host has declared. Unknown components, actions, bindings, MIME types, and protocol versions are rejected rather than silently interpreted.
+
+Future capabilities that touch sensitive device APIs must be brokered by the host and may require user approval. Server declarations alone never grant device access.
+
+## Initial milestone
+
+The first end-to-end proof should demonstrate:
+
+1. Connect an MCP client and obtain `tools/list`.
+2. Invoke a tool with `tools/call`.
+3. Resolve an A2UI resource from the result.
+4. Validate the surface through `@mcp-native/a2ui`.
+5. Render native text, button, text input, and container components.
+6. Route a button action back through `tools/call`.
+
+## Deferred work
+
+- Full A2UI protocol coverage and streaming updates
+- MCP SDK transport adapters and authentication
+- Production React Native components and hooks
+- Fine-grained capability negotiation and permissions
+- WebView bridge compatibility and origin isolation
+- SwiftUI, Jetpack Compose, or other native renderers

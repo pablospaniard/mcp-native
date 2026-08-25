@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "../../node_modules/.cache/mcp-native/meta.tsbuildinfo"
+  },
+  "references": [
+    { "path": "../core" },
+    { "path": "../a2ui" },
+    { "path": "../react-native" },
+    { "path": "../webview" }
+  ],
+  "include": ["src/**/*.ts"]
+}

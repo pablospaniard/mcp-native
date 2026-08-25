@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/a2ui" },
+    { "path": "./packages/react-native" },
+    { "path": "./packages/webview" },
+    { "path": "./packages/mcp-native" }
+  ]
+}

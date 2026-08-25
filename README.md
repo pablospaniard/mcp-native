@@ -1,18 +1,46 @@
 # MCP Native
 
-Native application runtime for Model Context Protocol (MCP), focused first on React Native.
+MCP Native is an experimental runtime for rendering Model Context Protocol (MCP) experiences as native application UI, focused first on React Native.
 
-## Goal
+## Why
 
-Render MCP-powered interfaces as native UI instead of requiring an iframe/WebView, using declarative UI (such as A2UI) where possible and keeping WebView support as a compatibility fallback.
+MCP Apps commonly ship HTML that runs in an iframe or WebView. MCP Native adds a native path for servers that expose declarative UI, while retaining a policy-gated WebView compatibility path.
 
-## Proposed architecture
+```text
+MCP server
+    |
+    v
+@mcp-native/core
+    |
+    +-- A2UI resource --> @mcp-native/a2ui --> @mcp-native/react-native
+    |
+    `-- HTML resource ----------------------> @mcp-native/webview
+```
+
+## Packages
 
 - `@mcp-native/core` — runtime, resource resolution, action routing, capability broker
 - `@mcp-native/react-native` — React Native renderer and host integration
 - `@mcp-native/a2ui` — A2UI transport/binding and renderer adapter
 - `@mcp-native/webview` — MCP Apps HTML/WebView fallback
+- `mcp-native` — convenience package that re-exports the public packages
+
+## Security boundary
+
+Remote MCP servers may provide declarative data and actions. MCP Native does not download or execute arbitrary React Native JavaScript. Native components are bundled by the host and selected from an allowlisted component catalog.
+
+See [RFC-0001](docs/RFC-0001-architecture.md) for package boundaries, data flow, and the initial threat model.
+
+## Development
+
+Requires Node.js 22 or newer.
+
+```bash
+npm install
+npm run check
+npm test
+```
 
 ## Status
 
-Early architecture / proof-of-concept.
+Early proof of concept. The current code establishes typed runtime boundaries, a deliberately small A2UI subset, a native render plan, and WebView policy primitives. It is not production-ready.

@@ -1,7 +1,21 @@
 {
-  "name": "mcp-native",
+  "name": "mcp-native-monorepo",
   "version": "0.0.0",
   "private": true,
   "description": "Native application runtime for MCP, focused first on React Native.",
-  "workspaces": ["packages/*"]
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "check": "tsc -b --pretty false",
+    "clean": "tsc -b --clean",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
 }
