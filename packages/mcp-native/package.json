@@ -41,5 +41,14 @@
     "@mcp-native/core": "^0.0.3",
     "@mcp-native/react-native": "^0.0.3",
     "@mcp-native/webview": "^0.0.3"
+  },
+  "peerDependencies": {
+    "react": ">=18.3.1 <20",
+    "react-native": ">=0.76.0 <1"
+  },
+  "peerDependenciesMeta": {
+    "react-native": {
+      "optional": true
+    }
   }
 }

@@ -2,6 +2,7 @@
 
 - Status: Accepted for initial proof of concept
 - Date: 2026-08-25
+- Last updated: 2026-08-25
 
 ## Summary
 
@@ -73,7 +74,11 @@ The resolver recognizes the A2UI media type `application/a2ui+json`. The proof-o
 
 ### `@mcp-native/react-native`
 
-Owns the native component catalog, React Native rendering, event translation, accessibility defaults, and host customization. The first typed render plan uses only `View`, `Text`, `Button`, and `TextInput`.
+Owns the native component catalog, React Native rendering, event translation, accessibility defaults, and host customization. The first typed render plan and renderer use only `View`, `Text`, `Button`, and `TextInput`.
+
+The renderer accepts a catalog of locally bundled components instead of importing or resolving components named by the server. It explicitly selects every prop crossing into that catalog: text becomes children, button labels become titles and accessibility labels, declared actions become callbacks, and text-input labels become placeholders and accessibility labels. It never spreads unchecked plan or server props.
+
+`useNativeRenderPlan` memoizes conversion for a validated surface identity. `useMcpNativeActionDispatcher` adapts asynchronous runtime dispatch to a synchronous component event and requires an error callback so action failures are observed. Text inputs emit `(binding, value)` changes only when the validated node declares a binding and the host provides a handler. Local binding state and synchronization remain host responsibilities in this milestone.
 
 ### `@mcp-native/webview`
 
@@ -102,7 +107,7 @@ The first end-to-end proof should demonstrate:
 
 ## Implementation status
 
-The official SDK adapter and declarative resource-resolution milestones are complete in the proof-of-concept workspace:
+The official SDK adapter, declarative resource-resolution, and initial React Native rendering milestones are complete in the proof-of-concept workspace:
 
 - `@mcp-native/mcp` targets `@modelcontextprotocol/client` v2;
 - an integration test connects the official `Client` and `McpServer` through the SDK's linked in-memory transport;
@@ -111,8 +116,13 @@ The official SDK adapter and declarative resource-resolution milestones are comp
 - an official SDK tool result can return an `application/a2ui+json` `resource_link` that is read and parsed through `@mcp-native/a2ui`;
 - resolution requires exactly one matching link and one matching text resource, preventing server-controlled ambiguity or MIME guessing;
 - errored tool results, malformed links and contents, binary bodies, and invalid surfaces fail before rendering.
+- validated surfaces mount through a host-provided catalog containing `View`, `Text`, `Button`, and `TextInput`;
+- buttons dispatch only their validated tool actions, and text inputs emit only declared binding changes;
+- renderer-selected accessibility labels are supplied for interactive components;
+- renderer hooks memoize plans and route asynchronous dispatch results or failures to explicit host callbacks;
+- component, interaction, hook, malformed-plan, public-export, and isolated package-consumer tests cover the boundary.
 
-The next milestone is mounting production React Native components and hooks on the trusted render plan while preserving the host-owned catalog boundary.
+The next milestone is local state bindings and streaming surface updates while preserving the host-owned catalog and explicit event boundary.
 
 ## Compatibility note
 
@@ -134,7 +144,7 @@ This intentional pre-1.0 correction prevents silent data loss when a server retu
 
 - Full A2UI protocol coverage and streaming updates
 - Authentication and production transport configuration
-- Production React Native components and hooks
+- Richer React Native catalog components, styling, and platform-specific accessibility behavior
 - Fine-grained capability negotiation and permissions
 - WebView bridge compatibility and origin isolation
 - SwiftUI, Jetpack Compose, or other native renderers

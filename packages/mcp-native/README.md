@@ -15,25 +15,29 @@
 
 > **Experimental:** MCP Native is a proof of concept, not a production-ready MCP or React Native runtime. APIs may change before `1.0.0`.
 
-`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, declarative surface parser, trusted native render-plan builder, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
+`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, declarative surface parser, trusted native renderer and hooks, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
 
 ## Install
 
 ```bash
-npm install mcp-native
+npm install mcp-native react
 ```
 
-The package is ESM-only and includes TypeScript declarations.
+Add `react-native` when mounting native surfaces. The package is ESM-only and includes TypeScript declarations.
 
 ## End-to-end preview
 
-```ts
+```tsx
 import {
+  McpNativeSurface,
   McpNativeRuntime,
-  createNativeRenderPlan,
   parseA2uiSurface,
+  useMcpNativeActionDispatcher,
   type McpClient,
 } from "mcp-native";
+import { Button, Text, TextInput, View } from "react-native";
+
+const components = { Button, Text, TextInput, View };
 
 const client: McpClient = {
   async listTools() {
@@ -68,15 +72,16 @@ const surface = parseA2uiSurface({
   },
 });
 
-const plan = createNativeRenderPlan(surface);
-const button = surface.root.type === "container" ? surface.root.children[1] : undefined;
+function NativeScreen() {
+  const onAction = useMcpNativeActionDispatcher(runtime, {
+    onError: (error) => console.error("MCP action failed", error),
+  });
 
-if (button?.type === "button") {
-  await runtime.dispatch(button.action);
+  return <McpNativeSurface surface={surface} components={components} onAction={onAction} />;
 }
 ```
 
-The host maps the trusted names in `plan` to locally bundled native components. MCP Native never downloads and executes server-provided React Native JavaScript.
+The host supplies the locally bundled native components. MCP Native never downloads and executes server-provided React Native JavaScript.
 
 ## Included packages
 
@@ -84,7 +89,7 @@ The host maps the trusted names in `plan` to locally bundled native components. 
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | MCP client contracts, runtime delegation, JSON types, and declared tool actions. |
 | [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Strict parsing for the initial declarative surface model.                        |
-| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | Serializable render plans with a fixed native component catalog.                 |
+| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | Trusted render plans, React hooks, and a fixed host-owned component catalog.     |
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | MIME validation and deny-by-default remote HTML policy.                          |
 
 Install an individual package instead when you only need one layer.
@@ -98,10 +103,12 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - declared tool-action dispatch;
 - strict A2UI resource-link resolution from tool results;
 - trusted render plans for `View`, `Text`, `Button`, and `TextInput`;
+- mounting through host-provided components with action and text-binding event translation;
+- memoized render-plan and safely observed asynchronous action-dispatch hooks;
 - policy-gated inline and remote HTML document descriptions;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-The project does not yet include mounted React Native components, streaming UI updates, capability negotiation, authentication helpers, or a runnable mobile demo. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
+The project does not yet include local binding state, streaming UI updates, capability negotiation, authentication helpers, or a runnable mobile demo. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
 
 ## Security model
 

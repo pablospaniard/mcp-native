@@ -89,7 +89,7 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing |
 | `@mcp-native/mcp`                                                                    | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client             |
 | [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Strict parsing for the initial declarative UI surface                    |
-| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans using an explicit native component catalog          |
+| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans, React hooks, and a host-owned component renderer   |
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | Policy-gated HTML MCP App compatibility                                  |
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                  |
 
@@ -100,8 +100,10 @@ The packages are intentionally separated so the core runtime does not depend on 
 Install the runtime and UI APIs from the convenience package:
 
 ```bash
-npm install mcp-native
+npm install mcp-native react
 ```
+
+Add `react-native` when mounting native surfaces. It remains an optional peer because the host—not this package—selects the platform implementation.
 
 Or install only the layers your host needs:
 
@@ -119,17 +121,24 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Strict resolution of `application/a2ui+json` resource links from real tool results
 - Strict parsing of a deliberately small declarative UI subset
 - Conversion from a validated surface to a trusted native render plan
+- Mounting through host-provided `View`, `Text`, `Button`, and `TextInput` components
+- React hooks for memoized render plans and safely observed asynchronous action dispatch
+- Accessibility labels and controlled text-input binding events selected at the renderer boundary
 - Fail-closed behavior for unknown nodes, actions, protocol versions, and WebView MIME types
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the repository does not yet include production React Native components, streaming surface updates, authentication helpers, or a runnable mobile demo.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, the repository does not yet include local binding state, streaming surface updates, authentication helpers, or a runnable mobile demo.
 
 ## Tiny example
 
-```ts
+```tsx
 import { parseA2uiSurface } from "@mcp-native/a2ui";
-import { createNativeRenderPlan } from "@mcp-native/react-native";
+import type { McpNativeRuntime } from "@mcp-native/core";
+import { McpNativeSurface, useMcpNativeActionDispatcher } from "@mcp-native/react-native";
+import { Button, Text, TextInput, View } from "react-native";
+
+const components = { Button, Text, TextInput, View };
 
 const surface = parseA2uiSurface({
   version: "0.1",
@@ -152,9 +161,13 @@ const surface = parseA2uiSurface({
   },
 });
 
-const renderPlan = createNativeRenderPlan(surface);
-// The host maps the trusted component names in this plan to locally bundled
-// React Native components and dispatches declared actions through the runtime.
+function NativeScreen({ runtime }: { runtime: McpNativeRuntime }) {
+  const onAction = useMcpNativeActionDispatcher(runtime, {
+    onError: (error) => console.error("MCP action failed", error),
+  });
+
+  return <McpNativeSurface surface={surface} components={components} onAction={onAction} />;
+}
 ```
 
 Connected hosts can resolve the same validated surface from a tool result:
@@ -241,7 +254,7 @@ mcp-native/
 - [x] Establish a policy-gated WebView boundary
 - [x] Add an adapter for the official MCP TypeScript SDK
 - [x] Resolve declarative UI resources from real tool results
-- [ ] Render production React Native components and hooks
+- [x] Render host-provided React Native components through production-facing hooks
 - [ ] Support local state bindings and streaming surface updates
 - [ ] Add capability negotiation, authentication, and host permissions
 - [ ] Ship an end-to-end React Native example
