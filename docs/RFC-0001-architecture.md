@@ -30,7 +30,9 @@ official @modelcontextprotocol/client
     v
 @mcp-native/core
     |
-    +-- declarative resource
+    +-- tool result: application/a2ui+json resource_link
+    |       |
+    |       `-- resources/read --> validated text resource
     |       |
     |       v
     |   @mcp-native/a2ui
@@ -65,9 +67,9 @@ This package is the validation boundary between SDK results and the runtime. It 
 
 ### `@mcp-native/a2ui`
 
-Owns parsing, validation, state bindings, and conversion from supported A2UI messages into the internal surface model. Unsupported versions, nodes, and actions fail closed.
+Owns resource-link resolution, parsing, validation, state bindings, and conversion from supported A2UI messages into the internal surface model. Unsupported MIME types, ambiguous links or contents, binary surfaces, versions, nodes, and actions fail closed.
 
-The proof of concept starts with four nodes: container, text, button, and text input. Supporting more of A2UI must not weaken validation or introduce remote code execution.
+The resolver recognizes the A2UI media type `application/a2ui+json`. The proof-of-concept parser starts with its own deliberately small `0.1` subset containing four nodes: container, text, button, and text input. This is not complete coverage of the current A2UI specification. Supporting more of A2UI must not weaken validation or introduce remote code execution.
 
 ### `@mcp-native/react-native`
 
@@ -100,14 +102,17 @@ The first end-to-end proof should demonstrate:
 
 ## Implementation status
 
-The official SDK adapter milestone is complete in the proof-of-concept workspace:
+The official SDK adapter and declarative resource-resolution milestones are complete in the proof-of-concept workspace:
 
 - `@mcp-native/mcp` targets `@modelcontextprotocol/client` v2;
 - an integration test connects the official `Client` and `McpServer` through the SDK's linked in-memory transport;
 - `tools/list`, `tools/call`, and `resources/read` traverse the adapter and core runtime;
 - malformed SDK-like results fail with `McpSdkAdapterError` before reaching UI code.
+- an official SDK tool result can return an `application/a2ui+json` `resource_link` that is read and parsed through `@mcp-native/a2ui`;
+- resolution requires exactly one matching link and one matching text resource, preventing server-controlled ambiguity or MIME guessing;
+- errored tool results, malformed links and contents, binary bodies, and invalid surfaces fail before rendering.
 
-The next milestone is resolving a declarative A2UI resource referenced by a real tool result and passing its text through `@mcp-native/a2ui`.
+The next milestone is mounting production React Native components and hooks on the trusted render plan while preserving the host-owned catalog boundary.
 
 ## Compatibility note
 

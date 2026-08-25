@@ -4,6 +4,7 @@ import test from "node:test";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { McpServer } from "@modelcontextprotocol/server";
 
+import { A2UI_MIME_TYPE, resolveA2uiResourceFromToolResult } from "../packages/a2ui/dist/index.js";
 import { McpNativeRuntime } from "../packages/core/dist/index.js";
 import {
   createMcpSdkClientAdapter,
@@ -106,17 +107,34 @@ test("the SDK adapter omits absent optional tool result fields", async () => {
   assert.deepEqual(await adapter.readResource("ui://empty"), { contents: [] });
 });
 
-test("the SDK adapter works with a connected official SDK client", async () => {
+test("a real SDK tool result resolves an A2UI resource through the runtime", async () => {
   const server = new McpServer({ name: "mcp-native-test-server", version: "1.0.0" });
-  server.registerTool("status", { description: "Return adapter status" }, async () => ({
-    content: [{ type: "text", text: "connected" }],
-    structuredContent: { connected: true },
+  server.registerTool("open-surface", { description: "Return a native surface" }, async () => ({
+    content: [
+      {
+        type: "resource_link",
+        name: "Adapter surface",
+        uri: "ui://adapter-test",
+        mimeType: A2UI_MIME_TYPE,
+      },
+    ],
   }));
   server.registerResource(
     "surface",
     "ui://adapter-test",
-    { mimeType: "application/json" },
-    async (uri) => ({ contents: [{ uri: uri.href, text: '{"version":"0.1"}' }] }),
+    { mimeType: A2UI_MIME_TYPE },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: A2UI_MIME_TYPE,
+          text: JSON.stringify({
+            version: "0.1",
+            root: { id: "sdk-result", type: "text", text: "Connected" },
+          }),
+        },
+      ],
+    }),
   );
 
   const client = new Client({ name: "mcp-native-test-client", version: "1.0.0" });
@@ -128,14 +146,17 @@ test("the SDK adapter works with a connected official SDK client", async () => {
 
     const runtime = new McpNativeRuntime(new McpSdkClientAdapter(client));
     const tools = await runtime.listTools();
-    assert.equal(tools[0]?.name, "status");
-    assert.equal(tools[0]?.description, "Return adapter status");
-    assert.deepEqual(await runtime.callTool("status"), {
-      content: [{ type: "text", data: { text: "connected" } }],
-      structuredContent: { connected: true },
-    });
-    assert.deepEqual(await runtime.readResource("ui://adapter-test"), {
-      contents: [{ uri: "ui://adapter-test", text: '{"version":"0.1"}' }],
+    assert.equal(tools[0]?.name, "open-surface");
+    assert.equal(tools[0]?.description, "Return a native surface");
+
+    const toolResult = await runtime.callTool("open-surface");
+    assert.deepEqual(await resolveA2uiResourceFromToolResult(runtime, toolResult), {
+      uri: "ui://adapter-test",
+      mimeType: A2UI_MIME_TYPE,
+      surface: {
+        version: "0.1",
+        root: { id: "sdk-result", type: "text", text: "Connected" },
+      },
     });
   } finally {
     await client.close();

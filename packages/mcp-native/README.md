@@ -96,6 +96,7 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - transport-independent MCP runtime contracts;
 - strict validation for container, text, button, and text-input nodes;
 - declared tool-action dispatch;
+- strict A2UI resource-link resolution from tool results;
 - trusted render plans for `View`, `Text`, `Button`, and `TextInput`;
 - policy-gated inline and remote HTML document descriptions;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.

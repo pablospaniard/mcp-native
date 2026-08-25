@@ -1,6 +1,14 @@
-import type { JsonObject, JsonValue, ToolAction } from "@mcp-native/core";
+import type {
+  JsonObject,
+  JsonValue,
+  McpContent,
+  McpReadResourceResult,
+  McpToolCallResult,
+  ToolAction,
+} from "@mcp-native/core";
 
 export const A2UI_VERSION = "0.1" as const;
+export const A2UI_MIME_TYPE = "application/a2ui+json" as const;
 
 interface A2uiNodeBase {
   readonly id: string;
@@ -36,11 +44,76 @@ export interface A2uiSurface {
   readonly root: A2uiNode;
 }
 
+export interface A2uiResourceReader {
+  readResource(uri: string): Promise<McpReadResourceResult>;
+}
+
+export interface ResolvedA2uiResource {
+  readonly uri: string;
+  readonly mimeType: typeof A2UI_MIME_TYPE;
+  readonly surface: A2uiSurface;
+}
+
 export class A2uiParseError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "A2uiParseError";
   }
+}
+
+export class A2uiResourceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "A2uiResourceError";
+  }
+}
+
+/**
+ * Resolves the single explicitly typed A2UI resource link in a successful
+ * tool result, reads it through the host client, and validates its surface.
+ */
+export async function resolveA2uiResourceFromToolResult(
+  reader: A2uiResourceReader,
+  toolResult: McpToolCallResult,
+): Promise<ResolvedA2uiResource> {
+  if (toolResult.isError !== undefined && typeof toolResult.isError !== "boolean") {
+    throw new A2uiResourceError("Expected tool result.isError to be a boolean");
+  }
+  if (toolResult.isError === true) {
+    throw new A2uiResourceError("Cannot resolve an A2UI resource from an errored tool result");
+  }
+
+  const links = expectContentArray(toolResult.content).flatMap((block, index) =>
+    parseA2uiResourceLink(block, `tool result.content[${index}]`),
+  );
+  if (links.length !== 1) {
+    throw new A2uiResourceError(
+      `Expected exactly one ${A2UI_MIME_TYPE} resource link, received ${links.length}`,
+    );
+  }
+
+  const link = links[0]!;
+
+  const readResult = await reader.readResource(link.uri);
+  const resources = expectResourceContents(readResult).filter(
+    (resource) => resource.uri === link.uri && resource.mimeType === A2UI_MIME_TYPE,
+  );
+  if (resources.length !== 1) {
+    throw new A2uiResourceError(
+      `Expected exactly one ${A2UI_MIME_TYPE} text resource for ${link.uri}, received ${resources.length}`,
+    );
+  }
+
+  const resource = resources[0]!;
+  if (typeof resource.text !== "string" || resource.blob !== undefined) {
+    throw new A2uiResourceError(`Expected a text-only A2UI resource for ${link.uri}`);
+  }
+
+  return {
+    uri: link.uri,
+    mimeType: A2UI_MIME_TYPE,
+    surface: parseA2uiSurface(resource.text),
+  };
 }
 
 export function parseA2uiSurface(input: string | unknown): A2uiSurface {
@@ -130,6 +203,79 @@ function expectObject(value: unknown, path: string): Record<string, unknown> {
     throw new A2uiParseError(`Expected an object at ${path}`);
   }
   return value as Record<string, unknown>;
+}
+
+function expectContentArray(value: unknown): readonly McpContent[] {
+  if (!Array.isArray(value)) {
+    throw new A2uiResourceError("Expected an array at tool result.content");
+  }
+  return value as readonly McpContent[];
+}
+
+function parseA2uiResourceLink(value: unknown, path: string): readonly { readonly uri: string }[] {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new A2uiResourceError(`Expected a content object at ${path}`);
+  }
+  const block = value as Record<string, unknown>;
+  if (typeof block.type !== "string") {
+    throw new A2uiResourceError(`Expected a content type at ${path}.type`);
+  }
+  if (block.type !== "resource_link") {
+    return [];
+  }
+  if (block.data === null || typeof block.data !== "object" || Array.isArray(block.data)) {
+    throw new A2uiResourceError(`Expected an object at ${path}.data`);
+  }
+
+  const data = block.data as Record<string, unknown>;
+  if (typeof data.uri !== "string") {
+    throw new A2uiResourceError(`Expected a string at ${path}.data.uri`);
+  }
+  if (data.mimeType !== undefined && typeof data.mimeType !== "string") {
+    throw new A2uiResourceError(`Expected a string at ${path}.data.mimeType`);
+  }
+  return data.mimeType === A2UI_MIME_TYPE ? [{ uri: data.uri }] : [];
+}
+
+function expectResourceContents(value: unknown): McpReadResourceResult["contents"] {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new A2uiResourceError("Expected an object from resources/read");
+  }
+  const contents = (value as Record<string, unknown>).contents;
+  if (!Array.isArray(contents)) {
+    throw new A2uiResourceError("Expected an array at resource result.contents");
+  }
+
+  return contents.map((content, index) => {
+    if (content === null || typeof content !== "object" || Array.isArray(content)) {
+      throw new A2uiResourceError(`Expected an object at resource result.contents[${index}]`);
+    }
+    const resource = content as Record<string, unknown>;
+    const uri = resource.uri;
+    if (typeof uri !== "string") {
+      throw new A2uiResourceError(`Expected a string at resource result.contents[${index}].uri`);
+    }
+    const mimeType = resource.mimeType;
+    if (mimeType !== undefined && typeof mimeType !== "string") {
+      throw new A2uiResourceError(
+        `Expected a string at resource result.contents[${index}].mimeType`,
+      );
+    }
+    const text = resource.text;
+    if (text !== undefined && typeof text !== "string") {
+      throw new A2uiResourceError(`Expected a string at resource result.contents[${index}].text`);
+    }
+    const blob = resource.blob;
+    if (blob !== undefined && typeof blob !== "string") {
+      throw new A2uiResourceError(`Expected a string at resource result.contents[${index}].blob`);
+    }
+    return {
+      uri,
+      ...(mimeType === undefined ? {} : { mimeType }),
+      ...(text === undefined ? {} : { text }),
+      ...(blob === undefined ? {} : { blob }),
+    };
+  });
 }
 
 function expectArray(value: unknown, path: string): readonly unknown[] {

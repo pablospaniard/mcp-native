@@ -9,6 +9,7 @@
 - Add tests for behavior changes and negative tests for rejected input.
 - Do not change package versions unless the task explicitly includes a release.
 - Do not apply `[codex]` to pull request titles.
+- Automation may open pull requests but must never merge them.
 
 ## Code review
 
