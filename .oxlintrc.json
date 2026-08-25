@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "plugins": ["typescript", "import", "node"],
+  "rules": {
+    "eslint/no-underscore-dangle": ["error", { "allow": ["arguments_"] }]
+  },
+  "options": {
+    "maxWarnings": 0
+  }
+}

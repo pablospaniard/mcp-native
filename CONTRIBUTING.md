@@ -108,6 +108,9 @@ npm run check
 npm test
 ```
 
+Use `npm run format:fix` and `npm run lint:fix` to apply automatic formatting and safe lint
+fixes before rerunning the checks.
+
 New behavior requires tests. Bug fixes should include a regression test that fails before the fix. Documentation-only changes do not need synthetic tests, but links, examples, package names, and commands must still match the repository.
 
 CI runs the same type and test checks on every pull request. A pull request cannot merge while the required `verify` check is failing.

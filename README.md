@@ -72,13 +72,13 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 
 ## Packages
 
-| Package | Responsibility | Current proof-of-concept surface |
-| --- | --- | --- |
-| [`@mcp-native/core`](packages/core) | Transport-neutral runtime contracts, resource access, and action routing | `McpClient`, `McpNativeRuntime`, typed tool actions |
-| [`@mcp-native/a2ui`](packages/a2ui) | Declarative surface parsing, validation, and eventually state bindings | Strict `0.1` parser for container, text, button, and text input nodes |
-| [`@mcp-native/react-native`](packages/react-native) | React Native host integration and trusted component catalog | Serializable render plan using `View`, `Text`, `Button`, and `TextInput` |
-| [`@mcp-native/webview`](packages/webview) | HTML MCP App compatibility boundary | MIME validation and deny-by-default remote-document policy |
-| [`mcp-native`](packages/mcp-native) | Convenience entry point | Re-exports the public package APIs |
+| Package                                             | Responsibility                                                           | Current proof-of-concept surface                                         |
+| --------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [`@mcp-native/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing | `McpClient`, `McpNativeRuntime`, typed tool actions                      |
+| [`@mcp-native/a2ui`](packages/a2ui)                 | Declarative surface parsing, validation, and eventually state bindings   | Strict `0.1` parser for container, text, button, and text input nodes    |
+| [`@mcp-native/react-native`](packages/react-native) | React Native host integration and trusted component catalog              | Serializable render plan using `View`, `Text`, `Button`, and `TextInput` |
+| [`@mcp-native/webview`](packages/webview)           | HTML MCP App compatibility boundary                                      | MIME validation and deny-by-default remote-document policy               |
+| [`mcp-native`](packages/mcp-native)                 | Convenience entry point                                                  | Re-exports the public package APIs                                       |
 
 The packages are intentionally separated so the core runtime does not depend on React Native or any single declarative UI protocol.
 
@@ -160,12 +160,18 @@ npm test
 
 Useful commands:
 
-| Command | Purpose |
-| --- | --- |
-| `npm run build` | Build every workspace with TypeScript project references |
-| `npm run check` | Run the repository type check |
-| `npm test` | Build and run the Node test suite |
-| `npm run clean` | Remove TypeScript project build outputs |
+| Command                 | Purpose                                                        |
+| ----------------------- | -------------------------------------------------------------- |
+| `npm run build`         | Build every workspace with TypeScript project references       |
+| `npm run check`         | Run formatting, linting, type checking, tests, and coverage    |
+| `npm run format:check`  | Check formatting without changing files                        |
+| `npm run format:fix`    | Format supported project files with Oxfmt                      |
+| `npm run lint`          | Check source files with Oxlint                                 |
+| `npm run lint:fix`      | Apply safe Oxlint fixes, then report any remaining diagnostics |
+| `npm run typecheck`     | Type-check all TypeScript project references                   |
+| `npm test`              | Build and run the Node test suite                              |
+| `npm run test:coverage` | Run tests and enforce coverage thresholds                      |
+| `npm run clean`         | Remove TypeScript project build outputs                        |
 
 ## Repository layout
 

@@ -33,7 +33,9 @@ export function createWebViewDocument(
   policy: WebViewPolicy = {},
 ): WebViewDocument {
   if (!isHtmlResource(resource)) {
-    throw new WebViewPolicyError(`Unsupported WebView MIME type: ${resource.mimeType ?? "unknown"}`);
+    throw new WebViewPolicyError(
+      `Unsupported WebView MIME type: ${resource.mimeType ?? "unknown"}`,
+    );
   }
 
   if (resource.text !== undefined) {
