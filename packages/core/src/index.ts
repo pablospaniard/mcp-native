@@ -6,6 +6,13 @@ export interface JsonObject {
   readonly [key: string]: JsonValue;
 }
 
+/** Maximum nesting depth accepted by the public JSON validators (root is depth 0). */
+export const JSON_MAX_DEPTH = 64;
+/** Maximum number of values accepted in one JSON graph. */
+export const JSON_MAX_VALUES = 10_000;
+/** Maximum UTF-16 code units accepted in one JSON string. */
+export const JSON_MAX_STRING_LENGTH = 65_536;
+
 /** Thrown when an untrusted value cannot be represented as JSON data. */
 export class JsonValidationError extends TypeError {
   constructor(message: string) {
@@ -21,12 +28,12 @@ export class JsonValidationError extends TypeError {
  * properties instead of invoking legacy prototype setters.
  */
 export function parseJsonObject(value: unknown, path = "value"): JsonObject {
-  return parseJsonObjectWithAncestors(value, path, new Set());
+  return parseJsonObjectWithState(value, path, createJsonValidationState(), 0);
 }
 
 /** Validates and safely reconstructs an untrusted JSON value. */
 export function parseJsonValue(value: unknown, path = "value"): JsonValue {
-  return parseJsonValueWithAncestors(value, path, new Set());
+  return parseJsonValueWithState(value, path, createJsonValidationState(), 0);
 }
 
 export type McpRole = "assistant" | "user";
@@ -176,6 +183,7 @@ export type McpNativeAction = ToolAction;
 /** Validates and safely reconstructs a surface-declared native action. */
 export function parseMcpNativeAction(value: unknown, path = "action"): McpNativeAction {
   const action = expectPlainObject(value, path);
+  expectOnlyKeys(action, ["arguments", "name", "type"], path);
   if (action.type !== "tool") {
     throw new JsonValidationError(`Expected the string "tool" at ${path}.type`);
   }
@@ -184,6 +192,11 @@ export function parseMcpNativeAction(value: unknown, path = "action"): McpNative
   }
   if (action.name.length === 0) {
     throw new JsonValidationError(`Expected a non-empty string at ${path}.name`);
+  }
+  if (action.name.length > JSON_MAX_STRING_LENGTH) {
+    throw new JsonValidationError(
+      `String at ${path}.name exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
+    );
   }
 
   return {
@@ -393,35 +406,65 @@ function expectPlainObject(value: unknown, path: string): Record<string, unknown
   return value as Record<string, unknown>;
 }
 
-function parseJsonObjectWithAncestors(
+interface JsonValidationState {
+  readonly ancestors: Set<object>;
+  values: number;
+}
+
+function createJsonValidationState(): JsonValidationState {
+  return { ancestors: new Set(), values: 0 };
+}
+
+function parseJsonObjectWithState(
   value: unknown,
   path: string,
-  ancestors: Set<object>,
+  state: JsonValidationState,
+  depth: number,
 ): JsonObject {
+  consumeJsonBudget(state, path, depth);
   const object = expectPlainObject(value, path);
-  if (ancestors.has(object)) {
+  if (state.ancestors.has(object)) {
     throw new JsonValidationError(`Circular JSON value at ${path}`);
   }
 
-  ancestors.add(object);
+  state.ancestors.add(object);
   const result: Record<string, JsonValue> = {};
   for (const [key, child] of Object.entries(object)) {
+    if (key.length > JSON_MAX_STRING_LENGTH) {
+      throw new JsonValidationError(
+        `JSON object key at ${path} exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
+      );
+    }
     defineJsonProperty(
       result,
       key,
-      parseJsonValueWithAncestors(child, `${path}.${key}`, ancestors),
+      parseJsonValueWithState(child, `${path}.${key}`, state, depth + 1),
     );
   }
-  ancestors.delete(object);
+  state.ancestors.delete(object);
   return result;
 }
 
-function parseJsonValueWithAncestors(
+function parseJsonValueWithState(
   value: unknown,
   path: string,
-  ancestors: Set<object>,
+  state: JsonValidationState,
+  depth: number,
 ): JsonValue {
-  if (value === null || typeof value === "boolean" || typeof value === "string") {
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    return parseJsonObjectWithState(value, path, state, depth);
+  }
+
+  consumeJsonBudget(state, path, depth);
+  if (value === null || typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    if (value.length > JSON_MAX_STRING_LENGTH) {
+      throw new JsonValidationError(
+        `String at ${path} exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
+      );
+    }
     return value;
   }
   if (typeof value === "number") {
@@ -431,24 +474,46 @@ function parseJsonValueWithAncestors(
     return value;
   }
   if (Array.isArray(value)) {
-    if (ancestors.has(value)) {
+    if (state.ancestors.has(value)) {
       throw new JsonValidationError(`Circular JSON value at ${path}`);
     }
-    ancestors.add(value);
+    state.ancestors.add(value);
     const result: JsonValue[] = [];
     for (let index = 0; index < value.length; index += 1) {
       if (!Object.hasOwn(value, index)) {
         throw new JsonValidationError(`Sparse JSON array item at ${path}[${index}]`);
       }
-      result.push(parseJsonValueWithAncestors(value[index], `${path}[${index}]`, ancestors));
+      result.push(parseJsonValueWithState(value[index], `${path}[${index}]`, state, depth + 1));
     }
-    ancestors.delete(value);
+    state.ancestors.delete(value);
     return result;
   }
-  if (typeof value === "object") {
-    return parseJsonObjectWithAncestors(value, path, ancestors);
-  }
   throw new JsonValidationError(`Expected a JSON value at ${path}`);
+}
+
+function consumeJsonBudget(state: JsonValidationState, path: string, depth: number): void {
+  if (depth > JSON_MAX_DEPTH) {
+    throw new JsonValidationError(
+      `JSON value exceeds maximum depth of ${JSON_MAX_DEPTH} at ${path}`,
+    );
+  }
+  state.values += 1;
+  if (state.values > JSON_MAX_VALUES) {
+    throw new JsonValidationError(`JSON value exceeds maximum of ${JSON_MAX_VALUES} values`);
+  }
+}
+
+function expectOnlyKeys(
+  object: Record<string, unknown>,
+  allowedKeys: readonly string[],
+  path: string,
+): void {
+  const allowed = new Set(allowedKeys);
+  for (const key of Object.keys(object)) {
+    if (!allowed.has(key)) {
+      throw new JsonValidationError(`Unsupported field ${JSON.stringify(key)} at ${path}`);
+    }
+  }
 }
 
 function defineJsonProperty(

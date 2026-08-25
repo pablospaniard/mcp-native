@@ -3,6 +3,15 @@
 All notable changes to MCP Native are documented here. Until the project reaches `1.0.0`,
 minor and patch releases may include breaking API changes.
 
+## Unreleased
+
+### Security
+
+- Bounded untrusted JSON graphs, serialized A2UI surfaces, and surface string fields.
+- Rejected undeclared surface, node, and action fields instead of silently discarding them.
+- Rejected unsupported task execution declarations at the MCP adapter boundary.
+- Corrected metadata-key validation to reject empty names.
+
 ## 0.0.3 - 2026-08-25
 
 Documentation and package-discovery release.

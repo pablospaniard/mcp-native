@@ -2,11 +2,55 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  JSON_MAX_DEPTH,
+  JSON_MAX_STRING_LENGTH,
+  JSON_MAX_VALUES,
   JsonValidationError,
   McpNativeActionDeniedError,
   McpNativeRuntime,
   createAllowlistActionPolicy,
+  parseJsonValue,
+  parseMcpNativeAction,
 } from "../packages/core/dist/index.js";
+
+test("the public JSON validators enforce depth, value-count, and string limits", () => {
+  let nested = null;
+  for (let index = 0; index <= JSON_MAX_DEPTH; index += 1) {
+    nested = { nested };
+  }
+
+  assert.throws(
+    () => parseJsonValue(nested),
+    (error) => error instanceof JsonValidationError && /maximum depth/.test(error.message),
+  );
+  assert.throws(
+    () => parseJsonValue(Array.from({ length: JSON_MAX_VALUES }, () => null)),
+    (error) => error instanceof JsonValidationError && /maximum of.*values/.test(error.message),
+  );
+  assert.throws(
+    () => parseJsonValue("x".repeat(JSON_MAX_STRING_LENGTH + 1)),
+    (error) => error instanceof JsonValidationError && /maximum length/.test(error.message),
+  );
+  assert.throws(
+    () => parseJsonValue({ ["x".repeat(JSON_MAX_STRING_LENGTH + 1)]: true }),
+    (error) =>
+      error instanceof JsonValidationError && /object key.*maximum length/.test(error.message),
+  );
+});
+
+test("native actions reject undeclared fields instead of discarding their semantics", () => {
+  assert.throws(
+    () =>
+      parseMcpNativeAction({
+        type: "tool",
+        name: "delete_profile",
+        requiresConfirmation: true,
+      }),
+    (error) =>
+      error instanceof JsonValidationError &&
+      /Unsupported field.*requiresConfirmation/.test(error.message),
+  );
+});
 
 test("the core runtime routes a declared tool action", async () => {
   const calls = [];

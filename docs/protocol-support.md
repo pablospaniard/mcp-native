@@ -18,7 +18,7 @@ Neither tested lane is an unqualified whole-protocol conformance claim. The curr
 - `resources/read`;
 - the tool, schema, annotation, content, resource, `_meta`, pagination, and cache-hint fields represented by the core contracts.
 
-Prompts, roots, subscriptions, sampling, elicitation, tasks, authorization, extension negotiation, and other optional operations remain outside the current boundary unless another document explicitly marks them supported.
+Prompts, roots, subscriptions, sampling, elicitation, tasks, authorization, extension negotiation, and other optional operations remain outside the current boundary unless another document explicitly marks them supported. Tool definitions containing `execution` settings are rejected rather than advertised with task semantics silently removed.
 
 ## Host modes
 

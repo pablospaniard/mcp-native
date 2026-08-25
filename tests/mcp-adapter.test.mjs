@@ -646,6 +646,20 @@ test("the SDK adapter rejects malformed and non-JSON tool data", async (t) => {
       message: /Expected the string "object" at tools result\.tools\[0\]\.inputSchema\.type/,
     },
     {
+      name: "unsupported task execution settings",
+      operation: "listTools",
+      result: {
+        tools: [
+          {
+            name: "queued",
+            inputSchema: { type: "object" },
+            execution: { taskSupport: "required" },
+          },
+        ],
+      },
+      message: /Unsupported tool execution settings.*task execution is outside/,
+    },
+    {
       name: "non-string content type",
       operation: "callTool",
       result: { content: [{ type: 1, text: "bad" }] },
@@ -668,6 +682,18 @@ test("the SDK adapter rejects malformed and non-JSON tool data", async (t) => {
       operation: "callTool",
       result: { content: [], _meta: { "com.example/invalid/key": true } },
       message: /Invalid MCP metadata key "com\.example\/invalid\/key" at tool result\._meta/,
+    },
+    {
+      name: "empty result metadata key",
+      operation: "callTool",
+      result: { content: [], _meta: { "": true } },
+      message: /Invalid MCP metadata key "" at tool result\._meta/,
+    },
+    {
+      name: "empty prefixed result metadata name",
+      operation: "callTool",
+      result: { content: [], _meta: { "com.example/": true } },
+      message: /Invalid MCP metadata key "com\.example\/" at tool result\._meta/,
     },
     {
       name: "invalid annotation audience",

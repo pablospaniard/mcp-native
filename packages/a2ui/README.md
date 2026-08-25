@@ -106,22 +106,25 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 
 ## Public API
 
-| Export                                | Purpose                                                          |
-| ------------------------------------- | ---------------------------------------------------------------- |
-| `resolveA2uiResourceFromToolResult`   | Reads and parses the single explicit A2UI link in a tool result. |
-| `parseA2uiSurface`                    | Validates input and returns a typed `A2uiSurface`.               |
-| `A2uiResourceError`, `A2uiParseError` | Specific resolution and parsing failures.                        |
-| `A2UI_MIME_TYPE`, `A2UI_VERSION`      | Exact media type and current proof-of-concept version.           |
-| `ResolvedA2uiResource`                | URI, MIME type, and validated surface returned by the resolver.  |
-| `A2uiSurface`, `A2uiNode`             | Validated surface and node unions.                               |
-| Node interfaces                       | Typed container, text, button, and text-input nodes.             |
+| Export                                             | Purpose                                                          |
+| -------------------------------------------------- | ---------------------------------------------------------------- |
+| `resolveA2uiResourceFromToolResult`                | Reads and parses the single explicit A2UI link in a tool result. |
+| `parseA2uiSurface`                                 | Validates input and returns a typed `A2uiSurface`.               |
+| `A2uiResourceError`, `A2uiParseError`              | Specific resolution and parsing failures.                        |
+| `A2UI_MIME_TYPE`, `A2UI_VERSION`                   | Exact media type and current proof-of-concept version.           |
+| `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                 | Container-tree complexity limits.                                |
+| `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH` | Serialized-input and string-field limits.                        |
+| `ResolvedA2uiResource`                             | URI, MIME type, and validated surface returned by the resolver.  |
+| `A2uiSurface`, `A2uiNode`                          | Validated surface and node unions.                               |
+| Node interfaces                                    | Typed container, text, button, and text-input nodes.             |
 
 ## Security behavior
 
 - Input is treated as untrusted at the parser boundary.
 - Resolution requires an exact MIME type, URI match, and unambiguous text content.
 - Errored tool results and binary A2UI resources are rejected.
-- Unknown surface versions, nodes, and actions are rejected.
+- Unknown surface versions, node types, action types, and undeclared fields are rejected.
+- Serialized surfaces, string fields, and tool-argument JSON graphs have fixed complexity limits.
 - Tool arguments are recursively constrained to finite, acyclic JSON values in plain objects.
 - JSON keys such as `__proto__` are preserved as ordinary own data properties without changing object prototypes.
 - Parsing never resolves components or executes server-provided code.

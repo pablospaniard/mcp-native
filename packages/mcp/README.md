@@ -77,6 +77,7 @@ Although the official SDK validates protocol traffic, MCP Native validates value
 - malformed result objects or collections;
 - unknown content types and non-string names, URIs, MIME types, or bodies;
 - malformed icons, annotations, schemas, cache hints, or result metadata;
+- task execution declarations, because task-augmented calls are outside the current adapter boundary;
 - `undefined`, functions, symbols, bigints, or non-finite numbers inside JSON data;
 - class instances, circular objects, circular arrays, and sparse arrays;
 - prototype-named JSON keys are preserved as ordinary own data properties without changing object prototypes;

@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   A2UI_MAX_DEPTH,
   A2UI_MAX_NODES,
+  A2UI_MAX_SOURCE_LENGTH,
+  A2UI_MAX_STRING_LENGTH,
   A2UI_MIME_TYPE,
   A2UI_VERSION,
   A2uiParseError,
@@ -265,6 +267,52 @@ test("A2UI parsing enforces depth and node-count limits", () => {
       }),
     (error) => error instanceof A2uiParseError && /maximum of/.test(error.message),
   );
+});
+
+test("A2UI parsing enforces serialized-input and string-field limits", () => {
+  assert.throws(
+    () => parseA2uiSurface(" ".repeat(A2UI_MAX_SOURCE_LENGTH + 1)),
+    (error) =>
+      error instanceof A2uiParseError && /source exceeds maximum length/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      parseA2uiSurface({
+        version: "0.1",
+        root: { id: "large", type: "text", text: "x".repeat(A2UI_MAX_STRING_LENGTH + 1) },
+      }),
+    (error) => error instanceof A2uiParseError && /maximum length/.test(error.message),
+  );
+});
+
+test("A2UI parsing rejects undeclared surface and node fields", () => {
+  const invalidInputs = [
+    {
+      version: "0.1",
+      requiresCapability: "future",
+      root: { id: "title", type: "text", text: "Title" },
+    },
+    {
+      version: "0.1",
+      root: { id: "title", type: "text", text: "Title", hidden: true },
+    },
+    {
+      version: "0.1",
+      root: {
+        id: "delete",
+        type: "button",
+        label: "Delete",
+        action: { type: "tool", name: "delete", requiresConfirmation: true },
+      },
+    },
+  ];
+
+  for (const input of invalidInputs) {
+    assert.throws(
+      () => parseA2uiSurface(input),
+      (error) => error instanceof A2uiParseError && /Unsupported field/.test(error.message),
+    );
+  }
 });
 
 test("circular tool arguments fail closed with a parse error", () => {
