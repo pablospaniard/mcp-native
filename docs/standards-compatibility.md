@@ -75,25 +75,25 @@ Use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) with sh
 
 ## Compatibility matrix
 
-| Area                | Community contract                                                                                                   | Current implementation                                                                 | Status                      |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------- |
-| MCP wire behavior   | MCP `2026-07-28` stateless requests and per-request metadata                                                         | Delegated to SDK v2; current integration test exercises the older in-memory path       | Not verified                |
-| MCP data fidelity   | Official tools, content, resources, schemas, metadata, annotations, and cache hints                                  | The core adapter preserves only its initial minimal fields                             | Partial                     |
-| Extension protocol  | Explicit identifiers, capability negotiation, versioning, and graceful degradation                                   | Extension capabilities and metadata are not represented in core contracts              | Not implemented             |
-| Component ownership | A2UI catalogs constrain available components and functions                                                           | The host injects a fixed, locally bundled native catalog                               | Architecturally aligned     |
-| Remote code         | Catalog functions are named, registered capabilities rather than downloaded code                                     | Server-provided React Native code and arbitrary component resolution are prohibited    | Architecturally aligned     |
-| Validation          | A2UI v1.0 messages and catalogs validate against its JSON Schemas                                                    | MCP Native strictly validates its own `0.1` surface model                              | Safe subset, not conformant |
-| Wire envelopes      | `version: "v1.0"` messages use `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` envelopes | One `{ version: "0.1", root }` object                                                  | Not implemented             |
-| Component graph     | A2UI uses catalog-defined components and ID references rooted at component ID `root`                                 | Four custom nested node types                                                          | Not implemented             |
-| Data model          | Dynamic values use JSON Pointer bindings and renderer-local state                                                    | Optional string bindings are only reported to a host callback                          | Partial concept only        |
-| Actions             | Renderer-to-agent action envelopes include surface, source component, timestamp, and resolved context                | Buttons dispatch a custom MCP tool action directly                                     | Not implemented             |
-| Streaming lifecycle | Ordered, framed messages progressively create, update, and delete surfaces                                           | A complete resource is read and rendered as one surface                                | Not implemented             |
-| Capabilities        | Supported catalogs and inline-catalog support are negotiated through transport metadata or initialization            | The catalog is fixed locally with no protocol negotiation                              | Not implemented             |
-| Accessibility       | Explicit accessibility data overrides inferred defaults                                                              | Initial button and input labels are inferred; explicit A2UI attributes are unsupported | Partially aligned           |
-| MCP Apps discovery  | Tool `_meta.ui.resourceUri` points to a `ui://` resource                                                             | Tool metadata is not preserved by the current core adapter                             | Not implemented             |
-| MCP Apps content    | `ui://` plus `text/html;profile=mcp-app`                                                                             | The WebView primitive recognizes `text/html` and legacy `text/html+skybridge`          | Not conformant              |
-| MCP Apps policy     | Resource metadata carries CSP and requested permissions                                                              | HTML documents have a minimal deny-by-default remote-document policy                   | Partial primitive only      |
-| MCP Apps runtime    | A sandboxed host uses the Apps JSON-RPC bridge, including `ui/initialize` and `ui/*` messages                        | No WebView mount, sandbox, AppBridge, or postMessage bridge exists                     | Not implemented             |
+| Area                | Community contract                                                                                                   | Current implementation                                                                  | Status                         |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------ |
+| MCP wire behavior   | MCP `2026-07-28` stateless requests and per-request metadata                                                         | SDK v2 HTTP handler/fetch integration pins `2026-07-28`; official suite remains pending | Partial, current path verified |
+| MCP data fidelity   | Official tools, content, resources, schemas, metadata, annotations, and cache hints                                  | Preserved across the initial tools/list, tools/call, and resources/read boundary        | Supported initial boundary     |
+| Extension protocol  | Explicit identifiers, capability negotiation, versioning, and graceful degradation                                   | Extension capabilities and metadata are not represented in core contracts               | Not implemented                |
+| Component ownership | A2UI catalogs constrain available components and functions                                                           | The host injects a fixed, locally bundled native catalog                                | Architecturally aligned        |
+| Remote code         | Catalog functions are named, registered capabilities rather than downloaded code                                     | Server-provided React Native code and arbitrary component resolution are prohibited     | Architecturally aligned        |
+| Validation          | A2UI v1.0 messages and catalogs validate against its JSON Schemas                                                    | MCP Native strictly validates its own `0.1` surface model                               | Safe subset, not conformant    |
+| Wire envelopes      | `version: "v1.0"` messages use `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` envelopes | One `{ version: "0.1", root }` object                                                   | Not implemented                |
+| Component graph     | A2UI uses catalog-defined components and ID references rooted at component ID `root`                                 | Four custom nested node types                                                           | Not implemented                |
+| Data model          | Dynamic values use JSON Pointer bindings and renderer-local state                                                    | Optional string bindings are only reported to a host callback                           | Partial concept only           |
+| Actions             | Renderer-to-agent action envelopes include surface, source component, timestamp, and resolved context                | Buttons dispatch a custom MCP tool action directly                                      | Not implemented                |
+| Streaming lifecycle | Ordered, framed messages progressively create, update, and delete surfaces                                           | A complete resource is read and rendered as one surface                                 | Not implemented                |
+| Capabilities        | Supported catalogs and inline-catalog support are negotiated through transport metadata or initialization            | The catalog is fixed locally with no protocol negotiation                               | Not implemented                |
+| Accessibility       | Explicit accessibility data overrides inferred defaults                                                              | Initial button and input labels are inferred; explicit A2UI attributes are unsupported  | Partially aligned              |
+| MCP Apps discovery  | Tool `_meta.ui.resourceUri` points to a `ui://` resource                                                             | Generic tool/resource `_meta` is preserved; Apps negotiation and validation are absent  | Partial foundation             |
+| MCP Apps content    | `ui://` plus `text/html;profile=mcp-app`                                                                             | The WebView primitive recognizes `text/html` and legacy `text/html+skybridge`           | Not conformant                 |
+| MCP Apps policy     | Resource metadata carries CSP and requested permissions                                                              | HTML documents have a minimal deny-by-default remote-document policy                    | Partial primitive only         |
+| MCP Apps runtime    | A sandboxed host uses the Apps JSON-RPC bridge, including `ui/initialize` and `ui/*` messages                        | No WebView mount, sandbox, AppBridge, or postMessage bridge exists                      | Not implemented                |
 
 ## What the current packages mean
 
@@ -117,12 +117,12 @@ The implementation order is maintained in [the project roadmap](roadmap.md). The
 
 ### MCP `2026-07-28` foundation
 
-1. Declare the exact supported MCP revision and backwards-compatibility policy.
-2. Preserve every official field required by UI discovery and host decisions, including `_meta`, annotations, full schemas, extension capabilities, and cache hints.
-3. Keep wire versioning, headers, framing, and transport behavior inside the official SDK rather than reimplementing them in renderer packages.
-4. Add `2026-07-28` tests through the SDK HTTP handler/fetch path; linked in-memory transport remains useful only for older-protocol compatibility coverage.
+1. **Implemented for the initial boundary:** preserve official tools, content blocks, resources, schemas, annotations, `_meta`, and cache hints without a lossy parallel content shape.
+2. **Implemented:** keep wire versioning, headers, framing, and transport behavior inside the official SDK.
+3. **Implemented:** exercise `2026-07-28` through the SDK HTTP handler/fetch path while retaining in-memory coverage only for the older protocol.
+4. Declare the complete supported-operation and backwards-compatibility policy.
 5. Pin and run applicable scenarios from the official MCP conformance suite, recording the tool version and any explicitly expected failures.
-6. Validate official fixtures and failure cases without transforming content into a lossy parallel protocol.
+6. Add official fixture ingestion and cross-principal cache-scope isolation tests.
 
 ### A2UI v1.0 foundation
 

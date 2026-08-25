@@ -228,18 +228,16 @@ function parseA2uiResourceLink(value: unknown, path: string): readonly { readonl
   if (block.type !== "resource_link") {
     return [];
   }
-  if (block.data === null || typeof block.data !== "object" || Array.isArray(block.data)) {
-    throw new A2uiResourceError(`Expected an object at ${path}.data`);
+  if (typeof block.name !== "string") {
+    throw new A2uiResourceError(`Expected a string at ${path}.name`);
   }
-
-  const data = block.data as Record<string, unknown>;
-  if (typeof data.uri !== "string") {
-    throw new A2uiResourceError(`Expected a string at ${path}.data.uri`);
+  if (typeof block.uri !== "string") {
+    throw new A2uiResourceError(`Expected a string at ${path}.uri`);
   }
-  if (data.mimeType !== undefined && typeof data.mimeType !== "string") {
-    throw new A2uiResourceError(`Expected a string at ${path}.data.mimeType`);
+  if (block.mimeType !== undefined && typeof block.mimeType !== "string") {
+    throw new A2uiResourceError(`Expected a string at ${path}.mimeType`);
   }
-  return data.mimeType === A2UI_MIME_TYPE ? [{ uri: data.uri }] : [];
+  return block.mimeType === A2UI_MIME_TYPE ? [{ uri: block.uri }] : [];
 }
 
 function expectResourceContents(value: unknown): McpReadResourceResult["contents"] {
@@ -274,12 +272,16 @@ function expectResourceContents(value: unknown): McpReadResourceResult["contents
     if (blob !== undefined && typeof blob !== "string") {
       throw new A2uiResourceError(`Expected a string at resource result.contents[${index}].blob`);
     }
-    return {
+    const common = {
       uri,
       ...(mimeType === undefined ? {} : { mimeType }),
-      ...(text === undefined ? {} : { text }),
-      ...(blob === undefined ? {} : { blob }),
     };
+    if ((text === undefined) === (blob === undefined)) {
+      throw new A2uiResourceError(
+        `Expected exactly one of text or blob at resource result.contents[${index}]`,
+      );
+    }
+    return text === undefined ? { ...common, blob: blob! } : { ...common, text };
   });
 }
 

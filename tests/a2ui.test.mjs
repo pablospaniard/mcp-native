@@ -203,18 +203,18 @@ test("an A2UI resource link resolves to a validated surface", async () => {
   };
   const toolResult = {
     content: [
-      { type: "text", data: { text: "Opening a native surface" } },
+      { type: "text", text: "Opening a native surface" },
       {
         type: "resource_link",
-        data: {
-          name: "Result surface",
-          uri: "ui://result",
-          mimeType: A2UI_MIME_TYPE,
-        },
+        name: "Result surface",
+        uri: "ui://result",
+        mimeType: A2UI_MIME_TYPE,
       },
       {
         type: "resource_link",
-        data: { name: "Documentation", uri: "docs://result", mimeType: "text/markdown" },
+        name: "Documentation",
+        uri: "docs://result",
+        mimeType: "text/markdown",
       },
     ],
   };
@@ -233,7 +233,9 @@ test("an A2UI resource link resolves to a validated surface", async () => {
 test("A2UI resource resolution fails closed", async (t) => {
   const validLink = {
     type: "resource_link",
-    data: { uri: "ui://result", mimeType: A2UI_MIME_TYPE },
+    name: "Result surface",
+    uri: "ui://result",
+    mimeType: A2UI_MIME_TYPE,
   };
   const validResource = {
     uri: "ui://result",
@@ -259,7 +261,7 @@ test("A2UI resource resolution fails closed", async (t) => {
     },
     {
       name: "missing A2UI link",
-      result: { content: [{ type: "text", data: { text: "none" } }] },
+      result: { content: [{ type: "text", text: "none" }] },
       readResult: { contents: [validResource] },
       message: /resource link, received 0/,
     },
@@ -277,7 +279,7 @@ test("A2UI resource resolution fails closed", async (t) => {
     },
     {
       name: "missing content type",
-      result: { content: [{ data: {} }] },
+      result: { content: [{ text: "missing type" }] },
       readResult: { contents: [validResource] },
       message: /content type/,
     },
@@ -290,24 +292,30 @@ test("A2UI resource resolution fails closed", async (t) => {
     {
       name: "malformed resource link",
       result: {
-        content: [{ type: "resource_link", data: { uri: 1, mimeType: A2UI_MIME_TYPE } }],
+        content: [
+          { type: "resource_link", name: "Result surface", uri: 1, mimeType: A2UI_MIME_TYPE },
+        ],
       },
       readResult: { contents: [validResource] },
-      message: /data\.uri/,
+      message: /content\[0\]\.uri/,
     },
     {
-      name: "malformed resource link data",
-      result: { content: [{ type: "resource_link", data: [] }] },
+      name: "malformed resource link name",
+      result: {
+        content: [{ type: "resource_link", name: 1, uri: "ui://result", mimeType: A2UI_MIME_TYPE }],
+      },
       readResult: { contents: [validResource] },
-      message: /content\[0\]\.data/,
+      message: /content\[0\]\.name/,
     },
     {
       name: "malformed resource link MIME type",
       result: {
-        content: [{ type: "resource_link", data: { uri: "ui://result", mimeType: 1 } }],
+        content: [
+          { type: "resource_link", name: "Result surface", uri: "ui://result", mimeType: 1 },
+        ],
       },
       readResult: { contents: [validResource] },
-      message: /data\.mimeType/,
+      message: /content\[0\]\.mimeType/,
     },
     {
       name: "missing resource content",
@@ -328,6 +336,20 @@ test("A2UI resource resolution fails closed", async (t) => {
         contents: [{ uri: "ui://result", mimeType: A2UI_MIME_TYPE, blob: "AA==" }],
       },
       message: /text-only A2UI resource/,
+    },
+    {
+      name: "resource content with no body",
+      result: { content: [validLink] },
+      readResult: { contents: [{ uri: "ui://result", mimeType: A2UI_MIME_TYPE }] },
+      message: /exactly one of text or blob/,
+    },
+    {
+      name: "resource content with conflicting bodies",
+      result: { content: [validLink] },
+      readResult: {
+        contents: [{ uri: "ui://result", mimeType: A2UI_MIME_TYPE, text: "text", blob: "AA==" }],
+      },
+      message: /exactly one of text or blob/,
     },
     {
       name: "malformed resource collection",
@@ -405,7 +427,9 @@ test("invalid resolved A2UI text remains a parse error", async () => {
         content: [
           {
             type: "resource_link",
-            data: { uri: "ui://invalid", mimeType: A2UI_MIME_TYPE },
+            name: "Invalid surface",
+            uri: "ui://invalid",
+            mimeType: A2UI_MIME_TYPE,
           },
         ],
       }),

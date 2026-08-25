@@ -31,16 +31,16 @@ Status: complete.
 
 ## Milestone 1: MCP `2026-07-28` conformance foundation
 
-Status: next.
+Status: in progress.
 
-- Declare supported core revision and backwards-compatibility policy.
-- Preserve official tool, content, resource, schema, annotation, `_meta`, extension, and cache semantics across `@mcp-native/mcp` and `@mcp-native/core`.
-- Avoid the lossy generic `{ type, data }` representation where official discriminated content types are required.
-- Delegate transport framing, per-request envelopes, headers, cancellation, and protocol-version behavior to official SDK v2.
-- Test real `2026-07-28` behavior through the SDK HTTP handler/fetch path.
-- Retain linked in-memory tests only as explicit older-protocol compatibility coverage.
-- Pin and run the applicable official MCP conformance scenarios; never rely on an unversioned suite result.
-- Add official fixtures, malformed results, cache-scope isolation, and metadata-preservation tests.
+- [ ] Declare the complete supported core revision and backwards-compatibility policy.
+- [x] Preserve official tool, content, resource, schema, annotation, `_meta`, and cache semantics across the initial `@mcp-native/mcp` and `@mcp-native/core` boundary.
+- [x] Replace the lossy generic `{ type, data }` representation with official discriminated content types.
+- [x] Delegate transport framing, per-request envelopes, headers, cancellation, and protocol-version behavior to official SDK v2.
+- [x] Test real `2026-07-28` behavior through the SDK HTTP handler/fetch path.
+- [x] Retain linked in-memory tests only as explicit older-protocol compatibility coverage.
+- [ ] Pin and run the applicable official MCP conformance scenarios; never rely on an unversioned suite result.
+- [ ] Add official fixture ingestion and cross-principal cache-scope isolation tests.
 
 Exit criterion: the supported MCP operations pass documented `2026-07-28` scenarios without losing fields needed by A2UI or MCP Apps.
 

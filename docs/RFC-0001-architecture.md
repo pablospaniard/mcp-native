@@ -125,7 +125,7 @@ The official SDK adapter, declarative resource-resolution, and initial React Nat
 - renderer hooks memoize plans and route asynchronous dispatch results or failures to explicit host callbacks;
 - component, interaction, hook, malformed-plan, public-export, and isolated package-consumer tests cover the boundary.
 
-The next milestone is MCP `2026-07-28` contract fidelity and transport-level integration coverage. The official SDK continues to own wire behavior, while MCP Native must stop discarding metadata, schemas, annotations, extension settings, and cache semantics needed by UI protocols. Tests must exercise the SDK's current HTTP handler/fetch path because its linked in-memory transport covers the older connection-era protocol.
+The MCP `2026-07-28` foundation is in progress. The initial tool/resource boundary now preserves official metadata, schemas, annotations, discriminated content, and cache semantics, and a pinned integration test exercises the SDK's current HTTP handler/fetch path. The official SDK continues to own wire behavior; extension settings, backwards-compatibility policy, official conformance-suite scenarios, and cache-partition isolation remain before the milestone is complete.
 
 After that foundation, extension negotiation and a pinned A2UI v1.0 Candidate adapter will introduce official envelopes and an ordered surface state engine. The existing host-owned React Native catalog remains the internal rendering boundary. See the [standards-first roadmap](roadmap.md).
 
@@ -147,10 +147,22 @@ return { contents: [{ uri, text: "..." }] };
 
 This intentional pre-1.0 correction prevents silent data loss when a server returns multiple resource content items.
 
+The same fidelity rule now applies to tool listings and content. `listTools()` returns `McpListToolsResult` rather than discarding result `_meta`, pagination, and cache hints, and MCP content uses official discriminated fields rather than a generic `{ type, data }` wrapper:
+
+```ts
+// Before
+return [{ name: "save", inputSchema: { type: "object" } }];
+return { content: [{ type: "text", data: { text: "Saved" } }] };
+
+// Current RFC-0001 contract
+return { tools: [{ name: "save", inputSchema: { type: "object" } }] };
+return { content: [{ type: "text", text: "Saved" }] };
+```
+
 ## Deferred work
 
 - A2UI v1.0 envelopes, schema validation, catalogs, surface lifecycle, and conformance tests
-- MCP `2026-07-28` field fidelity, extension negotiation, backwards compatibility, and HTTP integration tests
+- MCP extension negotiation, backwards-compatibility policy, official conformance scenarios, and cache-partition tests
 - A2UI data-model bindings, actions, functions, capabilities, and streaming updates
 - Authentication and production transport configuration
 - Richer React Native catalog components, styling, and platform-specific accessibility behavior

@@ -33,17 +33,20 @@ import { McpNativeRuntime, type McpClient } from "@mcp-native/core";
 
 const client: McpClient = {
   async listTools() {
-    return [
-      {
-        name: "save_profile",
-        description: "Save profile details",
-        inputSchema: { type: "object" },
-      },
-    ];
+    return {
+      tools: [
+        {
+          name: "save_profile",
+          description: "Save profile details",
+          inputSchema: { type: "object" },
+        },
+      ],
+    };
   },
   async callTool(name, arguments_) {
     return {
-      content: [{ type: "json", data: { name, arguments: arguments_ } }],
+      content: [{ type: "text", text: `Called ${name}` }],
+      structuredContent: { name, arguments: arguments_ },
     };
   },
   async readResource(uri) {
@@ -64,15 +67,17 @@ await runtime.dispatch({
 
 ## Public API
 
-| Export                                                                 | Purpose                                                                                     |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `McpNativeRuntime`                                                     | Delegates tool listing, tool calls, resource reads, and declared actions to an `McpClient`. |
-| `McpClient`                                                            | Minimal interface implemented by an SDK- or transport-specific adapter.                     |
-| `McpTool`, `McpResource`, `McpReadResourceResult`, `McpToolCallResult` | Transport-neutral MCP data contracts used by the runtime.                                   |
-| `ToolAction`, `McpNativeAction`                                        | Declarative actions that can be dispatched through the runtime.                             |
-| `JsonPrimitive`, `JsonValue`, `JsonObject`                             | JSON-safe value types for untrusted protocol data.                                          |
+| Export                                                                                       | Purpose                                                                                     |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `McpNativeRuntime`                                                                           | Delegates tool listing, tool calls, resource reads, and declared actions to an `McpClient`. |
+| `McpClient`                                                                                  | Minimal interface implemented by an SDK- or transport-specific adapter.                     |
+| `McpTool`, `McpListToolsResult`, `McpResource`, `McpReadResourceResult`, `McpToolCallResult` | Transport-neutral MCP data contracts used by the runtime.                                   |
+| `McpContent` and its discriminated content interfaces                                        | Exact text, image, audio, resource-link, and embedded-resource shapes.                      |
+| `McpAnnotations`, `McpToolAnnotations`, `McpIcon`, `McpCacheScope`                           | Official metadata, presentation hints, and response-cache contracts.                        |
+| `ToolAction`, `McpNativeAction`                                                              | Declarative actions that can be dispatched through the runtime.                             |
+| `JsonPrimitive`, `JsonValue`, `JsonObject`                                                   | JSON-safe value types for untrusted protocol data.                                          |
 
-## Resource result migration
+## Pre-1.0 MCP result migration
 
 The initial `0.0.x` proof of concept returned one `McpResource` directly from `readResource`. The official SDK returns a content collection, so implementations now return `McpReadResourceResult`:
 
@@ -85,6 +90,18 @@ return { contents: [{ uri, text: "Hello" }] };
 ```
 
 Preserving the collection avoids silently discarding valid resource items.
+
+Tool listings likewise preserve result metadata and cache hints, so `listTools()` now returns an object:
+
+```ts
+// Before
+return [{ name: "save", inputSchema: { type: "object" } }];
+
+// Current RFC-0001 contract
+return { tools: [{ name: "save", inputSchema: { type: "object" } }] };
+```
+
+Content blocks now use MCP's official discriminated fields. Replace `{ type: "text", data: { text } }` with `{ type: "text", text }`; resource links similarly expose `name`, `uri`, and `mimeType` directly.
 
 ## Design boundaries
 
