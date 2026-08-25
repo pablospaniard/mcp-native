@@ -39,7 +39,7 @@ Status: in progress.
 - [x] Delegate transport framing, per-request envelopes, headers, cancellation, and protocol-version behavior to official SDK v2.
 - [x] Test real `2026-07-28` behavior through the SDK HTTP handler/fetch path.
 - [x] Retain linked in-memory tests only as explicit older-protocol compatibility coverage.
-- [ ] Pin and run the applicable official MCP conformance scenarios; never rely on an unversioned suite result.
+- [x] Pin and run the applicable official MCP conformance scenarios; never rely on an unversioned suite result.
 - [ ] Add official fixture ingestion and cross-principal cache-scope isolation tests.
 
 Exit criterion: the supported MCP operations pass documented `2026-07-28` scenarios without losing fields needed by A2UI or MCP Apps.

@@ -122,6 +122,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A validated adapter for connected clients from the official MCP TypeScript SDK v2
 - MCP `2026-07-28` tool/resource field preservation and HTTP handler/fetch integration coverage
 - Exact protocol options for the `2026-07-28` target and tested `2025-11-25` compatibility lane
+- Seven pinned official MCP client scenarios covering the implemented modern HTTP boundary
 - Typed `tools/call` action routing with a fail-closed host policy
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
@@ -271,7 +272,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Render host-provided React Native components through production-facing hooks
 - [x] Inventory normative standards and publish explicit compatibility status
 - [x] Preserve MCP `2026-07-28` tool/resource fields and test the current HTTP path
-- [ ] Pin official MCP conformance scenarios and document backwards compatibility
+- [x] Pin official MCP conformance scenarios and document backwards compatibility
 - [ ] Add extension negotiation and metadata-preserving capability contracts
 - [ ] Implement an A2UI v1.0 conformance foundation from pinned official schemas
 - [ ] Support the A2UI surface lifecycle, local data model, bindings, and streaming updates
