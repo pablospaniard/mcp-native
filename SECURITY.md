@@ -4,7 +4,7 @@ MCP Native processes server-controlled descriptions that may eventually reach de
 
 ## Supported versions
 
-There is not yet a stable or supported release line. Security fixes are made on the latest `main` branch. Published `0.0.x` packages are experimental and may not contain the latest repository code.
+There is not yet a stable or supported release line. Security fixes are made on the latest `main` branch. Published pre-`1.0.0` packages are experimental and may not contain the latest repository code.
 
 ## Report a vulnerability
 

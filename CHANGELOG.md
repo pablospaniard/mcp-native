@@ -1,9 +1,18 @@
 # Changelog
 
 All notable changes to MCP Native are documented here. Until the project reaches `1.0.0`,
-minor and patch releases may include breaking API changes.
+breaking public API changes increment the minor version; patch releases remain compatible within
+their minor release line.
 
-## Unreleased
+## 0.1.0 - 2026-08-25
+
+First coordinated experimental API baseline. The package release version is independent of the
+custom A2UI proof-of-concept surface value `"0.1"`.
+
+### Added
+
+- Published `@mcp-native/mcp`, the validated official MCP TypeScript SDK v2 adapter, as part of the
+  coordinated package set.
 
 ### Security
 

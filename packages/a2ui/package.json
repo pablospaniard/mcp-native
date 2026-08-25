@@ -1,6 +1,6 @@
 {
   "name": "@mcp-native/a2ui",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "A2UI parsing and bindings for MCP Native.",
   "keywords": [
     "a2ui",
@@ -37,6 +37,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@mcp-native/core": "^0.0.3"
+    "@mcp-native/core": "^0.1.0"
   }
 }
