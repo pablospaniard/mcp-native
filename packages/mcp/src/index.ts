@@ -202,6 +202,11 @@ function mapResource(value: unknown, path: string): McpResource {
 
 function mapTool(value: unknown, path: string): McpTool {
   const tool = expectObject(value, path);
+  if (tool.execution !== undefined) {
+    throw new McpSdkAdapterError(
+      `Unsupported tool execution settings at ${path}.execution; task execution is outside the MCP Native boundary`,
+    );
+  }
   const icons = mapOptionalIcons(tool.icons, `${path}.icons`);
   const title = optionalString(tool.title, `${path}.title`);
   const description = optionalString(tool.description, `${path}.description`);
@@ -445,7 +450,7 @@ function isValidMetaKey(key: string): boolean {
   }
   const prefix = slash === -1 ? undefined : key.slice(0, slash);
   const name = slash === -1 ? key : key.slice(slash + 1);
-  const namePattern = /^(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)?$/;
+  const namePattern = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
   if (!namePattern.test(name)) {
     return false;
   }

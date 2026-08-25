@@ -13,6 +13,10 @@ export const A2UI_MIME_TYPE = "application/a2ui+json" as const;
 export const A2UI_MAX_DEPTH = 32;
 /** Maximum number of nodes allowed in a single surface. */
 export const A2UI_MAX_NODES = 256;
+/** Maximum UTF-16 code units accepted in a serialized surface. */
+export const A2UI_MAX_SOURCE_LENGTH = 1_048_576;
+/** Maximum UTF-16 code units accepted in one surface string field. */
+export const A2UI_MAX_STRING_LENGTH = 65_536;
 
 interface A2uiNodeBase {
   readonly id: string;
@@ -124,6 +128,9 @@ export function parseA2uiSurface(input: string | unknown): A2uiSurface {
   let value: unknown = input;
 
   if (typeof input === "string") {
+    if (input.length > A2UI_MAX_SOURCE_LENGTH) {
+      throw new A2uiParseError(`A2UI source exceeds maximum length of ${A2UI_MAX_SOURCE_LENGTH}`);
+    }
     try {
       value = JSON.parse(input) as unknown;
     } catch (error) {
@@ -133,6 +140,7 @@ export function parseA2uiSurface(input: string | unknown): A2uiSurface {
   }
 
   const surface = expectObject(value, "surface");
+  expectOnlyKeys(surface, ["root", "version"], "surface");
   const version = expectString(surface.version, "surface.version");
   if (version !== A2UI_VERSION) {
     throw new A2uiParseError(`Unsupported A2UI version: ${version}`);
@@ -163,6 +171,7 @@ function parseNode(value: unknown, path: string, seenIds: Set<string>, depth: nu
 
   switch (type) {
     case "container":
+      expectOnlyKeys(node, ["children", "id", "type"], path);
       return {
         id,
         type,
@@ -171,8 +180,10 @@ function parseNode(value: unknown, path: string, seenIds: Set<string>, depth: nu
         ),
       };
     case "text":
+      expectOnlyKeys(node, ["id", "text", "type"], path);
       return { id, type, text: expectString(node.text, `${path}.text`) };
     case "button":
+      expectOnlyKeys(node, ["action", "id", "label", "type"], path);
       return {
         id,
         type,
@@ -180,6 +191,7 @@ function parseNode(value: unknown, path: string, seenIds: Set<string>, depth: nu
         action: parseToolAction(node.action, `${path}.action`),
       };
     case "text-input": {
+      expectOnlyKeys(node, ["binding", "id", "label", "type", "value"], path);
       const label = expectString(node.label, `${path}.label`);
       const valueField = optionalString(node.value, `${path}.value`);
       const binding = optionalString(node.binding, `${path}.binding`);
@@ -309,9 +321,27 @@ function expectString(value: unknown, path: string): string {
   if (typeof value !== "string") {
     throw new A2uiParseError(`Expected a string at ${path}`);
   }
+  if (value.length > A2UI_MAX_STRING_LENGTH) {
+    throw new A2uiParseError(
+      `String at ${path} exceeds maximum length of ${A2UI_MAX_STRING_LENGTH}`,
+    );
+  }
   return value;
 }
 
 function optionalString(value: unknown, path: string): string | undefined {
   return value === undefined ? undefined : expectString(value, path);
+}
+
+function expectOnlyKeys(
+  object: Record<string, unknown>,
+  allowedKeys: readonly string[],
+  path: string,
+): void {
+  const allowed = new Set(allowedKeys);
+  for (const key of Object.keys(object)) {
+    if (!allowed.has(key)) {
+      throw new A2uiParseError(`Unsupported field ${JSON.stringify(key)} at ${path}`);
+    }
+  }
 }

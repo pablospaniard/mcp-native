@@ -83,6 +83,7 @@ await runtime.dispatch({
 | `createAllowlistActionPolicy`, `McpNativeToolAllowlistEntry`                                 | Fail-closed helper that authorizes tools by name and exact or predicated arguments.         |
 | `McpNativeActionDeniedError`                                                                 | Fail-closed error for actions not explicitly allowed by the host.                           |
 | `parseMcpNativeAction`, `parseJsonObject`, `parseJsonValue`                                  | Strict validators that return safely reconstructed untrusted data.                          |
+| `JSON_MAX_DEPTH`, `JSON_MAX_VALUES`, `JSON_MAX_STRING_LENGTH`                                | Fixed complexity limits applied by the public JSON validators.                              |
 | `JsonValidationError`                                                                        | Error for non-JSON, circular, non-plain, or non-finite input.                               |
 | `JsonPrimitive`, `JsonValue`, `JsonObject`                                                   | JSON-safe value types for untrusted protocol data.                                          |
 
@@ -121,7 +122,8 @@ Content blocks now use MCP's official discriminated fields. Replace `{ type: "te
 - Surface-driven `dispatch()` is denied unless the host's action policy explicitly allows it.
 - Direct `callTool()` is a lower-level API for trusted host code. It validates JSON arguments but does not apply the surface action policy.
 - Prefer `createAllowlistActionPolicy()` so surface authorization covers tool arguments, not only tool names.
-- Untrusted JSON is reconstructed without prototype mutation and rejects cycles, non-plain objects, and non-finite numbers.
+- Untrusted JSON is reconstructed without prototype mutation and rejects cycles, non-plain objects, non-finite numbers, excessive depth, excessive value counts, and oversized strings or object keys.
+- Declared actions reject fields outside the exact `{ type, name, arguments? }` contract.
 - Host applications remain responsible for authentication, permissions, transport security, and user approval.
 
 ## Related packages
