@@ -2,6 +2,17 @@
   "packageVersion": "0.2.0-alpha.11",
   "sourceCommit": "c321dd32035556e6769d3724a8ee97d87c3faaac",
   "protocolVersion": "2026-07-28",
+  "requirementsFixture": "requirements/2026-07-28.yaml",
+  "excludedRequirements": [
+    {
+      "prefix": "auth/",
+      "reason": "Protected HTTP authorization is outside the current client boundary."
+    },
+    {
+      "scenario": "sep-2322-client-request-state",
+      "reason": "Input-required and elicitation behavior is outside the current client boundary."
+    }
+  ],
   "scenarios": [
     "tools_call",
     "request-metadata",

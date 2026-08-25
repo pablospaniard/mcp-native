@@ -124,7 +124,7 @@ The implementation order is maintained in [the project roadmap](roadmap.md). The
 3. **Implemented:** exercise `2026-07-28` through the SDK HTTP handler/fetch path while retaining in-memory coverage only for the older protocol.
 4. **Implemented:** declare the complete supported-operation and backwards-compatibility policy, with exact executable SDK options.
 5. **Implemented:** pin and run applicable scenarios from the official MCP conformance suite, recording the package version, source commit, exclusions, and results in the [conformance coverage report](mcp-conformance.md).
-6. Add official fixture ingestion and cross-principal cache-scope isolation tests.
+6. **Implemented:** ingest the pinned official requirements fixture, account for every scored client requirement, and test private/public cache scopes across principals sharing an official SDK cache store.
 
 ### A2UI v1.0 foundation
 

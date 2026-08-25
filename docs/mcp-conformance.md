@@ -4,14 +4,17 @@ This report records the official conformance scenarios exercised by MCP Native's
 
 ## Pinned baseline
 
-| Item                    | Pin                                                                                                                                             |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Protocol revision       | `2026-07-28`                                                                                                                                    |
-| Package                 | `@modelcontextprotocol/conformance@0.2.0-alpha.11`                                                                                              |
-| Published source commit | [`c321dd32035556e6769d3724a8ee97d87c3faaac`](https://github.com/modelcontextprotocol/conformance/tree/c321dd32035556e6769d3724a8ee97d87c3faaac) |
-| Expected failures       | None                                                                                                                                            |
+| Item                    | Pin                                                                                                                                                              |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Protocol revision       | `2026-07-28`                                                                                                                                                     |
+| Package                 | `@modelcontextprotocol/conformance@0.2.0-alpha.11`                                                                                                               |
+| Published source commit | [`c321dd32035556e6769d3724a8ee97d87c3faaac`](https://github.com/modelcontextprotocol/conformance/tree/c321dd32035556e6769d3724a8ee97d87c3faaac)                  |
+| Requirements fixture    | [`requirements/2026-07-28.yaml`](https://github.com/modelcontextprotocol/conformance/blob/c321dd32035556e6769d3724a8ee97d87c3faaac/requirements/2026-07-28.yaml) |
+| Expected failures       | None                                                                                                                                                             |
 
-The package is exact-pinned in `package-lock.json`. The executable manifest in [`tests/conformance/client-scenarios.json`](../tests/conformance/client-scenarios.json) repeats the package version, source commit, protocol revision, and scenario names so a dependency or suite change cannot silently widen the claim.
+The package is exact-pinned in `package-lock.json`. The executable manifest in [`tests/conformance/client-scenarios.json`](../tests/conformance/client-scenarios.json) repeats the package version, source commit, protocol revision, requirements fixture, scenario names, and explained exclusions so a dependency or suite change cannot silently widen the claim.
+
+Before running a scenario, the gate parses the frozen official requirements fixture from the pinned package. Every scored client requirement must be selected or match an explicit exclusion with a reason. Selected scenarios may also come from the fixture's `not_scored` client list, which records scenarios added after the scored release baseline. Unknown selections, stale exclusions, or an unaccounted scored requirement fail the gate.
 
 Run the same gate locally with:
 
@@ -34,6 +37,16 @@ The root `npm run check` command also runs this gate, so pull requests cannot pa
 | `json-schema-2020-12-preservation` | Lossless schema round trip through the public adapter boundary                                     | Pass   |
 
 The pinned run reports 51 successful checks, zero failures, and zero warnings across these scenarios.
+
+## Cache-scope isolation
+
+Cache behavior is tested separately from the official wire scenarios by using the official SDK's `InMemoryResponseCacheStore` as a shared store for multiple clients with the same server identity:
+
+- private `tools/list` and `resources/read` entries are partitioned by the host-provided principal cache partition and never cross between principals;
+- public entries may be reused by another principal only when the server identity and request key match;
+- repeated private reads remain cache hits within the originating principal's partition.
+
+These tests cover cache-scope enforcement at the SDK integration boundary. They do not expand the supported-operation list or turn this feature-level report into a whole-protocol conformance claim.
 
 ## Deliberate exclusions and skips
 
