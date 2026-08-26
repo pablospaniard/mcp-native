@@ -101,7 +101,7 @@ The package exports an experimental project-owned binding under `io.github.pablo
 import { A2UI_MCP_EXTENSION_CAPABILITIES, negotiateA2uiMcpBinding } from "@mcp-native/a2ui";
 
 const result = negotiateA2uiMcpBinding(
-  A2UI_MCP_EXTENSION_CAPABILITIES,
+  adapter.getClientExtensionSettings(),
   adapter.getServerExtensionSettings(),
 );
 ```

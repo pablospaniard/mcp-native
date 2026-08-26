@@ -254,6 +254,11 @@ export interface McpClient {
   listTools(): Promise<McpListToolsResult>;
   callTool(name: string, arguments_: JsonObject): Promise<McpToolCallResult>;
   readResource(uri: string): Promise<McpReadResourceResult>;
+  /**
+   * Optional snapshot of extensions this client actually advertised.
+   * Omission means the client advertised none.
+   */
+  getClientExtensionSettings?(): McpExtensionSettings;
   /** Optional server capability snapshot; omission means no extension support. */
   getServerExtensionSettings?(): McpExtensionSettings;
 }
@@ -420,7 +425,12 @@ export class McpNativeRuntime {
     return this.#client.readResource(uri);
   }
 
-  negotiateExtension(identifier: string, clientExtensions: unknown): McpExtensionNegotiation {
+  /**
+   * Negotiates one extension from the client's advertised map and the server's
+   * validated map. Callers cannot substitute an unadvertised client map.
+   */
+  negotiateExtension(identifier: string): McpExtensionNegotiation {
+    const clientExtensions = this.#client.getClientExtensionSettings?.() ?? {};
     const serverExtensions = this.#client.getServerExtensionSettings?.() ?? {};
     return negotiateMcpExtension(identifier, clientExtensions, serverExtensions);
   }

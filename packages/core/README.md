@@ -104,7 +104,7 @@ const result = negotiateMcpExtension(
 );
 ```
 
-Only the two explicit maps participate. Metadata, MIME types, and tool results cannot grant support. `McpNativeRuntime.negotiateExtension()` obtains the server map from the optional `McpClient.getServerExtensionSettings()` boundary and returns a typed fallback result when either side is absent.
+Only the two explicit maps participate. Metadata, MIME types, and tool results cannot grant support. `McpNativeRuntime.negotiateExtension()` reads both maps from the optional `McpClient.getClientExtensionSettings()` and `getServerExtensionSettings()` boundary, so callers cannot substitute an unadvertised client map, and returns a typed fallback result when either side is absent.
 
 ## Pre-1.0 MCP result migration
 

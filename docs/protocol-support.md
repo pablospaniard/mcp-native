@@ -46,7 +46,7 @@ The helper does not construct a client, choose a transport, connect, authenticat
 
 ## Extension capability substrate
 
-Hosts can supply an explicit, validated extension map as the second options argument:
+Hosts can supply an explicit, validated extension map as the second options argument, and must pass the same map into the SDK adapter so negotiation uses the advertised snapshot:
 
 ```ts
 const clientExtensions = {
@@ -57,9 +57,12 @@ const client = new Client(
   { name: "my-native-host", version: "1.0.0" },
   createMcpNativeClientOptions("modern-only", { extensions: clientExtensions }),
 );
+await client.connect(transport);
+
+const adapter = new McpSdkClientAdapter(client, { clientExtensions });
 ```
 
-For `2026-07-28`, the official SDK places these settings in the per-request client capability envelope and exposes the server's `server/discover` capability result. `McpSdkClientAdapter.getServerExtensionSettings()` validates that result before it enters core. `negotiateMcpExtension()` reports support only when the same mandatorily prefixed identifier is present in explicit client and server extension maps.
+For `2026-07-28`, the official SDK places these settings in the per-request client capability envelope and exposes the server's `server/discover` capability result. Pass the same validated map into `McpSdkClientAdapter` as `clientExtensions` so `getClientExtensionSettings()` retains the advertised snapshot. `getServerExtensionSettings()` validates the server result before it enters core. `McpNativeRuntime.negotiateExtension()` and `negotiateMcpExtension()` report support only when the same mandatorily prefixed identifier is present in those explicit maps.
 
 The tested `2025-11-25` lane has no extension support claim. Metadata, MIME types, and tool results never substitute for mutual declarations. A missing declaration returns a fallback result so the application can consume ordinary MCP text or structured data. Invalid declarations fail closed.
 

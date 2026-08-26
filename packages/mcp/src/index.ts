@@ -24,6 +24,15 @@ import type {
 type OfficialMcpClient = Pick<Client, "callTool" | "listTools" | "readResource"> &
   Partial<Pick<Client, "getServerCapabilities">>;
 
+export interface McpSdkClientAdapterOptions {
+  /**
+   * Extension map advertised when constructing the official SDK client.
+   * Must match the capabilities passed to `createMcpNativeClientOptions()`.
+   * Omission means the client advertised none.
+   */
+  readonly clientExtensions?: unknown;
+}
+
 /** The exact MCP core revision targeted by MCP Native's modern compatibility lane. */
 export const MCP_NATIVE_PROTOCOL_REVISION = "2026-07-28" as const;
 
@@ -103,9 +112,18 @@ export class McpSdkAdapterError extends Error {
  */
 export class McpSdkClientAdapter implements McpClient {
   readonly #client: OfficialMcpClient;
+  readonly #clientExtensions: McpExtensionSettings;
 
-  constructor(client: OfficialMcpClient) {
+  constructor(client: OfficialMcpClient, options: McpSdkClientAdapterOptions = {}) {
     this.#client = client;
+    this.#clientExtensions =
+      options.clientExtensions === undefined
+        ? {}
+        : parseMcpExtensionSettings(options.clientExtensions, "client capability extensions");
+  }
+
+  getClientExtensionSettings(): McpExtensionSettings {
+    return this.#clientExtensions;
   }
 
   async listTools(): Promise<McpListToolsResult> {
@@ -167,8 +185,11 @@ export class McpSdkClientAdapter implements McpClient {
   }
 }
 
-export function createMcpSdkClientAdapter(client: OfficialMcpClient): McpSdkClientAdapter {
-  return new McpSdkClientAdapter(client);
+export function createMcpSdkClientAdapter(
+  client: OfficialMcpClient,
+  options: McpSdkClientAdapterOptions = {},
+): McpSdkClientAdapter {
+  return new McpSdkClientAdapter(client, options);
 }
 
 function mapContent(value: unknown, path: string): McpContent {

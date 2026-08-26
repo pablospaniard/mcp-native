@@ -228,8 +228,11 @@ test("the SDK adapter maps the complete core client boundary", async () => {
     },
   };
 
-  const adapter = createMcpSdkClientAdapter(sdkClient);
+  const adapter = createMcpSdkClientAdapter(sdkClient, {
+    clientExtensions: A2UI_MCP_EXTENSION_CAPABILITIES,
+  });
   assert.ok(adapter instanceof McpSdkClientAdapter);
+  assert.deepEqual(adapter.getClientExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
   assert.deepEqual(adapter.getServerExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
 
   assert.deepEqual(await adapter.listTools(), {
@@ -325,7 +328,75 @@ test("the SDK adapter omits absent optional tool result fields", async () => {
 
   assert.deepEqual(await adapter.callTool("ping", {}), { content: [] });
   assert.deepEqual(await adapter.readResource("ui://empty"), { contents: [] });
+  assert.deepEqual(adapter.getClientExtensionSettings(), {});
   assert.deepEqual(adapter.getServerExtensionSettings(), {});
+});
+
+test("the SDK adapter retains only the advertised client extension snapshot", () => {
+  const adapter = new McpSdkClientAdapter(
+    {
+      getServerCapabilities() {
+        return { extensions: A2UI_MCP_EXTENSION_CAPABILITIES };
+      },
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool() {
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    { clientExtensions: A2UI_MCP_EXTENSION_CAPABILITIES },
+  );
+  const withoutAdvertisement = new McpSdkClientAdapter({
+    getServerCapabilities() {
+      return { extensions: A2UI_MCP_EXTENSION_CAPABILITIES };
+    },
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  });
+  const runtime = new McpNativeRuntime(adapter);
+  const unadvertisedRuntime = new McpNativeRuntime(withoutAdvertisement);
+
+  assert.deepEqual(adapter.getClientExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
+  assert.deepEqual(runtime.negotiateExtension(A2UI_MCP_EXTENSION_ID), {
+    kind: "negotiated",
+    identifier: A2UI_MCP_EXTENSION_ID,
+    clientSettings: A2UI_MCP_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+    serverSettings: A2UI_MCP_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+  });
+  assert.deepEqual(unadvertisedRuntime.negotiateExtension(A2UI_MCP_EXTENSION_ID), {
+    kind: "fallback",
+    identifier: A2UI_MCP_EXTENSION_ID,
+    reason: "client-unsupported",
+  });
+  assert.throws(
+    () =>
+      new McpSdkClientAdapter(
+        {
+          async listTools() {
+            return { tools: [] };
+          },
+          async callTool() {
+            return { content: [] };
+          },
+          async readResource() {
+            return { contents: [] };
+          },
+        },
+        { clientExtensions: { a2ui: {} } },
+      ),
+    /extension identifier/,
+  );
 });
 
 test("the SDK adapter rejects malformed server extension declarations", () => {
@@ -559,12 +630,21 @@ test("the adapter preserves MCP 2026-07-28 results through the official HTTP han
     await client.connect(transport);
     assert.equal(client.getProtocolEra(), "modern");
     assert.equal(client.getNegotiatedProtocolVersion(), MCP_NATIVE_PROTOCOL_REVISION);
-    const adapter = new McpSdkClientAdapter(client);
+    const adapter = new McpSdkClientAdapter(client, {
+      clientExtensions: A2UI_MCP_EXTENSION_CAPABILITIES,
+    });
     const runtime = new McpNativeRuntime(adapter);
+    assert.deepEqual(adapter.getClientExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
     assert.deepEqual(adapter.getServerExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
+    assert.deepEqual(runtime.negotiateExtension(A2UI_MCP_EXTENSION_ID), {
+      kind: "negotiated",
+      identifier: A2UI_MCP_EXTENSION_ID,
+      clientSettings: A2UI_MCP_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+      serverSettings: A2UI_MCP_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+    });
     assert.deepEqual(
       negotiateA2uiMcpBinding(
-        A2UI_MCP_EXTENSION_CAPABILITIES,
+        adapter.getClientExtensionSettings(),
         adapter.getServerExtensionSettings(),
       ),
       {

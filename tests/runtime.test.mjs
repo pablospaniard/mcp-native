@@ -70,20 +70,65 @@ test("extension metadata never grants a capability", async () => {
     async readResource() {
       return { contents: [] };
     },
+    getClientExtensionSettings() {
+      return { [TEST_EXTENSION_ID]: { version: "1" } };
+    },
   });
 
-  assert.deepEqual(
-    runtime.negotiateExtension(TEST_EXTENSION_ID, {
-      [TEST_EXTENSION_ID]: { version: "1" },
-    }),
-    {
-      kind: "fallback",
-      identifier: TEST_EXTENSION_ID,
-      reason: "server-unsupported",
-    },
-  );
+  assert.deepEqual(runtime.negotiateExtension(TEST_EXTENSION_ID), {
+    kind: "fallback",
+    identifier: TEST_EXTENSION_ID,
+    reason: "server-unsupported",
+  });
   assert.deepEqual((await runtime.listTools())["_meta"], {
     [TEST_EXTENSION_ID]: { version: "1" },
+  });
+});
+
+test("runtime negotiation uses only advertised client capabilities", () => {
+  const serverExtensions = { [TEST_EXTENSION_ID]: { version: "1" } };
+  const withoutAdvertisement = new McpNativeRuntime({
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+    getServerExtensionSettings() {
+      return serverExtensions;
+    },
+  });
+  const withAdvertisement = new McpNativeRuntime({
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+    getClientExtensionSettings() {
+      return serverExtensions;
+    },
+    getServerExtensionSettings() {
+      return serverExtensions;
+    },
+  });
+
+  assert.deepEqual(withoutAdvertisement.negotiateExtension(TEST_EXTENSION_ID), {
+    kind: "fallback",
+    identifier: TEST_EXTENSION_ID,
+    reason: "client-unsupported",
+  });
+  assert.deepEqual(withAdvertisement.negotiateExtension(TEST_EXTENSION_ID), {
+    kind: "negotiated",
+    identifier: TEST_EXTENSION_ID,
+    clientSettings: { version: "1" },
+    serverSettings: { version: "1" },
   });
 });
 

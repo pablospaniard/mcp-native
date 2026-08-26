@@ -66,9 +66,13 @@ const clientExtensions = {
 const options = createMcpNativeClientOptions("modern-only", {
   extensions: clientExtensions,
 });
+const client = new Client({ name: "my-native-host", version: "1.0.0" }, options);
+await client.connect(transport);
+
+const adapter = new McpSdkClientAdapter(client, { clientExtensions });
 ```
 
-The official SDK places these settings in the `2026-07-28` per-request capability envelope. After connection, `McpSdkClientAdapter.getServerExtensionSettings()` returns the validated server declaration from `server/discover`. Pass the explicit client map and returned server map to a core or extension-specific negotiator. The `2025-11-25` lane has no extension support claim.
+The official SDK places these settings in the `2026-07-28` per-request capability envelope. After connection, `McpSdkClientAdapter.getClientExtensionSettings()` returns the advertised snapshot passed into the adapter, and `getServerExtensionSettings()` returns the validated server declaration from `server/discover`. Pass those two maps to a core or extension-specific negotiator, or call `runtime.negotiateExtension(id)` so negotiation stays tied to what was actually advertised. The `2025-11-25` lane has no extension support claim.
 
 ## Mapping
 
@@ -102,6 +106,7 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 | Export                                                                                                           | Purpose                                                                          |
 | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `McpSdkClientAdapter`                                                                                            | Implements the core `McpClient` boundary for a connected SDK client.             |
+| `McpSdkClientAdapterOptions`                                                                                     | Optional advertised `clientExtensions` snapshot retained for negotiation.        |
 | `createMcpSdkClientAdapter`                                                                                      | Factory returning an adapter for a connected SDK client.                         |
 | `McpSdkAdapterError`                                                                                             | Specific validation error for results that cannot safely map.                    |
 | `createMcpNativeClientOptions`, `McpNativeProtocolMode`                                                          | Exact official SDK options for automatic, modern-only, or legacy-only operation. |
