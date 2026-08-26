@@ -91,7 +91,7 @@ Other tool content and non-A2UI resource links may coexist with the surface link
 
 The prototype's `application/a2ui+json` resource convention comes from earlier A2UI-over-MCP work. The [A2UI v1.0 Candidate protocol](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md) is transport-agnostic and uses a stream of `v1.0` envelopes. Recognizing this media type does not establish v1.0 conformance.
 
-The official v1.0 surface-store state now has a strict static adapter into the internal trusted render plan. This does not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+The official v1.0 surface-store state now has a strict adapter, including bounded dynamic lists, into the internal trusted render plan. This does not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 ## A2UI-over-MCP capability binding
 
@@ -158,7 +158,7 @@ const surface = store.getValidated(
 );
 ```
 
-Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` agent-to-renderer envelopes are accepted by the lifecycle parser. Raw store snapshots may be incomplete while ordered updates arrive. Store snapshots include a host-owned `dataModelRevision` that changes only after an accepted agent data-model update, allowing renderers to preserve local edits across equivalent fresh snapshots. The store bounds retained surfaces and components; `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, and component placement rules. The React Native package adapts and mounts the supported static subset after revalidation. `createA2uiV1ActionEnvelope` constructs the supported renderer-to-agent action envelope from resolved, host-owned input; the host remains responsible for transport delivery. Function-call envelopes, dynamic templates, and the remaining renderer-to-agent message kinds remain deferred. The custom `0.1` resolver is unchanged and never receives a failed v1 stream.
+Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` agent-to-renderer envelopes are accepted by the lifecycle parser. Raw store snapshots may be incomplete while ordered updates arrive. Store snapshots include a host-owned `dataModelRevision` that changes only after an accepted agent data-model update, allowing renderers to preserve local edits across equivalent fresh snapshots. The store bounds retained surfaces and components; `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, and component placement rules. The React Native package adapts and mounts the supported subset, including bounded dynamic lists, after revalidation. `createA2uiV1ActionEnvelope` constructs the supported renderer-to-agent action envelope from resolved, host-owned input; the host remains responsible for transport delivery. Function-call envelopes, arbitrary renderer functions and checks, and the remaining renderer-to-agent message kinds remain deferred. The custom `0.1` resolver is unchanged and never receives a failed v1 stream.
 
 ## Supported surface
 
@@ -218,7 +218,7 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 
 ## Next layer
 
-Use [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) to adapt the supported static v1 subset or the custom `0.1` surface into a trusted native render plan. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
+Use [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) to adapt the supported v1 subset or the custom `0.1` surface into a trusted native render plan. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
 
 ## License
 

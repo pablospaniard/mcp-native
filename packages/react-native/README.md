@@ -16,7 +16,7 @@
 
 `@mcp-native/react-native` converts a surface already validated by `@mcp-native/a2ui` into a trusted render plan and mounts it with components supplied by the host application. Servers provide data and declared actions—not JavaScript modules, component implementations, or arbitrary component names.
 
-The renderer is an internal platform layer, not proof of complete A2UI v1.0 conformance. The custom `0.1` surface remains supported, and the separate v1.0 adapter now converts a strict static subset into the same host-owned `NativeElement` boundary.
+The renderer is an internal platform layer, not proof of complete A2UI v1.0 conformance. The custom `0.1` surface remains supported, and the separate v1.0 adapter converts a strict component subset, including bounded dynamic lists, into the same host-owned `NativeElement` boundary.
 
 ## Install
 
@@ -101,7 +101,7 @@ const surface = store.get("profile");
 const plan = surface && createA2uiV1NativeRenderPlan(surface, policy);
 ```
 
-The adapter maps `Row`, `Column`, static `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. It resolves absolute JSON Pointer values, maps supported container direction and alignment to owned React Native flex styles, applies component weight through a host-owned `View` wrapper with `flexGrow`, maps `TextField` variants to explicit native input behavior (including `secureTextEntry` for `obscured`), and preserves event context and explicit accessibility fields. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
+The adapter maps `Row`, `Column`, static or dynamic `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. Dynamic lists expand one validated template component per bound array item and remain inside the 1,024-node plan limit. The adapter resolves absolute and item-relative JSON Pointer values, translates relative `TextField` bindings into absolute renderer-local pointers, evaluates `@index` only in template scope, maps supported container direction and alignment to owned React Native flex styles, applies component weight through a host-owned `View` wrapper with `flexGrow`, maps `TextField` variants to explicit native input behavior (including `secureTextEntry` for `obscured`), and preserves event context and explicit accessibility fields. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
 
 Use `A2uiV1NativeSurface` to mount that subset with renderer-local string state and official action envelopes:
 
@@ -123,30 +123,30 @@ import { A2uiV1NativeSurface } from "@mcp-native/react-native";
 />;
 ```
 
-Bound `TextField` changes update an owned local data model and rerender other absolute bindings immediately; they do not call the agent on each keystroke. Equivalent fresh store snapshots preserve those edits, while accepted agent data-model updates reset them. When a button is pressed, its user message and context are resolved again against the latest local model, timestamped, reconstructed as finite JSON, and validated against the pinned official renderer-to-agent action schema. The callback receives the local data model only when the surface explicitly sets `sendDataModel: true`; otherwise its second argument is omitted. The host callback owns transport delivery and permission or consent boundaries.
+Bound `TextField` changes update an owned local data model and rerender absolute or dynamic-list-relative bindings immediately; they do not call the agent on each keystroke. Equivalent fresh store snapshots preserve those edits, while accepted agent data-model updates reset them. Repeated template buttons retain a renderer-only instance key, so pressing one resolves its user message, `@index`, and context again against the correct item in the latest local model while the official wire `sourceComponentId` remains the catalog component ID. The action is timestamped, reconstructed as finite JSON, and validated against the pinned official renderer-to-agent action schema. The callback receives the local data model only when the surface explicitly sets `sendDataModel: true`; otherwise its second argument is omitted. The host callback owns transport delivery and permission or consent boundaries.
 
-Dynamic list templates, relative bindings, renderer functions, renderer-side checks, local function actions, and every other basic-catalog component fail closed. Expanded plans are capped at 1,024 nodes so repeated references cannot amplify a small component graph into unbounded work.
+Arbitrary renderer functions, renderer-side checks, local function actions, nested inline catalogs, and every other basic-catalog component fail closed. Expanded plans are capped at 1,024 nodes so repeated references or large bound arrays cannot amplify a small component graph into unbounded work.
 
 ## Public API
 
-| Export                                  | Purpose                                                                                         |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `McpNativeSurface`                      | Mounts a validated surface using the host's component catalog.                                  |
-| `A2uiV1NativeSurface`                   | Mounts the supported v1 subset with local bindings and official action-envelope callbacks.      |
-| `useMcpNativeActionDispatcher`          | Adapts asynchronous runtime dispatch into a stable event callback with required error handling. |
-| `useNativeRenderPlan`                   | Memoizes a trusted render plan for a validated surface identity.                                |
-| `createNativeRenderPlan`                | Converts a validated `A2uiSurface` into a `NativeElement` tree.                                 |
-| `createA2uiV1NativeRenderPlan`          | Revalidates and adapts the supported v1 subset into a trusted `NativeElement` tree.             |
-| `resolveA2uiV1NativeEvent`              | Revalidates and resolves one reachable button event against the latest local model.             |
-| `A2UI_V1_NATIVE_COMPONENT_NAMES`        | Exact basic-catalog component names implemented by the current native adapter.                  |
-| `A2UI_V1_NATIVE_MAX_RENDER_NODES`       | Bound on expanded v1 render-plan nodes.                                                         |
-| `A2uiV1NativeEventDescriptor`           | Resolved trusted-plan event data used by mounted dispatch or custom hosts.                      |
-| `A2uiV1NativeActionHandler`             | Host callback receiving the validated action envelope and, when opted in, the local data model. |
-| `NativeComponentCatalog`                | Contract for locally bundled `View`, `Text`, `Button`, and `TextInput` implementations.         |
-| `NativeActionHandler`                   | Synchronous handler for a validated declared action.                                            |
-| `NativeBindingChangeHandler`            | Handler receiving a validated binding name and the next text value.                             |
-| `McpNativeActionDispatcherOptions`      | Required action error callback and optional result callback.                                    |
-| `NativeElement` / `NativeComponentName` | Serializable trusted-plan node and its fixed component-name union.                              |
+| Export                                  | Purpose                                                                                                  |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `McpNativeSurface`                      | Mounts a validated surface using the host's component catalog.                                           |
+| `A2uiV1NativeSurface`                   | Mounts the supported v1 subset with local bindings and official action-envelope callbacks.               |
+| `useMcpNativeActionDispatcher`          | Adapts asynchronous runtime dispatch into a stable event callback with required error handling.          |
+| `useNativeRenderPlan`                   | Memoizes a trusted render plan for a validated surface identity.                                         |
+| `createNativeRenderPlan`                | Converts a validated `A2uiSurface` into a `NativeElement` tree.                                          |
+| `createA2uiV1NativeRenderPlan`          | Revalidates and adapts the supported v1 subset into a trusted `NativeElement` tree.                      |
+| `resolveA2uiV1NativeEvent`              | Revalidates and resolves one reachable static or template-instance event against the latest local model. |
+| `A2UI_V1_NATIVE_COMPONENT_NAMES`        | Exact basic-catalog component names implemented by the current native adapter.                           |
+| `A2UI_V1_NATIVE_MAX_RENDER_NODES`       | Bound on expanded v1 render-plan nodes.                                                                  |
+| `A2uiV1NativeEventDescriptor`           | Resolved trusted-plan event data used by mounted dispatch or custom hosts.                               |
+| `A2uiV1NativeActionHandler`             | Host callback receiving the validated action envelope and, when opted in, the local data model.          |
+| `NativeComponentCatalog`                | Contract for locally bundled `View`, `Text`, `Button`, and `TextInput` implementations.                  |
+| `NativeActionHandler`                   | Synchronous handler for a validated declared action.                                                     |
+| `NativeBindingChangeHandler`            | Handler receiving a validated binding name and the next text value.                                      |
+| `McpNativeActionDispatcherOptions`      | Required action error callback and optional result callback.                                             |
+| `NativeElement` / `NativeComponentName` | Serializable trusted-plan node and its fixed component-name union.                                       |
 
 ## Current mappings
 
@@ -164,7 +164,7 @@ Dynamic list templates, relative bindings, renderer functions, renderer-side che
 - Render plans should only be created from a successfully validated surface.
 - The v1 adapter performs policy validation again at its public boundary.
 - The mounted v1 surface owns local binding state and revalidates action context at dispatch time.
-- Unsupported v1 components, dynamic templates, and executable functions fail closed.
+- Unsupported v1 components and arbitrary executable functions fail closed.
 - Declared actions and their complete JSON arguments are validated again immediately before emission.
 - Rendered component props are selected explicitly; unchecked server props are never spread into host components.
 - The host must explicitly map components, enforce permissions, and choose the renderer-to-agent transport; emitting an envelope does not grant network or device access.
