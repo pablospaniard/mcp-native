@@ -12,7 +12,7 @@
 
 </div>
 
-> **Experimental:** this package implements MCP Native's deliberately small internal `0.1` proof-of-concept surface. `0.1` is not an A2UI protocol version, and this package does not currently claim A2UI v1.0 compatibility.
+> **Experimental:** this package retains MCP Native's deliberately small internal `0.1` proof-of-concept surface and separately implements the documented partial A2UI v1.0 Candidate lifecycle, capability, policy, format-string, and action-envelope APIs. `0.1` is not an A2UI protocol version, and the partial v1 path is not a complete A2UI compatibility claim.
 
 `@mcp-native/a2ui` resolves explicitly typed resource links and parses untrusted JSON or JavaScript values into a validated, typed surface before a host renders anything. Unknown or ambiguous resources fail with `A2uiResourceError`; unknown versions, node types, action types, non-plain objects, oversized trees, and invalid JSON values fail with `A2uiParseError`. Surfaces are capped at `A2UI_MAX_DEPTH` (32) and `A2UI_MAX_NODES` (256).
 
@@ -91,7 +91,7 @@ Other tool content and non-A2UI resource links may coexist with the surface link
 
 The prototype's `application/a2ui+json` resource convention comes from earlier A2UI-over-MCP work. The [A2UI v1.0 Candidate protocol](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md) is transport-agnostic and uses a stream of `v1.0` envelopes. Recognizing this media type does not establish v1.0 conformance.
 
-The official v1.0 surface-store state now has a strict adapter, including bounded dynamic lists, into the internal trusted render plan. This does not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+The official v1.0 surface-store state now has a strict React Native adapter, including bounded dynamic lists, local string state, supported catalog functions, and host-callback action envelopes, into the internal trusted render plan. This does not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 ## A2UI-over-MCP capability binding
 

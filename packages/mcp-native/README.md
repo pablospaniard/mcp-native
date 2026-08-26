@@ -15,9 +15,9 @@
 
 > **Experimental:** MCP Native is a proof of concept, not a production-ready MCP or React Native runtime. APIs may change before `1.0.0`.
 
-> **Compatibility:** the initial tool/resource boundary preserves MCP `2026-07-28` fields, but complete MCP conformance is still in progress. The current declarative `0.1` surface is not A2UI v1.0, and the WebView primitives are not a complete MCP Apps host. See the [standards compatibility matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+> **Compatibility:** the initial tool/resource boundary preserves MCP `2026-07-28` fields, but complete MCP conformance is still in progress. The package retains a custom internal `0.1` proof surface and separately exposes the partial A2UI v1.0 Candidate path documented below; neither is a complete A2UI renderer. The WebView primitives are not a complete MCP Apps host. See the [standards compatibility matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
-`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, declarative surface parser, trusted native renderer and hooks, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
+`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, custom surface parser, partial A2UI v1 lifecycle/capability APIs, trusted native renderer and hooks, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
 
 ## Install
 
@@ -27,7 +27,17 @@ npm install mcp-native react
 
 Add `react-native` when mounting native surfaces. The package is ESM-only and includes TypeScript declarations.
 
-## End-to-end preview
+## A2UI v1 Candidate path
+
+Version `0.3.0` re-exports the APIs needed to negotiate the project-owned binding, resolve official
+v1 JSONL lifecycle envelopes, maintain bounded ordered surface state, apply explicit host
+component/event/function policies, and mount the supported native subset through
+`A2uiV1NativeSurface`. The mounted surface keeps string edits renderer-local and returns validated
+official action envelopes to a host callback; it never selects a return transport. See the
+[complete v1 host-flow example](https://github.com/pablospaniard/mcp-native#a2ui-v1-candidate-host-flow)
+and the [`@mcp-native/react-native` adapter documentation](https://github.com/pablospaniard/mcp-native/tree/main/packages/react-native#a2ui-v1-render-plan-adapter).
+
+## Legacy `0.1` proof-model preview
 
 ```tsx
 import {
@@ -91,12 +101,12 @@ The host supplies the locally bundled native components and explicitly allows th
 
 ## Included packages
 
-| Package                                                                              | What it provides                                                                 |
-| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | MCP client contracts, runtime delegation, JSON types, and declared tool actions. |
-| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Strict parsing for the internal `0.1` proof-of-concept surface.                  |
-| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | Trusted render plans, React hooks, and a fixed host-owned component catalog.     |
-| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | HTML policy primitives for the planned MCP Apps compatibility path.              |
+| Package                                                                              | What it provides                                                                  |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | MCP client contracts, runtime delegation, JSON types, and declared tool actions.  |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Internal `0.1` parsing plus the partial official v1 lifecycle and policy APIs.    |
+| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | Trusted plans, local v1 state/actions, hooks, and a host-owned component catalog. |
+| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | HTML policy primitives for the planned MCP Apps compatibility path.               |
 
 Install an individual package instead when you only need one layer.
 
@@ -108,8 +118,10 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - strict validation for container, text, button, and text-input nodes;
 - declared tool-action dispatch;
 - strict A2UI resource-link resolution from tool results;
+- schema-validated A2UI v1 JSONL lifecycle state and explicit host policies;
 - strict A2UI v1 catalog-capability parsing and overlap negotiation;
 - bounded A2UI v1 dynamic lists with relative renderer-local bindings and `@index`;
+- bounded A2UI v1 `formatString` execution and host-callback action envelopes;
 - host-localized A2UI v1 number and currency formatting;
 - host-localized A2UI v1 plural selection and pure boolean functions;
 - trusted render plans for `View`, `Text`, `Button`, and `TextInput`;

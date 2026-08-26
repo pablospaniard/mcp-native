@@ -22,7 +22,7 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 > MCP Native is an experimental proof of concept, not a production-ready runtime. The npm packages contain working foundational APIs, but those APIs may change before the first stable release.
 
 > [!CAUTION]
-> The custom `@mcp-native/a2ui` `0.1` surface remains an internal proof-of-concept model. The packages now also implement a partial, separately negotiated A2UI v1.0 Candidate path for schema-validated lifecycle state, policy validation, and native-plan adaptation including bounded dynamic lists; it is not yet a complete A2UI renderer. The WebView package contains policy primitives, not a complete MCP Apps host. See [Standards and compatibility](docs/standards-compatibility.md).
+> The custom `@mcp-native/a2ui` `0.1` surface remains an internal proof-of-concept model. The packages now also implement a partial, separately negotiated A2UI v1.0 Candidate path with schema-validated lifecycle state, capability and host-policy validation, bounded dynamic lists and catalog functions, renderer-local string state, and official action envelopes returned to a host callback. It is not yet a complete A2UI renderer, and the host still owns action transport. The WebView package contains policy primitives, not a complete MCP Apps host. See [Standards and compatibility](docs/standards-compatibility.md).
 
 ## The idea
 
@@ -32,7 +32,7 @@ MCP Native explores a complementary path:
 
 - a server describes UI as validated, declarative data;
 - the host maps that data to components already bundled with the app;
-- user actions travel back through MCP;
+- validated user actions return to the host for explicit, policy-controlled MCP delivery;
 - arbitrary remote React Native JavaScript is never downloaded or executed;
 - HTML remains available as a policy-gated compatibility fallback.
 
@@ -81,7 +81,7 @@ The result should feel native to the device while preserving a clear trust bound
                     ▼
         View · Text · Button · TextInput
                     │
-                    └──────── action ────────► tools/call
+                    └──── validated action ──► host callback / policy-gated tool dispatch
 ```
 
 Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data flow, capability model, and initial threat model.
@@ -157,7 +157,65 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 
 This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, and plural formatting, pure boolean functions, `@index`, and action events returned to a host callback; remaining catalog functions, renderer-side checks, action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
 
-## Tiny example
+## A2UI v1 Candidate host flow
+
+Given a connected MCP runtime and SDK adapter, a host negotiates the project binding, resolves the
+ordered JSONL resource, applies it to the bounded store, defines its explicit policy, and mounts the
+supported native subset:
+
+```tsx
+import {
+  A2uiSurfaceStore,
+  createA2uiV1BasicCatalogPolicy,
+  negotiateA2uiMcpBinding,
+  resolveA2uiV1JsonlFromToolResult,
+} from "@mcp-native/a2ui";
+import { A2UI_V1_NATIVE_COMPONENT_NAMES, A2uiV1NativeSurface } from "@mcp-native/react-native";
+import { Button, Text, TextInput, View } from "react-native";
+
+const binding = negotiateA2uiMcpBinding(
+  adapter.getClientExtensionSettings(),
+  adapter.getServerExtensionSettings(),
+);
+if (binding.kind !== "negotiated") {
+  throw new Error("Use the tool result's ordinary MCP fallback content");
+}
+
+const toolResult = await runtime.callTool("open_profile");
+const { envelopes } = await resolveA2uiV1JsonlFromToolResult(runtime, toolResult, binding);
+const store = new A2uiSurfaceStore();
+store.applyAll(envelopes);
+
+const surface = store.get("profile");
+if (surface === undefined) {
+  throw new Error("The A2UI stream did not create the profile surface");
+}
+
+const policy = createA2uiV1BasicCatalogPolicy({
+  allowedComponentNames: A2UI_V1_NATIVE_COMPONENT_NAMES,
+  allowedEventNames: ["save_profile"],
+  allowedFunctionNames: ["formatString", "formatNumber", "pluralize", "and", "or", "not"],
+});
+
+function ProfileScreen() {
+  return (
+    <A2uiV1NativeSurface
+      surface={surface}
+      policy={policy}
+      components={{ Button, Text, TextInput, View }}
+      onAction={(envelope, dataModel) => {
+        void deliverA2uiAction(envelope, dataModel);
+      }}
+    />
+  );
+}
+```
+
+`onAction` receives a validated official envelope and, only after surface opt-in, the renderer-local
+data model. `deliverA2uiAction` is deliberately host-owned: version `0.3.0` does not choose or invoke
+a renderer-to-agent transport.
+
+## Legacy `0.1` proof-model example
 
 ```tsx
 import { parseA2uiSurface } from "@mcp-native/a2ui";
@@ -206,7 +264,7 @@ const toolResult = await runtime.callTool("open_surface");
 const { surface } = await resolveA2uiResourceFromToolResult(runtime, toolResult);
 ```
 
-The resolver requires exactly one `application/a2ui+json` resource link, reads the matching text resource, and passes it through the same strict parser. The current parser remains MCP Native's deliberately small `0.1` proof-of-concept model. It is not wire-compatible with the A2UI v1.0 Candidate protocol.
+This legacy resolver requires exactly one `application/a2ui+json` resource link, reads the matching text resource, and passes it through the same strict parser. The `parseA2uiSurface` parser remains MCP Native's deliberately small `0.1` proof-of-concept model. It is separate from the JSONL v1 Candidate flow above and is not wire-compatible with that protocol.
 
 ## Standards status
 
