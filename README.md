@@ -134,6 +134,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Explicit MCP extension settings and mutual negotiation without MIME or metadata inference
 - A project-owned, exact-match [A2UI-over-MCP transport binding](docs/a2ui-mcp-binding.md) with ordinary MCP fallback
 - Checksum-verified A2UI v1.0 Candidate schemas pinned to an exact upstream revision
+- Strict v1 agent/renderer capability metadata with exact shared-catalog negotiation and inline catalogs disabled
 - Schema-validated v1 lifecycle JSONL with atomic, ordered create/update/delete surface state
 - A pre-render v1 validation boundary with explicit host component, event, and function allowlists plus bounded validation of literal `formatString` sources
 - A fail-closed adapter from the supported static A2UI v1 subset into the trusted native render plan
@@ -207,7 +208,7 @@ The resolver requires exactly one `application/a2ui+json` resource link, reads t
 
 MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
 
-Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires exact capability negotiation, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, mounts the supported static subset with local bindings, and constructs official action envelopes. Dynamic templates, functions, the remaining renderer-to-agent lifecycle, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
+Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, mounts the supported static subset with local bindings, and constructs official action envelopes. Transport placement and enforcement of the A2UI capability objects, dynamic templates, functions, inline catalogs, the remaining renderer-to-agent lifecycle, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 

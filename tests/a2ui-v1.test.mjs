@@ -11,11 +11,15 @@ import {
   A2uiResourceError,
   A2uiSurfaceStore,
   createA2uiV1ActionEnvelope,
+  createA2uiV1RendererCapabilities,
   isA2uiMcpBindingGrant,
   negotiateA2uiMcpBinding,
+  negotiateA2uiV1Capabilities,
   parseA2uiSurface,
+  parseA2uiV1AgentCapabilities,
   parseA2uiV1Envelope,
   parseA2uiV1Jsonl,
+  parseA2uiV1RendererCapabilities,
   resolveA2uiV1JsonlFromToolResult,
 } from "../packages/a2ui/dist/index.js";
 
@@ -25,6 +29,113 @@ const bindingGrant = negotiateA2uiMcpBinding(
   A2UI_MCP_EXTENSION_CAPABILITIES,
 );
 assert.equal(bindingGrant.kind, "negotiated");
+
+test("v1 capabilities normalize explicit metadata and negotiate exact catalog overlap", () => {
+  const renderer = createA2uiV1RendererCapabilities({
+    supportedCatalogIds: ["catalog://native", "catalog://shared"],
+  });
+  const agent = parseA2uiV1AgentCapabilities(
+    JSON.stringify({
+      "v1.0": {
+        supportedCatalogIds: ["catalog://shared", "catalog://agent"],
+        acceptsInlineCatalogs: true,
+      },
+    }),
+  );
+
+  assert.deepEqual(renderer, {
+    "v1.0": { supportedCatalogIds: ["catalog://native", "catalog://shared"] },
+  });
+  assert.deepEqual(agent, {
+    "v1.0": {
+      supportedCatalogIds: ["catalog://shared", "catalog://agent"],
+      acceptsInlineCatalogs: true,
+    },
+  });
+  assert.deepEqual(negotiateA2uiV1Capabilities(agent, renderer), {
+    kind: "negotiated",
+    protocolVersion: "v1.0",
+    supportedCatalogIds: ["catalog://shared"],
+    inlineCatalogsEnabled: false,
+  });
+  assert.equal(Object.isFrozen(renderer), true);
+  assert.equal(Object.isFrozen(renderer["v1.0"]), true);
+  assert.equal(Object.isFrozen(renderer["v1.0"].supportedCatalogIds), true);
+});
+
+test("v1 capabilities default agent inline-catalog acceptance to false and fall back cleanly", () => {
+  const agent = parseA2uiV1AgentCapabilities({
+    "v1.0": { supportedCatalogIds: ["catalog://agent"] },
+  });
+  const renderer = parseA2uiV1RendererCapabilities({
+    "v1.0": { supportedCatalogIds: ["catalog://renderer"] },
+  });
+
+  assert.equal(agent["v1.0"].acceptsInlineCatalogs, false);
+  assert.deepEqual(negotiateA2uiV1Capabilities(agent, renderer), {
+    kind: "fallback",
+    protocolVersion: "v1.0",
+    reason: "no-shared-catalog",
+  });
+});
+
+test("v1 capability parsing fails closed beyond the permissive pinned schemas", async (t) => {
+  const cases = [
+    {
+      name: "agent omits normative catalog list",
+      parse: parseA2uiV1AgentCapabilities,
+      input: { "v1.0": {} },
+      message: /must declare supportedCatalogIds/,
+    },
+    {
+      name: "unknown protocol version",
+      parse: parseA2uiV1AgentCapabilities,
+      input: { "v0.9": { supportedCatalogIds: [] } },
+      message: /Unexpected field "v0\.9"/,
+    },
+    {
+      name: "unknown agent setting",
+      parse: parseA2uiV1AgentCapabilities,
+      input: { "v1.0": { supportedCatalogIds: [], executable: true } },
+      message: /Unexpected field "executable"/,
+    },
+    {
+      name: "duplicate catalog",
+      parse: parseA2uiV1RendererCapabilities,
+      input: { "v1.0": { supportedCatalogIds: ["catalog://same", "catalog://same"] } },
+      message: /Duplicate A2UI catalog ID/,
+    },
+    {
+      name: "empty catalog identifier",
+      parse: parseA2uiV1RendererCapabilities,
+      input: { "v1.0": { supportedCatalogIds: [""] } },
+      message: /Expected a non-empty string/,
+    },
+    {
+      name: "inline renderer catalog",
+      parse: parseA2uiV1RendererCapabilities,
+      input: { "v1.0": { supportedCatalogIds: [], inlineCatalogs: [] } },
+      message: /inline renderer catalogs are not supported/,
+    },
+    {
+      name: "non-JSON catalog value",
+      parse: parseA2uiV1AgentCapabilities,
+      input: { "v1.0": { supportedCatalogIds: [Number.NaN] } },
+      message: /agent capabilities.*supportedCatalogIds\[0\]/,
+    },
+  ];
+
+  await Promise.all(
+    cases.map((fixture) =>
+      t.test(fixture.name, () => {
+        assert.throws(
+          () => fixture.parse(fixture.input),
+          (error) => error instanceof A2uiParseError && fixture.message.test(error.message),
+        );
+      }),
+    ),
+  );
+});
 
 test("renderer actions are reconstructed as exact official v1 envelopes", () => {
   const context = JSON.parse('{"name":"Grace","__proto__":{"polluted":true}}');

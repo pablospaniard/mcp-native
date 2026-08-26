@@ -44,8 +44,10 @@ for (const file of actualFiles) {
 }
 
 const runtimeCopies = new Map([
+  ["json/agent_capabilities.json", "agent_capabilities.json"],
   ["json/agent_to_renderer.json", "agent_to_renderer.json"],
   ["json/common_types.json", "common_types.json"],
+  ["json/renderer_capabilities.json", "renderer_capabilities.json"],
   ["json/renderer_to_agent.json", "renderer_to_agent.json"],
   ["catalogs/basic/catalog.json", "catalog.json"],
 ]);

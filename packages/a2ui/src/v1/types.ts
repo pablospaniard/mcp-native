@@ -101,3 +101,35 @@ export interface A2uiV1ActionEnvelopeInput {
   /** RFC 3339 timestamp. Defaults to the current time when omitted. */
   readonly timestamp?: string;
 }
+
+export interface A2uiV1AgentCapabilities {
+  readonly "v1.0": {
+    readonly supportedCatalogIds: readonly string[];
+    readonly acceptsInlineCatalogs: boolean;
+  };
+}
+
+export interface A2uiV1RendererCapabilities {
+  readonly "v1.0": {
+    readonly supportedCatalogIds: readonly string[];
+  };
+}
+
+export interface A2uiV1RendererCapabilitiesOptions {
+  /** Catalogs fully implemented and registered by the host renderer. */
+  readonly supportedCatalogIds: readonly string[];
+}
+
+export type A2uiV1CapabilityNegotiation =
+  | {
+      readonly kind: "fallback";
+      readonly protocolVersion: typeof A2UI_V1_PROTOCOL_VERSION;
+      readonly reason: "no-shared-catalog";
+    }
+  | {
+      readonly kind: "negotiated";
+      readonly protocolVersion: typeof A2UI_V1_PROTOCOL_VERSION;
+      readonly supportedCatalogIds: readonly string[];
+      /** This implementation never enables untrusted inline catalog definitions. */
+      readonly inlineCatalogsEnabled: false;
+    };

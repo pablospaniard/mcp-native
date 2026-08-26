@@ -2,9 +2,11 @@ import type { ErrorObject, ValidateFunction } from "ajv/dist/2020.js";
 import Ajv2020Import from "ajv/dist/2020.js";
 import addFormatsImport from "ajv-formats";
 
+import agentCapabilities from "./vendor/agent_capabilities.json" with { type: "json" };
 import agentToRenderer from "./vendor/agent_to_renderer.json" with { type: "json" };
 import basicCatalog from "./vendor/catalog.json" with { type: "json" };
 import commonTypes from "./vendor/common_types.json" with { type: "json" };
+import rendererCapabilities from "./vendor/renderer_capabilities.json" with { type: "json" };
 import rendererToAgent from "./vendor/renderer_to_agent.json" with { type: "json" };
 
 type AjvInstance = {
@@ -54,6 +56,32 @@ function addSchemaAs(ajv: AjvInstance, schema: Record<string, unknown>, id: stri
 let cachedValidate: ValidateFunction | undefined;
 let cachedFunctionValidate: ValidateFunction | undefined;
 let cachedRendererToAgentValidate: ValidateFunction | undefined;
+let cachedAgentCapabilitiesValidate: ValidateFunction | undefined;
+let cachedRendererCapabilitiesValidate: ValidateFunction | undefined;
+
+/** Compiles the pinned agent capability schema. Semantic checks remain caller-owned. */
+export function getA2uiV1AgentCapabilitiesValidator(): ValidateFunction {
+  if (cachedAgentCapabilitiesValidate === undefined) {
+    cachedAgentCapabilitiesValidate = createAjv().compile(agentCapabilities as object);
+  }
+  return cachedAgentCapabilitiesValidate;
+}
+
+/**
+ * Compiles the pinned renderer capability schema with inline catalogs disabled.
+ * Inline catalog schema execution is deferred until a separate host policy exists.
+ */
+export function getA2uiV1RendererCapabilitiesValidator(): ValidateFunction {
+  if (cachedRendererCapabilitiesValidate === undefined) {
+    const schema = cloneJson(rendererCapabilities) as Record<string, unknown>;
+    const versionProperties = (
+      (schema.properties as Record<string, unknown>)["v1.0"] as Record<string, unknown>
+    ).properties as Record<string, unknown>;
+    versionProperties.inlineCatalogs = false;
+    cachedRendererCapabilitiesValidate = createAjv().compile(schema);
+  }
+  return cachedRendererCapabilitiesValidate;
+}
 
 /** Compiles the pinned agent-to-renderer schema once with the basic catalog mapped in. */
 export function getA2uiV1EnvelopeValidator(): ValidateFunction {
@@ -106,13 +134,7 @@ function createCatalogAjv(
   common: Record<string, unknown>,
   catalog: Record<string, unknown>,
 ): AjvInstance {
-  const ajv = new Ajv2020({
-    allErrors: true,
-    strict: false,
-    validateSchema: false,
-  });
-  addFormats(ajv);
-
+  const ajv = createAjv();
   const commonId = expectStringId(common);
   const catalogId = expectStringId(catalog);
   addSchemaAs(ajv, common, commonId);
@@ -120,6 +142,16 @@ function createCatalogAjv(
   addSchemaAs(ajv, catalog, catalogId);
   addSchemaAs(ajv, catalog, "catalog.json");
   addSchemaAs(ajv, catalog, "https://a2ui.org/specification/v1_0/catalog.json");
+  return ajv;
+}
+
+function createAjv(): AjvInstance {
+  const ajv = new Ajv2020({
+    allErrors: true,
+    strict: false,
+    validateSchema: false,
+  });
+  addFormats(ajv);
   return ajv;
 }
 
