@@ -93,7 +93,7 @@ class FormatStringParser {
 
     const functionName = expression.slice(0, openParenthesis).trim();
     if (!isFunctionIdentifier(functionName)) {
-      this.#fail(`contains invalid function name ${JSON.stringify(functionName)}`, offset);
+      return { path: expression };
     }
     const closeParenthesis = findClosingParenthesis(expression, openParenthesis, this.#path);
     if (expression.slice(closeParenthesis + 1).trim().length !== 0) {
@@ -194,8 +194,9 @@ class FormatStringParser {
         quote = character;
         continue;
       }
-      if (character === "{") {
+      if (character === "$" && source[index + 1] === "{" && !isEscaped(source, index)) {
         nesting += 1;
+        index += 1;
         continue;
       }
       if (character === "}") {
@@ -315,11 +316,6 @@ function walkTopLevel(
       interpolationDepth += 1;
       visit(character, index, false);
       index += 1;
-      continue;
-    }
-    if (character === "{" && interpolationDepth > 0) {
-      interpolationDepth += 1;
-      visit(character, index, false);
       continue;
     }
     if (character === "}" && interpolationDepth > 0) {

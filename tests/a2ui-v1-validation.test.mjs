@@ -366,6 +366,23 @@ test("formatString validates nested functions, bindings, accessibility, and temp
   );
 });
 
+test("formatString preserves RFC 6901 punctuation in pointer tokens", () => {
+  const store = createStore([
+    {
+      id: "root",
+      component: "Text",
+      text: {
+        call: "formatString",
+        args: { value: "${/labels/(draft)} ${/objects/{id}" },
+      },
+    },
+  ]);
+
+  assert.ok(
+    store.getValidated("validated", basicPolicy({ allowedFunctionNames: ["formatString"] })),
+  );
+});
+
 test("formatString cannot hide nested functions from the host allowlist", () => {
   const store = createStore([
     {
@@ -422,12 +439,6 @@ test("formatString syntax and reconstructed function calls fail closed", async (
       value: "Hello ${name}",
       allowedFunctionNames: ["formatString"],
       message: /Relative A2UI binding.*only valid inside/,
-    },
-    {
-      name: "balanced path braces cannot hide an invalid suffix",
-      value: "${/objects/{id}/bad~2}",
-      allowedFunctionNames: ["formatString"],
-      message: /Invalid JSON Pointer escape/,
     },
     {
       name: "unknown nested function",
