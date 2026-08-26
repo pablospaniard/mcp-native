@@ -2,6 +2,8 @@ import type { JsonValue } from "@mcp-native/core";
 
 import { A2uiParseError } from "../errors.js";
 import basicCatalog from "./vendor/catalog.json" with { type: "json" };
+import { parseA2uiV1Envelope } from "./parse.js";
+import { A2UI_V1_MAX_COMPONENTS } from "./types.js";
 import type { A2uiV1Component, A2uiV1SurfaceState } from "./types.js";
 
 export const A2UI_V1_BASIC_CATALOG_ID =
@@ -77,13 +79,14 @@ export function validateA2uiV1SurfaceState(
     A2UI_V1_KNOWN_FUNCTION_NAMES,
   );
 
-  validateCatalogId(surface.catalogId, "surface.catalogId");
-  if (!surface.components.has("root")) {
+  const validatedSurface = reconstructSurfaceSnapshot(surface);
+  validateCatalogId(validatedSurface.catalogId, "surface.catalogId");
+  if (!validatedSurface.components.has("root")) {
     throw new A2uiParseError('A complete A2UI surface must define component "root"');
   }
 
   const edges = new Map<string, readonly ComponentEdge[]>();
-  for (const [id, component] of surface.components) {
+  for (const [id, component] of validatedSurface.components) {
     if (component.id !== id) {
       throw new A2uiParseError(
         `A2UI component map key ${JSON.stringify(id)} does not match component id ${JSON.stringify(component.id)}`,
@@ -105,31 +108,31 @@ export function validateA2uiV1SurfaceState(
       continue;
     }
     for (const reference of references) {
-      if (!surface.components.has(reference.id)) {
+      if (!validatedSurface.components.has(reference.id)) {
         throw new A2uiParseError(
           `A2UI component ${JSON.stringify(parentId)} references missing child ${JSON.stringify(reference.id)}`,
         );
       }
     }
   }
-  validateComponentPlacement(surface.components, edges, contexts);
+  validateComponentPlacement(validatedSurface.components, edges, contexts);
 
   const semanticsPolicy: SemanticsPolicy = {
     allowedEvents,
     allowedFunctions,
   };
-  for (const [id, component] of surface.components) {
+  for (const [id, component] of validatedSurface.components) {
     const componentContexts = contexts.get(id);
     if (componentContexts === undefined) {
       continue;
     }
-    validateComponentAction(component, id, semanticsPolicy);
     for (const context of componentContexts) {
+      validateComponentAction(component, id, context, semanticsPolicy);
       validateSemanticValue(component, `components.${id}`, context, semanticsPolicy);
     }
   }
 
-  return surface;
+  return validatedSurface;
 }
 
 type BindingContext = "surface" | "template";
@@ -142,6 +145,90 @@ interface ComponentEdge {
 interface SemanticsPolicy {
   readonly allowedEvents: ReadonlySet<string>;
   readonly allowedFunctions: ReadonlySet<string>;
+}
+
+function reconstructSurfaceSnapshot(input: unknown): A2uiV1SurfaceState {
+  if (input === null || typeof input !== "object" || Array.isArray(input)) {
+    throw new A2uiParseError("Expected an A2UI surface snapshot object");
+  }
+  const prototype = Object.getPrototypeOf(input);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new A2uiParseError("Expected a plain A2UI surface snapshot object");
+  }
+  const source = input as Record<string, unknown>;
+  const allowedKeys = new Set([
+    "catalogId",
+    "components",
+    "dataModel",
+    "metadata",
+    "sendDataModel",
+    "surfaceId",
+  ]);
+  for (const key of Object.keys(source)) {
+    if (!allowedKeys.has(key)) {
+      throw new A2uiParseError(`Unexpected A2UI surface snapshot field ${JSON.stringify(key)}`);
+    }
+  }
+  if (!(source.components instanceof Map)) {
+    throw new A2uiParseError("Expected a Map at surface.components");
+  }
+  if (source.components.size > A2UI_V1_MAX_COMPONENTS) {
+    throw new A2uiParseError(
+      `A2UI surface exceeds maximum of ${A2UI_V1_MAX_COMPONENTS} components`,
+    );
+  }
+
+  const sourceEntries = [...source.components.entries()] as readonly (readonly [
+    unknown,
+    unknown,
+  ])[];
+  const createSurface: Record<string, unknown> = {
+    surfaceId: source.surfaceId,
+    sendDataModel: source.sendDataModel,
+    dataModel: source.dataModel,
+  };
+  if (sourceEntries.length > 0) {
+    createSurface.components = sourceEntries.map((entry) => entry[1]);
+  }
+  if (source.catalogId !== undefined) {
+    createSurface.catalogId = source.catalogId;
+  }
+  if (source.metadata !== undefined) {
+    createSurface.metadata = source.metadata;
+  }
+  const envelope = parseA2uiV1Envelope({ version: "v1.0", createSurface });
+  if (!("createSurface" in envelope)) {
+    throw new A2uiParseError("Expected a validated createSurface snapshot");
+  }
+
+  const components = new Map<string, A2uiV1Component>();
+  for (const [index, component] of (envelope.createSurface.components ?? []).entries()) {
+    const sourceKey = sourceEntries[index]?.[0];
+    if (sourceKey !== component.id) {
+      throw new A2uiParseError(
+        `A2UI component map key ${JSON.stringify(sourceKey)} does not match component id ${JSON.stringify(component.id)}`,
+      );
+    }
+    if (components.has(component.id)) {
+      throw new A2uiParseError(
+        `Duplicate A2UI component id ${JSON.stringify(component.id)} in surface snapshot`,
+      );
+    }
+    components.set(component.id, component);
+  }
+
+  return {
+    surfaceId: envelope.createSurface.surfaceId,
+    ...(envelope.createSurface.catalogId === undefined
+      ? {}
+      : { catalogId: envelope.createSurface.catalogId }),
+    sendDataModel: envelope.createSurface.sendDataModel === true,
+    components,
+    dataModel: envelope.createSurface.dataModel ?? {},
+    ...(envelope.createSurface.metadata === undefined
+      ? {}
+      : { metadata: envelope.createSurface.metadata }),
+  };
 }
 
 function getComponentEdges(component: A2uiV1Component): readonly ComponentEdge[] {
@@ -242,34 +329,18 @@ function validateSemanticValue(
 
   const object = value as Record<string, JsonValue>;
   if (Object.hasOwn(object, "call")) {
-    const functionName = object.call as string;
-    if (Object.hasOwn(object, "catalogId")) {
-      validateCatalogId(object.catalogId, `${path}.catalogId`);
-    }
-    if (!policy.allowedFunctions.has(functionName)) {
-      throw new A2uiParseError(
-        `A2UI function ${JSON.stringify(functionName)} at ${path}.call is not allowed by the host`,
-      );
-    }
-    if (functionName === "formatString") {
-      throw new A2uiParseError(
-        `A2UI function "formatString" at ${path}.call is unsupported until every interpolation expression can be validated`,
-      );
-    }
-    if (functionName === "@index" && context !== "template") {
-      throw new A2uiParseError(
-        `A2UI system function "@index" at ${path}.call is only valid inside a dynamic-list template`,
-      );
-    }
+    validateFunctionCall(object, path, context, policy);
+    return;
   }
   if (Object.hasOwn(object, "path")) {
     const bindingPath = object.path as string;
     const isTemplateList = Object.hasOwn(object, "componentId");
     validateBindingPath(bindingPath, path, isTemplateList ? "surface" : context);
+    return;
   }
 
   for (const [key, child] of Object.entries(object)) {
-    if (key === "metadata") {
+    if (key === "action" || key === "metadata") {
       continue;
     }
     validateSemanticValue(child, `${path}.${key}`, context, policy);
@@ -279,6 +350,7 @@ function validateSemanticValue(
 function validateComponentAction(
   component: A2uiV1Component,
   id: string,
+  context: BindingContext,
   policy: SemanticsPolicy,
 ): void {
   if (!Object.hasOwn(component, "action")) {
@@ -286,6 +358,14 @@ function validateComponentAction(
   }
   const action = component.action as Record<string, JsonValue>;
   if (!Object.hasOwn(action, "event")) {
+    if (Object.hasOwn(action, "functionCall")) {
+      validateDynamicValue(
+        action.functionCall!,
+        `components.${id}.action.functionCall`,
+        context,
+        policy,
+      );
+    }
     return;
   }
   const event = action.event as Record<string, JsonValue>;
@@ -294,6 +374,72 @@ function validateComponentAction(
     throw new A2uiParseError(
       `A2UI event ${JSON.stringify(eventName)} at components.${id}.action.event.name is not allowed by the host`,
     );
+  }
+  if (Object.hasOwn(event, "userMessage")) {
+    validateDynamicValue(
+      event.userMessage!,
+      `components.${id}.action.event.userMessage`,
+      context,
+      policy,
+    );
+  }
+  if (Object.hasOwn(event, "context")) {
+    const eventContext = event.context as Record<string, JsonValue>;
+    for (const [name, value] of Object.entries(eventContext)) {
+      validateDynamicValue(value, `components.${id}.action.event.context.${name}`, context, policy);
+    }
+  }
+}
+
+function validateDynamicValue(
+  value: JsonValue,
+  path: string,
+  context: BindingContext,
+  policy: SemanticsPolicy,
+): void {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return;
+  }
+  const object = value as Record<string, JsonValue>;
+  if (Object.hasOwn(object, "call")) {
+    validateFunctionCall(object, path, context, policy);
+    return;
+  }
+  if (Object.hasOwn(object, "path")) {
+    validateBindingPath(object.path as string, path, context);
+  }
+}
+
+function validateFunctionCall(
+  object: Record<string, JsonValue>,
+  path: string,
+  context: BindingContext,
+  policy: SemanticsPolicy,
+): void {
+  const functionName = object.call as string;
+  if (Object.hasOwn(object, "catalogId")) {
+    validateCatalogId(object.catalogId, `${path}.catalogId`);
+  }
+  if (!policy.allowedFunctions.has(functionName)) {
+    throw new A2uiParseError(
+      `A2UI function ${JSON.stringify(functionName)} at ${path}.call is not allowed by the host`,
+    );
+  }
+  if (functionName === "formatString") {
+    throw new A2uiParseError(
+      `A2UI function "formatString" at ${path}.call is unsupported until every interpolation expression can be validated`,
+    );
+  }
+  if (functionName === "@index" && context !== "template") {
+    throw new A2uiParseError(
+      `A2UI system function "@index" at ${path}.call is only valid inside a dynamic-list template`,
+    );
+  }
+  if (Object.hasOwn(object, "args")) {
+    const args = object.args as Record<string, JsonValue>;
+    for (const [name, value] of Object.entries(args)) {
+      validateDynamicValue(value, `${path}.args.${name}`, context, policy);
+    }
   }
 }
 

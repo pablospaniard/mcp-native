@@ -16,7 +16,7 @@
 
 `@mcp-native/react-native` converts a surface already validated by `@mcp-native/a2ui` into a trusted render plan and mounts it with components supplied by the host application. Servers provide data and declared actions—not JavaScript modules, component implementations, or arbitrary component names.
 
-The renderer is an internal platform layer, not proof of A2UI v1.0 conformance. Its current input is MCP Native's custom `0.1` surface; the planned v1.0 adapter will preserve this host-owned rendering boundary.
+The renderer is an internal platform layer, not proof of complete A2UI v1.0 conformance. The custom `0.1` surface remains supported, and the separate v1.0 adapter now converts a strict static subset into the same host-owned `NativeElement` boundary.
 
 ## Install
 
@@ -81,6 +81,30 @@ type NativeComponentName = "Button" | "Text" | "TextInput" | "View";
 
 The application host decides how each name maps to a locally bundled component and how declared button actions reach `McpNativeRuntime`. `onBindingChange` reports a validated binding name and the next text value; this milestone deliberately leaves local state ownership and server synchronization to the host.
 
+## A2UI v1 render-plan adapter
+
+Use the v1 adapter only with an explicit host policy. It revalidates the snapshot before resolving data-model bindings or creating a trusted plan.
+
+```ts
+import { createA2uiV1BasicCatalogPolicy } from "@mcp-native/a2ui";
+import {
+  A2UI_V1_NATIVE_COMPONENT_NAMES,
+  createA2uiV1NativeRenderPlan,
+} from "@mcp-native/react-native";
+
+const policy = createA2uiV1BasicCatalogPolicy({
+  allowedComponentNames: A2UI_V1_NATIVE_COMPONENT_NAMES,
+  allowedEventNames: ["save_profile"],
+});
+
+const surface = store.get("profile");
+const plan = surface && createA2uiV1NativeRenderPlan(surface, policy);
+```
+
+The adapter maps `Row`, `Column`, static `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. It resolves absolute JSON Pointer values, preserves supported container alignment, event context, and explicit accessibility fields. Event descriptors remain inert plan data; mounting them and constructing renderer-to-agent envelopes is the next boundary.
+
+Dynamic list templates, relative bindings, renderer functions, renderer-side checks, local function actions, and every other basic-catalog component fail closed. Expanded plans are capped at 1,024 nodes so repeated references cannot amplify a small component graph into unbounded work.
+
 ## Public API
 
 | Export                                  | Purpose                                                                                         |
@@ -89,6 +113,10 @@ The application host decides how each name maps to a locally bundled component a
 | `useMcpNativeActionDispatcher`          | Adapts asynchronous runtime dispatch into a stable event callback with required error handling. |
 | `useNativeRenderPlan`                   | Memoizes a trusted render plan for a validated surface identity.                                |
 | `createNativeRenderPlan`                | Converts a validated `A2uiSurface` into a `NativeElement` tree.                                 |
+| `createA2uiV1NativeRenderPlan`          | Revalidates and adapts the supported v1 subset into a trusted `NativeElement` tree.             |
+| `A2UI_V1_NATIVE_COMPONENT_NAMES`        | Exact basic-catalog component names implemented by the current native adapter.                  |
+| `A2UI_V1_NATIVE_MAX_RENDER_NODES`       | Bound on expanded v1 render-plan nodes.                                                         |
+| `A2uiV1NativeEventDescriptor`           | Resolved inert event data retained for later renderer-to-agent dispatch.                        |
 | `NativeComponentCatalog`                | Contract for locally bundled `View`, `Text`, `Button`, and `TextInput` implementations.         |
 | `NativeActionHandler`                   | Synchronous handler for a validated declared action.                                            |
 | `NativeBindingChangeHandler`            | Handler receiving a validated binding name and the next text value.                             |
@@ -109,6 +137,8 @@ The application host decides how each name maps to a locally bundled component a
 - The server cannot select components outside the catalog.
 - The server cannot send executable React Native code.
 - Render plans should only be created from a successfully validated surface.
+- The v1 adapter performs policy validation again at its public boundary.
+- Unsupported v1 components, dynamic templates, and executable functions fail closed.
 - Declared actions and their complete JSON arguments are validated again immediately before emission.
 - Rendered component props are selected explicitly; unchecked server props are never spread into host components.
 - The host must explicitly map components, own state, enforce permissions, and configure the runtime action policy; dispatch is denied when no policy allows it.

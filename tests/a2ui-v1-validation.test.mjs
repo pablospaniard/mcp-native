@@ -14,6 +14,7 @@ import {
   A2uiParseError,
   A2uiSurfaceStore,
   createA2uiV1BasicCatalogPolicy,
+  validateA2uiV1SurfaceState,
 } from "../packages/a2ui/dist/index.js";
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures/a2ui-v1");
@@ -94,6 +95,64 @@ test("untyped host policy input fails with a controlled parse error", () => {
     () => createA2uiV1BasicCatalogPolicy(null),
     (error) => error instanceof A2uiParseError && /policy options/.test(error.message),
   );
+});
+
+test("the public snapshot validator reconstructs untyped input into owned schema-valid state", () => {
+  assert.throws(
+    () => validateA2uiV1SurfaceState(null, basicPolicy()),
+    (error) => error instanceof A2uiParseError && /surface snapshot object/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      validateA2uiV1SurfaceState(
+        {
+          surfaceId: "forged",
+          sendDataModel: false,
+          components: new Map([["root", { id: "root", component: "Column" }]]),
+          dataModel: {},
+        },
+        basicPolicy(),
+      ),
+    (error) => error instanceof A2uiParseError && /schema validation failed/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      validateA2uiV1SurfaceState(
+        {
+          surfaceId: "forged",
+          sendDataModel: false,
+          components: new Map([
+            ["different-map-key", { id: "root", component: "Text", text: "Hello" }],
+          ]),
+          dataModel: {},
+        },
+        basicPolicy(),
+      ),
+    (error) => error instanceof A2uiParseError && /map key.*does not match/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      validateA2uiV1SurfaceState(
+        {
+          surfaceId: "forged",
+          sendDataModel: false,
+          components: new Map(),
+          dataModel: {},
+          executable: "unexpected",
+        },
+        basicPolicy(),
+      ),
+    (error) => error instanceof A2uiParseError && /Unexpected.*snapshot field/.test(error.message),
+  );
+
+  const source = createStore([{ id: "root", component: "Text", text: "Original" }]).get(
+    "validated",
+  );
+  const validated = validateA2uiV1SurfaceState(source, basicPolicy());
+  source.components.get("root").text = "Mutated";
+  source.dataModel.changed = true;
+  assert.equal(validated.components.get("root")?.text, "Original");
+  assert.equal(validated.dataModel.changed, undefined);
 });
 
 test("component graph validation rejects missing children and reachable cycles", async (t) => {
@@ -195,7 +254,11 @@ test("agent events and catalog functions require explicit host allowlists", () =
         event: {
           name: "submit",
           context: {
-            payload: { catalogId: "product-record", event: { name: "literal-data" } },
+            payload: {
+              catalogId: "product-record",
+              event: { name: "literal-data" },
+              nested: { call: "openUrl", path: "literal-data" },
+            },
           },
         },
       },
@@ -207,6 +270,26 @@ test("agent events and catalog functions require explicit host allowlists", () =
     (error) => error instanceof A2uiParseError && /event "submit"/.test(error.message),
   );
   assert.ok(eventStore.getValidated("validated", basicPolicy({ allowedEventNames: ["submit"] })));
+
+  const eventFunctionStore = createStore([
+    {
+      id: "root",
+      component: "Button",
+      child: "label",
+      action: {
+        event: {
+          name: "submit",
+          context: { formatted: { call: "formatNumber", args: { value: 42 } } },
+        },
+      },
+    },
+    { id: "label", component: "Text", text: "Submit" },
+  ]);
+  assert.throws(
+    () =>
+      eventFunctionStore.getValidated("validated", basicPolicy({ allowedEventNames: ["submit"] })),
+    (error) => error instanceof A2uiParseError && /function "formatNumber"/.test(error.message),
+  );
 
   const functionStore = createStore([
     {
