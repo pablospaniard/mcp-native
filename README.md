@@ -12,6 +12,7 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 [![License: MIT](https://img.shields.io/github/license/pablospaniard/mcp-native)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Sponsor](https://img.shields.io/badge/Sponsor-buy%20me%20a%20coffee-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/pablospaniard)
 
 [Architecture](docs/RFC-0001-architecture.md) · [Protocol support](docs/protocol-support.md) · [Standards status](docs/standards-compatibility.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
 
@@ -308,6 +309,10 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 Contributions are welcome. All changes—including maintainer changes—go through pull requests and must pass CI before merging.
 
 Start with [CONTRIBUTING.md](CONTRIBUTING.md). By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Sponsors
+
+Building this in public. If mcp-native helped you, [buy me a coffee](https://github.com/sponsors/pablospaniard) — it goes a long way.
 
 ## License
 
