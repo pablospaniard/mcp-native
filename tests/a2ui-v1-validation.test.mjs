@@ -403,6 +403,19 @@ test("formatString evaluation interpolates JSON values and escaped literals with
   );
 
   assert.equal(result, 'Ada 42 true  {"role":"admin"} [1,"two"] ${literal}');
+  let consumedExpressionCount = 0;
+  assert.equal(
+    evaluateA2uiV1FormatString(
+      "${${/name}}",
+      (expression) => values.get(expression.path),
+      "nested-budget",
+      (expressionCount) => {
+        consumedExpressionCount += expressionCount;
+      },
+    ),
+    "Ada",
+  );
+  assert.equal(consumedExpressionCount, 2);
   const maximumValue = "x".repeat(65_536);
   assert.throws(
     () => evaluateA2uiV1FormatString("${/value}${/value}", () => maximumValue, "bounded"),
@@ -415,6 +428,10 @@ test("formatString evaluation interpolates JSON values and escaped literals with
   assert.throws(
     () => evaluateA2uiV1FormatString("x".repeat(65_537), () => null),
     (error) => error instanceof A2uiParseError && /source.*65536/.test(error.message),
+  );
+  assert.throws(
+    () => evaluateA2uiV1FormatString("${null}", () => null, "budgeted", null),
+    (error) => error instanceof A2uiParseError && /budget consumer at budgeted/.test(error.message),
   );
 });
 

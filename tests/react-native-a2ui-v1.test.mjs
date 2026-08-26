@@ -1102,6 +1102,36 @@ test("expanded formatString work and output remain bounded", () => {
       /exceeds maximum of 10000 formatString expressions/.test(error.message),
   );
 
+  let nestedExpression = "${null}";
+  for (let depth = 1; depth < 64; depth += 1) {
+    nestedExpression = `\${${nestedExpression}}`;
+  }
+  const nestedExpressionSurface = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      {
+        id: "item",
+        component: "Text",
+        text: { call: "formatString", args: { value: nestedExpression } },
+      },
+    ],
+    { items: Array.from({ length: 157 }, () => ({})) },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        nestedExpressionSurface,
+        nativePolicy({ allowedFunctionNames: ["formatString"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /exceeds maximum of 10000 formatString expressions/.test(error.message),
+  );
+
   const outputSurface = createSurface(
     [
       {

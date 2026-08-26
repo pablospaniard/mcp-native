@@ -191,7 +191,7 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 | `createA2uiV1BasicCatalogPolicy`, `A2uiV1SurfaceValidationPolicy`                                         | Explicit host allowlists for components, events, and functions.       |
 | `validateA2uiV1SurfaceState`                                                                              | Revalidate a complete snapshot at another public trust boundary.      |
 | `createA2uiV1ActionEnvelope`, `A2uiV1ActionEnvelope`                                                      | Construct an owned, pinned-schema renderer action for host transport. |
-| `evaluateA2uiV1FormatString`                                                                              | Evaluate parsed interpolation with a host-owned expression resolver.  |
+| `evaluateA2uiV1FormatString`                                                                              | Evaluate interpolation and report parser-counted work to budgets.     |
 | `A2UI_V1_BASIC_CATALOG_ID`, catalog name constants                                                        | Exact pinned catalog identity and selectable host capabilities.       |
 | `resolveA2uiV1JsonlFromToolResult`, `ResolvedA2uiV1JsonlResource`                                         | Resolve a JSONL A2UI resource without using the `0.1` parser.         |
 | `A2UI_V1_PROTOCOL_VERSION`, `A2UI_V1_MAX_SOURCE_LENGTH`, `A2UI_V1_MAX_ENVELOPES`, store limit constants   | v1 protocol and complexity limits.                                    |

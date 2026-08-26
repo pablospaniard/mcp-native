@@ -583,12 +583,6 @@ function resolveDynamicValue(
       const result = evaluateA2uiV1FormatString(
         source,
         (expression, index) => {
-          context.formatStringExpressionCount += 1;
-          if (context.formatStringExpressionCount > JSON_MAX_VALUES) {
-            throw new A2uiParseError(
-              `Expanded A2UI native plan exceeds maximum of ${JSON_MAX_VALUES} formatString expressions`,
-            );
-          }
           return resolveDynamicValue(
             expression,
             `${path}.args.value.interpolations[${index}]`,
@@ -597,6 +591,14 @@ function resolveDynamicValue(
           );
         },
         `${path}.args.value`,
+        (expressionCount) => {
+          context.formatStringExpressionCount += expressionCount;
+          if (context.formatStringExpressionCount > JSON_MAX_VALUES) {
+            throw new A2uiParseError(
+              `Expanded A2UI native plan exceeds maximum of ${JSON_MAX_VALUES} formatString expressions`,
+            );
+          }
+        },
       );
       context.formattedStringLength += result.length;
       if (context.formattedStringLength > A2UI_V1_MAX_SOURCE_LENGTH) {

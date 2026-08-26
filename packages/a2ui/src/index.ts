@@ -56,6 +56,7 @@ export type {
   A2uiV1DeleteSurfaceEnvelope,
   A2uiV1Envelope,
   A2uiV1EnvelopeKind,
+  A2uiV1FormatStringExpressionBudgetConsumer,
   A2uiV1FormatStringExpressionResolver,
   A2uiV1RendererCapabilities,
   A2uiV1RendererCapabilitiesOptions,

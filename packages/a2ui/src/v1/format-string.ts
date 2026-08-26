@@ -23,6 +23,8 @@ export type A2uiV1FormatStringExpressionResolver = (
   index: number,
 ) => JsonValue | undefined;
 
+export type A2uiV1FormatStringExpressionBudgetConsumer = (expressionCount: number) => void;
+
 interface Interpolation {
   readonly content: string;
   readonly end: number;
@@ -43,6 +45,7 @@ export function evaluateA2uiV1FormatString(
   source: string,
   resolveExpression: A2uiV1FormatStringExpressionResolver,
   path = "formatString",
+  consumeExpressionBudget?: A2uiV1FormatStringExpressionBudgetConsumer,
 ): string {
   if (typeof source !== "string") {
     throw new A2uiParseError(`Expected a string at ${path}`);
@@ -58,8 +61,12 @@ export function evaluateA2uiV1FormatString(
   if (typeof path !== "string" || path.length === 0) {
     throw new A2uiParseError("Expected a non-empty A2UI formatString diagnostic path");
   }
+  if (consumeExpressionBudget !== undefined && typeof consumeExpressionBudget !== "function") {
+    throw new A2uiParseError(`Expected an A2UI formatString budget consumer at ${path}`);
+  }
 
   const parsed = parseA2uiV1FormatString(source, path);
+  consumeExpressionBudget?.(parsed.expressionCount);
   const chunks: string[] = [];
   let outputLength = 0;
   let expressionIndex = 0;
