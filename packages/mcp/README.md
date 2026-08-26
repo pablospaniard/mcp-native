@@ -56,6 +56,20 @@ Use `createMcpSdkClientAdapter(client)` when a factory reads better than constru
 
 The options helper deliberately offers only the current `2026-07-28` target and tested `2025-11-25` fallback. Use `"modern-only"` to pin the current revision without fallback or `"legacy-only"` for a server known to implement the tested legacy revision.
 
+To advertise an explicitly approved extension on the modern lane, pass its settings as the second argument:
+
+```ts
+const clientExtensions = {
+  "com.example/native-ui": { version: "1" },
+};
+
+const options = createMcpNativeClientOptions("modern-only", {
+  extensions: clientExtensions,
+});
+```
+
+The official SDK places these settings in the `2026-07-28` per-request capability envelope. After connection, `McpSdkClientAdapter.getServerExtensionSettings()` returns the validated server declaration from `server/discover`. Pass the explicit client map and returned server map to a core or extension-specific negotiator. The `2025-11-25` lane has no extension support claim.
+
 ## Mapping
 
 | Official SDK operation                 | MCP Native result                                                           |
@@ -91,6 +105,7 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 | `createMcpSdkClientAdapter`                                                                                      | Factory returning an adapter for a connected SDK client.                         |
 | `McpSdkAdapterError`                                                                                             | Specific validation error for results that cannot safely map.                    |
 | `createMcpNativeClientOptions`, `McpNativeProtocolMode`                                                          | Exact official SDK options for automatic, modern-only, or legacy-only operation. |
+| `McpNativeClientCapabilityOptions`                                                                               | Explicit host-approved extension settings accepted by the options helper.        |
 | `MCP_NATIVE_PROTOCOL_REVISION`, `MCP_NATIVE_LEGACY_PROTOCOL_REVISION`, `MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS` | The current target and deliberately tested revision list.                        |
 
 ## Scope
@@ -102,7 +117,7 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 - Connection setup, transport selection, authentication, retries, and shutdown remain host responsibilities.
 - Prompts, roots, subscriptions, sampling, elicitation, and task APIs are outside RFC-0001's initial client boundary.
 - Generic JSON-safe `_meta` is preserved, including MCP Apps discovery and resource policy data, but Apps-specific validation and capability negotiation are not implemented yet.
-- Extension discovery/settings and conformance coverage for operations outside the current boundary remain roadmap work.
+- Generic extension discovery/settings are supported on the modern SDK path; extension-specific operations and additional conformance scenarios remain separate roadmap work.
 - The adapter package remains independent of React Native, A2UI, and WebView packages.
 
 ## License

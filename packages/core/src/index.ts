@@ -162,6 +162,90 @@ export interface McpReadResourceResult {
   readonly _meta?: JsonObject;
 }
 
+/** Per-extension settings advertised through MCP capability declarations. */
+export interface McpExtensionSettings {
+  readonly [identifier: string]: JsonObject;
+}
+
+export type McpExtensionNegotiation =
+  | {
+      readonly kind: "fallback";
+      readonly identifier: string;
+      readonly reason: "client-unsupported" | "server-unsupported";
+    }
+  | {
+      readonly kind: "negotiated";
+      readonly identifier: string;
+      readonly clientSettings: JsonObject;
+      readonly serverSettings: JsonObject;
+    };
+
+/** Returns whether a value is a valid, mandatorily prefixed MCP extension identifier. */
+export function isMcpExtensionIdentifier(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > JSON_MAX_STRING_LENGTH) {
+    return false;
+  }
+
+  const slash = value.indexOf("/");
+  if (slash <= 0 || slash !== value.lastIndexOf("/")) {
+    return false;
+  }
+  const prefix = value.slice(0, slash);
+  const name = value.slice(slash + 1);
+  const labelPattern = /^[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/;
+  const namePattern = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
+  return namePattern.test(name) && prefix.split(".").every((label) => labelPattern.test(label));
+}
+
+/** Validates and safely reconstructs an MCP extension capability map. */
+export function parseMcpExtensionSettings(
+  value: unknown,
+  path = "extensions",
+): McpExtensionSettings {
+  const parsed = parseJsonObject(value, path);
+  const extensions: Record<string, JsonValue> = {};
+
+  for (const [identifier, settings] of Object.entries(parsed)) {
+    if (!isMcpExtensionIdentifier(identifier)) {
+      throw new JsonValidationError(
+        `Invalid MCP extension identifier ${JSON.stringify(identifier)} at ${path}`,
+      );
+    }
+    if (settings === null || typeof settings !== "object" || Array.isArray(settings)) {
+      throw new JsonValidationError(`Expected an object at ${path}.${identifier}`);
+    }
+    defineJsonProperty(extensions, identifier, settings);
+  }
+
+  return extensions as McpExtensionSettings;
+}
+
+/**
+ * Negotiates one extension from explicit client and server capability maps.
+ * Metadata and MIME types are deliberately not considered capability grants.
+ */
+export function negotiateMcpExtension(
+  identifier: string,
+  clientExtensions: unknown,
+  serverExtensions: unknown,
+): McpExtensionNegotiation {
+  if (!isMcpExtensionIdentifier(identifier)) {
+    throw new JsonValidationError(`Invalid MCP extension identifier ${JSON.stringify(identifier)}`);
+  }
+
+  const client = parseMcpExtensionSettings(clientExtensions, "clientExtensions");
+  const server = parseMcpExtensionSettings(serverExtensions, "serverExtensions");
+  const clientSettings = client[identifier];
+  if (clientSettings === undefined) {
+    return { kind: "fallback", identifier, reason: "client-unsupported" };
+  }
+  const serverSettings = server[identifier];
+  if (serverSettings === undefined) {
+    return { kind: "fallback", identifier, reason: "server-unsupported" };
+  }
+  return { kind: "negotiated", identifier, clientSettings, serverSettings };
+}
+
 /**
  * The small client boundary consumed by the runtime. SDK-specific clients can
  * implement this interface without coupling the core package to a transport.
@@ -170,6 +254,8 @@ export interface McpClient {
   listTools(): Promise<McpListToolsResult>;
   callTool(name: string, arguments_: JsonObject): Promise<McpToolCallResult>;
   readResource(uri: string): Promise<McpReadResourceResult>;
+  /** Optional server capability snapshot; omission means no extension support. */
+  getServerExtensionSettings?(): McpExtensionSettings;
 }
 
 export interface ToolAction {
@@ -332,6 +418,11 @@ export class McpNativeRuntime {
 
   readResource(uri: string): Promise<McpReadResourceResult> {
     return this.#client.readResource(uri);
+  }
+
+  negotiateExtension(identifier: string, clientExtensions: unknown): McpExtensionNegotiation {
+    const serverExtensions = this.#client.getServerExtensionSettings?.() ?? {};
+    return negotiateMcpExtension(identifier, clientExtensions, serverExtensions);
   }
 
   async dispatch(action: McpNativeAction): Promise<McpToolCallResult> {

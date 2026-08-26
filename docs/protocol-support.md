@@ -18,7 +18,7 @@ Neither tested lane is an unqualified whole-protocol conformance claim. The curr
 - `resources/read`;
 - the tool, schema, annotation, content, resource, `_meta`, pagination, and cache-hint fields represented by the core contracts.
 
-Prompts, roots, subscriptions, sampling, elicitation, tasks, authorization, extension negotiation, and other optional operations remain outside the current boundary unless another document explicitly marks them supported. Tool definitions containing `execution` settings are rejected rather than advertised with task semantics silently removed.
+Prompts, roots, subscriptions, sampling, elicitation, tasks, authorization, extension-specific operations, and other optional operations remain outside the current boundary unless another document explicitly marks them supported. The generic extension capability substrate described below is supported; it does not imply support for an extension's operations. Tool definitions containing `execution` settings are rejected rather than advertised with task semantics silently removed.
 
 ## Host modes
 
@@ -44,6 +44,27 @@ const client = new Client(
 
 The helper does not construct a client, choose a transport, connect, authenticate, retry, or close anything. Hosts may build their own official SDK options, but doing so moves the selected revisions outside MCP Native's tested policy unless they are identical to a mode above.
 
+## Extension capability substrate
+
+Hosts can supply an explicit, validated extension map as the second options argument:
+
+```ts
+const clientExtensions = {
+  "com.example/native-ui": { version: "1" },
+};
+
+const client = new Client(
+  { name: "my-native-host", version: "1.0.0" },
+  createMcpNativeClientOptions("modern-only", { extensions: clientExtensions }),
+);
+```
+
+For `2026-07-28`, the official SDK places these settings in the per-request client capability envelope and exposes the server's `server/discover` capability result. `McpSdkClientAdapter.getServerExtensionSettings()` validates that result before it enters core. `negotiateMcpExtension()` reports support only when the same mandatorily prefixed identifier is present in explicit client and server extension maps.
+
+The tested `2025-11-25` lane has no extension support claim. Metadata, MIME types, and tool results never substitute for mutual declarations. A missing declaration returns a fallback result so the application can consume ordinary MCP text or structured data. Invalid declarations fail closed.
+
+The only project-defined binding currently registered on this substrate is the experimental [`io.github.pablospaniard/mcp-native-a2ui` binding](a2ui-mcp-binding.md). Its presence does not claim that the A2UI v1.0 message parser or lifecycle is implemented.
+
 ## Compatibility guarantees
 
 - A new MCP revision is never treated as supported merely because the SDK recognizes it or its date sorts after `2026-07-28`.
@@ -52,6 +73,7 @@ The helper does not construct a client, choose a transport, connect, authenticat
 - Breaking wire changes are handled by the official SDK's era-specific codecs rather than conditional logic in `@mcp-native/core`.
 - MCP Native documents support per operation and transport. The current client boundary passes its selected official scenarios, but operations outside that boundary remain unclaimed.
 - The adapter rejects protocol results that cannot be represented faithfully and safely by its public contracts.
+- Generic extension capability maps are supported only for explicit negotiation; each extension's operations and semantics require separate implementation and tests.
 
 ## Adoption gate for another revision
 

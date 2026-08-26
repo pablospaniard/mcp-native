@@ -46,11 +46,13 @@ Exit criterion: the supported MCP operations pass documented `2026-07-28` scenar
 
 ## Milestone 2: extension and capability substrate
 
-- Represent MCP extension settings in the core boundary.
-- Negotiate extensions explicitly and implement graceful text/data fallback.
-- Preserve reserved and extension metadata without granting capabilities automatically.
-- Define any non-official A2UI-over-MCP binding under an identifier owned by this project; never use the reserved `io.modelcontextprotocol` namespace.
-- Document the exact transport mapping for ordered A2UI messages and capability exchange.
+Status: complete.
+
+- [x] Represent MCP extension settings in the core boundary.
+- [x] Negotiate extensions explicitly and implement graceful text/data fallback.
+- [x] Preserve reserved and extension metadata without granting capabilities automatically.
+- [x] Define the non-official A2UI-over-MCP binding under the project-owned `io.github.pablospaniard/mcp-native-a2ui` identifier; never use the reserved `io.modelcontextprotocol` namespace.
+- [x] Document the [exact transport mapping](a2ui-mcp-binding.md) for ordered A2UI messages and capability exchange.
 
 Exit criterion: UI protocols can determine mutual support without guessing from MIME types or tool results.
 

@@ -3,7 +3,7 @@
 - Status: Accepted for initial proof of concept
 - Protocol conformance: None claimed
 - Date: 2026-08-25
-- Last updated: 2026-08-25
+- Last updated: 2026-08-26
 
 ## Summary
 
@@ -59,19 +59,19 @@ User actions take the reverse path. A component emits a typed action; the core r
 
 ### `@mcp-native/core`
 
-Owns protocol-independent runtime contracts, MCP client abstraction, resource access, strict JSON/action validation, fail-closed action dispatch, and eventually the broader capability broker. It has no React Native or A2UI dependency.
+Owns protocol-independent runtime contracts, MCP client abstraction, resource access, strict JSON/action validation, fail-closed action dispatch, and the generic extension capability substrate. It has no React Native or A2UI dependency.
 
 Its resource contract preserves every content item returned by `resources/read`; a single URI can resolve to more than one text or blob item. Tool results preserve JSON-safe content blocks, the error flag, and structured content without exposing SDK-specific transport types.
 
 ### `@mcp-native/mcp`
 
-Owns the integration with the official MCP TypeScript SDK. It accepts an already connected SDK `Client` and adapts `listTools`, `callTool`, and `readResource` to the contracts in `@mcp-native/core`.
+Owns the integration with the official MCP TypeScript SDK. It accepts an already connected SDK `Client`, adapts `listTools`, `callTool`, and `readResource` to the contracts in `@mcp-native/core`, advertises host-approved extension settings, and exposes validated server extension settings.
 
 This package is the validation boundary between SDK results and the runtime. It rejects malformed collections, non-JSON values, non-plain objects, circular values, invalid optional fields, and resource bodies that are missing or ambiguous. It does not choose a transport, own credentials, or silently manage connection lifecycle.
 
 ### `@mcp-native/a2ui`
 
-Owns the current resource-link resolution, parser, validation, and conversion into the internal surface model. Unsupported MIME types, ambiguous links or contents, binary surfaces, versions, nodes, and actions fail closed.
+Owns the current resource-link resolution, parser, validation, and conversion into the internal surface model. It also owns the exact settings and negotiation helper for the project-defined A2UI-over-MCP binding. Unsupported MIME types, ambiguous links or contents, binary surfaces, versions, nodes, and actions fail closed.
 
 The resolver recognizes the prototype's `application/a2ui+json` resource convention. Its deliberately small `0.1` input contains four nested node types: container, text, button, and text input. This format is not an A2UI protocol version and is not wire-compatible with A2UI v1.0, which uses `v1.0` message envelopes, catalogs, ID-referenced component graphs, data-model updates, and renderer-to-agent messages. Future support must enter through a conforming adapter rather than incrementally redefining the custom wire format.
 
@@ -98,6 +98,8 @@ The host owns the effective component and action allowlists. A server can reques
 `McpNativeRuntime.dispatch()` applies a host-provided action policy and denies every surface action when no policy is configured. The lower-level `callTool()` operation remains available to trusted host code after JSON argument validation and is intentionally outside the surface-action policy. Prefer `createAllowlistActionPolicy()` so surface authorization includes exact or predicated arguments rather than tool names alone.
 
 Future capabilities that touch sensitive device APIs must be brokered by the host and may require user approval. Server declarations alone never grant device access.
+
+MCP extension support is determined only from validated, explicit client and server capability maps. `_meta`, MIME types, and tool-result content are preserved as data but never grant an extension. The generic substrate reports negotiation or a typed fallback reason; each extension must separately validate its settings and implement its own semantics. The experimental [project-owned A2UI binding](a2ui-mcp-binding.md) requires an exact settings match and defines ordinary MCP text/data as its graceful fallback.
 
 ## Initial milestone
 
@@ -130,9 +132,9 @@ The official SDK adapter, declarative resource-resolution, and initial React Nat
 - renderer hooks memoize plans and route asynchronous dispatch results or failures to explicit host callbacks;
 - component, interaction, hook, malformed-plan, public-export, and isolated package-consumer tests cover the boundary.
 
-The MCP `2026-07-28` foundation is complete for RFC-0001's initial client boundary. The tool/resource boundary preserves official metadata, schemas, annotations, discriminated content, and cache semantics; a pinned integration test exercises the SDK's current HTTP handler/fetch path; and the selected official client conformance scenarios pass without expected failures. The conformance gate ingests the frozen official requirements fixture and requires every scored client requirement to be selected or explicitly excluded. Shared-store integration tests also prove that private cache entries remain isolated by host-provided principal partitions while public entries may be reused only for the same server identity and request. The exact target, tested `2025-11-25` compatibility lane, and [pinned conformance coverage](mcp-conformance.md) are documented explicitly. The official SDK continues to own wire behavior; extension settings belong to the next milestone, and excluded operations remain unclaimed.
+The MCP `2026-07-28` foundation is complete for RFC-0001's initial client boundary. The tool/resource boundary preserves official metadata, schemas, annotations, discriminated content, and cache semantics; a pinned integration test exercises the SDK's current HTTP handler/fetch path; and the selected official client conformance scenarios pass without expected failures. The conformance gate ingests the frozen official requirements fixture and requires every scored client requirement to be selected or explicitly excluded. Shared-store integration tests also prove that private cache entries remain isolated by host-provided principal partitions while public entries may be reused only for the same server identity and request. The exact target, tested `2025-11-25` compatibility lane, and [pinned conformance coverage](mcp-conformance.md) are documented explicitly. The official SDK continues to own wire behavior, and excluded operations remain unclaimed.
 
-After that foundation, extension negotiation and a pinned A2UI v1.0 Candidate adapter will introduce official envelopes and an ordered surface state engine. The existing host-owned React Native catalog remains the internal rendering boundary. See the [standards-first roadmap](roadmap.md).
+The extension and capability substrate is also complete. Core validates prefixed extension maps and requires mutual declarations; the SDK adapter exchanges settings on the modern HTTP path; metadata alone never grants support; and the project-owned A2UI binding pins an exact Candidate revision and ordered resource transport with text/data fallback. The next milestone implements the official A2UI envelopes and ordered surface state engine. The existing host-owned React Native catalog remains the internal rendering boundary. See the [standards-first roadmap](roadmap.md).
 
 MCP Apps compatibility remains a separate track. A malformed or unsupported native surface must fail closed rather than silently becoming executable HTML, and an invalid Apps resource must not be interpreted as native UI.
 
@@ -167,7 +169,7 @@ return { content: [{ type: "text", text: "Saved" }] };
 ## Deferred work
 
 - A2UI v1.0 envelopes, schema validation, catalogs, surface lifecycle, and conformance tests
-- MCP extension negotiation, backwards-compatibility policy, official conformance scenarios, and cache-partition tests
+- Extension-specific operations and additional official extension conformance scenarios
 - A2UI data-model bindings, actions, functions, capabilities, and streaming updates
 - Authentication and production transport configuration
 - Richer React Native catalog components, styling, and platform-specific accessibility behavior

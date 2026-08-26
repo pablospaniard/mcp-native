@@ -93,6 +93,23 @@ The prototype's `application/a2ui+json` resource convention comes from earlier A
 
 The next protocol milestone will parse official v1.0 envelopes and schemas into an internal trusted render plan. It will not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
+## A2UI-over-MCP capability binding
+
+The package exports an experimental project-owned binding under `io.github.pablospaniard/mcp-native-a2ui`. It is enabled only when both peers advertise the exact binding version, A2UI Candidate revision, JSONL resource transport, and MIME type:
+
+```ts
+import { A2UI_MCP_EXTENSION_CAPABILITIES, negotiateA2uiMcpBinding } from "@mcp-native/a2ui";
+
+const result = negotiateA2uiMcpBinding(
+  A2UI_MCP_EXTENSION_CAPABILITIES,
+  adapter.getServerExtensionSettings(),
+);
+```
+
+A fallback result means the host uses ordinary MCP text or structured data. A resource link, MIME type, or `_meta` value never activates the binding by itself. The exact capability exchange, ordered `resource-text-jsonl` mapping, and failure behavior are documented in the [project binding contract](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-mcp-binding.md).
+
+This milestone negotiates the transport substrate only. Parsing official A2UI `v1.0` envelopes and applying ordered surface lifecycle messages remain the next milestone; the existing custom `0.1` resolver is separate.
+
 ## Supported surface
 
 | Node         | Required fields         | Purpose                                                |
@@ -106,17 +123,20 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 
 ## Public API
 
-| Export                                             | Purpose                                                          |
-| -------------------------------------------------- | ---------------------------------------------------------------- |
-| `resolveA2uiResourceFromToolResult`                | Reads and parses the single explicit A2UI link in a tool result. |
-| `parseA2uiSurface`                                 | Validates input and returns a typed `A2uiSurface`.               |
-| `A2uiResourceError`, `A2uiParseError`              | Specific resolution and parsing failures.                        |
-| `A2UI_MIME_TYPE`, `A2UI_VERSION`                   | Exact media type and current proof-of-concept version.           |
-| `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                 | Container-tree complexity limits.                                |
-| `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH` | Serialized-input and string-field limits.                        |
-| `ResolvedA2uiResource`                             | URI, MIME type, and validated surface returned by the resolver.  |
-| `A2uiSurface`, `A2uiNode`                          | Validated surface and node unions.                               |
-| Node interfaces                                    | Typed container, text, button, and text-input nodes.             |
+| Export                                                                                                    | Purpose                                                          |
+| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `resolveA2uiResourceFromToolResult`                                                                       | Reads and parses the single explicit A2UI link in a tool result. |
+| `parseA2uiSurface`                                                                                        | Validates input and returns a typed `A2uiSurface`.               |
+| `A2uiResourceError`, `A2uiParseError`                                                                     | Specific resolution and parsing failures.                        |
+| `A2UI_MIME_TYPE`, `A2UI_VERSION`                                                                          | Exact media type and current proof-of-concept version.           |
+| `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                                                                        | Container-tree complexity limits.                                |
+| `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH`                                                        | Serialized-input and string-field limits.                        |
+| `A2UI_MCP_EXTENSION_ID`, `A2UI_MCP_EXTENSION_CAPABILITIES`                                                | Exact project-owned extension declaration.                       |
+| `negotiateA2uiMcpBinding`, `A2uiMcpBindingNegotiation`                                                    | Exact-match negotiation with typed fallback reasons.             |
+| `A2UI_MCP_BINDING_VERSION`, `A2UI_MCP_PROTOCOL_VERSION`, `A2UI_MCP_SCHEMA_REVISION`, `A2UI_MCP_TRANSPORT` | Pinned binding and Candidate transport values.                   |
+| `ResolvedA2uiResource`                                                                                    | URI, MIME type, and validated surface returned by the resolver.  |
+| `A2uiSurface`, `A2uiNode`                                                                                 | Validated surface and node unions.                               |
+| Node interfaces                                                                                           | Typed container, text, button, and text-input nodes.             |
 
 ## Security behavior
 

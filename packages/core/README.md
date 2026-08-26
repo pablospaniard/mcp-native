@@ -86,6 +86,25 @@ await runtime.dispatch({
 | `JSON_MAX_DEPTH`, `JSON_MAX_VALUES`, `JSON_MAX_STRING_LENGTH`                                | Fixed complexity limits applied by the public JSON validators.                              |
 | `JsonValidationError`                                                                        | Error for non-JSON, circular, non-plain, or non-finite input.                               |
 | `JsonPrimitive`, `JsonValue`, `JsonObject`                                                   | JSON-safe value types for untrusted protocol data.                                          |
+| `McpExtensionSettings`, `McpExtensionNegotiation`                                            | Validated extension maps and explicit negotiation outcomes.                                 |
+| `parseMcpExtensionSettings`, `isMcpExtensionIdentifier`                                      | Fail-closed validation for prefixed extension declarations.                                 |
+| `negotiateMcpExtension`                                                                      | Computes mutual support from client and server declarations only.                           |
+
+## Extension negotiation
+
+Extension settings are JSON objects keyed by mandatorily prefixed identifiers. Core preserves this capability data without depending on an extension implementation:
+
+```ts
+import { negotiateMcpExtension } from "@mcp-native/core";
+
+const result = negotiateMcpExtension(
+  "com.example/native-ui",
+  { "com.example/native-ui": { version: "1" } },
+  { "com.example/native-ui": { version: "1" } },
+);
+```
+
+Only the two explicit maps participate. Metadata, MIME types, and tool results cannot grant support. `McpNativeRuntime.negotiateExtension()` obtains the server map from the optional `McpClient.getServerExtensionSettings()` boundary and returns a typed fallback result when either side is absent.
 
 ## Pre-1.0 MCP result migration
 
@@ -124,6 +143,7 @@ Content blocks now use MCP's official discriminated fields. Replace `{ type: "te
 - Prefer `createAllowlistActionPolicy()` so surface authorization covers tool arguments, not only tool names.
 - Untrusted JSON is reconstructed without prototype mutation and rejects cycles, non-plain objects, non-finite numbers, excessive depth, excessive value counts, and oversized strings or object keys.
 - Declared actions reject fields outside the exact `{ type, name, arguments? }` contract.
+- Extension declarations require prefixed identifiers and JSON-object settings; server metadata never activates an extension.
 - Host applications remain responsible for authentication, permissions, transport security, and user approval.
 
 ## Related packages
