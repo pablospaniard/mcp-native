@@ -454,6 +454,11 @@ function validateFunctionCall(
   }
   if (Object.hasOwn(object, "args")) {
     const args = object.args as Record<string, JsonValue>;
+    if ((functionName === "and" || functionName === "or") && Array.isArray(args.values)) {
+      for (const [index, value] of args.values.entries()) {
+        validateDynamicValue(value, `${path}.args.values[${index}]`, context, policy);
+      }
+    }
     for (const [name, value] of Object.entries(args)) {
       validateDynamicValue(value, `${path}.args.${name}`, context, policy);
     }
