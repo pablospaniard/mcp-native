@@ -211,6 +211,34 @@ test("data-model updates are safe RFC 6901 upserts", () => {
   );
 });
 
+test("a cumulative data-model limit failure preserves the previous valid state", () => {
+  const store = new A2uiSurfaceStore();
+  store.apply({
+    version: "v1.0",
+    createSurface: { surfaceId: "bounded", dataModel: { stable: true } },
+  });
+  const values = Array.from({ length: 6_000 }, () => 0);
+  store.apply({
+    version: "v1.0",
+    updateDataModel: { surfaceId: "bounded", path: "/first", value: values },
+  });
+
+  assert.throws(
+    () =>
+      store.apply({
+        version: "v1.0",
+        updateDataModel: { surfaceId: "bounded", path: "/second", value: values },
+      }),
+    (error) => error instanceof A2uiParseError && /maximum of 10000 values/.test(error.message),
+  );
+
+  const surface = store.get("bounded");
+  assert.ok(surface);
+  assert.equal(surface.dataModel.stable, true);
+  assert.equal(surface.dataModel.first.length, 6_000);
+  assert.equal(Object.hasOwn(surface.dataModel, "second"), false);
+});
+
 test("v1 parser rejects custom 0.1 surfaces and unsupported function envelopes", () => {
   assert.throws(
     () =>

@@ -137,11 +137,19 @@ export class A2uiSurfaceStore {
     readonly value: JsonValue;
   }): void {
     const surface = this.#requireSurface(message.surfaceId, "updateDataModel");
-    surface.dataModel = setJsonPointer(
+    const updatedDataModel = setJsonPointer(
       surface.dataModel,
       message.path,
       parseJsonValue(message.value, "updateDataModel.value"),
     );
+    try {
+      surface.dataModel = parseJsonObject(updatedDataModel, "updateDataModel.result");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Invalid merged data model";
+      throw new A2uiParseError(`Updated A2UI data model is invalid: ${errorMessage}`, {
+        cause: error,
+      });
+    }
   }
 
   #deleteSurface(surfaceId: string): void {
