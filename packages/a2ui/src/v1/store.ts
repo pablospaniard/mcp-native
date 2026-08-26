@@ -3,7 +3,10 @@ import type { JsonObject, JsonValue } from "@mcp-native/core";
 
 import { A2uiParseError } from "../errors.js";
 import { parseA2uiV1Envelope } from "./parse.js";
+import { A2UI_V1_MAX_COMPONENTS, A2UI_V1_MAX_SURFACES } from "./types.js";
 import type { A2uiV1Component, A2uiV1Envelope, A2uiV1SurfaceState } from "./types.js";
+import { validateA2uiV1SurfaceState } from "./validate.js";
+import type { A2uiV1SurfaceValidationPolicy } from "./validate.js";
 
 interface MutableSurface {
   surfaceId: string;
@@ -32,6 +35,15 @@ export class A2uiSurfaceStore {
   get(surfaceId: string): A2uiV1SurfaceState | undefined {
     const surface = this.#surfaces.get(surfaceId);
     return surface === undefined ? undefined : freezeSurface(surface);
+  }
+
+  /** Returns a complete renderer-ready snapshot or fails closed. */
+  getValidated(
+    surfaceId: string,
+    policy: A2uiV1SurfaceValidationPolicy,
+  ): A2uiV1SurfaceState | undefined {
+    const surface = this.get(surfaceId);
+    return surface === undefined ? undefined : validateA2uiV1SurfaceState(surface, policy);
   }
 
   list(): readonly A2uiV1SurfaceState[] {
@@ -97,6 +109,9 @@ export class A2uiSurfaceStore {
         `Cannot create A2UI surface ${JSON.stringify(message.surfaceId)}; it already exists`,
       );
     }
+    if (this.#surfaces.size >= A2UI_V1_MAX_SURFACES) {
+      throw new A2uiParseError(`A2UI store exceeds maximum of ${A2UI_V1_MAX_SURFACES} surfaces`);
+    }
 
     const components = new Map<string, A2uiV1Component>();
     if (message.components !== undefined) {
@@ -128,7 +143,9 @@ export class A2uiSurfaceStore {
     readonly components: readonly A2uiV1Component[];
   }): void {
     const surface = this.#requireSurface(message.surfaceId, "updateComponents");
-    mergeComponents(surface.components, message.components);
+    const updatedComponents = cloneComponents(surface.components);
+    mergeComponents(updatedComponents, message.components);
+    surface.components = updatedComponents;
   }
 
   #updateDataModel(message: {
@@ -175,6 +192,7 @@ function mergeComponents(
   target: Map<string, A2uiV1Component>,
   components: readonly A2uiV1Component[],
 ): void {
+  const seen = new Set<string>();
   for (const [index, component] of components.entries()) {
     const reconstructed = parseJsonObject(component, `components[${index}]`);
     if (typeof reconstructed.id !== "string" || reconstructed.id.length === 0) {
@@ -183,7 +201,18 @@ function mergeComponents(
     if (typeof reconstructed.component !== "string" || reconstructed.component.length === 0) {
       throw new A2uiParseError("Expected a non-empty component name");
     }
+    if (seen.has(reconstructed.id)) {
+      throw new A2uiParseError(
+        `Duplicate A2UI component id ${JSON.stringify(reconstructed.id)} in one update`,
+      );
+    }
+    seen.add(reconstructed.id);
     target.set(reconstructed.id, reconstructed as A2uiV1Component);
+    if (target.size > A2UI_V1_MAX_COMPONENTS) {
+      throw new A2uiParseError(
+        `A2UI surface exceeds maximum of ${A2UI_V1_MAX_COMPONENTS} components`,
+      );
+    }
   }
 }
 

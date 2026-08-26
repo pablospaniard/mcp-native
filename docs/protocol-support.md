@@ -66,7 +66,7 @@ For `2026-07-28`, the official SDK places these settings in the per-request clie
 
 The tested `2025-11-25` lane has no extension support claim. Metadata, MIME types, and tool results never substitute for mutual declarations. A missing declaration returns a fallback result so the application can consume ordinary MCP text or structured data. Invalid declarations fail closed.
 
-The only project-defined binding currently registered on this substrate is the experimental [`io.github.pablospaniard/mcp-native-a2ui` binding](a2ui-mcp-binding.md). Its presence does not claim that the A2UI v1.0 message parser or lifecycle is implemented.
+The only project-defined binding currently registered on this substrate is the experimental [`io.github.pablospaniard/mcp-native-a2ui` binding](a2ui-mcp-binding.md). The package implements a documented partial A2UI v1.0 Candidate path—lifecycle parsing, bounded ordered state, and policy-gated surface validation—but the binding's presence alone does not grant that path or claim complete A2UI conformance.
 
 ## Compatibility guarantees
 

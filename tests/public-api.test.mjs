@@ -7,6 +7,10 @@ import {
   A2UI_MCP_EXTENSION_CAPABILITIES,
   A2UI_MCP_EXTENSION_ID,
   A2UI_MIME_TYPE,
+  A2UI_V1_BASIC_CATALOG_ID,
+  A2UI_V1_BASIC_COMPONENT_NAMES,
+  A2UI_V1_MAX_COMPONENTS,
+  A2UI_V1_MAX_SURFACES,
   A2UI_VERSION,
   A2uiSurfaceStore,
   JSON_MAX_DEPTH,
@@ -17,6 +21,7 @@ import {
   McpNativeSurface,
   McpNativeRuntime,
   createAllowlistActionPolicy,
+  createA2uiV1BasicCatalogPolicy,
   createNativeRenderPlan,
   createWebViewDocument,
   isA2uiMcpBindingGrant,
@@ -41,6 +46,10 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(Object.isFrozen(A2UI_MCP_EXTENSION_CAPABILITIES), true);
   assert.equal(A2UI_MAX_SOURCE_LENGTH, 1_048_576);
   assert.equal(A2UI_MAX_STRING_LENGTH, 65_536);
+  assert.equal(A2UI_V1_MAX_COMPONENTS, 1_024);
+  assert.equal(A2UI_V1_MAX_SURFACES, 1_024);
+  assert.match(A2UI_V1_BASIC_CATALOG_ID, /catalogs\/basic\/catalog\.json$/);
+  assert.equal(A2UI_V1_BASIC_COMPONENT_NAMES.includes("Text"), true);
   assert.equal(JSON_MAX_DEPTH, 64);
   assert.equal(JSON_MAX_VALUES, 10_000);
   assert.equal(JSON_MAX_STRING_LENGTH, 65_536);
@@ -50,6 +59,7 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof McpNativeSurface, "function");
   assert.equal(typeof createNativeRenderPlan, "function");
   assert.equal(typeof createAllowlistActionPolicy, "function");
+  assert.equal(typeof createA2uiV1BasicCatalogPolicy, "function");
   assert.equal(typeof createWebViewDocument, "function");
   assert.equal(typeof isA2uiMcpBindingGrant, "function");
   assert.equal(typeof negotiateA2uiMcpBinding, "function");
