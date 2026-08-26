@@ -148,7 +148,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented static component subset and absolute bindings; dynamic templates, function execution, renderer-to-agent actions, complete accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented static component subset and absolute bindings; dynamic templates, function execution, renderer-side checks, renderer-to-agent actions, complete accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
 
 ## Tiny example
 

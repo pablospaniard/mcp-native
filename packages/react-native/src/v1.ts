@@ -118,6 +118,12 @@ function adaptContainer(
   if (variant !== undefined) {
     props.variant = variant;
   }
+  if (component.justify !== undefined) {
+    props.justify = expectString(component.justify, `components.${component.id}.justify`);
+  }
+  if (component.align !== undefined) {
+    props.align = expectString(component.align, `components.${component.id}.align`);
+  }
   addCommonProps(component, props, context);
   return {
     key,
@@ -179,6 +185,7 @@ function adaptButton(
   key: string,
   context: AdapterContext,
 ): NativeElement {
+  rejectUnsupportedChecks(component);
   const childId = expectString(component.child, `components.${component.id}.child`);
   const child = context.surface.components.get(childId);
   if (child?.component !== "Text") {
@@ -205,6 +212,7 @@ function adaptTextField(
   key: string,
   context: AdapterContext,
 ): NativeElement {
+  rejectUnsupportedChecks(component);
   const componentPath = `components.${component.id}`;
   const label = resolveDynamicString(component.label, `${componentPath}.label`, context);
   const props: Record<string, unknown> = {
@@ -228,6 +236,14 @@ function adaptTextField(
     props.accessibilityLabel = label;
   }
   return { key, component: "TextInput", props };
+}
+
+function rejectUnsupportedChecks(component: A2uiV1Component): void {
+  if (component.checks !== undefined) {
+    throw new A2uiParseError(
+      `A2UI native adapter does not yet support renderer-side checks at components.${component.id}.checks`,
+    );
+  }
 }
 
 function resolveButtonEvent(

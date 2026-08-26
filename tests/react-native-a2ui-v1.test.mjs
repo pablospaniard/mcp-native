@@ -37,6 +37,8 @@ test("validated v1 state becomes a trusted native plan for the bundled component
         id: "root",
         component: "Column",
         children: ["heading", "field", "save"],
+        justify: "center",
+        align: "end",
       },
       {
         id: "heading",
@@ -95,7 +97,7 @@ test("validated v1 state becomes a trusted native plan for the bundled component
   );
 
   assert.equal(plan.component, "View");
-  assert.deepEqual(plan.props, { layout: "column" });
+  assert.deepEqual(plan.props, { layout: "column", justify: "center", align: "end" });
   assert.equal(plan.children?.length, 3);
   assert.deepEqual(plan.children?.[0], {
     key: "root/heading:0",
@@ -144,12 +146,19 @@ test("structural mappings and escaped array bindings produce deterministic nativ
   const surface = createSurface(
     [
       { id: "root", component: "Card", child: "row", accessibility: { label: "Summary" } },
-      { id: "row", component: "Row", children: ["list"] },
+      {
+        id: "row",
+        component: "Row",
+        children: ["list"],
+        justify: "spaceBetween",
+        align: "center",
+      },
       {
         id: "list",
         component: "List",
         direction: "horizontal",
         children: ["value"],
+        align: "end",
       },
       { id: "value", component: "Text", text: { path: "/a~1b/~0items/0" } },
     ],
@@ -168,12 +177,12 @@ test("structural mappings and escaped array bindings produce deterministic nativ
       {
         key: "root/row:0",
         component: "View",
-        props: { layout: "row" },
+        props: { layout: "row", justify: "spaceBetween", align: "center" },
         children: [
           {
             key: "root/row:0/list:0",
             component: "View",
-            props: { layout: "row", variant: "list" },
+            props: { layout: "row", variant: "list", align: "end" },
             children: [
               {
                 key: "root/row:0/list:0/value:0",
@@ -252,6 +261,56 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
       ]),
       policy: nativePolicy({ allowedFunctionNames: ["openUrl"] }),
       message: /does not support local function actions/,
+    },
+    {
+      name: "text field renderer checks",
+      surface: createSurface(
+        [
+          {
+            id: "root",
+            component: "TextField",
+            label: "Name",
+            value: { path: "/name" },
+            checks: [
+              {
+                condition: {
+                  call: "required",
+                  args: { value: { path: "/name" } },
+                },
+                message: "Name is required",
+              },
+            ],
+          },
+        ],
+        { name: "Ada" },
+      ),
+      policy: nativePolicy({ allowedFunctionNames: ["required"] }),
+      message: /does not yet support renderer-side checks.*root\.checks/,
+    },
+    {
+      name: "button renderer checks",
+      surface: createSurface([
+        {
+          id: "root",
+          component: "Button",
+          child: "label",
+          checks: [
+            {
+              condition: {
+                call: "required",
+                args: { value: "ready" },
+              },
+            },
+          ],
+          action: { event: { name: "submit" } },
+        },
+        { id: "label", component: "Text", text: "Submit" },
+      ]),
+      policy: nativePolicy({
+        allowedEventNames: ["submit"],
+        allowedFunctionNames: ["required"],
+      }),
+      message: /does not yet support renderer-side checks.*root\.checks/,
     },
   ];
 

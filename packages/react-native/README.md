@@ -101,9 +101,9 @@ const surface = store.get("profile");
 const plan = surface && createA2uiV1NativeRenderPlan(surface, policy);
 ```
 
-The adapter maps `Row`, `Column`, static `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. It resolves absolute JSON Pointer values, event context, and explicit accessibility fields. Event descriptors remain inert plan data; mounting them and constructing renderer-to-agent envelopes is the next boundary.
+The adapter maps `Row`, `Column`, static `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. It resolves absolute JSON Pointer values, preserves supported container alignment, event context, and explicit accessibility fields. Event descriptors remain inert plan data; mounting them and constructing renderer-to-agent envelopes is the next boundary.
 
-Dynamic list templates, relative bindings, renderer functions, local function actions, and every other basic-catalog component fail closed. Expanded plans are capped at 1,024 nodes so repeated references cannot amplify a small component graph into unbounded work.
+Dynamic list templates, relative bindings, renderer functions, renderer-side checks, local function actions, and every other basic-catalog component fail closed. Expanded plans are capped at 1,024 nodes so repeated references cannot amplify a small component graph into unbounded work.
 
 ## Public API
 

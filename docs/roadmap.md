@@ -65,7 +65,7 @@ Status: partial — schemas, lifecycle store, pre-render validation, and static 
 - [x] Implement ordered create, component update, data-model update, and delete behavior.
 - [x] Validate the pinned catalog identity, host component/event/function allowlists, reachable graph references and cycles, JSON Pointer syntax, template-relative bindings, and beyond-schema placement rules before rendering.
 - [ ] Validate remaining dynamic-value resolution, including nested `formatString` expressions, accessibility behavior, and renderer capability metadata beyond schema checks.
-- [x] Adapt the supported static component subset and absolute data bindings into the existing trusted native render plan; dynamic templates, renderer functions, and event mounting remain deferred.
+- [x] Adapt the supported static component subset, container alignment, and absolute data bindings into the existing trusted native render plan; dynamic templates, renderer functions, renderer-side checks, and event mounting remain deferred.
 - [x] Add official examples, negative fixtures, and lifecycle tests for the implemented parse/store path; broader interoperability remains deferred.
 
 Exit criterion: conformance is reported per implemented A2UI feature against the pinned Candidate revision; the custom `0.1` input is deprecated or made explicitly internal.
