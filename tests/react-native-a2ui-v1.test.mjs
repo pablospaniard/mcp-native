@@ -615,6 +615,49 @@ test("dynamic lists expand bounded template instances with relative bindings and
   );
 });
 
+test("template instance keys remain unique for component IDs containing key delimiters", () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Row", children: ["a:1/item", "a"] },
+      { id: "a:1/item", component: "Column", children: ["choose"] },
+      {
+        id: "a",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      { id: "item", component: "Column", children: ["choose"] },
+      {
+        id: "choose",
+        component: "Button",
+        child: "choose-label",
+        action: { event: { name: "choose_item" } },
+      },
+      { id: "choose-label", component: "Text", text: "Choose" },
+    ],
+    { items: [{}] },
+  );
+  const policy = nativePolicy({ allowedEventNames: ["choose_item"] });
+  const plan = createA2uiV1NativeRenderPlan(surface, policy);
+  const staticEvent = plan.children?.[0]?.children?.[0]?.props.event;
+  const templateEvent = plan.children?.[1]?.children?.[0]?.children?.[0]?.props.event;
+
+  assert.equal(staticEvent?.instanceKey, "root/a%3A1%2Fitem:0/choose:0");
+  assert.equal(templateEvent?.instanceKey, "root/a:1/item:0/choose:0");
+  assert.notEqual(staticEvent?.instanceKey, templateEvent?.instanceKey);
+  assert.deepEqual(
+    resolveA2uiV1NativeEvent(surface, policy, "choose", surface.dataModel, {
+      instanceKey: staticEvent?.instanceKey,
+    }),
+    staticEvent,
+  );
+  assert.deepEqual(
+    resolveA2uiV1NativeEvent(surface, policy, "choose", surface.dataModel, {
+      instanceKey: templateEvent?.instanceKey,
+    }),
+    templateEvent,
+  );
+});
+
 test("mounted dynamic-list bindings and events retain their template instance", async () => {
   const surface = createSurface(
     [

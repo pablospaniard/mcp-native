@@ -232,7 +232,12 @@ function adaptContainer(
     component: "View",
     props,
     children: component.children.map((childId, index) =>
-      adaptComponent(childId as string, `${key}/${childId as string}:${index}`, context, scope),
+      adaptComponent(
+        childId as string,
+        appendInstanceKey(key, childId as string, index),
+        context,
+        scope,
+      ),
     ),
   };
 }
@@ -295,7 +300,7 @@ function adaptList(
     component: "View",
     props,
     children: value.map((item, index) =>
-      adaptComponent(componentId, `${key}/${componentId}:${index}`, context, {
+      adaptComponent(componentId, appendInstanceKey(key, componentId, index), context, {
         value: item,
         pointer: appendPointerToken(pointer, String(index)),
         index,
@@ -317,7 +322,7 @@ function adaptCard(
     key,
     component: "View",
     props,
-    children: [adaptComponent(childId, `${key}/${childId}:0`, context, scope)],
+    children: [adaptComponent(childId, appendInstanceKey(key, childId, 0), context, scope)],
   };
 }
 
@@ -629,6 +634,16 @@ function resolveBindingPointer(
 
 function appendPointerToken(pointer: string, encodedToken: string): string {
   return `${pointer}/${encodedToken}`;
+}
+
+function appendInstanceKey(parentKey: string, componentId: string, index: number): string {
+  // Component IDs are arbitrary strings. Escape every key delimiter, including the escape marker,
+  // so distinct component paths cannot collapse to the same renderer-only dispatch identity.
+  const encodedId = componentId
+    .replaceAll("%", "%25")
+    .replaceAll("/", "%2F")
+    .replaceAll(":", "%3A");
+  return `${parentKey}/${encodedId}:${index}`;
 }
 
 function expectAbsoluteBinding(value: JsonValue | undefined, path: string): string {
