@@ -1,9 +1,12 @@
+import { JSON_MAX_VALUES } from "@mcp-native/core";
 import type { JsonValue } from "@mcp-native/core";
 
 import { A2uiParseError } from "../errors.js";
 import basicCatalog from "./vendor/catalog.json" with { type: "json" };
+import { parseA2uiV1FormatString } from "./format-string.js";
 import { parseA2uiV1Envelope } from "./parse.js";
-import { A2UI_V1_MAX_COMPONENTS } from "./types.js";
+import { formatAjvErrors, getA2uiV1FunctionCallValidator } from "./schemas.js";
+import { A2UI_V1_MAX_COMPONENTS, A2UI_V1_MAX_SOURCE_LENGTH } from "./types.js";
 import type { A2uiV1Component, A2uiV1SurfaceState } from "./types.js";
 
 export const A2UI_V1_BASIC_CATALOG_ID =
@@ -120,6 +123,8 @@ export function validateA2uiV1SurfaceState(
   const semanticsPolicy: SemanticsPolicy = {
     allowedEvents,
     allowedFunctions,
+    formatStringExpressionCount: 0,
+    formatStringSourceLength: 0,
   };
   for (const [id, component] of validatedSurface.components) {
     const componentContexts = contexts.get(id);
@@ -145,6 +150,8 @@ interface ComponentEdge {
 interface SemanticsPolicy {
   readonly allowedEvents: ReadonlySet<string>;
   readonly allowedFunctions: ReadonlySet<string>;
+  formatStringExpressionCount: number;
+  formatStringSourceLength: number;
 }
 
 function reconstructSurfaceSnapshot(input: unknown): A2uiV1SurfaceState {
@@ -425,21 +432,65 @@ function validateFunctionCall(
       `A2UI function ${JSON.stringify(functionName)} at ${path}.call is not allowed by the host`,
     );
   }
-  if (functionName === "formatString") {
-    throw new A2uiParseError(
-      `A2UI function "formatString" at ${path}.call is unsupported until every interpolation expression can be validated`,
-    );
-  }
   if (functionName === "@index" && context !== "template") {
     throw new A2uiParseError(
       `A2UI system function "@index" at ${path}.call is only valid inside a dynamic-list template`,
     );
+  }
+  if (functionName === "formatString") {
+    validateFormatString(object, path, context, policy);
   }
   if (Object.hasOwn(object, "args")) {
     const args = object.args as Record<string, JsonValue>;
     for (const [name, value] of Object.entries(args)) {
       validateDynamicValue(value, `${path}.args.${name}`, context, policy);
     }
+  }
+}
+
+function validateFormatString(
+  object: Record<string, JsonValue>,
+  path: string,
+  context: BindingContext,
+  policy: SemanticsPolicy,
+): void {
+  const args = object.args as Record<string, JsonValue>;
+  const source = args.value;
+  if (typeof source !== "string") {
+    throw new A2uiParseError(
+      `A2UI formatString at ${path}.args.value requires a literal string so every interpolation can be validated`,
+    );
+  }
+  policy.formatStringSourceLength += source.length;
+  if (policy.formatStringSourceLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+    throw new A2uiParseError(
+      `A2UI formatString source exceeds cumulative maximum length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
+    );
+  }
+
+  const parsed = parseA2uiV1FormatString(source, `${path}.args.value`);
+  policy.formatStringExpressionCount += parsed.expressionCount;
+  if (policy.formatStringExpressionCount > JSON_MAX_VALUES) {
+    throw new A2uiParseError(
+      `A2UI surface exceeds maximum of ${JSON_MAX_VALUES} formatString expressions`,
+    );
+  }
+  for (const [index, expression] of parsed.expressions.entries()) {
+    const expressionPath = `${path}.args.value.interpolations[${index}]`;
+    if (
+      expression !== null &&
+      typeof expression === "object" &&
+      !Array.isArray(expression) &&
+      Object.hasOwn(expression, "call")
+    ) {
+      const validate = getA2uiV1FunctionCallValidator();
+      if (!validate(expression)) {
+        throw new A2uiParseError(
+          `A2UI formatString function schema validation failed at ${expressionPath}: ${formatAjvErrors(validate)}`,
+        );
+      }
+    }
+    validateDynamicValue(expression, expressionPath, context, policy);
   }
 }
 

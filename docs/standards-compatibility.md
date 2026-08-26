@@ -141,7 +141,7 @@ The implementation order is maintained in [the project roadmap](roadmap.md). The
 1. **Implemented:** pin Candidate revision `7541f953…` and vendor its official JSON Schema bundle plus basic catalog.
 2. **Partial:** parse official `v1.0` agent-to-renderer lifecycle envelopes; renderer-to-agent envelopes remain deferred.
 3. **Implemented:** ordered surface store for create, component update, data-model update, and delete messages.
-4. **Partial:** validate the pinned catalog, explicit host component/event/function allowlists, rooted graph references and cycles, binding syntax and template context, and selected placement rules; `formatString` is denied until its nested expression language is validated, while broader dynamic-value resolution, accessibility behavior, and renderer capabilities remain deferred.
+4. **Partial:** validate the pinned catalog, explicit host component/event/function allowlists, rooted graph references and cycles, binding syntax and template context, selected placement rules, and bounded nested expressions in literal `formatString` sources against reconstructed pinned-catalog calls; runtime-provided format sources, dynamic execution, platform accessibility behavior, and renderer capabilities remain deferred.
 5. **Partial:** adapt `Row`, `Column`, static `List`, `Card`, `Text`, `Button`, and `TextField` plus absolute bindings into the renderer's internal trusted plan; dynamic templates, functions, unsupported components, and event mounting fail closed.
 6. **Partial:** official examples, schema fixtures, malformed-message cases, and lifecycle tests for parse/store; broader interoperability remains deferred.
 
