@@ -236,6 +236,7 @@ export function A2uiV1NativeSurface({
         policy,
         event.sourceComponentId,
         currentDataModel,
+        event.instanceKey === undefined ? {} : { instanceKey: event.instanceKey },
       );
       const envelope = createA2uiV1ActionEnvelope({
         name: resolved.name,
@@ -596,13 +597,17 @@ function expectV1EventProp(element: NativeElement): A2uiV1NativeEventDescriptor 
   const event = parseJsonObject(element.props.event, path);
   rejectObjectKeys(
     event,
-    ["context", "name", "sourceComponentId", "surfaceId", "userMessage"],
+    ["context", "instanceKey", "name", "sourceComponentId", "surfaceId", "userMessage"],
     path,
   );
   const name = expectObjectString(event, "name", path);
   const surfaceId = expectObjectString(event, "surfaceId", path);
   const sourceComponentId = expectObjectString(event, "sourceComponentId", path);
   const context = parseJsonObject(event.context, `${path}.context`);
+  const instanceKey = event.instanceKey;
+  if (instanceKey !== undefined && (typeof instanceKey !== "string" || instanceKey.length === 0)) {
+    throw new TypeError(`Expected a non-empty string at ${path}.instanceKey`);
+  }
   const userMessage = event.userMessage;
   if (userMessage !== undefined && typeof userMessage !== "string") {
     throw new TypeError(`Expected a string at ${path}.userMessage`);
@@ -611,6 +616,7 @@ function expectV1EventProp(element: NativeElement): A2uiV1NativeEventDescriptor 
     name,
     surfaceId,
     sourceComponentId,
+    ...(instanceKey === undefined ? {} : { instanceKey }),
     context,
     ...(userMessage === undefined ? {} : { userMessage }),
   };
@@ -720,4 +726,8 @@ export {
   createA2uiV1NativeRenderPlan,
   resolveA2uiV1NativeEvent,
 } from "./v1.js";
-export type { A2uiV1NativeEventDescriptor, A2uiV1NativeRenderPlanOptions } from "./v1.js";
+export type {
+  A2uiV1NativeEventDescriptor,
+  A2uiV1NativeEventResolutionOptions,
+  A2uiV1NativeRenderPlanOptions,
+} from "./v1.js";

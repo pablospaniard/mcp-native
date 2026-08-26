@@ -31,6 +31,8 @@ export interface A2uiV1NativeEventDescriptor {
   readonly name: string;
   readonly surfaceId: string;
   readonly sourceComponentId: string;
+  /** Identifies one expanded template instance without changing the wire component ID. */
+  readonly instanceKey?: string;
   readonly userMessage?: string;
   readonly context: JsonObject;
 }
@@ -38,6 +40,17 @@ export interface A2uiV1NativeEventDescriptor {
 export interface A2uiV1NativeRenderPlanOptions {
   /** Host-owned renderer-local data model used for this render pass. */
   readonly dataModel?: JsonObject;
+}
+
+export interface A2uiV1NativeEventResolutionOptions {
+  /** Required when one template component expands into multiple reachable event sources. */
+  readonly instanceKey?: string;
+}
+
+interface BindingScope {
+  readonly value: JsonValue;
+  readonly pointer: string;
+  readonly index: number;
 }
 
 interface AdapterContext {
@@ -57,7 +70,7 @@ export function createA2uiV1NativeRenderPlan(
   options: A2uiV1NativeRenderPlanOptions = {},
 ): NativeElement {
   const context = createAdapterContext(surface, policy, options.dataModel);
-  return adaptComponent("root", "root", context);
+  return adaptComponent("root", "root", context, undefined);
 }
 
 /** Resolves one validated event against the latest renderer-local data model. */
@@ -66,35 +79,65 @@ export function resolveA2uiV1NativeEvent(
   policy: A2uiV1SurfaceValidationPolicy,
   sourceComponentId: string,
   dataModel: JsonObject,
+  options: A2uiV1NativeEventResolutionOptions = {},
 ): A2uiV1NativeEventDescriptor {
   if (typeof sourceComponentId !== "string" || sourceComponentId.length === 0) {
     throw new A2uiParseError("Expected a non-empty A2UI source component id");
   }
   const context = createAdapterContext(surface, policy, dataModel);
-  const event = findNativeEvent(adaptComponent("root", "root", context), sourceComponentId);
-  if (event === undefined) {
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new A2uiParseError("Expected A2UI native event resolution options to be an object");
+  }
+  const optionsPrototype = Object.getPrototypeOf(options);
+  if (optionsPrototype !== Object.prototype && optionsPrototype !== null) {
+    throw new A2uiParseError("Expected plain A2UI native event resolution options");
+  }
+  const optionKeys = Object.keys(options);
+  const unknownOption = optionKeys.find((key) => key !== "instanceKey");
+  if (unknownOption !== undefined) {
+    throw new A2uiParseError(
+      `Unexpected A2UI native event resolution option ${JSON.stringify(unknownOption)}`,
+    );
+  }
+  const instanceKey = options.instanceKey as unknown;
+  if (instanceKey !== undefined && (typeof instanceKey !== "string" || instanceKey.length === 0)) {
+    throw new A2uiParseError("Expected a non-empty A2UI native event instance key");
+  }
+  const events = findNativeEvents(
+    adaptComponent("root", "root", context, undefined),
+    sourceComponentId,
+    instanceKey,
+  );
+  if (events.length === 0) {
     throw new A2uiParseError(
       `A2UI native event source ${JSON.stringify(sourceComponentId)} is not a reachable supported Button`,
     );
   }
-  return event;
+  if (events.length > 1) {
+    throw new A2uiParseError(
+      `A2UI native event source ${JSON.stringify(sourceComponentId)} is ambiguous without its template instance key`,
+    );
+  }
+  return events[0]!;
 }
 
-function findNativeEvent(
+function findNativeEvents(
   element: NativeElement,
   sourceComponentId: string,
-): A2uiV1NativeEventDescriptor | undefined {
+  instanceKey: string | undefined,
+): readonly A2uiV1NativeEventDescriptor[] {
+  const events: A2uiV1NativeEventDescriptor[] = [];
   const event = element.props.event as A2uiV1NativeEventDescriptor | undefined;
-  if (event?.sourceComponentId === sourceComponentId) {
-    return event;
+  if (
+    event?.sourceComponentId === sourceComponentId &&
+    (instanceKey === undefined || event.instanceKey === instanceKey)
+  ) {
+    events.push(event);
   }
   for (const child of element.children ?? []) {
-    const nested = findNativeEvent(child, sourceComponentId);
-    if (nested !== undefined) {
-      return nested;
-    }
+    events.push(...findNativeEvents(child, sourceComponentId, instanceKey));
   }
-  return undefined;
+  return events;
 }
 
 function createAdapterContext(
@@ -118,7 +161,12 @@ function createAdapterContext(
   };
 }
 
-function adaptComponent(id: string, key: string, context: AdapterContext): NativeElement {
+function adaptComponent(
+  id: string,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
   context.renderNodeCount += 1;
   if (context.renderNodeCount > A2UI_V1_NATIVE_MAX_RENDER_NODES) {
     throw new A2uiParseError(
@@ -137,19 +185,19 @@ function adaptComponent(id: string, key: string, context: AdapterContext): Nativ
   try {
     switch (component.component) {
       case "Row":
-        return adaptContainer(component, key, "row", undefined, context);
+        return adaptContainer(component, key, "row", undefined, context, scope);
       case "Column":
-        return adaptContainer(component, key, "column", undefined, context);
+        return adaptContainer(component, key, "column", undefined, context, scope);
       case "List":
-        return adaptList(component, key, context);
+        return adaptList(component, key, context, scope);
       case "Card":
-        return adaptCard(component, key, context);
+        return adaptCard(component, key, context, scope);
       case "Text":
-        return adaptText(component, key, context);
+        return adaptText(component, key, context, scope);
       case "Button":
-        return adaptButton(component, key, context);
+        return adaptButton(component, key, context, scope);
       case "TextField":
-        return adaptTextField(component, key, context);
+        return adaptTextField(component, key, context, scope);
       default:
         throw new A2uiParseError(
           `A2UI component ${JSON.stringify(id)} uses ${JSON.stringify(component.component)}, which the native adapter does not support`,
@@ -166,6 +214,7 @@ function adaptContainer(
   layout: "column" | "row",
   variant: "list" | undefined,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): NativeElement {
   if (!Array.isArray(component.children)) {
     throw new A2uiParseError(
@@ -176,6 +225,24 @@ function adaptContainer(
   if (variant !== undefined) {
     props.variant = variant;
   }
+  addContainerLayoutProps(component, props);
+  addCommonProps(component, props, context, scope);
+  return {
+    key,
+    component: "View",
+    props,
+    children: component.children.map((childId, index) =>
+      adaptComponent(
+        childId as string,
+        appendInstanceKey(key, childId as string, index),
+        context,
+        scope,
+      ),
+    ),
+  };
+}
+
+function addContainerLayoutProps(component: A2uiV1Component, props: Record<string, unknown>): void {
   if (component.justify !== undefined) {
     const justify = expectString(component.justify, `components.${component.id}.justify`);
     if (justify === "stretch") {
@@ -188,44 +255,74 @@ function adaptContainer(
   if (component.align !== undefined) {
     props.align = expectString(component.align, `components.${component.id}.align`);
   }
-  addCommonProps(component, props, context);
-  return {
-    key,
-    component: "View",
-    props,
-    children: component.children.map((childId, index) =>
-      adaptComponent(childId as string, `${key}/${childId as string}:${index}`, context),
-    ),
-  };
 }
 
 function adaptList(
   component: A2uiV1Component,
   key: string,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): NativeElement {
-  return adaptContainer(
-    component,
-    key,
-    component.direction === "horizontal" ? "row" : "column",
-    "list",
-    context,
+  if (Array.isArray(component.children)) {
+    return adaptContainer(
+      component,
+      key,
+      component.direction === "horizontal" ? "row" : "column",
+      "list",
+      context,
+      scope,
+    );
+  }
+
+  const template = expectObject(component.children, `components.${component.id}.children`);
+  const pointer = expectAbsoluteBinding(template.path, `components.${component.id}.children.path`);
+  const componentId = expectString(
+    template.componentId,
+    `components.${component.id}.children.componentId`,
   );
+  const value = parseJsonValue(
+    resolveJsonPointer(context.dataModel, pointer, `components.${component.id}.children`),
+    `components.${component.id}.children`,
+  );
+  if (!Array.isArray(value)) {
+    throw new A2uiParseError(
+      `Expected an array at components.${component.id}.children path ${JSON.stringify(pointer)}`,
+    );
+  }
+  const props: Record<string, unknown> = {
+    layout: component.direction === "horizontal" ? "row" : "column",
+    variant: "list",
+  };
+  addContainerLayoutProps(component, props);
+  addCommonProps(component, props, context, scope);
+  return {
+    key,
+    component: "View",
+    props,
+    children: value.map((item, index) =>
+      adaptComponent(componentId, appendInstanceKey(key, componentId, index), context, {
+        value: item,
+        pointer: appendPointerToken(pointer, String(index)),
+        index,
+      }),
+    ),
+  };
 }
 
 function adaptCard(
   component: A2uiV1Component,
   key: string,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): NativeElement {
   const childId = expectString(component.child, `components.${component.id}.child`);
   const props: Record<string, unknown> = { layout: "column", variant: "card" };
-  addCommonProps(component, props, context);
+  addCommonProps(component, props, context, scope);
   return {
     key,
     component: "View",
     props,
-    children: [adaptComponent(childId, `${key}/${childId}:0`, context)],
+    children: [adaptComponent(childId, appendInstanceKey(key, childId, 0), context, scope)],
   };
 }
 
@@ -233,14 +330,20 @@ function adaptText(
   component: A2uiV1Component,
   key: string,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): NativeElement {
   const props: Record<string, unknown> = {
-    children: resolveDynamicString(component.text, `components.${component.id}.text`, context),
+    children: resolveDynamicString(
+      component.text,
+      `components.${component.id}.text`,
+      context,
+      scope,
+    ),
   };
   if (component.variant !== undefined) {
     props.variant = component.variant;
   }
-  addCommonProps(component, props, context);
+  addCommonProps(component, props, context, scope);
   return { key, component: "Text", props };
 }
 
@@ -248,6 +351,7 @@ function adaptButton(
   component: A2uiV1Component,
   key: string,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): NativeElement {
   rejectUnsupportedChecks(component);
   const childId = expectString(component.child, `components.${component.id}.child`);
@@ -258,13 +362,13 @@ function adaptButton(
     );
   }
   const props: Record<string, unknown> = {
-    title: resolveDynamicString(child.text, `components.${child.id}.text`, context),
-    event: resolveButtonEvent(component, context),
+    title: resolveDynamicString(child.text, `components.${child.id}.text`, context, scope),
+    event: resolveButtonEvent(component, key, context, scope),
   };
   if (component.variant !== undefined) {
     props.variant = component.variant;
   }
-  addCommonProps(component, props, context);
+  addCommonProps(component, props, context, scope);
   if (props.accessibilityLabel === undefined) {
     props.accessibilityLabel = props.title;
   }
@@ -275,27 +379,37 @@ function adaptTextField(
   component: A2uiV1Component,
   key: string,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): NativeElement {
   rejectUnsupportedChecks(component);
   const componentPath = `components.${component.id}`;
-  const label = resolveDynamicString(component.label, `${componentPath}.label`, context);
+  const label = resolveDynamicString(component.label, `${componentPath}.label`, context, scope);
   const props: Record<string, unknown> = {
     label,
     placeholder:
       component.placeholder === undefined
         ? label
-        : resolveDynamicString(component.placeholder, `${componentPath}.placeholder`, context),
+        : resolveDynamicString(
+            component.placeholder,
+            `${componentPath}.placeholder`,
+            context,
+            scope,
+          ),
   };
   if (component.value !== undefined) {
-    props.value = resolveDynamicString(component.value, `${componentPath}.value`, context);
+    props.value = resolveDynamicString(component.value, `${componentPath}.value`, context, scope);
     if (isBinding(component.value)) {
-      props.binding = expectAbsoluteBinding(component.value.path, `${componentPath}.value.path`);
+      props.binding = resolveBindingPointer(
+        component.value.path,
+        `${componentPath}.value.path`,
+        scope,
+      );
     }
   }
   if (component.variant !== undefined) {
     props.variant = component.variant;
   }
-  addCommonProps(component, props, context);
+  addCommonProps(component, props, context, scope);
   if (props.accessibilityLabel === undefined) {
     props.accessibilityLabel = label;
   }
@@ -312,7 +426,9 @@ function rejectUnsupportedChecks(component: A2uiV1Component): void {
 
 function resolveButtonEvent(
   component: A2uiV1Component,
+  key: string,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): A2uiV1NativeEventDescriptor {
   const action = expectObject(component.action, `components.${component.id}.action`);
   if (!Object.hasOwn(action, "event")) {
@@ -335,6 +451,7 @@ function resolveButtonEvent(
         value,
         `components.${component.id}.action.event.context.${name}`,
         context,
+        scope,
       ),
     );
   }
@@ -345,11 +462,13 @@ function resolveButtonEvent(
           event.userMessage,
           `components.${component.id}.action.event.userMessage`,
           context,
+          scope,
         );
   return {
     name: eventName,
     surfaceId: context.surface.surfaceId,
     sourceComponentId: component.id,
+    instanceKey: key,
     ...(userMessage === undefined ? {} : { userMessage }),
     context: parseJsonObject(resolvedContext, `components.${component.id}.action.event.context`),
   };
@@ -359,6 +478,7 @@ function addCommonProps(
   component: A2uiV1Component,
   props: Record<string, unknown>,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): void {
   if (component.weight !== undefined) {
     const weight = expectFiniteNumber(component.weight, `components.${component.id}.weight`);
@@ -381,6 +501,7 @@ function addCommonProps(
       accessibility.label,
       `components.${component.id}.accessibility.label`,
       context,
+      scope,
     );
   }
   if (accessibility.description !== undefined) {
@@ -388,6 +509,7 @@ function addCommonProps(
       accessibility.description,
       `components.${component.id}.accessibility.description`,
       context,
+      scope,
     );
   }
   if (accessibility.live !== undefined) {
@@ -398,6 +520,7 @@ function addCommonProps(
       accessibility.hidden,
       `components.${component.id}.accessibility.hidden`,
       context,
+      scope,
     );
   }
 }
@@ -406,8 +529,9 @@ function resolveDynamicString(
   value: JsonValue | undefined,
   path: string,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): string {
-  const resolved = resolveDynamicValue(value, path, context);
+  const resolved = resolveDynamicValue(value, path, context, scope);
   return expectString(resolved, path);
 }
 
@@ -415,8 +539,9 @@ function resolveDynamicBoolean(
   value: JsonValue | undefined,
   path: string,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): boolean {
-  const resolved = resolveDynamicValue(value, path, context);
+  const resolved = resolveDynamicValue(value, path, context, scope);
   if (typeof resolved !== "boolean") {
     throw new A2uiParseError(`Expected a boolean at ${path}`);
   }
@@ -427,28 +552,52 @@ function resolveDynamicValue(
   value: JsonValue | undefined,
   path: string,
   context: AdapterContext,
+  scope: BindingScope | undefined,
 ): JsonValue {
   if (value === undefined) {
     throw new A2uiParseError(`Missing dynamic value at ${path}`);
   }
   if (isFunctionCall(value)) {
+    if (value.call === "@index" && scope !== undefined) {
+      return scope.index;
+    }
     throw new A2uiParseError(
       `A2UI native adapter does not execute function ${JSON.stringify(value.call)} at ${path}`,
     );
   }
   if (isBinding(value)) {
-    const pointer = expectAbsoluteBinding(value.path, `${path}.path`);
-    return parseJsonValue(resolveJsonPointer(context.dataModel, pointer, path), path);
+    const pointer = expectString(value.path, `${path}.path`);
+    if (pointer.startsWith("/") || scope === undefined) {
+      const absolutePointer = expectAbsoluteBinding(pointer, `${path}.path`);
+      return parseJsonValue(resolveJsonPointer(context.dataModel, absolutePointer, path), path);
+    }
+    return parseJsonValue(resolveRelativePointer(scope.value, pointer, path), path);
   }
   return parseJsonValue(value, path);
 }
 
-function resolveJsonPointer(document: JsonObject, pointer: string, path: string): JsonValue {
+function resolveJsonPointer(document: JsonValue, pointer: string, path: string): JsonValue {
   if (pointer === "") {
     return document;
   }
+  return resolvePointerTokens(document, pointer.slice(1).split("/"), pointer, path);
+}
+
+function resolveRelativePointer(document: JsonValue, pointer: string, path: string): JsonValue {
+  if (pointer === "") {
+    return document;
+  }
+  return resolvePointerTokens(document, pointer.split("/"), pointer, path);
+}
+
+function resolvePointerTokens(
+  document: JsonValue,
+  encodedTokens: readonly string[],
+  pointer: string,
+  path: string,
+): JsonValue {
   let cursor: JsonValue = document;
-  for (const encodedToken of pointer.slice(1).split("/")) {
+  for (const encodedToken of encodedTokens) {
     const token = decodePointerToken(encodedToken, pointer);
     if (Array.isArray(cursor)) {
       if (!/^(0|[1-9][0-9]*)$/.test(token)) {
@@ -471,7 +620,33 @@ function resolveJsonPointer(document: JsonObject, pointer: string, path: string)
   return cursor;
 }
 
-function expectAbsoluteBinding(value: JsonValue, path: string): string {
+function resolveBindingPointer(
+  value: JsonValue,
+  path: string,
+  scope: BindingScope | undefined,
+): string {
+  const pointer = expectString(value, path);
+  if (pointer.startsWith("/") || scope === undefined) {
+    return expectAbsoluteBinding(pointer, path);
+  }
+  return pointer === "" ? scope.pointer : `${scope.pointer}/${pointer}`;
+}
+
+function appendPointerToken(pointer: string, encodedToken: string): string {
+  return `${pointer}/${encodedToken}`;
+}
+
+function appendInstanceKey(parentKey: string, componentId: string, index: number): string {
+  // Component IDs are arbitrary strings. Escape every key delimiter, including the escape marker,
+  // so distinct component paths cannot collapse to the same renderer-only dispatch identity.
+  const encodedId = componentId
+    .replaceAll("%", "%25")
+    .replaceAll("/", "%2F")
+    .replaceAll(":", "%3A");
+  return `${parentKey}/${encodedId}:${index}`;
+}
+
+function expectAbsoluteBinding(value: JsonValue | undefined, path: string): string {
   const pointer = expectString(value, path);
   if (pointer !== "" && !pointer.startsWith("/")) {
     throw new A2uiParseError(

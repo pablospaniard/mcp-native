@@ -109,6 +109,7 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - declared tool-action dispatch;
 - strict A2UI resource-link resolution from tool results;
 - strict A2UI v1 catalog-capability parsing and overlap negotiation;
+- bounded A2UI v1 dynamic lists with relative renderer-local bindings and `@index`;
 - trusted render plans for `View`, `Text`, `Button`, and `TextInput`;
 - mounting through host-provided components with action and text-binding event translation;
 - memoized render-plan and safely observed asynchronous action-dispatch hooks;
@@ -117,7 +118,7 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - pinned current-protocol integration coverage through the SDK HTTP handler/fetch path;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-The supported A2UI v1 native subset now includes renderer-local absolute string bindings, host-callback action envelopes, and closed catalog-capability metadata with inline catalogs disabled. Dynamic templates, renderer functions, full streaming host integration, transport placement for A2UI capability objects, authentication helpers, and a runnable mobile demo remain incomplete. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
+The supported A2UI v1 native subset now includes renderer-local absolute and dynamic-list-relative string bindings, template-instance action resolution, `@index`, host-callback action envelopes, and closed catalog-capability metadata with inline catalogs disabled. Arbitrary renderer functions and checks, full streaming host integration, transport placement for A2UI capability objects, authentication helpers, and a runnable mobile demo remain incomplete. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
 
 ## Security model
 

@@ -451,6 +451,7 @@ test("validated v1 state becomes a trusted native plan for the bundled component
       name: "save_profile",
       surfaceId: "native",
       sourceComponentId: "save",
+      instanceKey: "root/save:2",
       userMessage: "Saved Ada",
       context: {
         name: "Ada",
@@ -522,6 +523,215 @@ test("structural mappings and escaped array bindings produce deterministic nativ
   });
 });
 
+test("dynamic lists expand bounded template instances with relative bindings and @index", () => {
+  const surface = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+        direction: "horizontal",
+        align: "center",
+      },
+      {
+        id: "item",
+        component: "Column",
+        children: ["name", "field", "choose"],
+      },
+      { id: "name", component: "Text", text: { path: "name" } },
+      { id: "field", component: "TextField", label: "Name", value: { path: "name" } },
+      {
+        id: "choose",
+        component: "Button",
+        child: "choose-label",
+        action: {
+          event: {
+            name: "choose_item",
+            context: { name: { path: "name" }, index: { call: "@index" } },
+          },
+        },
+      },
+      { id: "choose-label", component: "Text", text: "Choose" },
+    ],
+    { items: [{ name: "Ada" }, { name: "Grace" }] },
+  );
+  const policy = nativePolicy({
+    allowedEventNames: ["choose_item"],
+    allowedFunctionNames: ["@index"],
+  });
+  const plan = createA2uiV1NativeRenderPlan(surface, policy);
+
+  assert.deepEqual(plan.props, {
+    layout: "row",
+    variant: "list",
+    align: "center",
+  });
+  assert.equal(plan.children?.length, 2);
+  assert.equal(plan.children?.[0]?.children?.[0]?.props.children, "Ada");
+  assert.equal(plan.children?.[1]?.children?.[0]?.props.children, "Grace");
+  assert.equal(plan.children?.[0]?.children?.[1]?.props.binding, "/items/0/name");
+  assert.equal(plan.children?.[1]?.children?.[1]?.props.binding, "/items/1/name");
+  assert.deepEqual(plan.children?.[1]?.children?.[2]?.props.event, {
+    name: "choose_item",
+    surfaceId: "native",
+    sourceComponentId: "choose",
+    instanceKey: "root/item:1/choose:2",
+    context: { name: "Grace", index: 1 },
+  });
+
+  assert.throws(
+    () => resolveA2uiV1NativeEvent(surface, policy, "choose", surface.dataModel),
+    (error) =>
+      error instanceof A2uiParseError && /ambiguous without.*instance key/.test(error.message),
+  );
+  assert.deepEqual(
+    resolveA2uiV1NativeEvent(surface, policy, "choose", surface.dataModel, {
+      instanceKey: "root/item:1/choose:2",
+    }),
+    plan.children?.[1]?.children?.[2]?.props.event,
+  );
+  assert.throws(
+    () =>
+      resolveA2uiV1NativeEvent(surface, policy, "choose", surface.dataModel, {
+        instanceKey: "missing",
+      }),
+    (error) =>
+      error instanceof A2uiParseError && /not a reachable supported Button/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      resolveA2uiV1NativeEvent(surface, policy, "choose", surface.dataModel, {
+        instanceKey: 1,
+      }),
+    (error) => error instanceof A2uiParseError && /non-empty.*instance key/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      resolveA2uiV1NativeEvent(surface, policy, "choose", surface.dataModel, {
+        instanceKey: "root/item:1/choose:2",
+        executable: true,
+      }),
+    (error) => error instanceof A2uiParseError && /Unexpected.*"executable"/.test(error.message),
+  );
+});
+
+test("template instance keys remain unique for component IDs containing key delimiters", () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Row", children: ["a:1/item", "a"] },
+      { id: "a:1/item", component: "Column", children: ["choose"] },
+      {
+        id: "a",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      { id: "item", component: "Column", children: ["choose"] },
+      {
+        id: "choose",
+        component: "Button",
+        child: "choose-label",
+        action: { event: { name: "choose_item" } },
+      },
+      { id: "choose-label", component: "Text", text: "Choose" },
+    ],
+    { items: [{}] },
+  );
+  const policy = nativePolicy({ allowedEventNames: ["choose_item"] });
+  const plan = createA2uiV1NativeRenderPlan(surface, policy);
+  const staticEvent = plan.children?.[0]?.children?.[0]?.props.event;
+  const templateEvent = plan.children?.[1]?.children?.[0]?.children?.[0]?.props.event;
+
+  assert.equal(staticEvent?.instanceKey, "root/a%3A1%2Fitem:0/choose:0");
+  assert.equal(templateEvent?.instanceKey, "root/a:1/item:0/choose:0");
+  assert.notEqual(staticEvent?.instanceKey, templateEvent?.instanceKey);
+  assert.deepEqual(
+    resolveA2uiV1NativeEvent(surface, policy, "choose", surface.dataModel, {
+      instanceKey: staticEvent?.instanceKey,
+    }),
+    staticEvent,
+  );
+  assert.deepEqual(
+    resolveA2uiV1NativeEvent(surface, policy, "choose", surface.dataModel, {
+      instanceKey: templateEvent?.instanceKey,
+    }),
+    templateEvent,
+  );
+});
+
+test("mounted dynamic-list bindings and events retain their template instance", async () => {
+  const surface = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      { id: "item", component: "Column", children: ["field", "choose"] },
+      { id: "field", component: "TextField", label: "Name", value: { path: "name" } },
+      {
+        id: "choose",
+        component: "Button",
+        child: "choose-label",
+        action: {
+          event: {
+            name: "choose_item",
+            context: { name: { path: "name" }, index: { call: "@index" } },
+          },
+        },
+      },
+      { id: "choose-label", component: "Text", text: "Choose" },
+    ],
+    { items: [{ name: "Ada" }, { name: "Grace" }] },
+    { sendDataModel: true },
+  );
+  const policy = nativePolicy({
+    allowedEventNames: ["choose_item"],
+    allowedFunctionNames: ["@index"],
+  });
+  const actions = [];
+  const root = createRoot();
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy,
+        components: nativeComponents,
+        now: () => "2026-08-26T18:00:00.000Z",
+        onAction: (envelope, dataModel) => actions.push({ envelope, dataModel }),
+      }),
+    );
+  });
+
+  let inputs = root.container.queryAll((element) => element.type === "TextInput");
+  assert.deepEqual(
+    inputs.map((input) => input.props.value),
+    ["Ada", "Grace"],
+  );
+  await act(async () => inputs[1].props.onChangeText("Lin"));
+  inputs = root.container.queryAll((element) => element.type === "TextInput");
+  assert.equal(inputs[1].props.value, "Lin");
+
+  const buttons = root.container.queryAll((element) => element.type === "Button");
+  buttons[1].props.onPress();
+  assert.deepEqual(actions, [
+    {
+      envelope: {
+        version: "v1.0",
+        action: {
+          name: "choose_item",
+          surfaceId: "native",
+          sourceComponentId: "choose",
+          timestamp: "2026-08-26T18:00:00.000Z",
+          context: { name: "Lin", index: 1 },
+        },
+      },
+      dataModel: { items: [{ name: "Ada" }, { name: "Lin" }] },
+    },
+  ]);
+  await act(async () => root.unmount());
+});
+
 test("the v1 native adapter rejects unsupported renderer semantics", async (t) => {
   const cases = [
     {
@@ -535,7 +745,7 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
       message: /native adapter does not support/,
     },
     {
-      name: "dynamic list",
+      name: "dynamic list with a non-array model",
       surface: createSurface(
         [
           {
@@ -545,10 +755,10 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
           },
           { id: "item", component: "Text", text: { path: "name" } },
         ],
-        { items: [{ name: "Ada" }] },
+        { items: { name: "Ada" } },
       ),
       policy: nativePolicy(),
-      message: /does not yet support dynamic children/,
+      message: /Expected an array.*root\.children path "\/items"/,
     },
     {
       name: "renderer function",
@@ -683,7 +893,7 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
   );
 });
 
-test("expanded shared graphs remain bounded", () => {
+test("expanded shared graphs and dynamic lists remain bounded", () => {
   const components = [{ id: "leaf", component: "Text", text: "Leaf" }];
   let child = "leaf";
   for (let index = 0; index < 11; index += 1) {
@@ -695,6 +905,24 @@ test("expanded shared graphs remain bounded", () => {
 
   assert.throws(
     () => createA2uiV1NativeRenderPlan(surface, nativePolicy()),
+    (error) =>
+      error instanceof A2uiParseError &&
+      new RegExp(`exceeds maximum of ${A2UI_V1_NATIVE_MAX_RENDER_NODES} nodes`).test(error.message),
+  );
+
+  const listSurface = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      { id: "item", component: "Text", text: { path: "" } },
+    ],
+    { items: Array.from({ length: A2UI_V1_NATIVE_MAX_RENDER_NODES }, () => "item") },
+  );
+  assert.throws(
+    () => createA2uiV1NativeRenderPlan(listSurface, nativePolicy()),
     (error) =>
       error instanceof A2uiParseError &&
       new RegExp(`exceeds maximum of ${A2UI_V1_NATIVE_MAX_RENDER_NODES} nodes`).test(error.message),
