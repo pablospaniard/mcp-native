@@ -1,4 +1,9 @@
-import { JSON_MAX_DEPTH, JSON_MAX_VALUES } from "@mcp-native/core";
+import {
+  JSON_MAX_DEPTH,
+  JSON_MAX_STRING_LENGTH,
+  JSON_MAX_VALUES,
+  parseJsonValue,
+} from "@mcp-native/core";
 import type { JsonObject, JsonValue } from "@mcp-native/core";
 
 import { A2uiParseError } from "../errors.js";
@@ -6,7 +11,17 @@ import { A2uiParseError } from "../errors.js";
 export interface A2uiV1ParsedFormatString {
   readonly expressionCount: number;
   readonly expressions: readonly JsonValue[];
+  readonly parts: readonly A2uiV1FormatStringPart[];
 }
+
+type A2uiV1FormatStringPart =
+  | { readonly kind: "expression"; readonly value: JsonValue }
+  | { readonly kind: "literal"; readonly value: string };
+
+export type A2uiV1FormatStringExpressionResolver = (
+  expression: JsonValue,
+  index: number,
+) => JsonValue | undefined;
 
 interface Interpolation {
   readonly content: string;
@@ -23,6 +38,49 @@ export function parseA2uiV1FormatString(source: string, path: string): A2uiV1Par
   return parser.parse(source);
 }
 
+/** Evaluates one parsed formatString source with a host-owned expression resolver. */
+export function evaluateA2uiV1FormatString(
+  source: string,
+  resolveExpression: A2uiV1FormatStringExpressionResolver,
+  path = "formatString",
+): string {
+  if (typeof source !== "string") {
+    throw new A2uiParseError(`Expected a string at ${path}`);
+  }
+  if (source.length > JSON_MAX_STRING_LENGTH) {
+    throw new A2uiParseError(
+      `A2UI formatString source at ${path} exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
+    );
+  }
+  if (typeof resolveExpression !== "function") {
+    throw new A2uiParseError(`Expected an A2UI formatString expression resolver at ${path}`);
+  }
+  if (typeof path !== "string" || path.length === 0) {
+    throw new A2uiParseError("Expected a non-empty A2UI formatString diagnostic path");
+  }
+
+  const parsed = parseA2uiV1FormatString(source, path);
+  const chunks: string[] = [];
+  let outputLength = 0;
+  let expressionIndex = 0;
+  for (const part of parsed.parts) {
+    const chunk =
+      part.kind === "literal"
+        ? part.value
+        : coerceFormatStringValue(
+            resolveExpression(part.value, expressionIndex++),
+            `${path}.interpolations[${expressionIndex - 1}]`,
+            JSON_MAX_STRING_LENGTH - outputLength,
+          );
+    outputLength += chunk.length;
+    if (outputLength > JSON_MAX_STRING_LENGTH) {
+      throwFormatStringOutputLimit(path);
+    }
+    chunks.push(chunk);
+  }
+  return chunks.join("");
+}
+
 class FormatStringParser {
   readonly #path: string;
   #expressionCount = 0;
@@ -33,17 +91,25 @@ class FormatStringParser {
 
   parse(source: string): A2uiV1ParsedFormatString {
     const expressions: JsonValue[] = [];
+    const parts: A2uiV1FormatStringPart[] = [];
+    let literalStart = 0;
     for (let index = 0; index < source.length; index += 1) {
       if (source[index] !== "$" || source[index + 1] !== "{" || isEscaped(source, index)) {
         continue;
       }
       const interpolation = this.#readInterpolation(source, index);
-      expressions.push(this.#parseExpression(interpolation.content, interpolation.offset, 1));
+      appendLiteralPart(parts, source.slice(literalStart, index));
+      const expression = this.#parseExpression(interpolation.content, interpolation.offset, 1);
+      expressions.push(expression);
+      parts.push({ kind: "expression", value: expression });
       index = interpolation.end - 1;
+      literalStart = interpolation.end;
     }
+    appendLiteralPart(parts, source.slice(literalStart));
     return {
       expressionCount: this.#expressionCount,
       expressions,
+      parts,
     };
   }
 
@@ -216,6 +282,79 @@ class FormatStringParser {
   #fail(message: string, offset: number): never {
     throw new A2uiParseError(`A2UI formatString at ${this.#path} ${message} near offset ${offset}`);
   }
+}
+
+function appendLiteralPart(parts: A2uiV1FormatStringPart[], source: string): void {
+  if (source.length === 0) {
+    return;
+  }
+  parts.push({ kind: "literal", value: source.replaceAll("\\${", "${") });
+}
+
+function coerceFormatStringValue(
+  value: JsonValue | undefined,
+  path: string,
+  remainingLength: number,
+): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  const reconstructed = parseJsonValue(value, path);
+  if (typeof reconstructed === "string") {
+    return reconstructed;
+  }
+  if (typeof reconstructed === "number" || typeof reconstructed === "boolean") {
+    return String(reconstructed);
+  }
+  measureJsonSerialization(reconstructed, remainingLength, path);
+  const serialized = JSON.stringify(reconstructed);
+  if (serialized === undefined) {
+    throw new A2uiParseError(`Expected a JSON value at ${path}`);
+  }
+  return serialized;
+}
+
+function measureJsonSerialization(value: JsonValue, limit: number, path: string): number {
+  let length: number;
+  if (value === null) {
+    length = 4;
+  } else if (typeof value === "boolean") {
+    length = value ? 4 : 5;
+  } else if (typeof value === "number") {
+    length = String(value).length;
+  } else if (typeof value === "string") {
+    length = JSON.stringify(value).length;
+  } else if (Array.isArray(value)) {
+    length = 2;
+    for (const [index, child] of value.entries()) {
+      length += index === 0 ? 0 : 1;
+      length += measureJsonSerialization(child, limit - length, `${path}[${index}]`);
+      if (length > limit) {
+        throwFormatStringOutputLimit(path);
+      }
+    }
+  } else {
+    length = 2;
+    let index = 0;
+    for (const [key, child] of Object.entries(value)) {
+      length += index++ === 0 ? 0 : 1;
+      length += JSON.stringify(key).length + 1;
+      length += measureJsonSerialization(child, limit - length, `${path}.${key}`);
+      if (length > limit) {
+        throwFormatStringOutputLimit(path);
+      }
+    }
+  }
+  if (length > limit) {
+    throwFormatStringOutputLimit(path);
+  }
+  return length;
+}
+
+function throwFormatStringOutputLimit(path: string): never {
+  throw new A2uiParseError(
+    `A2UI formatString output at ${path} exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
+  );
 }
 
 function findFirstParenthesis(source: string): number {

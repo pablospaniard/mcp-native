@@ -1,6 +1,8 @@
 import {
   A2UI_V1_MAX_COMPONENTS,
+  A2UI_V1_MAX_SOURCE_LENGTH,
   A2uiParseError,
+  evaluateA2uiV1FormatString,
   validateA2uiV1SurfaceState,
 } from "@mcp-native/a2ui";
 import type {
@@ -8,7 +10,7 @@ import type {
   A2uiV1SurfaceState,
   A2uiV1SurfaceValidationPolicy,
 } from "@mcp-native/a2ui";
-import { parseJsonObject, parseJsonValue } from "@mcp-native/core";
+import { JSON_MAX_VALUES, parseJsonObject, parseJsonValue } from "@mcp-native/core";
 import type { JsonObject, JsonValue } from "@mcp-native/core";
 
 import type { NativeElement } from "./index.js";
@@ -57,6 +59,8 @@ interface AdapterContext {
   readonly surface: A2uiV1SurfaceState;
   readonly dataModel: JsonObject;
   readonly visiting: Set<string>;
+  formatStringExpressionCount: number;
+  formattedStringLength: number;
   renderNodeCount: number;
 }
 
@@ -157,6 +161,8 @@ function createAdapterContext(
     surface: validated,
     dataModel: parseJsonObject(validated.dataModel, "surface.dataModel"),
     visiting: new Set<string>(),
+    formatStringExpressionCount: 0,
+    formattedStringLength: 0,
     renderNodeCount: 0,
   };
 }
@@ -558,8 +564,47 @@ function resolveDynamicValue(
     throw new A2uiParseError(`Missing dynamic value at ${path}`);
   }
   if (isFunctionCall(value)) {
-    if (value.call === "@index" && scope !== undefined) {
-      return scope.index;
+    if (value.call === "@index") {
+      if (scope === undefined) {
+        throw new A2uiParseError(
+          `A2UI native adapter cannot evaluate @index outside a template at ${path}`,
+        );
+      }
+      const args = value.args === undefined ? undefined : expectObject(value.args, `${path}.args`);
+      const offset =
+        args?.offset === undefined
+          ? 0
+          : resolveDynamicNumber(args.offset, `${path}.args.offset`, context, scope);
+      return scope.index + offset;
+    }
+    if (value.call === "formatString") {
+      const args = expectObject(value.args, `${path}.args`);
+      const source = expectString(args.value, `${path}.args.value`);
+      const result = evaluateA2uiV1FormatString(
+        source,
+        (expression, index) => {
+          context.formatStringExpressionCount += 1;
+          if (context.formatStringExpressionCount > JSON_MAX_VALUES) {
+            throw new A2uiParseError(
+              `Expanded A2UI native plan exceeds maximum of ${JSON_MAX_VALUES} formatString expressions`,
+            );
+          }
+          return resolveDynamicValue(
+            expression,
+            `${path}.args.value.interpolations[${index}]`,
+            context,
+            scope,
+          );
+        },
+        `${path}.args.value`,
+      );
+      context.formattedStringLength += result.length;
+      if (context.formattedStringLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+        throw new A2uiParseError(
+          `Expanded A2UI native plan exceeds maximum formatted-string length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
+        );
+      }
+      return result;
     }
     throw new A2uiParseError(
       `A2UI native adapter does not execute function ${JSON.stringify(value.call)} at ${path}`,
@@ -574,6 +619,19 @@ function resolveDynamicValue(
     return parseJsonValue(resolveRelativePointer(scope.value, pointer, path), path);
   }
   return parseJsonValue(value, path);
+}
+
+function resolveDynamicNumber(
+  value: JsonValue | undefined,
+  path: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): number {
+  const resolved = resolveDynamicValue(value, path, context, scope);
+  if (typeof resolved !== "number" || !Number.isFinite(resolved)) {
+    throw new A2uiParseError(`Expected a finite number at ${path}`);
+  }
+  return resolved;
 }
 
 function resolveJsonPointer(document: JsonValue, pointer: string, path: string): JsonValue {

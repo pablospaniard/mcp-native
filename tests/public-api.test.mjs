@@ -30,6 +30,7 @@ import {
   createA2uiV1NativeRenderPlan,
   createNativeRenderPlan,
   createWebViewDocument,
+  evaluateA2uiV1FormatString,
   isA2uiMcpBindingGrant,
   negotiateA2uiMcpBinding,
   negotiateA2uiV1Capabilities,
@@ -76,6 +77,7 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof createA2uiV1ActionEnvelope, "function");
   assert.equal(typeof createA2uiV1RendererCapabilities, "function");
   assert.equal(typeof createA2uiV1NativeRenderPlan, "function");
+  assert.equal(typeof evaluateA2uiV1FormatString, "function");
   assert.equal(typeof A2uiV1NativeSurface, "function");
   assert.equal(typeof validateA2uiV1SurfaceState, "function");
   assert.equal(typeof createWebViewDocument, "function");

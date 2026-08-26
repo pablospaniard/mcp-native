@@ -23,6 +23,8 @@ export type {
   A2uiV1UpdateDataModelEnvelope,
 } from "./types.js";
 export { createA2uiV1ActionEnvelope } from "./action.js";
+export { evaluateA2uiV1FormatString } from "./format-string.js";
+export type { A2uiV1FormatStringExpressionResolver } from "./format-string.js";
 export {
   createA2uiV1RendererCapabilities,
   negotiateA2uiV1Capabilities,

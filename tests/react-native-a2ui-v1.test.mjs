@@ -143,6 +143,81 @@ test("mounted v1 surfaces keep input local and resolve actions at dispatch time"
   await act(async () => root.unmount());
 });
 
+test("mounted formatString values follow renderer-local state through dispatch", async () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["field", "save"] },
+      { id: "field", component: "TextField", label: "Name", value: { path: "/name" } },
+      {
+        id: "save",
+        component: "Button",
+        child: "save-label",
+        action: {
+          event: {
+            name: "save",
+            userMessage: {
+              call: "formatString",
+              args: { value: "Saved ${/name}" },
+            },
+            context: {
+              greeting: {
+                call: "formatString",
+                args: { value: "Hello ${/name}" },
+              },
+            },
+          },
+        },
+      },
+      {
+        id: "save-label",
+        component: "Text",
+        text: { call: "formatString", args: { value: "Save ${/name}" } },
+      },
+    ],
+    { name: "Ada" },
+  );
+  const actions = [];
+  const root = createRoot();
+  const policy = nativePolicy({
+    allowedEventNames: ["save"],
+    allowedFunctionNames: ["formatString"],
+  });
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy,
+        components: nativeComponents,
+        now: () => "2026-08-26T19:00:00.000Z",
+        onAction: (envelope) => actions.push(envelope),
+      }),
+    );
+  });
+
+  let button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(button.props.title, "Save Ada");
+  const input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  await act(async () => input.props.onChangeText("Grace"));
+  button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(button.props.title, "Save Grace");
+  button.props.onPress();
+  assert.deepEqual(actions, [
+    {
+      version: "v1.0",
+      action: {
+        name: "save",
+        surfaceId: "native",
+        sourceComponentId: "save",
+        timestamp: "2026-08-26T19:00:00.000Z",
+        userMessage: "Saved Grace",
+        context: { greeting: "Hello Grace" },
+      },
+    },
+  ]);
+  await act(async () => root.unmount());
+});
+
 test("mounted v1 local state resets when an agent supplies a new surface snapshot", async () => {
   const components = [
     { id: "root", component: "TextField", label: "Name", value: { path: "/name" } },
@@ -615,6 +690,59 @@ test("dynamic lists expand bounded template instances with relative bindings and
   );
 });
 
+test("formatString resolves scoped values, JSON coercion, nesting, escapes, and index offsets", () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["summary", "items"] },
+      {
+        id: "summary",
+        component: "Text",
+        text: {
+          call: "formatString",
+          args: {
+            value: "${/name} ${/count} ${/active} ${/nothing} ${/object} ${/array} \\${literal}",
+          },
+        },
+      },
+      {
+        id: "items",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      {
+        id: "item",
+        component: "Text",
+        text: {
+          call: "formatString",
+          args: {
+            value: "${name} #${@index(offset: 1)} nested ${formatString(value:'(${name})')}",
+          },
+        },
+      },
+    ],
+    {
+      name: "Ada",
+      count: 42,
+      active: true,
+      nothing: null,
+      object: { role: "admin" },
+      array: [1, "two"],
+      items: [{ name: "Ada" }, { name: "Grace" }],
+    },
+  );
+  const plan = createA2uiV1NativeRenderPlan(
+    surface,
+    nativePolicy({ allowedFunctionNames: ["formatString", "@index"] }),
+  );
+
+  assert.equal(
+    plan.children?.[0]?.props.children,
+    'Ada 42 true  {"role":"admin"} [1,"two"] ${literal}',
+  );
+  assert.equal(plan.children?.[1]?.children?.[0]?.props.children, "Ada #1 nested (Ada)");
+  assert.equal(plan.children?.[1]?.children?.[1]?.props.children, "Grace #2 nested (Grace)");
+});
+
 test("template instance keys remain unique for component IDs containing key delimiters", () => {
   const surface = createSurface(
     [
@@ -773,6 +901,21 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
       message: /does not execute function "formatNumber"/,
     },
     {
+      name: "unsupported nested renderer function",
+      surface: createSurface([
+        {
+          id: "root",
+          component: "Text",
+          text: {
+            call: "formatString",
+            args: { value: "Value: ${formatNumber(value:42)}" },
+          },
+        },
+      ]),
+      policy: nativePolicy({ allowedFunctionNames: ["formatString", "formatNumber"] }),
+      message: /does not execute function "formatNumber"/,
+    },
+    {
       name: "unsupported main-axis stretch",
       surface: createSurface([
         {
@@ -926,5 +1069,64 @@ test("expanded shared graphs and dynamic lists remain bounded", () => {
     (error) =>
       error instanceof A2uiParseError &&
       new RegExp(`exceeds maximum of ${A2UI_V1_NATIVE_MAX_RENDER_NODES} nodes`).test(error.message),
+  );
+});
+
+test("expanded formatString work and output remain bounded", () => {
+  const expressionSurface = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      {
+        id: "item",
+        component: "Text",
+        text: {
+          call: "formatString",
+          args: { value: "${null}".repeat(20) },
+        },
+      },
+    ],
+    { items: Array.from({ length: 501 }, () => ({})) },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        expressionSurface,
+        nativePolicy({ allowedFunctionNames: ["formatString"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /exceeds maximum of 10000 formatString expressions/.test(error.message),
+  );
+
+  const outputSurface = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      {
+        id: "item",
+        component: "Text",
+        text: { call: "formatString", args: { value: "${value}" } },
+      },
+    ],
+    {
+      items: Array.from({ length: 513 }, () => ({ value: "x".repeat(2_048) })),
+    },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        outputSurface,
+        nativePolicy({ allowedFunctionNames: ["formatString"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /exceeds maximum formatted-string length of 1048576/.test(error.message),
   );
 });
