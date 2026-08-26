@@ -9,6 +9,7 @@ import {
   isPackageVersionPublished,
   publishMissingReleasePackages,
 } from "../scripts/publish-release.mjs";
+import { runReleaseVerification } from "../scripts/run-release-verification.mjs";
 
 const packageInfo = { name: "@mcp-native/example", version: "0.1.0" };
 const releaseVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
@@ -77,13 +78,46 @@ test("the recovery workflow resolves a published release to an immutable commit"
   const publishJob = workflow.jobs.publish;
   const steps = publishJob.steps;
   const releaseCheckout = steps.find(({ name }) => name === "Check out immutable release commit");
-  const verifyRelease = steps.find(({ run }) => run === "npm run release:verify");
+  const verifyRelease = steps.find(
+    ({ run }) => run === "node ../automation/scripts/run-release-verification.mjs",
+  );
 
   assert.equal(publishJob.environment, "npm-release");
   assert.match(publishJob.if, /github\.ref == 'refs\/heads\/main'/);
   assert.equal(releaseCheckout.with.ref, "${{ steps.release.outputs.commit }}");
   assert.equal(releaseCheckout.with["persist-credentials"], false);
   assert.equal(verifyRelease.env.MCP_NATIVE_RELEASE_TAG, "${{ steps.release.outputs.tag }}");
+});
+
+test("release recovery supplies the resolved tag to legacy and current verifiers", () => {
+  let invocation;
+
+  runReleaseVerification({
+    releaseTag: `v${releaseVersion}`,
+    run(command, args, options) {
+      invocation = { command, args, options };
+      return { status: 0 };
+    },
+  });
+
+  assert.equal(invocation.command, "npm");
+  assert.deepEqual(invocation.args, ["run", "release:verify"]);
+  assert.equal(invocation.options.env.GITHUB_REF_NAME, `v${releaseVersion}`);
+  assert.equal(invocation.options.env.MCP_NATIVE_RELEASE_TAG, `v${releaseVersion}`);
+  assert.equal(invocation.options.stdio, "inherit");
+});
+
+test("release recovery rejects an invalid tag before starting verification", () => {
+  assert.throws(
+    () =>
+      runReleaseVerification({
+        releaseTag: "main",
+        run() {
+          throw new Error("must not run");
+        },
+      }),
+    /exact stable semantic version/,
+  );
 });
 
 test("release verification prefers the explicitly resolved tag", () => {
