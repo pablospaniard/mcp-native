@@ -743,6 +743,143 @@ test("formatString resolves scoped values, JSON coercion, nesting, escapes, and 
   assert.equal(plan.children?.[1]?.children?.[1]?.props.children, "Grace #2 nested (Grace)");
 });
 
+test("formatNumber and formatCurrency use the host locale in render and event resolution", async () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["number", "currency", "summary", "submit"] },
+      {
+        id: "number",
+        component: "Text",
+        text: {
+          call: "formatNumber",
+          args: {
+            value: { path: "/amount" },
+            decimals: { path: "/decimals" },
+            grouping: true,
+          },
+        },
+      },
+      {
+        id: "currency",
+        component: "Text",
+        text: {
+          call: "formatCurrency",
+          args: {
+            value: { path: "/amount" },
+            currency: { path: "/currency" },
+            decimals: 2,
+            grouping: true,
+          },
+        },
+      },
+      {
+        id: "summary",
+        component: "Text",
+        text: {
+          call: "formatString",
+          args: {
+            value:
+              "Total: ${formatCurrency(value:${/amount}, currency:${/currency}, decimals:2, grouping:true)}",
+          },
+        },
+      },
+      {
+        id: "submit",
+        component: "Button",
+        child: "submit-label",
+        action: {
+          event: {
+            name: "submit",
+            context: {
+              displayAmount: {
+                call: "formatNumber",
+                args: { value: { path: "/amount" }, decimals: 1, grouping: false },
+              },
+            },
+          },
+        },
+      },
+      { id: "submit-label", component: "Text", text: "Submit" },
+    ],
+    { amount: 12345.6, currency: "usd", decimals: 2 },
+  );
+  const policy = nativePolicy({
+    allowedEventNames: ["submit"],
+    allowedFunctionNames: ["formatString", "formatNumber", "formatCurrency"],
+  });
+  const plan = createA2uiV1NativeRenderPlan(surface, policy, { locale: "en-US" });
+
+  assert.equal(plan.children?.[0]?.props.children, "12,345.60");
+  assert.equal(plan.children?.[1]?.props.children, "$12,345.60");
+  assert.equal(plan.children?.[2]?.props.children, "Total: $12,345.60");
+  const germanPlan = createA2uiV1NativeRenderPlan(surface, policy, { locale: "de-DE" });
+  assert.equal(germanPlan.children?.[0]?.props.children, "12.345,60");
+  assert.deepEqual(
+    resolveA2uiV1NativeEvent(surface, policy, "submit", surface.dataModel, { locale: "en-US" })
+      .context,
+    { displayAmount: "12345.6" },
+  );
+  assert.deepEqual(
+    resolveA2uiV1NativeEvent(surface, policy, "submit", surface.dataModel, { locale: "de-DE" })
+      .context,
+    { displayAmount: "12345,6" },
+  );
+
+  const actions = [];
+  const root = createRoot({ textComponentTypes: ["Text"] });
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy,
+        locale: "en-US",
+        components: nativeComponents,
+        now: () => "2026-08-26T19:30:00.000Z",
+        onAction: (envelope) => actions.push(envelope),
+      }),
+    );
+  });
+  root.container.queryAll((element) => element.type === "Button")[0].props.onPress();
+  assert.deepEqual(actions[0].action.context, { displayAmount: "12345.6" });
+});
+
+test("localized number formatting fails closed for invalid dynamic and host options", () => {
+  const policy = nativePolicy({ allowedFunctionNames: ["formatNumber", "formatCurrency"] });
+  const decimalSurface = createSurface([
+    {
+      id: "root",
+      component: "Text",
+      text: { call: "formatNumber", args: { value: 42, decimals: 1.5 } },
+    },
+  ]);
+  assert.throws(
+    () => createA2uiV1NativeRenderPlan(decimalSurface, policy),
+    (error) =>
+      error instanceof A2uiParseError && /decimal places from 0 through 100/.test(error.message),
+  );
+
+  const currencySurface = createSurface([
+    {
+      id: "root",
+      component: "Text",
+      text: { call: "formatCurrency", args: { value: 42, currency: "US" } },
+    },
+  ]);
+  assert.throws(
+    () => createA2uiV1NativeRenderPlan(currencySurface, policy),
+    (error) => error instanceof A2uiParseError && /three-letter ISO 4217/.test(error.message),
+  );
+
+  assert.throws(
+    () => createA2uiV1NativeRenderPlan(decimalSurface, policy, { locale: "not_a_locale" }),
+    (error) => error instanceof A2uiParseError && /Invalid BCP 47 locale/.test(error.message),
+  );
+  assert.throws(
+    () => createA2uiV1NativeRenderPlan(decimalSurface, policy, { executable: true }),
+    (error) => error instanceof A2uiParseError && /Unexpected.*"executable"/.test(error.message),
+  );
+});
+
 test("template instance keys remain unique for component IDs containing key delimiters", () => {
   const surface = createSurface(
     [
@@ -894,11 +1031,11 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
         {
           id: "root",
           component: "Text",
-          text: { call: "formatNumber", args: { value: 42 } },
+          text: { call: "formatDate", args: { value: "2026-08-26", format: "yyyy" } },
         },
       ]),
-      policy: nativePolicy({ allowedFunctionNames: ["formatNumber"] }),
-      message: /does not execute function "formatNumber"/,
+      policy: nativePolicy({ allowedFunctionNames: ["formatDate"] }),
+      message: /does not execute function "formatDate"/,
     },
     {
       name: "unsupported nested renderer function",
@@ -908,12 +1045,12 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
           component: "Text",
           text: {
             call: "formatString",
-            args: { value: "Value: ${formatNumber(value:42)}" },
+            args: { value: "Value: ${formatDate(value:'2026-08-26', format:'yyyy')}" },
           },
         },
       ]),
-      policy: nativePolicy({ allowedFunctionNames: ["formatString", "formatNumber"] }),
-      message: /does not execute function "formatNumber"/,
+      policy: nativePolicy({ allowedFunctionNames: ["formatString", "formatDate"] }),
+      message: /does not execute function "formatDate"/,
     },
     {
       name: "unsupported main-axis stretch",
