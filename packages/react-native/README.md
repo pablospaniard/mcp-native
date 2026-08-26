@@ -79,7 +79,7 @@ The renderer uses only the currently allowed component names:
 type NativeComponentName = "Button" | "Text" | "TextInput" | "View";
 ```
 
-The application host decides how each name maps to a locally bundled component and how declared button actions reach `McpNativeRuntime`. `onBindingChange` reports a validated binding name and the next text value; this milestone deliberately leaves local state ownership and server synchronization to the host.
+The application host decides how each name maps to a locally bundled component and how declared custom `0.1` button actions reach `McpNativeRuntime`. `onBindingChange` reports a validated binding name and the next text value for that legacy proof surface.
 
 ## A2UI v1 render-plan adapter
 
@@ -101,7 +101,29 @@ const surface = store.get("profile");
 const plan = surface && createA2uiV1NativeRenderPlan(surface, policy);
 ```
 
-The adapter maps `Row`, `Column`, static `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. It resolves absolute JSON Pointer values, preserves supported container alignment, event context, and explicit accessibility fields. Event descriptors remain inert plan data; mounting them and constructing renderer-to-agent envelopes is the next boundary.
+The adapter maps `Row`, `Column`, static `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. It resolves absolute JSON Pointer values, preserves supported container alignment, event context, and explicit accessibility fields.
+
+Use `A2uiV1NativeSurface` to mount that subset with renderer-local string state and official action envelopes:
+
+```tsx
+import { A2uiV1NativeSurface } from "@mcp-native/react-native";
+
+<A2uiV1NativeSurface
+  surface={surface}
+  policy={policy}
+  components={{ Button, Text, TextInput, View }}
+  onAction={(envelope, dataModel) => {
+    // dataModel is present only when the surface explicitly enables sendDataModel.
+    if (dataModel === undefined) {
+      sendToAgent(envelope);
+    } else {
+      sendToAgent(envelope, { dataModel });
+    }
+  }}
+/>;
+```
+
+Bound `TextField` changes update an owned local data model and rerender other absolute bindings immediately; they do not call the agent on each keystroke. Equivalent fresh store snapshots preserve those edits, while accepted agent data-model updates reset them. When a button is pressed, its user message and context are resolved again against the latest local model, timestamped, reconstructed as finite JSON, and validated against the pinned official renderer-to-agent action schema. The callback receives the local data model only when the surface explicitly sets `sendDataModel: true`; otherwise its second argument is omitted. The host callback owns transport delivery and permission or consent boundaries.
 
 Dynamic list templates, relative bindings, renderer functions, renderer-side checks, local function actions, and every other basic-catalog component fail closed. Expanded plans are capped at 1,024 nodes so repeated references cannot amplify a small component graph into unbounded work.
 
@@ -110,13 +132,16 @@ Dynamic list templates, relative bindings, renderer functions, renderer-side che
 | Export                                  | Purpose                                                                                         |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `McpNativeSurface`                      | Mounts a validated surface using the host's component catalog.                                  |
+| `A2uiV1NativeSurface`                   | Mounts the supported v1 subset with local bindings and official action-envelope callbacks.      |
 | `useMcpNativeActionDispatcher`          | Adapts asynchronous runtime dispatch into a stable event callback with required error handling. |
 | `useNativeRenderPlan`                   | Memoizes a trusted render plan for a validated surface identity.                                |
 | `createNativeRenderPlan`                | Converts a validated `A2uiSurface` into a `NativeElement` tree.                                 |
 | `createA2uiV1NativeRenderPlan`          | Revalidates and adapts the supported v1 subset into a trusted `NativeElement` tree.             |
+| `resolveA2uiV1NativeEvent`              | Revalidates and resolves one reachable button event against the latest local model.             |
 | `A2UI_V1_NATIVE_COMPONENT_NAMES`        | Exact basic-catalog component names implemented by the current native adapter.                  |
 | `A2UI_V1_NATIVE_MAX_RENDER_NODES`       | Bound on expanded v1 render-plan nodes.                                                         |
-| `A2uiV1NativeEventDescriptor`           | Resolved inert event data retained for later renderer-to-agent dispatch.                        |
+| `A2uiV1NativeEventDescriptor`           | Resolved trusted-plan event data used by mounted dispatch or custom hosts.                      |
+| `A2uiV1NativeActionHandler`             | Host callback receiving the validated action envelope and, when opted in, the local data model. |
 | `NativeComponentCatalog`                | Contract for locally bundled `View`, `Text`, `Button`, and `TextInput` implementations.         |
 | `NativeActionHandler`                   | Synchronous handler for a validated declared action.                                            |
 | `NativeBindingChangeHandler`            | Handler receiving a validated binding name and the next text value.                             |
@@ -138,10 +163,11 @@ Dynamic list templates, relative bindings, renderer functions, renderer-side che
 - The server cannot send executable React Native code.
 - Render plans should only be created from a successfully validated surface.
 - The v1 adapter performs policy validation again at its public boundary.
+- The mounted v1 surface owns local binding state and revalidates action context at dispatch time.
 - Unsupported v1 components, dynamic templates, and executable functions fail closed.
 - Declared actions and their complete JSON arguments are validated again immediately before emission.
 - Rendered component props are selected explicitly; unchecked server props are never spread into host components.
-- The host must explicitly map components, own state, enforce permissions, and configure the runtime action policy; dispatch is denied when no policy allows it.
+- The host must explicitly map components, enforce permissions, and choose the renderer-to-agent transport; emitting an envelope does not grant network or device access.
 - Asynchronous action failures cannot become unhandled rejections because `useMcpNativeActionDispatcher` requires an error callback.
 - Future styling and component expansion must preserve allowlists rather than spreading unchecked server props.
 

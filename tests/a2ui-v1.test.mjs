@@ -10,6 +10,7 @@ import {
   A2uiParseError,
   A2uiResourceError,
   A2uiSurfaceStore,
+  createA2uiV1ActionEnvelope,
   isA2uiMcpBindingGrant,
   negotiateA2uiMcpBinding,
   parseA2uiSurface,
@@ -24,6 +25,94 @@ const bindingGrant = negotiateA2uiMcpBinding(
   A2UI_MCP_EXTENSION_CAPABILITIES,
 );
 assert.equal(bindingGrant.kind, "negotiated");
+
+test("renderer actions are reconstructed as exact official v1 envelopes", () => {
+  const context = JSON.parse('{"name":"Grace","__proto__":{"polluted":true}}');
+  const envelope = createA2uiV1ActionEnvelope({
+    name: "save_profile",
+    surfaceId: "profile",
+    sourceComponentId: "save",
+    timestamp: "2026-08-26T16:00:00.000Z",
+    userMessage: "Saved Grace",
+    context,
+    metadata: { extensions: { auditSession: "session-1" } },
+  });
+
+  assert.deepEqual(envelope, {
+    version: "v1.0",
+    action: {
+      name: "save_profile",
+      surfaceId: "profile",
+      sourceComponentId: "save",
+      timestamp: "2026-08-26T16:00:00.000Z",
+      userMessage: "Saved Grace",
+      context,
+      metadata: { extensions: { auditSession: "session-1" } },
+    },
+  });
+  assert.equal(Object.getPrototypeOf(envelope.action.context), Object.prototype);
+  assert.equal(Object.hasOwn(envelope.action.context, "__proto__"), true);
+  assert.equal(envelope.action.context.polluted, undefined);
+});
+
+test("renderer action construction fails closed for malformed host input", async (t) => {
+  const cases = [
+    {
+      name: "invalid timestamp",
+      input: {
+        name: "save",
+        surfaceId: "surface",
+        sourceComponentId: "button",
+        timestamp: "not-a-date",
+        context: {},
+      },
+      message: /schema validation failed.*format/,
+    },
+    {
+      name: "unknown field",
+      input: {
+        name: "save",
+        surfaceId: "surface",
+        sourceComponentId: "button",
+        context: {},
+        executable: "no",
+      },
+      message: /Unexpected field "executable"/,
+    },
+    {
+      name: "invalid metadata extension",
+      input: {
+        name: "save",
+        surfaceId: "surface",
+        sourceComponentId: "button",
+        context: {},
+        metadata: { extensions: { "not allowed": true } },
+      },
+      message: /schema validation failed/,
+    },
+    {
+      name: "non-JSON context",
+      input: {
+        name: "save",
+        surfaceId: "surface",
+        sourceComponentId: "button",
+        context: { invalid: Number.NaN },
+      },
+      message: /action\.context\.invalid/,
+    },
+  ];
+
+  await Promise.all(
+    cases.map((fixture) =>
+      t.test(fixture.name, () => {
+        assert.throws(
+          () => createA2uiV1ActionEnvelope(fixture.input),
+          (error) => error instanceof Error && fixture.message.test(error.message),
+        );
+      }),
+    ),
+  );
+});
 
 test("official simple-text JSONL creates a surface with a root Text component", () => {
   const jsonl = readFileSync(join(fixturesDir, "00_simple-text.jsonl"), "utf8");
@@ -85,6 +174,7 @@ test("surface store applies create, component update, data-model update, and del
   let surface = store.get("main");
   assert.equal(surface?.components.get("root")?.text, "Hi");
   assert.deepEqual(surface?.dataModel, { name: "Grace" });
+  assert.equal(surface?.dataModelRevision, 1);
 
   store.apply(parseA2uiV1Envelope({ version: "v1.0", deleteSurface: { surfaceId: "main" } }));
   assert.equal(store.has("main"), false);

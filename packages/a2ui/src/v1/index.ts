@@ -6,6 +6,9 @@ export {
   A2UI_V1_PROTOCOL_VERSION,
 } from "./types.js";
 export type {
+  A2uiV1Action,
+  A2uiV1ActionEnvelope,
+  A2uiV1ActionEnvelopeInput,
   A2uiV1Component,
   A2uiV1CreateSurfaceEnvelope,
   A2uiV1DeleteSurfaceEnvelope,
@@ -15,6 +18,7 @@ export type {
   A2uiV1UpdateComponentsEnvelope,
   A2uiV1UpdateDataModelEnvelope,
 } from "./types.js";
+export { createA2uiV1ActionEnvelope } from "./action.js";
 export { parseA2uiV1Envelope, parseA2uiV1Jsonl } from "./parse.js";
 export { A2uiSurfaceStore } from "./store.js";
 export { resolveA2uiV1JsonlFromToolResult } from "./resolve.js";

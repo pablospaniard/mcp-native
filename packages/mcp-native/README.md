@@ -116,7 +116,7 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - pinned current-protocol integration coverage through the SDK HTTP handler/fetch path;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-The project does not yet include local binding state, streaming UI updates, capability negotiation, authentication helpers, or a runnable mobile demo. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
+The supported A2UI v1 native subset now includes renderer-local absolute string bindings and host-callback action envelopes. Dynamic templates, renderer functions, full streaming host integration, protocol-specific capability exchange, authentication helpers, and a runnable mobile demo remain incomplete. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
 
 ## Security model
 

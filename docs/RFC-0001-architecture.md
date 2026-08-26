@@ -73,7 +73,7 @@ This package is the validation boundary between SDK results and the runtime. It 
 
 Owns resource-link resolution, parsing, validation, and conversion boundaries for both the custom proof surface and the official Candidate adapter. It also owns the exact settings and negotiation helper for the project-defined A2UI-over-MCP binding. Unsupported MIME types, ambiguous links or contents, binary surfaces, versions, catalogs, components, bindings, functions, and actions fail closed at their applicable boundary.
 
-The custom resolver recognizes the prototype's `application/a2ui+json` resource convention. Its deliberately small `0.1` input contains four nested node types and remains isolated from the separately negotiated A2UI v1.0 Candidate path. The v1 adapter parses schema-validated lifecycle envelopes into bounded ordered state and requires a complete policy-gated snapshot before the React Native package adapts the supported static subset into a trusted plan. Dynamic templates and renderer-to-agent messages remain deferred; the custom wire format is not extended to imitate them.
+The custom resolver recognizes the prototype's `application/a2ui+json` resource convention. Its deliberately small `0.1` input contains four nested node types and remains isolated from the separately negotiated A2UI v1.0 Candidate path. The v1 adapter parses schema-validated lifecycle envelopes into bounded ordered state and requires a complete policy-gated snapshot before the React Native package adapts the supported static subset into a trusted plan. It also constructs the pinned renderer-to-agent `action` envelope from resolved host input. Dynamic templates and the remaining renderer-to-agent message kinds remain deferred; the custom wire format is not extended to imitate them.
 
 ### `@mcp-native/react-native`
 
@@ -81,7 +81,7 @@ Owns the native component catalog, React Native rendering, event translation, ac
 
 The renderer accepts a catalog of locally bundled components instead of importing or resolving components named by the server. It explicitly selects every prop crossing into that catalog: text becomes children, button labels become titles and accessibility labels, declared actions become callbacks, and text-input labels become placeholders and accessibility labels. It never spreads unchecked plan or server props.
 
-`useNativeRenderPlan` memoizes conversion for a validated surface identity. `useMcpNativeActionDispatcher` adapts asynchronous runtime dispatch to a synchronous component event and requires an error callback so action failures are observed. Text inputs emit `(binding, value)` changes only when the validated node declares a binding and the host provides a handler. Local binding state and synchronization remain host responsibilities in this milestone.
+`useNativeRenderPlan` memoizes conversion for a validated surface identity. `useMcpNativeActionDispatcher` adapts asynchronous runtime dispatch to a synchronous component event and requires an error callback so action failures are observed. For the custom `0.1` proof surface, text inputs emit `(binding, value)` only when the host provides a handler. `A2uiV1NativeSurface` instead owns a bounded local copy of the v1 data model, applies declared absolute string bindings without network calls, rerenders dependent values, and resolves button context against the latest local state before emitting a validated action envelope to the host. The host still owns transport delivery, authorization, consent, and synchronization with the agent.
 
 ### `@mcp-native/webview`
 
@@ -134,7 +134,7 @@ The official SDK adapter, declarative resource-resolution, and initial React Nat
 
 The MCP `2026-07-28` foundation is complete for RFC-0001's initial client boundary. The tool/resource boundary preserves official metadata, schemas, annotations, discriminated content, and cache semantics; a pinned integration test exercises the SDK's current HTTP handler/fetch path; and the selected official client conformance scenarios pass without expected failures. The conformance gate ingests the frozen official requirements fixture and requires every scored client requirement to be selected or explicitly excluded. Shared-store integration tests also prove that private cache entries remain isolated by host-provided principal partitions while public entries may be reused only for the same server identity and request. The exact target, tested `2025-11-25` compatibility lane, and [pinned conformance coverage](mcp-conformance.md) are documented explicitly. The official SDK continues to own wire behavior, and excluded operations remain unclaimed.
 
-The extension and capability substrate is also complete. Core validates prefixed extension maps and requires mutual declarations; the SDK adapter exchanges settings on the modern HTTP path; metadata alone never grants support; and the project-owned A2UI binding pins an exact Candidate revision and ordered resource transport with text/data fallback. The A2UI package parses lifecycle envelopes, retains bounded ordered state, and validates complete snapshots against the pinned basic catalog plus explicit host allowlists, including nested expressions in literal `formatString` sources reconstructed as catalog calls. The React Native package now adapts the supported static v1 subset into the existing trusted plan while rejecting dynamic templates, renderer functions, and unsupported components. See the [standards-first roadmap](roadmap.md).
+The extension and capability substrate is also complete. Core validates prefixed extension maps and requires mutual declarations; the SDK adapter exchanges settings on the modern HTTP path; metadata alone never grants support; and the project-owned A2UI binding pins an exact Candidate revision and ordered resource transport with text/data fallback. The A2UI package parses lifecycle envelopes, retains bounded ordered state, validates complete snapshots against the pinned basic catalog plus explicit host allowlists, including nested expressions in literal `formatString` sources reconstructed as catalog calls, and constructs the supported official renderer action envelope. The React Native package adapts and mounts the supported static v1 subset with local absolute string bindings and dispatch-time event resolution while rejecting dynamic templates, renderer functions, checks, and unsupported components. See the [standards-first roadmap](roadmap.md).
 
 MCP Apps compatibility remains a separate track. A malformed or unsupported native surface must fail closed rather than silently becoming executable HTML, and an invalid Apps resource must not be interpreted as native UI.
 
@@ -168,9 +168,9 @@ return { content: [{ type: "text", text: "Saved" }] };
 
 ## Deferred work
 
-- A2UI renderer-to-agent envelopes, dynamic render-plan adaptation, and broader interoperability tests
+- Remaining A2UI renderer-to-agent function/response/error envelopes, dynamic render-plan adaptation, and broader interoperability tests
 - Extension-specific operations and additional official extension conformance scenarios
-- A2UI dynamic-value resolution, action dispatch, accessibility behavior, and renderer capabilities
+- A2UI renderer functions, dynamic templates, platform accessibility testing, and renderer capabilities
 - Authentication and production transport configuration
 - Richer React Native catalog components, styling, and platform-specific accessibility behavior
 - Fine-grained capability negotiation and permissions

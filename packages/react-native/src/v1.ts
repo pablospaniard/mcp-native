@@ -35,6 +35,11 @@ export interface A2uiV1NativeEventDescriptor {
   readonly context: JsonObject;
 }
 
+export interface A2uiV1NativeRenderPlanOptions {
+  /** Host-owned renderer-local data model used for this render pass. */
+  readonly dataModel?: JsonObject;
+}
+
 interface AdapterContext {
   readonly surface: A2uiV1SurfaceState;
   readonly dataModel: JsonObject;
@@ -49,15 +54,68 @@ interface AdapterContext {
 export function createA2uiV1NativeRenderPlan(
   surface: A2uiV1SurfaceState,
   policy: A2uiV1SurfaceValidationPolicy,
+  options: A2uiV1NativeRenderPlanOptions = {},
 ): NativeElement {
-  const validated = validateA2uiV1SurfaceState(surface, policy);
-  const context: AdapterContext = {
+  const context = createAdapterContext(surface, policy, options.dataModel);
+  return adaptComponent("root", "root", context);
+}
+
+/** Resolves one validated event against the latest renderer-local data model. */
+export function resolveA2uiV1NativeEvent(
+  surface: A2uiV1SurfaceState,
+  policy: A2uiV1SurfaceValidationPolicy,
+  sourceComponentId: string,
+  dataModel: JsonObject,
+): A2uiV1NativeEventDescriptor {
+  if (typeof sourceComponentId !== "string" || sourceComponentId.length === 0) {
+    throw new A2uiParseError("Expected a non-empty A2UI source component id");
+  }
+  const context = createAdapterContext(surface, policy, dataModel);
+  const event = findNativeEvent(adaptComponent("root", "root", context), sourceComponentId);
+  if (event === undefined) {
+    throw new A2uiParseError(
+      `A2UI native event source ${JSON.stringify(sourceComponentId)} is not a reachable supported Button`,
+    );
+  }
+  return event;
+}
+
+function findNativeEvent(
+  element: NativeElement,
+  sourceComponentId: string,
+): A2uiV1NativeEventDescriptor | undefined {
+  const event = element.props.event as A2uiV1NativeEventDescriptor | undefined;
+  if (event?.sourceComponentId === sourceComponentId) {
+    return event;
+  }
+  for (const child of element.children ?? []) {
+    const nested = findNativeEvent(child, sourceComponentId);
+    if (nested !== undefined) {
+      return nested;
+    }
+  }
+  return undefined;
+}
+
+function createAdapterContext(
+  surface: A2uiV1SurfaceState,
+  policy: A2uiV1SurfaceValidationPolicy,
+  dataModel: JsonObject | undefined,
+): AdapterContext {
+  const localDataModel =
+    dataModel === undefined
+      ? parseJsonObject(surface.dataModel, "surface.dataModel")
+      : parseJsonObject(dataModel, "options.dataModel");
+  const validated = validateA2uiV1SurfaceState(
+    dataModel === undefined ? surface : { ...surface, dataModel: localDataModel },
+    policy,
+  );
+  return {
     surface: validated,
     dataModel: parseJsonObject(validated.dataModel, "surface.dataModel"),
     visiting: new Set<string>(),
     renderNodeCount: 0,
   };
-  return adaptComponent("root", "root", context);
 }
 
 function adaptComponent(id: string, key: string, context: AdapterContext): NativeElement {

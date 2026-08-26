@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { act, createElement } from "react";
+import { createRoot } from "test-renderer";
+
 import {
   A2UI_V1_BASIC_COMPONENT_NAMES,
   A2uiParseError,
@@ -10,14 +13,31 @@ import {
 import {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
   A2UI_V1_NATIVE_MAX_RENDER_NODES,
+  A2uiV1NativeSurface,
   createA2uiV1NativeRenderPlan,
+  resolveA2uiV1NativeEvent,
 } from "../packages/react-native/dist/index.js";
 
-function createSurface(components, dataModel = {}) {
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+function hostComponent(type) {
+  return function HostComponent(props) {
+    return createElement(type, props, props.children);
+  };
+}
+
+const nativeComponents = {
+  View: hostComponent("View"),
+  Text: hostComponent("Text"),
+  Button: hostComponent("Button"),
+  TextInput: hostComponent("TextInput"),
+};
+
+function createSurface(components, dataModel = {}, options = {}) {
   const store = new A2uiSurfaceStore();
   store.apply({
     version: "v1.0",
-    createSurface: { surfaceId: "native", components, dataModel },
+    createSurface: { surfaceId: "native", components, dataModel, ...options },
   });
   return store.get("native");
 }
@@ -28,6 +48,240 @@ function nativePolicy(options = {}) {
     ...options,
   });
 }
+
+test("mounted v1 surfaces keep input local and resolve actions at dispatch time", async () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["preview", "field", "save"] },
+      {
+        id: "preview",
+        component: "Text",
+        text: { path: "/profile/name" },
+        accessibility: { live: "polite" },
+      },
+      {
+        id: "field",
+        component: "TextField",
+        label: "Name",
+        value: { path: "/profile/name" },
+        accessibility: { description: "Public display name", hidden: false },
+      },
+      {
+        id: "save",
+        component: "Button",
+        child: "save-label",
+        action: {
+          event: {
+            name: "save_profile",
+            userMessage: { path: "/profile/name" },
+            context: { name: { path: "/profile/name" } },
+          },
+        },
+      },
+      { id: "save-label", component: "Text", text: "Save" },
+    ],
+    { profile: { name: "Ada" } },
+    { sendDataModel: true },
+  );
+  const actions = [];
+  const localModels = [];
+  const root = createRoot({ textComponentTypes: ["Text"] });
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy: nativePolicy({ allowedEventNames: ["save_profile"] }),
+        components: nativeComponents,
+        actionMetadata: { extensions: { auditSession: "session-1" } },
+        now: () => "2026-08-26T16:30:00.000Z",
+        onAction: (envelope, dataModel) => actions.push({ envelope, dataModel }),
+        onDataModelChange: (dataModel) => localModels.push(dataModel),
+      }),
+    );
+  });
+
+  let texts = root.container.queryAll((element) => element.type === "Text");
+  let inputs = root.container.queryAll((element) => element.type === "TextInput");
+  assert.deepEqual(texts[0]?.children, ["Ada"]);
+  assert.equal(inputs[0]?.props.value, "Ada");
+  assert.equal(inputs[0]?.props.accessibilityLabel, "Name");
+  assert.equal(inputs[0]?.props.accessibilityHint, "Public display name");
+  assert.equal(inputs[0]?.props.accessibilityElementsHidden, false);
+  assert.equal(inputs[0]?.props.importantForAccessibility, "auto");
+  assert.equal(texts[0]?.props.accessibilityLiveRegion, "polite");
+
+  await act(async () => inputs[0].props.onChangeText("Grace"));
+  assert.equal(actions.length, 0);
+  assert.deepEqual(localModels, [{ profile: { name: "Grace" } }]);
+
+  texts = root.container.queryAll((element) => element.type === "Text");
+  inputs = root.container.queryAll((element) => element.type === "TextInput");
+  assert.deepEqual(texts[0]?.children, ["Grace"]);
+  assert.equal(inputs[0]?.props.value, "Grace");
+
+  const buttons = root.container.queryAll((element) => element.type === "Button");
+  buttons[0].props.onPress();
+  assert.deepEqual(actions, [
+    {
+      envelope: {
+        version: "v1.0",
+        action: {
+          name: "save_profile",
+          surfaceId: "native",
+          sourceComponentId: "save",
+          timestamp: "2026-08-26T16:30:00.000Z",
+          userMessage: "Grace",
+          context: { name: "Grace" },
+          metadata: { extensions: { auditSession: "session-1" } },
+        },
+      },
+      dataModel: { profile: { name: "Grace" } },
+    },
+  ]);
+
+  await act(async () => root.unmount());
+});
+
+test("mounted v1 local state resets when an agent supplies a new surface snapshot", async () => {
+  const components = [
+    { id: "root", component: "TextField", label: "Name", value: { path: "/name" } },
+  ];
+  const store = new A2uiSurfaceStore();
+  store.apply({
+    version: "v1.0",
+    createSurface: { surfaceId: "native", components, dataModel: { name: "Ada" } },
+  });
+  const first = store.getValidated("native", nativePolicy());
+  const root = createRoot();
+  const props = {
+    policy: nativePolicy(),
+    components: nativeComponents,
+    onAction() {},
+  };
+
+  await act(async () =>
+    root.render(createElement(A2uiV1NativeSurface, { ...props, surface: first })),
+  );
+  let input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  await act(async () => input.props.onChangeText("Grace"));
+  input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  assert.equal(input.props.value, "Grace");
+
+  const equivalent = store.getValidated("native", nativePolicy());
+  assert.notEqual(equivalent, first);
+  await act(async () =>
+    root.render(createElement(A2uiV1NativeSurface, { ...props, surface: equivalent })),
+  );
+  input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  assert.equal(input.props.value, "Grace");
+
+  store.apply({
+    version: "v1.0",
+    updateDataModel: { surfaceId: "native", path: "/name", value: "Lin" },
+  });
+  const second = store.getValidated("native", nativePolicy());
+  await act(async () =>
+    root.render(createElement(A2uiV1NativeSurface, { ...props, surface: second })),
+  );
+  input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  assert.equal(input.props.value, "Lin");
+  await act(async () => root.unmount());
+});
+
+test("mounted v1 actions omit the local model unless sendDataModel is enabled", async () => {
+  const surface = createSurface([
+    {
+      id: "root",
+      component: "Button",
+      child: "label",
+      action: { event: { name: "save" } },
+    },
+    { id: "label", component: "Text", text: "Save" },
+  ]);
+  const calls = [];
+  const root = createRoot();
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy: nativePolicy({ allowedEventNames: ["save"] }),
+        components: nativeComponents,
+        onAction: (...args) => calls.push(args),
+      }),
+    );
+  });
+
+  root.container.queryAll((element) => element.type === "Button")[0].props.onPress();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].length, 1);
+  assert.equal(calls[0][0].action.name, "save");
+  await act(async () => root.unmount());
+});
+
+test("mounted v1 interactions reject malformed local values and timestamps", async () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["field", "save"] },
+      { id: "field", component: "TextField", label: "Name", value: { path: "/name" } },
+      {
+        id: "save",
+        component: "Button",
+        child: "label",
+        action: { event: { name: "save", context: { name: { path: "/name" } } } },
+      },
+      { id: "label", component: "Text", text: "Save" },
+    ],
+    { name: "Ada" },
+  );
+  const actions = [];
+  const root = createRoot();
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy: nativePolicy({ allowedEventNames: ["save"] }),
+        components: nativeComponents,
+        now: () => "invalid",
+        onAction: (action) => actions.push(action),
+      }),
+    );
+  });
+
+  const input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  assert.throws(() => input.props.onChangeText(42), /string renderer binding value/);
+  const button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.throws(
+    () => button.props.onPress(),
+    (error) =>
+      error instanceof A2uiParseError && /schema validation failed.*format/.test(error.message),
+  );
+  assert.equal(actions.length, 0);
+  await act(async () => root.unmount());
+});
+
+test("dispatch-time resolution cannot activate an unreachable server event", () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Text", text: "Visible" },
+      {
+        id: "hidden-action",
+        component: "Button",
+        child: "hidden-label",
+        action: { event: { name: "hidden" } },
+      },
+      { id: "hidden-label", component: "Text", text: "Hidden" },
+    ],
+    {},
+  );
+
+  assert.throws(
+    () => resolveA2uiV1NativeEvent(surface, nativePolicy(), "hidden-action", {}),
+    (error) =>
+      error instanceof A2uiParseError && /not a reachable supported Button/.test(error.message),
+  );
+});
 
 test("validated v1 state becomes a trusted native plan for the bundled component subset", () => {
   const prototypeNamedLiteral = JSON.parse('{"__proto__":{"polluted":true}}');
@@ -242,6 +496,15 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
       surface: createSurface([{ id: "root", component: "Text", text: { path: "/missing" } }]),
       policy: nativePolicy(),
       message: /binding "\/missing" is missing/,
+    },
+    {
+      name: "non-string text field binding",
+      surface: createSurface(
+        [{ id: "root", component: "TextField", label: "Name", value: { path: "/name" } }],
+        { name: 42 },
+      ),
+      policy: nativePolicy(),
+      message: /Expected a string at components\.root\.value/,
     },
     {
       name: "local button function",
