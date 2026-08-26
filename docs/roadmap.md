@@ -58,12 +58,14 @@ Exit criterion: UI protocols can determine mutual support without guessing from 
 
 ## Milestone 3: A2UI v1.0 Candidate adapter
 
-- Verify a pinned official JSON Schema bundle.
-- Parse official `v1.0` agent-to-renderer and renderer-to-agent envelopes.
-- Implement ordered create, component update, data-model update, and delete behavior.
-- Validate catalogs, component graphs, JSON Pointer bindings, dynamic values, accessibility attributes, functions, actions, and capability metadata.
-- Adapt protocol state into the existing trusted native render plan.
-- Add official examples, negative fixtures, lifecycle tests, and interoperability tests.
+Status: partial — schemas, agent-to-renderer lifecycle parse, and ordered surface store.
+
+- [x] Verify a pinned official JSON Schema bundle.
+- [x] Parse official `v1.0` agent-to-renderer lifecycle envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`); renderer-to-agent remains deferred.
+- [x] Implement ordered create, component update, data-model update, and delete behavior.
+- [ ] Validate catalogs, component graphs, JSON Pointer bindings, dynamic values, accessibility attributes, functions, actions, and capability metadata beyond schema checks.
+- [ ] Adapt protocol state into the existing trusted native render plan.
+- [x] Add official examples, negative fixtures, and lifecycle tests for the implemented parse/store path; broader interoperability remains deferred.
 
 Exit criterion: conformance is reported per implemented A2UI feature against the pinned Candidate revision; the custom `0.1` input is deprecated or made explicitly internal.
 

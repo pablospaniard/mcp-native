@@ -4,8 +4,9 @@
     "composite": true,
     "rootDir": "src",
     "outDir": "dist",
+    "resolveJsonModule": true,
     "tsBuildInfoFile": "../../node_modules/.cache/mcp-native/a2ui.tsbuildinfo"
   },
   "references": [{ "path": "../core" }],
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.json"]
 }

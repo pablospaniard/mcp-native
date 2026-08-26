@@ -8,6 +8,7 @@ import {
   A2UI_MCP_EXTENSION_ID,
   A2UI_MIME_TYPE,
   A2UI_VERSION,
+  A2uiSurfaceStore,
   JSON_MAX_DEPTH,
   JSON_MAX_STRING_LENGTH,
   JSON_MAX_VALUES,
@@ -18,13 +19,17 @@ import {
   createAllowlistActionPolicy,
   createNativeRenderPlan,
   createWebViewDocument,
+  isA2uiMcpBindingGrant,
   negotiateA2uiMcpBinding,
   negotiateMcpExtension,
+  parseA2uiV1Envelope,
+  parseA2uiV1Jsonl,
   parseJsonObject,
   parseJsonValue,
   parseMcpExtensionSettings,
   parseMcpNativeAction,
   resolveA2uiResourceFromToolResult,
+  resolveA2uiV1JsonlFromToolResult,
   useMcpNativeActionDispatcher,
   useNativeRenderPlan,
 } from "../packages/mcp-native/dist/index.js";
@@ -46,8 +51,13 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof createNativeRenderPlan, "function");
   assert.equal(typeof createAllowlistActionPolicy, "function");
   assert.equal(typeof createWebViewDocument, "function");
+  assert.equal(typeof isA2uiMcpBindingGrant, "function");
   assert.equal(typeof negotiateA2uiMcpBinding, "function");
   assert.equal(typeof negotiateMcpExtension, "function");
+  assert.equal(typeof parseA2uiV1Envelope, "function");
+  assert.equal(typeof parseA2uiV1Jsonl, "function");
+  assert.equal(typeof A2uiSurfaceStore, "function");
+  assert.equal(typeof resolveA2uiV1JsonlFromToolResult, "function");
   assert.equal(typeof parseJsonObject, "function");
   assert.equal(typeof parseJsonValue, "function");
   assert.equal(typeof parseMcpNativeAction, "function");

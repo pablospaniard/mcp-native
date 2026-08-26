@@ -21,7 +21,7 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 > MCP Native is an experimental proof of concept, not a production-ready runtime. The npm packages contain working foundational APIs, but those APIs may change before the first stable release.
 
 > [!CAUTION]
-> The current `@mcp-native/a2ui` `0.1` surface is an internal proof-of-concept model, not A2UI v1.0. The WebView package contains policy primitives, not a complete MCP Apps host. See [Standards and compatibility](docs/standards-compatibility.md).
+> The custom `@mcp-native/a2ui` `0.1` surface remains an internal proof-of-concept model. The package now also implements a partial, separately negotiated A2UI v1.0 Candidate adapter for schema-validated agent-to-renderer lifecycle envelopes and ordered surface state; it is not yet a complete A2UI renderer. The WebView package contains policy primitives, not a complete MCP Apps host. See [Standards and compatibility](docs/standards-compatibility.md).
 
 ## The idea
 
@@ -87,14 +87,14 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 
 ## Packages
 
-| Package                                                                              | Source                                           | Responsibility                                                           |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------ |
-| [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing |
-| [`@mcp-native/mcp`](https://www.npmjs.com/package/@mcp-native/mcp)                   | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client             |
-| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Strict parsing for the internal `0.1` proof-of-concept surface           |
-| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans, React hooks, and a host-owned component renderer   |
-| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | HTML policy primitives for the planned MCP Apps compatibility path       |
-| [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                  |
+| Package                                                                              | Source                                           | Responsibility                                                             |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------------------------- |
+| [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing   |
+| [`@mcp-native/mcp`](https://www.npmjs.com/package/@mcp-native/mcp)                   | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client               |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Strict custom `0.1` parsing plus the partial official v1 lifecycle adapter |
+| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans, React hooks, and a host-owned component renderer     |
+| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | HTML policy primitives for the planned MCP Apps compatibility path         |
+| [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                    |
 
 The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. Release `0.1.0` is the first coordinated experimental API baseline. Its package version is independent of the internal A2UI proof-of-concept surface value `"0.1"`.
 
@@ -132,6 +132,8 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Frozen official requirement accounting and shared-cache isolation tests across principals
 - Explicit MCP extension settings and mutual negotiation without MIME or metadata inference
 - A project-owned, exact-match [A2UI-over-MCP transport binding](docs/a2ui-mcp-binding.md) with ordinary MCP fallback
+- Checksum-verified A2UI v1.0 Candidate schemas pinned to an exact upstream revision
+- Schema-validated v1 lifecycle JSONL with atomic, ordered create/update/delete surface state
 - Typed `tools/call` action routing with a fail-closed host policy
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
@@ -144,7 +146,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the repository does not yet include local binding state, streaming surface updates, authentication helpers, or a runnable mobile demo.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, official v1 surface state is not yet adapted into the trusted native render plan, and renderer-to-agent actions, complete catalog graph validation, authentication helpers, and a runnable mobile demo remain future milestones.
 
 ## Tiny example
 
@@ -201,7 +203,7 @@ The resolver requires exactly one `application/a2ui+json` resource link, reads t
 
 MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
 
-Those principles do not yet amount to protocol conformance. A2UI v1.0 requires official message envelopes, schema-defined catalogs, surface lifecycle, data-model semantics, action envelopes, and capability negotiation. MCP Apps requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
+Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires exact capability negotiation, parses agent-to-renderer lifecycle envelopes, and maintains ordered surface/data-model state. Catalog graph validation, render-plan adaptation, renderer-to-agent actions, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 
@@ -237,18 +239,20 @@ npm test
 
 Useful commands:
 
-| Command                 | Purpose                                                        |
-| ----------------------- | -------------------------------------------------------------- |
-| `npm run build`         | Build every workspace with TypeScript project references       |
-| `npm run check`         | Run formatting, linting, type checking, tests, and coverage    |
-| `npm run format:check`  | Check formatting without changing files                        |
-| `npm run format:fix`    | Format supported project files with Oxfmt                      |
-| `npm run lint`          | Check source files with Oxlint                                 |
-| `npm run lint:fix`      | Apply safe Oxlint fixes, then report any remaining diagnostics |
-| `npm run typecheck`     | Type-check all TypeScript project references                   |
-| `npm test`              | Build and run the Node test suite                              |
-| `npm run test:coverage` | Run tests and enforce coverage thresholds                      |
-| `npm run clean`         | Remove TypeScript project build outputs                        |
+| Command                  | Purpose                                                         |
+| ------------------------ | --------------------------------------------------------------- |
+| `npm run build`          | Build every workspace with TypeScript project references        |
+| `npm run check`          | Run formatting, linting, types, schemas, tests, and conformance |
+| `npm run format:check`   | Check formatting without changing files                         |
+| `npm run format:fix`     | Format supported project files with Oxfmt                       |
+| `npm run lint`           | Check source files with Oxlint                                  |
+| `npm run lint:fix`       | Apply safe Oxlint fixes, then report any remaining diagnostics  |
+| `npm run typecheck`      | Type-check all TypeScript project references                    |
+| `npm test`               | Build and run the Node test suite                               |
+| `npm run test:coverage`  | Run tests and enforce coverage thresholds                       |
+| `npm run schemas:verify` | Verify the pinned A2UI schema bundle and runtime copies         |
+| `npm run package:smoke`  | Build, pack, and install all publishable packages offline       |
+| `npm run clean`          | Remove TypeScript project build outputs                         |
 
 Maintainers should follow the tokenless [release and package-onboarding process](docs/releasing.md).
 

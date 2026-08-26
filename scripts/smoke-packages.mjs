@@ -12,6 +12,15 @@ const packages = [
   "@mcp-native/react-native",
   "mcp-native",
 ];
+const workspacePackageNames = new Set(packages);
+const workspacePackageDirectories = [
+  "packages/core",
+  "packages/mcp",
+  "packages/a2ui",
+  "packages/webview",
+  "packages/react-native",
+  "packages/mcp-native",
+];
 const expectedVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
 
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "mcp-native-packages-"));
@@ -34,7 +43,14 @@ try {
     }
 
     const files = new Set(packed.files.map(({ path }) => path));
-    for (const requiredFile of ["README.md", "dist/index.d.ts", "dist/index.js", "package.json"]) {
+    const requiredFiles = ["README.md", "dist/index.d.ts", "dist/index.js", "package.json"];
+    if (packageName === "@mcp-native/a2ui") {
+      requiredFiles.push(
+        "schemas/7541f953050cd58b80f0bf5d85fe2d63192af305/CHECKSUMS.sha256",
+        "schemas/7541f953050cd58b80f0bf5d85fe2d63192af305/PROVENANCE.md",
+      );
+    }
+    for (const requiredFile of requiredFiles) {
       if (!files.has(requiredFile)) {
         throw new Error(`${packageName} tarball is missing ${requiredFile}`);
       }
@@ -54,6 +70,37 @@ try {
   }
   const reactTarball = join(temporaryDirectory, packedReact.filename);
 
+  const externalDependencies = new Map();
+  const collectExternalDependencies = (packageDirectory) => {
+    const manifest = JSON.parse(readFileSync(join(packageDirectory, "package.json"), "utf8"));
+    for (const dependencyName of Object.keys(manifest.dependencies ?? {})) {
+      if (workspacePackageNames.has(dependencyName) || externalDependencies.has(dependencyName)) {
+        continue;
+      }
+      const dependencyDirectory = join(process.cwd(), "node_modules", ...dependencyName.split("/"));
+      externalDependencies.set(dependencyName, dependencyDirectory);
+      collectExternalDependencies(dependencyDirectory);
+    }
+  };
+  for (const packageDirectory of workspacePackageDirectories) {
+    collectExternalDependencies(join(process.cwd(), packageDirectory));
+  }
+
+  const externalTarballs = [...externalDependencies.entries()].map(
+    ([dependencyName, dependencyDirectory]) => {
+      const output = execFileSync(
+        "npm",
+        ["pack", "--json", "--pack-destination", temporaryDirectory, "."],
+        { cwd: dependencyDirectory, encoding: "utf8", env: npmEnvironment },
+      );
+      const [packed] = JSON.parse(output);
+      if (!packed?.filename) {
+        throw new Error(`npm pack did not return a filename for ${dependencyName}`);
+      }
+      return join(temporaryDirectory, packed.filename);
+    },
+  );
+
   const consumerDirectory = join(temporaryDirectory, "consumer");
   mkdirSync(consumerDirectory);
   writeFileSync(
@@ -70,6 +117,7 @@ try {
       "--offline",
       "--legacy-peer-deps",
       reactTarball,
+      ...externalTarballs,
       ...tarballs,
     ],
     {
