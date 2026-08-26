@@ -101,9 +101,12 @@ Future capabilities that touch sensitive device APIs must be brokered by the hos
 
 MCP extension support is determined only from validated, explicit client and server capability maps. `_meta`, MIME types, and tool-result content are preserved as data but never grant an extension. The generic substrate reports negotiation or a typed fallback reason; each extension must separately validate its settings and implement its own semantics. The experimental [project-owned A2UI binding](a2ui-mcp-binding.md) requires an exact settings match and defines ordinary MCP text/data as its graceful fallback.
 
-## Initial milestone
+## Initial proof milestone
 
-The first end-to-end proof should demonstrate:
+Status: complete through package and integration tests for the custom `0.1` proof path. A runnable
+mobile host remains a separate roadmap milestone.
+
+The proof demonstrates:
 
 1. Connect an MCP client and obtain `tools/list`.
 2. Invoke a tool with `tools/call`.
@@ -173,6 +176,6 @@ return { content: [{ type: "text", text: "Saved" }] };
 - Remaining A2UI renderer functions and checks, platform accessibility testing, and renderer capability transport integration
 - Authentication and production transport configuration
 - Richer React Native catalog components, styling, and platform-specific accessibility behavior
-- Fine-grained capability negotiation and permissions
+- Sensitive-device capability policies, consent, and permissions
 - MCP Apps discovery metadata, AppBridge compatibility, WebView sandboxing, and origin isolation
 - SwiftUI, Jetpack Compose, or other native renderers
