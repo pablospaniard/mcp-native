@@ -25,5 +25,6 @@ export {
   A2UI_V1_BASIC_FUNCTION_NAMES,
   A2UI_V1_SYSTEM_FUNCTION_NAMES,
   createA2uiV1BasicCatalogPolicy,
+  validateA2uiV1SurfaceState,
 } from "./validate.js";
 export type { A2uiV1BasicCatalogPolicyOptions, A2uiV1SurfaceValidationPolicy } from "./validate.js";

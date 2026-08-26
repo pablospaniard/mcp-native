@@ -45,7 +45,7 @@ After successful negotiation, a tool result may link to an A2UI message stream a
 4. Receivers process envelopes strictly in line order. They do not reorder, deduplicate, merge, or infer missing messages. End of text ends the batch for that resource read.
 5. Every envelope is validated before it changes surface state. An invalid line rejects the UI batch; it is never interpreted as the custom MCP Native `0.1` surface or as HTML.
 
-The binding adds transport framing for ordered envelopes. `@mcp-native/a2ui` parses those agent-to-renderer lifecycle envelopes, applies them to an ordered surface store, and exposes a separate policy-gated validation step for complete renderer-ready snapshots. Mapping validated state into the trusted native render plan and renderer-to-agent messages remain later Milestone 3 work.
+The binding adds transport framing for ordered envelopes. `@mcp-native/a2ui` parses those agent-to-renderer lifecycle envelopes, applies them to an ordered surface store, and exposes a separate policy-gated validation step for complete renderer-ready snapshots. `@mcp-native/react-native` adapts the documented static component subset into the trusted native render plan; dynamic templates, renderer functions, mounted v1 interaction behavior, and renderer-to-agent messages remain later work.
 
 ## Graceful fallback
 

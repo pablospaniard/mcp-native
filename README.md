@@ -21,7 +21,7 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 > MCP Native is an experimental proof of concept, not a production-ready runtime. The npm packages contain working foundational APIs, but those APIs may change before the first stable release.
 
 > [!CAUTION]
-> The custom `@mcp-native/a2ui` `0.1` surface remains an internal proof-of-concept model. The package now also implements a partial, separately negotiated A2UI v1.0 Candidate adapter for schema-validated agent-to-renderer lifecycle envelopes and ordered surface state; it is not yet a complete A2UI renderer. The WebView package contains policy primitives, not a complete MCP Apps host. See [Standards and compatibility](docs/standards-compatibility.md).
+> The custom `@mcp-native/a2ui` `0.1` surface remains an internal proof-of-concept model. The packages now also implement a partial, separately negotiated A2UI v1.0 Candidate path for schema-validated lifecycle state, policy validation, and static native-plan adaptation; it is not yet a complete A2UI renderer. The WebView package contains policy primitives, not a complete MCP Apps host. See [Standards and compatibility](docs/standards-compatibility.md).
 
 ## The idea
 
@@ -135,6 +135,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Checksum-verified A2UI v1.0 Candidate schemas pinned to an exact upstream revision
 - Schema-validated v1 lifecycle JSONL with atomic, ordered create/update/delete surface state
 - A pre-render v1 validation boundary with explicit host component, event, and function allowlists
+- A fail-closed adapter from the supported static A2UI v1 subset into the trusted native render plan
 - Typed `tools/call` action routing with a fail-closed host policy
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
@@ -147,7 +148,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, validated official v1 surface state is not yet adapted into the trusted native render plan, and renderer-to-agent actions, accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented static component subset and absolute bindings; dynamic templates, function execution, renderer-to-agent actions, complete accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
 
 ## Tiny example
 
@@ -204,7 +205,7 @@ The resolver requires exactly one `application/a2ui+json` resource link, reads t
 
 MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
 
-Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires exact capability negotiation, parses agent-to-renderer lifecycle envelopes, and maintains ordered surface/data-model state. Catalog graph validation, render-plan adaptation, renderer-to-agent actions, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
+Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires exact capability negotiation, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, and adapts the supported static subset into a trusted native plan. Dynamic templates, functions, renderer-to-agent actions, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 
@@ -292,7 +293,8 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Add extension negotiation and metadata-preserving capability contracts
 - [x] Implement the initial A2UI v1.0 foundation from pinned schemas, lifecycle envelopes, and ordered state
 - [x] Add a policy-gated pre-render boundary for basic-catalog graphs, bindings, events, and functions
-- [ ] Adapt validated A2UI v1 state into the trusted native render plan and renderer-to-agent lifecycle
+- [x] Adapt the supported static A2UI v1 subset into the trusted native render plan
+- [ ] Implement dynamic templates, renderer functions, and renderer-to-agent lifecycle
 - [ ] Complete native accessibility and action-context behavior
 - [ ] Establish native performance budgets, parser/renderer fuzzing, and a supported iOS/Android CI matrix
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility

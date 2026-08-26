@@ -11,6 +11,8 @@ import {
   A2UI_V1_BASIC_COMPONENT_NAMES,
   A2UI_V1_MAX_COMPONENTS,
   A2UI_V1_MAX_SURFACES,
+  A2UI_V1_NATIVE_COMPONENT_NAMES,
+  A2UI_V1_NATIVE_MAX_RENDER_NODES,
   A2UI_VERSION,
   A2uiSurfaceStore,
   JSON_MAX_DEPTH,
@@ -22,6 +24,7 @@ import {
   McpNativeRuntime,
   createAllowlistActionPolicy,
   createA2uiV1BasicCatalogPolicy,
+  createA2uiV1NativeRenderPlan,
   createNativeRenderPlan,
   createWebViewDocument,
   isA2uiMcpBindingGrant,
@@ -35,6 +38,7 @@ import {
   parseMcpNativeAction,
   resolveA2uiResourceFromToolResult,
   resolveA2uiV1JsonlFromToolResult,
+  validateA2uiV1SurfaceState,
   useMcpNativeActionDispatcher,
   useNativeRenderPlan,
 } from "../packages/mcp-native/dist/index.js";
@@ -48,6 +52,8 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(A2UI_MAX_STRING_LENGTH, 65_536);
   assert.equal(A2UI_V1_MAX_COMPONENTS, 1_024);
   assert.equal(A2UI_V1_MAX_SURFACES, 1_024);
+  assert.equal(A2UI_V1_NATIVE_MAX_RENDER_NODES, 1_024);
+  assert.equal(A2UI_V1_NATIVE_COMPONENT_NAMES.includes("TextField"), true);
   assert.match(A2UI_V1_BASIC_CATALOG_ID, /catalogs\/basic\/catalog\.json$/);
   assert.equal(A2UI_V1_BASIC_COMPONENT_NAMES.includes("Text"), true);
   assert.equal(JSON_MAX_DEPTH, 64);
@@ -60,6 +66,8 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof createNativeRenderPlan, "function");
   assert.equal(typeof createAllowlistActionPolicy, "function");
   assert.equal(typeof createA2uiV1BasicCatalogPolicy, "function");
+  assert.equal(typeof createA2uiV1NativeRenderPlan, "function");
+  assert.equal(typeof validateA2uiV1SurfaceState, "function");
   assert.equal(typeof createWebViewDocument, "function");
   assert.equal(typeof isA2uiMcpBindingGrant, "function");
   assert.equal(typeof negotiateA2uiMcpBinding, "function");

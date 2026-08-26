@@ -36,6 +36,7 @@ export {
   parseA2uiV1Envelope,
   parseA2uiV1Jsonl,
   resolveA2uiV1JsonlFromToolResult,
+  validateA2uiV1SurfaceState,
 } from "./v1/index.js";
 export type {
   A2uiV1BasicCatalogPolicyOptions,

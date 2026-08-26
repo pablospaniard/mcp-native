@@ -220,3 +220,10 @@ function expectActionProp(element: NativeElement): McpNativeAction {
     throw new TypeError(message, { cause: error });
   }
 }
+
+export {
+  A2UI_V1_NATIVE_COMPONENT_NAMES,
+  A2UI_V1_NATIVE_MAX_RENDER_NODES,
+  createA2uiV1NativeRenderPlan,
+} from "./v1.js";
+export type { A2uiV1NativeEventDescriptor } from "./v1.js";
