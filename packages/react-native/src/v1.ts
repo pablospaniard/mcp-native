@@ -361,7 +361,13 @@ function addCommonProps(
   context: AdapterContext,
 ): void {
   if (component.weight !== undefined) {
-    props.weight = expectFiniteNumber(component.weight, `components.${component.id}.weight`);
+    const weight = expectFiniteNumber(component.weight, `components.${component.id}.weight`);
+    if (weight < 0) {
+      throw new A2uiParseError(
+        `A2UI native adapter does not support negative weight at components.${component.id}.weight`,
+      );
+    }
+    props.weight = weight;
   }
   if (component.accessibility === undefined) {
     return;

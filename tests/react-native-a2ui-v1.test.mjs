@@ -236,6 +236,7 @@ test("mounted v1 surfaces apply container layout and TextField variants", async 
         label: "Password",
         value: { path: "/secret" },
         variant: "obscured",
+        weight: 2,
       },
       {
         id: "amount",
@@ -267,18 +268,21 @@ test("mounted v1 surfaces apply container layout and TextField variants", async 
     );
   });
 
-  const view = root.container.queryAll((element) => element.type === "View")[0];
-  assert.deepEqual(view.props.style, {
+  const views = root.container.queryAll((element) => element.type === "View");
+  assert.deepEqual(views[0].props.style, {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
   });
-  assert.equal("layout" in view.props, false);
-  assert.equal("justify" in view.props, false);
-  assert.equal("align" in view.props, false);
+  assert.equal("layout" in views[0].props, false);
+  assert.equal("justify" in views[0].props, false);
+  assert.equal("align" in views[0].props, false);
+  assert.deepEqual(views[1].props.style, { flexGrow: 2 });
+  assert.equal("weight" in views[1].props, false);
 
   const inputs = root.container.queryAll((element) => element.type === "TextInput");
   assert.equal(inputs[0].props.secureTextEntry, true);
+  assert.equal("weight" in inputs[0].props, false);
   assert.equal(inputs[1].props.keyboardType, "numeric");
   assert.equal(inputs[2].props.multiline, true);
   for (const input of inputs) {
@@ -571,6 +575,15 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
       ]),
       policy: nativePolicy(),
       message: /does not support main-axis stretch.*root\.justify/,
+    },
+    {
+      name: "unsupported negative weight",
+      surface: createSurface([
+        { id: "root", component: "Row", children: ["child"] },
+        { id: "child", component: "Text", text: "Child", weight: -1 },
+      ]),
+      policy: nativePolicy(),
+      message: /does not support negative weight.*child\.weight/,
     },
     {
       name: "missing binding",

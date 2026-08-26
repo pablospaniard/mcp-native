@@ -101,7 +101,7 @@ const surface = store.get("profile");
 const plan = surface && createA2uiV1NativeRenderPlan(surface, policy);
 ```
 
-The adapter maps `Row`, `Column`, static `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. It resolves absolute JSON Pointer values, maps supported container direction and alignment to owned React Native flex styles, maps `TextField` variants to explicit native input behavior (including `secureTextEntry` for `obscured`), and preserves event context and explicit accessibility fields. Main-axis `stretch`, which React Native flex layout cannot represent, fails closed.
+The adapter maps `Row`, `Column`, static `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. It resolves absolute JSON Pointer values, maps supported container direction and alignment to owned React Native flex styles, applies component weight through a host-owned `View` wrapper with `flexGrow`, maps `TextField` variants to explicit native input behavior (including `secureTextEntry` for `obscured`), and preserves event context and explicit accessibility fields. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
 
 Use `A2uiV1NativeSurface` to mount that subset with renderer-local string state and official action envelopes:
 

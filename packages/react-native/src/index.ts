@@ -49,7 +49,8 @@ export interface NativeAccessibilityProps {
 
 export interface NativeViewStyle {
   readonly alignItems?: "center" | "flex-end" | "flex-start" | "stretch";
-  readonly flexDirection: "column" | "row";
+  readonly flexDirection?: "column" | "row";
+  readonly flexGrow?: number;
   readonly justifyContent?:
     | "center"
     | "flex-end"
@@ -345,7 +346,7 @@ function renderElement(
           ...accessibilityProps,
           ...(style === undefined ? {} : { style }),
         },
-        element.children?.map((child) => renderElement(child, components, handlers)),
+        element.children?.map((child) => renderChildElement(child, components, handlers)),
       );
     }
     case "Text":
@@ -387,6 +388,26 @@ function renderElement(
       });
     }
   }
+}
+
+function renderChildElement(
+  element: NativeElement,
+  components: NativeComponentCatalog,
+  handlers: NativeRenderHandlers,
+): ReactElement {
+  const rendered = renderElement(element, components, handlers);
+  const weight = optionalFiniteNumberProp(element, "weight");
+  if (weight === undefined) {
+    return rendered;
+  }
+  if (weight < 0) {
+    throw new TypeError(`Expected a non-negative weight at native element ${element.key}`);
+  }
+  return createElement(
+    components.View,
+    { key: element.key, style: { flexGrow: weight } satisfies NativeViewStyle },
+    rendered,
+  );
 }
 
 function selectViewStyle(element: NativeElement): NativeViewStyle | undefined {
@@ -535,6 +556,14 @@ function optionalBooleanProp(element: NativeElement, name: string): boolean | un
   const value = element.props[name];
   if (value !== undefined && typeof value !== "boolean") {
     throw new TypeError(`Expected a boolean at native element ${element.key}.${name}`);
+  }
+  return value;
+}
+
+function optionalFiniteNumberProp(element: NativeElement, name: string): number | undefined {
+  const value = element.props[name];
+  if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) {
+    throw new TypeError(`Expected a finite number at native element ${element.key}.${name}`);
   }
   return value;
 }
