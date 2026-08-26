@@ -51,6 +51,7 @@ function addSchemaAs(ajv: AjvInstance, schema: Record<string, unknown>, id: stri
 }
 
 let cachedValidate: ValidateFunction | undefined;
+let cachedFunctionValidate: ValidateFunction | undefined;
 
 /** Compiles the pinned agent-to-renderer schema once with the basic catalog mapped in. */
 export function getA2uiV1EnvelopeValidator(): ValidateFunction {
@@ -61,7 +62,35 @@ export function getA2uiV1EnvelopeValidator(): ValidateFunction {
   const common = commonTypes as Record<string, unknown>;
   const catalog = basicCatalog as Record<string, unknown>;
   const envelope = agentToRenderer as Record<string, unknown>;
+  const ajv = createCatalogAjv(common, catalog);
 
+  const validate = ajv.compile(stripDiscriminator(envelope) as object);
+  cachedValidate = validate;
+  return validate;
+}
+
+/** Validates a function reconstructed from the formatString expression language. */
+export function getA2uiV1FunctionCallValidator(): ValidateFunction {
+  if (cachedFunctionValidate !== undefined) {
+    return cachedFunctionValidate;
+  }
+
+  const common = commonTypes as Record<string, unknown>;
+  const catalog = basicCatalog as Record<string, unknown>;
+  const ajv = createCatalogAjv(common, catalog);
+  cachedFunctionValidate = ajv.compile({
+    oneOf: [
+      { $ref: `${expectStringId(catalog)}#/$defs/anyFunction` },
+      { $ref: `${expectStringId(common)}#/$defs/IndexSystemFunction` },
+    ],
+  });
+  return cachedFunctionValidate;
+}
+
+function createCatalogAjv(
+  common: Record<string, unknown>,
+  catalog: Record<string, unknown>,
+): AjvInstance {
   const ajv = new Ajv2020({
     allErrors: true,
     strict: false,
@@ -76,10 +105,7 @@ export function getA2uiV1EnvelopeValidator(): ValidateFunction {
   addSchemaAs(ajv, catalog, catalogId);
   addSchemaAs(ajv, catalog, "catalog.json");
   addSchemaAs(ajv, catalog, "https://a2ui.org/specification/v1_0/catalog.json");
-
-  const validate = ajv.compile(stripDiscriminator(envelope) as object);
-  cachedValidate = validate;
-  return validate;
+  return ajv;
 }
 
 function expectStringId(schema: Record<string, unknown>): string {

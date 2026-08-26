@@ -310,6 +310,79 @@ test("agent events and catalog functions require explicit host allowlists", () =
   );
 });
 
+test("formatString validates nested functions, bindings, accessibility, and template context", () => {
+  const store = createStore(
+    [
+      {
+        id: "root",
+        component: "Text",
+        text: {
+          call: "formatString",
+          args: {
+            value:
+              "Hello ${/user/name}, updated ${formatDate(value:${/updated}, format:'yyyy-MM-dd')}; ${formatString(value:'again ${/user/name}')} ${${/user/name}} ${true} ${42} ${'literal'} ${null} \\${literal}",
+          },
+        },
+        accessibility: {
+          label: {
+            call: "formatString",
+            args: { value: "Profile for ${/user/name}" },
+          },
+        },
+      },
+    ],
+    { dataModel: { user: { name: "Ada" }, updated: "2026-08-26" } },
+  );
+  assert.ok(
+    store.getValidated(
+      "validated",
+      basicPolicy({ allowedFunctionNames: ["formatString", "formatDate"] }),
+    ),
+  );
+
+  const templateStore = createStore(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      {
+        id: "item",
+        component: "Text",
+        text: {
+          call: "formatString",
+          args: { value: "${name} #${@index(offset: 1)}" },
+        },
+      },
+    ],
+    { dataModel: { items: [{ name: "Ada" }] } },
+  );
+  assert.ok(
+    templateStore.getValidated(
+      "validated",
+      basicPolicy({ allowedFunctionNames: ["formatString", "@index"] }),
+    ),
+  );
+});
+
+test("formatString preserves RFC 6901 punctuation in pointer tokens", () => {
+  const store = createStore([
+    {
+      id: "root",
+      component: "Text",
+      text: {
+        call: "formatString",
+        args: { value: "${/labels/(draft)} ${/objects/{id}" },
+      },
+    },
+  ]);
+
+  assert.ok(
+    store.getValidated("validated", basicPolicy({ allowedFunctionNames: ["formatString"] })),
+  );
+});
+
 test("formatString cannot hide nested functions from the host allowlist", () => {
   const store = createStore([
     {
@@ -325,9 +398,157 @@ test("formatString cannot hide nested functions from the host allowlist", () => 
   assert.throws(
     () => store.getValidated("validated", basicPolicy({ allowedFunctionNames: ["formatString"] })),
     (error) =>
-      error instanceof A2uiParseError &&
-      /formatString.*unsupported until every interpolation expression/.test(error.message),
+      error instanceof A2uiParseError && /function "openUrl".*is not allowed/.test(error.message),
   );
+});
+
+test("formatString rejects runtime-provided interpolation sources", () => {
+  const store = createStore([
+    {
+      id: "root",
+      component: "Text",
+      text: {
+        call: "formatString",
+        args: { value: { path: "/serverControlledTemplate" } },
+      },
+    },
+  ]);
+
+  assert.throws(
+    () => store.getValidated("validated", basicPolicy({ allowedFunctionNames: ["formatString"] })),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /requires a literal string so every interpolation can be validated/.test(error.message),
+  );
+});
+
+test("formatString syntax and reconstructed function calls fail closed", async (t) => {
+  let deeplyNestedExpression = "/value";
+  for (let index = 0; index < 64; index += 1) {
+    deeplyNestedExpression = `formatString(value:\${${deeplyNestedExpression}})`;
+  }
+  const cases = [
+    {
+      name: "unterminated interpolation",
+      value: "Hello ${/user/name",
+      allowedFunctionNames: ["formatString"],
+      message: /unterminated interpolation expression/,
+    },
+    {
+      name: "relative binding outside a template",
+      value: "Hello ${name}",
+      allowedFunctionNames: ["formatString"],
+      message: /Relative A2UI binding.*only valid inside/,
+    },
+    {
+      name: "unknown nested function",
+      value: "It is ${now()}",
+      allowedFunctionNames: ["formatString"],
+      message: /function schema validation failed/,
+    },
+    {
+      name: "unnamed function argument",
+      value: "${formatDate(${/updated}, format:'yyyy-MM-dd')}",
+      allowedFunctionNames: ["formatString", "formatDate"],
+      message: /requires every function argument to be named/,
+    },
+    {
+      name: "duplicate function argument",
+      value: "${formatDate(value:${/updated}, value:${/other}, format:'yyyy')}",
+      allowedFunctionNames: ["formatString", "formatDate"],
+      message: /duplicate argument "value"/,
+    },
+    {
+      name: "invalid catalog function signature",
+      value: "${formatDate(value:${/updated}, extra:'yyyy')}",
+      allowedFunctionNames: ["formatString", "formatDate"],
+      message: /function schema validation failed/,
+    },
+    {
+      name: "index outside a template",
+      value: "#${@index(offset: 1)}",
+      allowedFunctionNames: ["formatString", "@index"],
+      message: /only valid inside a dynamic-list template/,
+    },
+    {
+      name: "excessive expression nesting",
+      value: `\${${deeplyNestedExpression}}`,
+      allowedFunctionNames: ["formatString"],
+      message: /maximum expression depth of 64/,
+    },
+    {
+      name: "excessive expression count",
+      value: Array.from({ length: 10_001 }, () => "${/}").join(""),
+      allowedFunctionNames: ["formatString"],
+      message: /maximum of 10000 interpolation expressions/,
+    },
+  ];
+
+  await Promise.all(
+    cases.map((fixture) =>
+      t.test(fixture.name, () => {
+        const store = createStore([
+          {
+            id: "root",
+            component: "Text",
+            text: { call: "formatString", args: { value: fixture.value } },
+          },
+        ]);
+        assert.throws(
+          () =>
+            store.getValidated(
+              "validated",
+              basicPolicy({ allowedFunctionNames: fixture.allowedFunctionNames }),
+            ),
+          (error) => error instanceof A2uiParseError && fixture.message.test(error.message),
+        );
+      }),
+    ),
+  );
+});
+
+test("formatString limits are cumulative across a reachable surface", async (t) => {
+  await t.test("source length", () => {
+    const children = Array.from({ length: 17 }, (_, index) => `text-${index}`);
+    const store = createStore([
+      { id: "root", component: "Column", children },
+      ...children.map((id) => ({
+        id,
+        component: "Text",
+        text: { call: "formatString", args: { value: "x".repeat(65_536) } },
+      })),
+    ]);
+
+    assert.throws(
+      () =>
+        store.getValidated("validated", basicPolicy({ allowedFunctionNames: ["formatString"] })),
+      (error) =>
+        error instanceof A2uiParseError &&
+        /cumulative maximum length of 1048576/.test(error.message),
+    );
+  });
+
+  await t.test("expression count", () => {
+    const expressionBatch = Array.from({ length: 5_001 }, () => "${/}").join("");
+    const store = createStore([
+      {
+        id: "root",
+        component: "Text",
+        text: { call: "formatString", args: { value: expressionBatch } },
+        accessibility: {
+          label: { call: "formatString", args: { value: expressionBatch } },
+        },
+      },
+    ]);
+
+    assert.throws(
+      () =>
+        store.getValidated("validated", basicPolicy({ allowedFunctionNames: ["formatString"] })),
+      (error) =>
+        error instanceof A2uiParseError &&
+        /maximum of 10000 formatString expressions/.test(error.message),
+    );
+  });
 });
 
 test("duplicate component IDs fail atomically within one update", () => {

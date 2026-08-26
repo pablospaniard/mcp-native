@@ -135,7 +135,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A project-owned, exact-match [A2UI-over-MCP transport binding](docs/a2ui-mcp-binding.md) with ordinary MCP fallback
 - Checksum-verified A2UI v1.0 Candidate schemas pinned to an exact upstream revision
 - Schema-validated v1 lifecycle JSONL with atomic, ordered create/update/delete surface state
-- A pre-render v1 validation boundary with explicit host component, event, and function allowlists
+- A pre-render v1 validation boundary with explicit host component, event, and function allowlists plus bounded validation of literal `formatString` sources
 - A fail-closed adapter from the supported static A2UI v1 subset into the trusted native render plan
 - Typed `tools/call` action routing with a fail-closed host policy
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
