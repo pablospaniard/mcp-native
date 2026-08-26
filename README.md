@@ -134,6 +134,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A project-owned, exact-match [A2UI-over-MCP transport binding](docs/a2ui-mcp-binding.md) with ordinary MCP fallback
 - Checksum-verified A2UI v1.0 Candidate schemas pinned to an exact upstream revision
 - Schema-validated v1 lifecycle JSONL with atomic, ordered create/update/delete surface state
+- A pre-render v1 validation boundary with explicit host component, event, and function allowlists
 - Typed `tools/call` action routing with a fail-closed host policy
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
@@ -146,7 +147,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, official v1 surface state is not yet adapted into the trusted native render plan, and renderer-to-agent actions, complete catalog graph validation, authentication helpers, and a runnable mobile demo remain future milestones.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, validated official v1 surface state is not yet adapted into the trusted native render plan, and renderer-to-agent actions, accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
 
 ## Tiny example
 
@@ -289,8 +290,9 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Preserve MCP `2026-07-28` tool/resource fields and test the current HTTP path
 - [x] Pin official MCP conformance scenarios and document backwards compatibility
 - [x] Add extension negotiation and metadata-preserving capability contracts
-- [ ] Implement an A2UI v1.0 conformance foundation from pinned official schemas
-- [ ] Support the A2UI surface lifecycle, local data model, bindings, and streaming updates
+- [x] Implement the initial A2UI v1.0 foundation from pinned schemas, lifecycle envelopes, and ordered state
+- [x] Add a policy-gated pre-render boundary for basic-catalog graphs, bindings, events, and functions
+- [ ] Adapt validated A2UI v1 state into the trusted native render plan and renderer-to-agent lifecycle
 - [ ] Complete native accessibility and action-context behavior
 - [ ] Establish native performance budgets, parser/renderer fuzzing, and a supported iOS/Android CI matrix
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility

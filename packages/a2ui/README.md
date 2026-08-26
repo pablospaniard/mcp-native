@@ -116,6 +116,7 @@ After mutual negotiation, hosts can resolve a JSONL resource and apply lifecycle
 import {
   A2UI_MCP_EXTENSION_CAPABILITIES,
   A2uiSurfaceStore,
+  createA2uiV1BasicCatalogPolicy,
   negotiateA2uiMcpBinding,
   resolveA2uiV1JsonlFromToolResult,
 } from "@mcp-native/a2ui";
@@ -127,9 +128,17 @@ const binding = negotiateA2uiMcpBinding(
 const { envelopes } = await resolveA2uiV1JsonlFromToolResult(runtime, toolResult, binding);
 const store = new A2uiSurfaceStore();
 store.applyAll(envelopes);
+
+const surface = store.getValidated(
+  "surface-id",
+  createA2uiV1BasicCatalogPolicy({
+    allowedComponentNames: ["Column", "Text", "Button"],
+    allowedEventNames: ["continue"],
+  }),
+);
 ```
 
-Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` are accepted in this milestone. Function-call envelopes, renderer-to-agent messages, and render-plan adaptation remain deferred. The custom `0.1` resolver is unchanged and never receives a failed v1 stream.
+Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` envelopes are accepted in this milestone. Raw store snapshots may be incomplete while ordered updates arrive. The store bounds retained surfaces and components; `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, and component placement rules. Function-call envelopes, renderer-to-agent messages, and render-plan adaptation remain deferred. The custom `0.1` resolver is unchanged and never receives a failed v1 stream.
 
 ## Supported surface
 
@@ -156,9 +165,11 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 | `negotiateA2uiMcpBinding`, `A2uiMcpBindingNegotiation`, `A2uiMcpBindingGrant`                             | Exact-match negotiation with typed fallback reasons.             |
 | `A2UI_MCP_BINDING_VERSION`, `A2UI_MCP_PROTOCOL_VERSION`, `A2UI_MCP_SCHEMA_REVISION`, `A2UI_MCP_TRANSPORT` | Pinned binding and Candidate transport values.                   |
 | `parseA2uiV1Envelope`, `parseA2uiV1Jsonl`                                                                 | Schema-validate v1 lifecycle envelopes and JSONL batches.        |
-| `A2uiSurfaceStore`                                                                                        | Ordered create/update/delete surface state for v1 envelopes.     |
+| `A2uiSurfaceStore`                                                                                        | Ordered lifecycle state plus policy-gated `getValidated`.        |
+| `createA2uiV1BasicCatalogPolicy`, `A2uiV1SurfaceValidationPolicy`                                         | Explicit host allowlists for components, events, and functions.  |
+| `A2UI_V1_BASIC_CATALOG_ID`, catalog name constants                                                        | Exact pinned catalog identity and selectable host capabilities.  |
 | `resolveA2uiV1JsonlFromToolResult`, `ResolvedA2uiV1JsonlResource`                                         | Resolve a JSONL A2UI resource without using the `0.1` parser.    |
-| `A2UI_V1_PROTOCOL_VERSION`, `A2UI_V1_MAX_SOURCE_LENGTH`, `A2UI_V1_MAX_ENVELOPES`                          | v1 protocol constant and batch limits.                           |
+| `A2UI_V1_PROTOCOL_VERSION`, `A2UI_V1_MAX_SOURCE_LENGTH`, `A2UI_V1_MAX_ENVELOPES`, store limit constants   | v1 protocol and complexity limits.                               |
 | `ResolvedA2uiResource`                                                                                    | URI, MIME type, and validated surface returned by the resolver.  |
 | `A2uiSurface`, `A2uiNode`                                                                                 | Validated surface and node unions.                               |
 | Node interfaces                                                                                           | Typed container, text, button, and text-input nodes.             |
@@ -173,6 +184,10 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 - Tool arguments are recursively constrained to finite, acyclic JSON values in plain objects.
 - JSON keys such as `__proto__` are preserved as ordinary own data properties without changing object prototypes.
 - Parsing never resolves components or executes server-provided code.
+- Renderer-ready v1 snapshots require a complete acyclic root-reachable graph and explicit host allowlists.
+- Relative bindings and `@index` are accepted only inside dynamic-list template context.
+- Catalog functions and agent events are denied unless named by host policy.
+- `formatString` is rejected even when allowlisted until its nested interpolation language has a strict parser and every embedded function and binding can be validated.
 - Successful parsing does not grant device capabilities or permission to call a tool; the host still owns those decisions.
 
 ## Next layer

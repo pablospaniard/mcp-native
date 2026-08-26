@@ -6,6 +6,10 @@ export const A2UI_V1_PROTOCOL_VERSION = "v1.0" as const;
 export const A2UI_V1_MAX_SOURCE_LENGTH = 1_048_576;
 /** Maximum number of non-empty JSONL envelopes in one resource batch. */
 export const A2UI_V1_MAX_ENVELOPES = 1_024;
+/** Maximum surfaces retained by one in-memory store. */
+export const A2UI_V1_MAX_SURFACES = 1_024;
+/** Maximum retained component definitions in one surface. */
+export const A2UI_V1_MAX_COMPONENTS = 1_024;
 
 export type A2uiV1Component = JsonObject & {
   readonly id: string;
