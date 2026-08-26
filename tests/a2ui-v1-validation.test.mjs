@@ -324,6 +324,35 @@ test("agent events and catalog functions require explicit host allowlists", () =
       basicPolicy({ allowedFunctionNames: ["formatNumber"] }),
     ),
   );
+
+  const nestedBooleanStore = createStore([
+    {
+      id: "root",
+      component: "Text",
+      text: {
+        call: "formatNumber",
+        args: {
+          value: 42,
+          grouping: {
+            call: "and",
+            args: { values: [true, { call: "not", args: { value: false } }] },
+          },
+        },
+      },
+    },
+  ]);
+  assert.throws(
+    () =>
+      nestedBooleanStore.getValidated(
+        "validated",
+        basicPolicy({ allowedFunctionNames: ["formatNumber", "and"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /function "not" at components\.root\.text\.args\.grouping\.args\.values\[1\]\.call/.test(
+        error.message,
+      ),
+  );
 });
 
 test("formatString validates nested functions, bindings, accessibility, and template context", () => {
