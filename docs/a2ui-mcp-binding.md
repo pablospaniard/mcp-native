@@ -45,7 +45,7 @@ After successful negotiation, a tool result may link to an A2UI message stream a
 4. Receivers process envelopes strictly in line order. They do not reorder, deduplicate, merge, or infer missing messages. End of text ends the batch for that resource read.
 5. Every envelope is validated before it changes surface state. An invalid line rejects the UI batch; it is never interpreted as the custom MCP Native `0.1` surface or as HTML.
 
-The binding adds transport only. It does not introduce alternate A2UI envelope names or modify `createSurface`, `updateComponents`, `updateDataModel`, or `deleteSurface` semantics. Parsing those envelopes and applying their ordered lifecycle belongs to the next roadmap milestone.
+The binding adds transport framing for ordered envelopes. `@mcp-native/a2ui` now parses those agent-to-renderer lifecycle envelopes and applies them to an ordered surface store. Mapping store state into the trusted native render plan, renderer-to-agent messages, and full catalog graph checks remain later Milestone 3 work.
 
 ## Graceful fallback
 
@@ -57,7 +57,8 @@ Malformed capability declarations fail closed. If the binding was negotiated but
 
 - `@mcp-native/core` validates prefixed extension maps and computes mutual support without inspecting metadata or MIME types.
 - `@mcp-native/mcp` advertises host-approved client settings and exposes validated server settings from the official SDK.
-- `@mcp-native/a2ui` exports the exact identifier, settings, pinned revision, transport constants, and exact-match negotiator.
-- The current `0.1` surface resolver remains a separate proof-of-concept input. It is not the JSONL protocol consumer described here.
+- `@mcp-native/a2ui` exports the exact identifier, settings, pinned revision, transport constants, exact-match negotiator, JSONL envelope parser, ordered surface store, and `resolveA2uiV1JsonlFromToolResult`. The resolver requires the exact negotiated grant as an argument and rejects fallback or forged settings before reading a resource.
+- The custom `0.1` surface resolver remains a separate proof-of-concept input. It is not the JSONL protocol consumer described here.
+- Callers must negotiate the binding before using the v1 JSONL resolver; MIME type alone does not grant the transport. Invalid v1 streams fail closed and never fall through to `0.1` or HTML.
 
 See the [standards inventory](standards-compatibility.md), [protocol support policy](protocol-support.md), and [roadmap](roadmap.md) for claim boundaries and next steps.

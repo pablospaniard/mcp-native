@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && npm run test:conformance",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run schemas:verify && npm run test:coverage && npm run test:conformance",
     "clean": "tsc -b --clean",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
@@ -18,6 +18,7 @@
     "package:smoke": "npm run build && node scripts/smoke-packages.mjs",
     "prepare": "husky",
     "release:verify": "npm run check && npm run package:smoke && node scripts/verify-release-version.mjs",
+    "schemas:verify": "node scripts/verify-a2ui-schemas.mjs",
     "test": "npm run build && npm run test:unit",
     "test:conformance": "npm run build && node scripts/run-mcp-conformance.mjs",
     "test:coverage": "npm run build && c8 node --test tests/*.test.mjs",

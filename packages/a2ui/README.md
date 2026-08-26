@@ -91,7 +91,7 @@ Other tool content and non-A2UI resource links may coexist with the surface link
 
 The prototype's `application/a2ui+json` resource convention comes from earlier A2UI-over-MCP work. The [A2UI v1.0 Candidate protocol](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md) is transport-agnostic and uses a stream of `v1.0` envelopes. Recognizing this media type does not establish v1.0 conformance.
 
-The next protocol milestone will parse official v1.0 envelopes and schemas into an internal trusted render plan. It will not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+The next protocol milestone will adapt official v1.0 surface-store state into an internal trusted render plan. It will not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 ## A2UI-over-MCP capability binding
 
@@ -108,7 +108,28 @@ const result = negotiateA2uiMcpBinding(
 
 A fallback result means the host uses ordinary MCP text or structured data. A resource link, MIME type, or `_meta` value never activates the binding by itself. The exact capability exchange, ordered `resource-text-jsonl` mapping, and failure behavior are documented in the [project binding contract](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-mcp-binding.md).
 
-This milestone negotiates the transport substrate only. Parsing official A2UI `v1.0` envelopes and applying ordered surface lifecycle messages remain the next milestone; the existing custom `0.1` resolver is separate.
+## Official v1.0 envelopes and surface store
+
+After mutual negotiation, hosts can resolve a JSONL resource and apply lifecycle envelopes:
+
+```ts
+import {
+  A2UI_MCP_EXTENSION_CAPABILITIES,
+  A2uiSurfaceStore,
+  negotiateA2uiMcpBinding,
+  resolveA2uiV1JsonlFromToolResult,
+} from "@mcp-native/a2ui";
+
+const binding = negotiateA2uiMcpBinding(
+  A2UI_MCP_EXTENSION_CAPABILITIES,
+  adapter.getServerExtensionSettings(),
+);
+const { envelopes } = await resolveA2uiV1JsonlFromToolResult(runtime, toolResult, binding);
+const store = new A2uiSurfaceStore();
+store.applyAll(envelopes);
+```
+
+Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` are accepted in this milestone. Function-call envelopes, renderer-to-agent messages, and render-plan adaptation remain deferred. The custom `0.1` resolver is unchanged and never receives a failed v1 stream.
 
 ## Supported surface
 
@@ -132,8 +153,12 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 | `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                                                                        | Container-tree complexity limits.                                |
 | `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH`                                                        | Serialized-input and string-field limits.                        |
 | `A2UI_MCP_EXTENSION_ID`, `A2UI_MCP_EXTENSION_CAPABILITIES`                                                | Exact project-owned extension declaration.                       |
-| `negotiateA2uiMcpBinding`, `A2uiMcpBindingNegotiation`                                                    | Exact-match negotiation with typed fallback reasons.             |
+| `negotiateA2uiMcpBinding`, `A2uiMcpBindingNegotiation`, `A2uiMcpBindingGrant`                             | Exact-match negotiation with typed fallback reasons.             |
 | `A2UI_MCP_BINDING_VERSION`, `A2UI_MCP_PROTOCOL_VERSION`, `A2UI_MCP_SCHEMA_REVISION`, `A2UI_MCP_TRANSPORT` | Pinned binding and Candidate transport values.                   |
+| `parseA2uiV1Envelope`, `parseA2uiV1Jsonl`                                                                 | Schema-validate v1 lifecycle envelopes and JSONL batches.        |
+| `A2uiSurfaceStore`                                                                                        | Ordered create/update/delete surface state for v1 envelopes.     |
+| `resolveA2uiV1JsonlFromToolResult`, `ResolvedA2uiV1JsonlResource`                                         | Resolve a JSONL A2UI resource without using the `0.1` parser.    |
+| `A2UI_V1_PROTOCOL_VERSION`, `A2UI_V1_MAX_SOURCE_LENGTH`, `A2UI_V1_MAX_ENVELOPES`                          | v1 protocol constant and batch limits.                           |
 | `ResolvedA2uiResource`                                                                                    | URI, MIME type, and validated surface returned by the resolver.  |
 | `A2uiSurface`, `A2uiNode`                                                                                 | Validated surface and node unions.                               |
 | Node interfaces                                                                                           | Typed container, text, button, and text-input nodes.             |

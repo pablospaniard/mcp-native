@@ -84,12 +84,12 @@ Use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) with sh
 | Extension protocol  | Explicit identifiers, capability negotiation, versioning, and graceful degradation                                   | Validated maps, mutual negotiation, modern SDK exchange, fallback, and a project-owned A2UI binding | Supported substrate only     |
 | Component ownership | A2UI catalogs constrain available components and functions                                                           | The host injects a fixed, locally bundled native catalog                                            | Architecturally aligned      |
 | Remote code         | Catalog functions are named, registered capabilities rather than downloaded code                                     | Server-provided React Native code and arbitrary component resolution are prohibited                 | Architecturally aligned      |
-| Validation          | A2UI v1.0 messages and catalogs validate against its JSON Schemas                                                    | MCP Native strictly validates its own `0.1` surface model                                           | Safe subset, not conformant  |
-| Wire envelopes      | `version: "v1.0"` messages use `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` envelopes | One `{ version: "0.1", root }` object                                                               | Not implemented              |
-| Component graph     | A2UI uses catalog-defined components and ID references rooted at component ID `root`                                 | Four custom nested node types                                                                       | Not implemented              |
-| Data model          | Dynamic values use JSON Pointer bindings and renderer-local state                                                    | Optional string bindings are only reported to a host callback                                       | Partial concept only         |
+| Validation          | A2UI v1.0 messages and catalogs validate against its JSON Schemas                                                    | Pinned Candidate schemas via Ajv for v1 lifecycle; custom `0.1` remains hand-validated              | Partial                      |
+| Wire envelopes      | `version: "v1.0"` messages use `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` envelopes | Schema-validated lifecycle envelopes plus JSONL parse; custom `0.1` retained separately             | Partial (parse + store)      |
+| Component graph     | A2UI uses catalog-defined components and ID references rooted at component ID `root`                                 | Store retains component maps; render-plan adaptation deferred                                       | Partial                      |
+| Data model          | Dynamic values use JSON Pointer bindings and renderer-local state                                                    | Ordered `updateDataModel` JSON Pointer updates in the surface store                                 | Partial                      |
 | Actions             | Renderer-to-agent action envelopes include surface, source component, timestamp, and resolved context                | Buttons dispatch a custom MCP tool action directly                                                  | Not implemented              |
-| Streaming lifecycle | Ordered, framed messages progressively create, update, and delete surfaces                                           | A complete resource is read and rendered as one surface                                             | Not implemented              |
+| Streaming lifecycle | Ordered, framed messages progressively create, update, and delete surfaces                                           | JSONL batches apply create/update/delete to an ordered in-memory store                              | Partial (parse + store)      |
 | Capabilities        | Supported catalogs and inline-catalog support are negotiated through transport metadata or initialization            | The catalog is fixed locally with no protocol negotiation                                           | Not implemented              |
 | Accessibility       | Explicit accessibility data overrides inferred defaults                                                              | Initial button and input labels are inferred; explicit A2UI attributes are unsupported              | Partially aligned            |
 | MCP Apps discovery  | Tool `_meta.ui.resourceUri` points to a `ui://` resource                                                             | Generic tool/resource `_meta` is preserved; Apps negotiation and validation are absent              | Partial foundation           |
@@ -105,7 +105,7 @@ The package name expresses the intended protocol integration. Its current `0.1` 
 
 The `application/a2ui+json` resource convention used by the prototype came from earlier A2UI-over-MCP work. A2UI v1.0 is transport-agnostic and defines a stream of protocol envelopes. Recognizing a media type does not establish v1.0 conformance.
 
-MCP Native now defines an experimental [project-owned A2UI-over-MCP transport binding](a2ui-mcp-binding.md). It negotiates exact settings under `io.github.pablospaniard/mcp-native-a2ui` and defines ordered JSONL resource transport for the pinned Candidate revision. The current package implements negotiation only; official envelope parsing and lifecycle state remain roadmap work.
+MCP Native now defines an experimental [project-owned A2UI-over-MCP transport binding](a2ui-mcp-binding.md). It negotiates exact settings under `io.github.pablospaniard/mcp-native-a2ui` and defines ordered JSONL resource transport for the pinned Candidate revision. The package now also parses agent-to-renderer lifecycle envelopes into an ordered surface store; mapping that state into the trusted native render plan remains roadmap work. The custom `0.1` resolver stays separate.
 
 ### `@mcp-native/react-native`
 
@@ -138,12 +138,12 @@ The implementation order is maintained in [the project roadmap](roadmap.md). The
 
 ### A2UI v1.0 foundation
 
-1. Pin an exact A2UI v1.0 Candidate revision and vendor or verify its official JSON Schema bundle.
-2. Parse the official `v1.0` agent-to-renderer and renderer-to-agent envelopes instead of extending the custom `0.1` wire format.
-3. Implement an ordered surface store for create, component update, data-model update, and delete messages.
-4. Validate catalog IDs, component graphs, dynamic values, JSON Pointers, accessibility attributes, functions, actions, and capabilities.
+1. **Implemented:** pin Candidate revision `7541f953…` and vendor its official JSON Schema bundle plus basic catalog.
+2. **Partial:** parse official `v1.0` agent-to-renderer lifecycle envelopes; renderer-to-agent envelopes remain deferred.
+3. **Implemented:** ordered surface store for create, component update, data-model update, and delete messages.
+4. Validate catalog IDs, component graphs, dynamic values, JSON Pointers, accessibility attributes, functions, actions, and capabilities beyond schema checks.
 5. Adapt validated protocol state to the renderer's internal trusted plan.
-6. Add official examples, schema fixtures, malformed-message cases, lifecycle tests, and interoperability tests.
+6. **Partial:** official examples, schema fixtures, malformed-message cases, and lifecycle tests for parse/store; broader interoperability remains deferred.
 
 ### MCP Apps compatibility
 

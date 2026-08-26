@@ -1,0 +1,4 @@
+# Exact upstream A2UI Candidate pins must not be reformatted.
+packages/a2ui/schemas/
+packages/a2ui/src/v1/vendor/
+packages/a2ui/dist/v1/vendor/
