@@ -9,16 +9,26 @@ export type {
   A2uiV1Action,
   A2uiV1ActionEnvelope,
   A2uiV1ActionEnvelopeInput,
+  A2uiV1AgentCapabilities,
+  A2uiV1CapabilityNegotiation,
   A2uiV1Component,
   A2uiV1CreateSurfaceEnvelope,
   A2uiV1DeleteSurfaceEnvelope,
   A2uiV1Envelope,
   A2uiV1EnvelopeKind,
+  A2uiV1RendererCapabilities,
+  A2uiV1RendererCapabilitiesOptions,
   A2uiV1SurfaceState,
   A2uiV1UpdateComponentsEnvelope,
   A2uiV1UpdateDataModelEnvelope,
 } from "./types.js";
 export { createA2uiV1ActionEnvelope } from "./action.js";
+export {
+  createA2uiV1RendererCapabilities,
+  negotiateA2uiV1Capabilities,
+  parseA2uiV1AgentCapabilities,
+  parseA2uiV1RendererCapabilities,
+} from "./capabilities.js";
 export { parseA2uiV1Envelope, parseA2uiV1Jsonl } from "./parse.js";
 export { A2uiSurfaceStore } from "./store.js";
 export { resolveA2uiV1JsonlFromToolResult } from "./resolve.js";

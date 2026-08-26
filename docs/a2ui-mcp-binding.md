@@ -35,6 +35,8 @@ The tested `2025-11-25` compatibility lane makes no support claim for this exten
 
 Neither `_meta`, a tool name, `structuredContent`, a `resource_link`, nor `application/a2ui+json` grants extension support. Those values remain untrusted data and can be preserved even when negotiation falls back.
 
+This binding negotiation is distinct from A2UI's own `agentCapabilities` and `rendererCapabilities` objects. `@mcp-native/a2ui` can strictly parse those pinned v1 objects and compute exact shared catalog IDs, but binding version `0.1` does not assign them another MCP wire location. Hosts must advertise only catalogs they fully implement. In particular, MCP Native's partial basic-catalog renderer must not claim the complete basic catalog merely because its surface validator supports a subset. Inline renderer catalogs remain disabled.
+
 ## Ordered resource transport
 
 After successful negotiation, a tool result may link to an A2UI message stream as follows:
@@ -57,7 +59,7 @@ Malformed capability declarations fail closed. If the binding was negotiated but
 
 - `@mcp-native/core` validates prefixed extension maps and computes mutual support without inspecting metadata or MIME types.
 - `@mcp-native/mcp` advertises host-approved client settings and exposes validated server settings from the official SDK.
-- `@mcp-native/a2ui` exports the exact identifier, settings, pinned revision, transport constants, exact-match negotiator, JSONL envelope parser, ordered surface store, policy-gated `getValidated`, `resolveA2uiV1JsonlFromToolResult`, and a closed builder for the official renderer `action` envelope. The resolver requires the exact negotiated grant as an argument and rejects fallback or forged settings before reading a resource.
+- `@mcp-native/a2ui` exports the exact identifier, settings, pinned revision, transport constants, exact-match binding negotiator, strict A2UI capability parsers and catalog-overlap negotiator, JSONL envelope parser, ordered surface store, policy-gated `getValidated`, `resolveA2uiV1JsonlFromToolResult`, and a closed builder for the official renderer `action` envelope. The resolver requires the exact negotiated binding grant as an argument and rejects fallback or forged settings before reading a resource.
 - The custom `0.1` surface resolver remains a separate proof-of-concept input. It is not the JSONL protocol consumer described here.
 - Callers must negotiate the binding before using the v1 JSONL resolver; MIME type alone does not grant the transport. Invalid v1 streams fail closed and never fall through to `0.1` or HTML.
 

@@ -108,6 +108,26 @@ const result = negotiateA2uiMcpBinding(
 
 A fallback result means the host uses ordinary MCP text or structured data. A resource link, MIME type, or `_meta` value never activates the binding by itself. The exact capability exchange, ordered `resource-text-jsonl` mapping, and failure behavior are documented in the [project binding contract](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-mcp-binding.md).
 
+## A2UI v1 catalog capabilities
+
+A2UI's agent and renderer capability objects are separate from the project-owned MCP binding settings. Parse peer metadata and negotiate only exact shared catalog IDs:
+
+```ts
+import {
+  createA2uiV1RendererCapabilities,
+  negotiateA2uiV1Capabilities,
+  parseA2uiV1AgentCapabilities,
+} from "@mcp-native/a2ui";
+
+const rendererCapabilities = createA2uiV1RendererCapabilities({
+  supportedCatalogIds: ["https://example.com/catalogs/native-v1"],
+});
+const agentCapabilities = parseA2uiV1AgentCapabilities(untrustedAgentMetadata);
+const catalogs = negotiateA2uiV1Capabilities(agentCapabilities, rendererCapabilities);
+```
+
+These APIs close fields the pinned schemas leave permissive, require the protocol's normative agent catalog list, reject empty or duplicate IDs, and keep inline catalogs disabled. A host must advertise only catalogs it fully implements. The current React Native adapter supports only a subset of the pinned basic catalog, so that subset alone is not grounds to advertise the complete basic catalog ID.
+
 ## Official v1.0 envelopes and surface store
 
 After mutual negotiation, hosts can resolve a JSONL resource and apply lifecycle envelopes:
@@ -164,6 +184,8 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 | `A2UI_MCP_EXTENSION_ID`, `A2UI_MCP_EXTENSION_CAPABILITIES`                                                | Exact project-owned extension declaration.                            |
 | `negotiateA2uiMcpBinding`, `A2uiMcpBindingNegotiation`, `A2uiMcpBindingGrant`                             | Exact-match negotiation with typed fallback reasons.                  |
 | `A2UI_MCP_BINDING_VERSION`, `A2UI_MCP_PROTOCOL_VERSION`, `A2UI_MCP_SCHEMA_REVISION`, `A2UI_MCP_TRANSPORT` | Pinned binding and Candidate transport values.                        |
+| `parseA2uiV1AgentCapabilities`, `parseA2uiV1RendererCapabilities`                                         | Strict pinned-schema capability metadata boundaries.                  |
+| `createA2uiV1RendererCapabilities`, `negotiateA2uiV1Capabilities`                                         | Host-owned declarations and exact shared-catalog negotiation.         |
 | `parseA2uiV1Envelope`, `parseA2uiV1Jsonl`                                                                 | Schema-validate v1 lifecycle envelopes and JSONL batches.             |
 | `A2uiSurfaceStore`                                                                                        | Ordered lifecycle state plus policy-gated `getValidated`.             |
 | `createA2uiV1BasicCatalogPolicy`, `A2uiV1SurfaceValidationPolicy`                                         | Explicit host allowlists for components, events, and functions.       |
@@ -188,6 +210,7 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 - Parsing never resolves components or executes server-provided code.
 - Renderer action construction selects a closed field set, owns its JSON context and metadata, and validates the official pinned renderer-to-agent schema.
 - Renderer-ready v1 snapshots require a complete acyclic root-reachable graph and explicit host allowlists.
+- Capability metadata rejects unknown versions and fields, empty or duplicate catalog IDs, non-JSON values, and inline catalog definitions.
 - Relative bindings and `@index` are accepted only inside dynamic-list template context.
 - Catalog functions and agent events are denied unless named by host policy.
 - `formatString` is accepted only when explicitly allowlisted and its `value` is a literal string. Its interpolation language is parsed with depth, expression-count, and cumulative-source limits; every embedded binding and named function call is validated against template scope, the host allowlist, and the pinned catalog schema. Runtime-provided format sources are rejected because their interpolations cannot be inspected before rendering. This validation does not execute renderer functions.
