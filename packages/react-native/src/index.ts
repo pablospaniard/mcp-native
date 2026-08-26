@@ -47,8 +47,21 @@ export interface NativeAccessibilityProps {
   readonly importantForAccessibility?: "auto" | "no-hide-descendants";
 }
 
+export interface NativeViewStyle {
+  readonly alignItems?: "center" | "flex-end" | "flex-start" | "stretch";
+  readonly flexDirection: "column" | "row";
+  readonly justifyContent?:
+    | "center"
+    | "flex-end"
+    | "flex-start"
+    | "space-around"
+    | "space-between"
+    | "space-evenly";
+}
+
 export interface NativeViewComponentProps extends NativeAccessibilityProps {
   readonly children?: ReactNode;
+  readonly style?: NativeViewStyle;
 }
 
 export interface NativeTextComponentProps extends NativeAccessibilityProps {
@@ -63,8 +76,11 @@ export interface NativeButtonComponentProps extends NativeAccessibilityProps {
 
 export interface NativeTextInputComponentProps extends NativeAccessibilityProps {
   readonly accessibilityLabel: string;
+  readonly keyboardType?: "numeric";
+  readonly multiline?: boolean;
   readonly onChangeText?: (value: string) => void;
   readonly placeholder: string;
+  readonly secureTextEntry?: boolean;
   readonly value?: string;
 }
 
@@ -320,12 +336,18 @@ function renderElement(
 ): ReactElement {
   const accessibilityProps = selectAccessibilityProps(element);
   switch (element.component) {
-    case "View":
+    case "View": {
+      const style = selectViewStyle(element);
       return createElement(
         components.View,
-        { key: element.key, ...accessibilityProps },
+        {
+          key: element.key,
+          ...accessibilityProps,
+          ...(style === undefined ? {} : { style }),
+        },
         element.children?.map((child) => renderElement(child, components, handlers)),
       );
+    }
     case "Text":
       return createElement(components.Text, {
         key: element.key,
@@ -349,10 +371,12 @@ function renderElement(
       const placeholder = optionalStringProp(element, "placeholder") ?? label;
       const value = optionalStringProp(element, "value");
       const binding = optionalStringProp(element, "binding");
+      const behaviorProps = selectTextInputBehaviorProps(element);
       return createElement(components.TextInput, {
         key: element.key,
         accessibilityLabel: accessibilityProps.accessibilityLabel ?? label,
         ...accessibilityProps,
+        ...behaviorProps,
         placeholder,
         ...(value === undefined ? {} : { value }),
         ...(binding === undefined || handlers.onBindingChange === undefined
@@ -362,6 +386,92 @@ function renderElement(
             }),
       });
     }
+  }
+}
+
+function selectViewStyle(element: NativeElement): NativeViewStyle | undefined {
+  const layout = optionalStringProp(element, "layout");
+  const justify = optionalStringProp(element, "justify");
+  const align = optionalStringProp(element, "align");
+  if (layout === undefined) {
+    if (justify !== undefined || align !== undefined) {
+      throw new TypeError(`Missing layout at native element ${element.key}`);
+    }
+    return undefined;
+  }
+  if (layout !== "column" && layout !== "row") {
+    throw new TypeError(
+      `Unsupported layout ${JSON.stringify(layout)} at native element ${element.key}`,
+    );
+  }
+  return {
+    flexDirection: layout,
+    ...(justify === undefined ? {} : { justifyContent: mapJustifyContent(justify, element.key) }),
+    ...(align === undefined ? {} : { alignItems: mapAlignItems(align, element.key) }),
+  };
+}
+
+function mapJustifyContent(
+  value: string,
+  elementKey: string,
+): NonNullable<NativeViewStyle["justifyContent"]> {
+  switch (value) {
+    case "start":
+      return "flex-start";
+    case "end":
+      return "flex-end";
+    case "center":
+      return "center";
+    case "spaceAround":
+      return "space-around";
+    case "spaceBetween":
+      return "space-between";
+    case "spaceEvenly":
+      return "space-evenly";
+    default:
+      throw new TypeError(
+        `Unsupported justify value ${JSON.stringify(value)} at native element ${elementKey}`,
+      );
+  }
+}
+
+function mapAlignItems(
+  value: string,
+  elementKey: string,
+): NonNullable<NativeViewStyle["alignItems"]> {
+  switch (value) {
+    case "start":
+      return "flex-start";
+    case "end":
+      return "flex-end";
+    case "center":
+    case "stretch":
+      return value;
+    default:
+      throw new TypeError(
+        `Unsupported align value ${JSON.stringify(value)} at native element ${elementKey}`,
+      );
+  }
+}
+
+function selectTextInputBehaviorProps(
+  element: NativeElement,
+): Pick<NativeTextInputComponentProps, "keyboardType" | "multiline" | "secureTextEntry"> {
+  const variant = optionalStringProp(element, "variant");
+  switch (variant) {
+    case undefined:
+    case "shortText":
+      return {};
+    case "longText":
+      return { multiline: true };
+    case "number":
+      return { keyboardType: "numeric" };
+    case "obscured":
+      return { secureTextEntry: true };
+    default:
+      throw new TypeError(
+        `Unsupported text input variant ${JSON.stringify(variant)} at native element ${element.key}`,
+      );
   }
 }
 

@@ -220,6 +220,73 @@ test("mounted v1 actions omit the local model unless sendDataModel is enabled", 
   await act(async () => root.unmount());
 });
 
+test("mounted v1 surfaces apply container layout and TextField variants", async () => {
+  const surface = createSurface(
+    [
+      {
+        id: "root",
+        component: "Row",
+        children: ["secret", "amount", "notes"],
+        justify: "spaceBetween",
+        align: "end",
+      },
+      {
+        id: "secret",
+        component: "TextField",
+        label: "Password",
+        value: { path: "/secret" },
+        variant: "obscured",
+      },
+      {
+        id: "amount",
+        component: "TextField",
+        label: "Amount",
+        value: { path: "/amount" },
+        variant: "number",
+      },
+      {
+        id: "notes",
+        component: "TextField",
+        label: "Notes",
+        value: { path: "/notes" },
+        variant: "longText",
+      },
+    ],
+    { secret: "hidden", amount: "42", notes: "Details" },
+  );
+  const root = createRoot();
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy: nativePolicy(),
+        components: nativeComponents,
+        onAction() {},
+      }),
+    );
+  });
+
+  const view = root.container.queryAll((element) => element.type === "View")[0];
+  assert.deepEqual(view.props.style, {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  });
+  assert.equal("layout" in view.props, false);
+  assert.equal("justify" in view.props, false);
+  assert.equal("align" in view.props, false);
+
+  const inputs = root.container.queryAll((element) => element.type === "TextInput");
+  assert.equal(inputs[0].props.secureTextEntry, true);
+  assert.equal(inputs[1].props.keyboardType, "numeric");
+  assert.equal(inputs[2].props.multiline, true);
+  for (const input of inputs) {
+    assert.equal("variant" in input.props, false);
+  }
+  await act(async () => root.unmount());
+});
+
 test("mounted v1 interactions reject malformed local values and timestamps", async () => {
   const surface = createSurface(
     [
@@ -490,6 +557,20 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
       ]),
       policy: nativePolicy({ allowedFunctionNames: ["formatNumber"] }),
       message: /does not execute function "formatNumber"/,
+    },
+    {
+      name: "unsupported main-axis stretch",
+      surface: createSurface([
+        {
+          id: "root",
+          component: "Row",
+          children: ["child"],
+          justify: "stretch",
+        },
+        { id: "child", component: "Text", text: "Child" },
+      ]),
+      policy: nativePolicy(),
+      message: /does not support main-axis stretch.*root\.justify/,
     },
     {
       name: "missing binding",

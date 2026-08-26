@@ -177,7 +177,13 @@ function adaptContainer(
     props.variant = variant;
   }
   if (component.justify !== undefined) {
-    props.justify = expectString(component.justify, `components.${component.id}.justify`);
+    const justify = expectString(component.justify, `components.${component.id}.justify`);
+    if (justify === "stretch") {
+      throw new A2uiParseError(
+        `A2UI native adapter does not support main-axis stretch at components.${component.id}.justify`,
+      );
+    }
+    props.justify = justify;
   }
   if (component.align !== undefined) {
     props.align = expectString(component.align, `components.${component.id}.align`);
