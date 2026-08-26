@@ -10,9 +10,15 @@ import type {
   A2uiV1SurfaceState,
   A2uiV1SurfaceValidationPolicy,
 } from "@mcp-native/a2ui";
-import { JSON_MAX_VALUES, parseJsonObject, parseJsonValue } from "@mcp-native/core";
+import {
+  JSON_MAX_STRING_LENGTH,
+  JSON_MAX_VALUES,
+  parseJsonObject,
+  parseJsonValue,
+} from "@mcp-native/core";
 import type { JsonObject, JsonValue } from "@mcp-native/core";
 
+import { ISO_4217_CURRENCY_CODES } from "./iso-4217.js";
 import type { NativeElement } from "./index.js";
 
 export const A2UI_V1_NATIVE_COMPONENT_NAMES = Object.freeze([
@@ -42,11 +48,15 @@ export interface A2uiV1NativeEventDescriptor {
 export interface A2uiV1NativeRenderPlanOptions {
   /** Host-owned renderer-local data model used for this render pass. */
   readonly dataModel?: JsonObject;
+  /** Host-owned BCP 47 locale for renderer-side localization. Defaults to the runtime locale. */
+  readonly locale?: string;
 }
 
 export interface A2uiV1NativeEventResolutionOptions {
   /** Required when one template component expands into multiple reachable event sources. */
   readonly instanceKey?: string;
+  /** Must match the locale used to render localized event values. */
+  readonly locale?: string;
 }
 
 interface BindingScope {
@@ -58,6 +68,8 @@ interface BindingScope {
 interface AdapterContext {
   readonly surface: A2uiV1SurfaceState;
   readonly dataModel: JsonObject;
+  readonly locale: string | undefined;
+  readonly numberFormats: Map<string, Intl.NumberFormat>;
   readonly visiting: Set<string>;
   formatStringExpressionCount: number;
   formattedStringLength: number;
@@ -73,7 +85,13 @@ export function createA2uiV1NativeRenderPlan(
   policy: A2uiV1SurfaceValidationPolicy,
   options: A2uiV1NativeRenderPlanOptions = {},
 ): NativeElement {
-  const context = createAdapterContext(surface, policy, options.dataModel);
+  const parsedOptions = parseRenderPlanOptions(options);
+  const context = createAdapterContext(
+    surface,
+    policy,
+    parsedOptions.dataModel,
+    parsedOptions.locale,
+  );
   return adaptComponent("root", "root", context, undefined);
 }
 
@@ -88,29 +106,12 @@ export function resolveA2uiV1NativeEvent(
   if (typeof sourceComponentId !== "string" || sourceComponentId.length === 0) {
     throw new A2uiParseError("Expected a non-empty A2UI source component id");
   }
-  const context = createAdapterContext(surface, policy, dataModel);
-  if (options === null || typeof options !== "object" || Array.isArray(options)) {
-    throw new A2uiParseError("Expected A2UI native event resolution options to be an object");
-  }
-  const optionsPrototype = Object.getPrototypeOf(options);
-  if (optionsPrototype !== Object.prototype && optionsPrototype !== null) {
-    throw new A2uiParseError("Expected plain A2UI native event resolution options");
-  }
-  const optionKeys = Object.keys(options);
-  const unknownOption = optionKeys.find((key) => key !== "instanceKey");
-  if (unknownOption !== undefined) {
-    throw new A2uiParseError(
-      `Unexpected A2UI native event resolution option ${JSON.stringify(unknownOption)}`,
-    );
-  }
-  const instanceKey = options.instanceKey as unknown;
-  if (instanceKey !== undefined && (typeof instanceKey !== "string" || instanceKey.length === 0)) {
-    throw new A2uiParseError("Expected a non-empty A2UI native event instance key");
-  }
+  const parsedOptions = parseEventResolutionOptions(options);
+  const context = createAdapterContext(surface, policy, dataModel, parsedOptions.locale);
   const events = findNativeEvents(
     adaptComponent("root", "root", context, undefined),
     sourceComponentId,
-    instanceKey,
+    parsedOptions.instanceKey,
   );
   if (events.length === 0) {
     throw new A2uiParseError(
@@ -148,6 +149,7 @@ function createAdapterContext(
   surface: A2uiV1SurfaceState,
   policy: A2uiV1SurfaceValidationPolicy,
   dataModel: JsonObject | undefined,
+  locale: string | undefined,
 ): AdapterContext {
   const localDataModel =
     dataModel === undefined
@@ -160,11 +162,86 @@ function createAdapterContext(
   return {
     surface: validated,
     dataModel: parseJsonObject(validated.dataModel, "surface.dataModel"),
+    locale,
+    numberFormats: new Map<string, Intl.NumberFormat>(),
     visiting: new Set<string>(),
     formatStringExpressionCount: 0,
     formattedStringLength: 0,
     renderNodeCount: 0,
   };
+}
+
+function parseRenderPlanOptions(options: unknown): A2uiV1NativeRenderPlanOptions {
+  const parsed = parseOptionsObject(options, "A2UI native render plan options", [
+    "dataModel",
+    "locale",
+  ]);
+  return {
+    ...(parsed.dataModel === undefined
+      ? {}
+      : { dataModel: parseJsonObject(parsed.dataModel, "options.dataModel") }),
+    ...(parsed.locale === undefined
+      ? {}
+      : { locale: parseLocale(parsed.locale, "options.locale") }),
+  };
+}
+
+function parseEventResolutionOptions(options: unknown): A2uiV1NativeEventResolutionOptions {
+  const parsed = parseOptionsObject(options, "A2UI native event resolution options", [
+    "instanceKey",
+    "locale",
+  ]);
+  if (
+    parsed.instanceKey !== undefined &&
+    (typeof parsed.instanceKey !== "string" || parsed.instanceKey.length === 0)
+  ) {
+    throw new A2uiParseError("Expected a non-empty A2UI native event instance key");
+  }
+  return {
+    ...(parsed.instanceKey === undefined ? {} : { instanceKey: parsed.instanceKey }),
+    ...(parsed.locale === undefined
+      ? {}
+      : { locale: parseLocale(parsed.locale, "options.locale") }),
+  };
+}
+
+function parseOptionsObject(
+  value: unknown,
+  label: string,
+  allowedKeys: readonly string[],
+): Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new A2uiParseError(`Expected ${label} to be an object`);
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new A2uiParseError(`Expected plain ${label}`);
+  }
+  const parsed = value as Record<string, unknown>;
+  const unknownKey = Object.keys(parsed).find((key) => !allowedKeys.includes(key));
+  if (unknownKey !== undefined) {
+    throw new A2uiParseError(`Unexpected ${label.slice(0, -1)} ${JSON.stringify(unknownKey)}`);
+  }
+  return parsed;
+}
+
+function parseLocale(value: unknown, path: string): string {
+  if (typeof value !== "string" || value.length === 0 || value.length > 128) {
+    throw new A2uiParseError(`Expected a non-empty BCP 47 locale at ${path}`);
+  }
+  try {
+    if (Intl.NumberFormat.supportedLocalesOf(value, { localeMatcher: "lookup" }).length === 0) {
+      throw new A2uiParseError(`Unsupported BCP 47 locale ${JSON.stringify(value)} at ${path}`);
+    }
+    return new Intl.NumberFormat(value).resolvedOptions().locale;
+  } catch (cause) {
+    if (cause instanceof A2uiParseError) {
+      throw cause;
+    }
+    throw new A2uiParseError(`Invalid BCP 47 locale ${JSON.stringify(value)} at ${path}`, {
+      cause,
+    });
+  }
 }
 
 function adaptComponent(
@@ -577,6 +654,9 @@ function resolveDynamicValue(
           : resolveDynamicNumber(args.offset, `${path}.args.offset`, context, scope);
       return scope.index + offset;
     }
+    if (value.call === "formatNumber" || value.call === "formatCurrency") {
+      return resolveNumberFormat(value, path, context, scope);
+    }
     if (value.call === "formatString") {
       const args = expectObject(value.args, `${path}.args`);
       const source = expectString(args.value, `${path}.args.value`);
@@ -600,13 +680,7 @@ function resolveDynamicValue(
           }
         },
       );
-      context.formattedStringLength += result.length;
-      if (context.formattedStringLength > A2UI_V1_MAX_SOURCE_LENGTH) {
-        throw new A2uiParseError(
-          `Expanded A2UI native plan exceeds maximum formatted-string length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
-        );
-      }
-      return result;
+      return recordFormattedString(result, path, context);
     }
     throw new A2uiParseError(
       `A2UI native adapter does not execute function ${JSON.stringify(value.call)} at ${path}`,
@@ -634,6 +708,106 @@ function resolveDynamicNumber(
     throw new A2uiParseError(`Expected a finite number at ${path}`);
   }
   return resolved;
+}
+
+function resolveNumberFormat(
+  call: JsonObject & { readonly call: string },
+  path: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): string {
+  const args = expectObject(call.args, `${path}.args`);
+  const value = resolveDynamicNumber(args.value, `${path}.args.value`, context, scope);
+  const decimals =
+    args.decimals === undefined
+      ? undefined
+      : parseDecimalPlaces(
+          resolveDynamicNumber(args.decimals, `${path}.args.decimals`, context, scope),
+          `${path}.args.decimals`,
+        );
+  const grouping =
+    args.grouping === undefined
+      ? true
+      : resolveDynamicBoolean(args.grouping, `${path}.args.grouping`, context, scope);
+  const currency =
+    call.call === "formatCurrency"
+      ? parseCurrencyCode(
+          resolveDynamicString(args.currency, `${path}.args.currency`, context, scope),
+          `${path}.args.currency`,
+        )
+      : undefined;
+  const formatter = getNumberFormat(context, decimals, grouping, currency, path);
+  try {
+    return recordFormattedString(formatter.format(value), path, context);
+  } catch (cause) {
+    throw new A2uiParseError(
+      `A2UI native adapter could not execute ${JSON.stringify(call.call)} at ${path}`,
+      { cause },
+    );
+  }
+}
+
+function parseDecimalPlaces(value: number, path: string): number {
+  if (!Number.isSafeInteger(value) || value < 0 || value > 100) {
+    throw new A2uiParseError(`Expected decimal places from 0 through 100 at ${path}`);
+  }
+  return value;
+}
+
+function parseCurrencyCode(value: string, path: string): string {
+  const currency = value.toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency) || !ISO_4217_CURRENCY_CODES.has(currency)) {
+    throw new A2uiParseError(`Expected a current ISO 4217 currency code at ${path}`);
+  }
+  return currency;
+}
+
+function getNumberFormat(
+  context: AdapterContext,
+  decimals: number | undefined,
+  grouping: boolean,
+  currency: string | undefined,
+  path: string,
+): Intl.NumberFormat {
+  const key = JSON.stringify([
+    context.locale ?? null,
+    currency ?? null,
+    decimals ?? null,
+    grouping,
+  ]);
+  const cached = context.numberFormats.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const options: Intl.NumberFormatOptions = {
+    useGrouping: grouping,
+    ...(currency === undefined ? {} : { style: "currency", currency }),
+    ...(decimals === undefined
+      ? {}
+      : { minimumFractionDigits: decimals, maximumFractionDigits: decimals }),
+  };
+  try {
+    const formatter = new Intl.NumberFormat(context.locale, options);
+    context.numberFormats.set(key, formatter);
+    return formatter;
+  } catch (cause) {
+    throw new A2uiParseError(`Invalid number-format options at ${path}`, { cause });
+  }
+}
+
+function recordFormattedString(value: string, path: string, context: AdapterContext): string {
+  if (value.length > JSON_MAX_STRING_LENGTH) {
+    throw new A2uiParseError(
+      `A2UI formatted output at ${path} exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
+    );
+  }
+  context.formattedStringLength += value.length;
+  if (context.formattedStringLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum formatted-string length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
+    );
+  }
+  return value;
 }
 
 function resolveJsonPointer(document: JsonValue, pointer: string, path: string): JsonValue {

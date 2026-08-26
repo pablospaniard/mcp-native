@@ -118,6 +118,8 @@ export interface A2uiV1NativeSurfaceProps {
   /** Observes renderer-local state changes without turning keystrokes into network calls. */
   readonly onDataModelChange?: (dataModel: JsonObject) => void;
   readonly actionMetadata?: JsonObject;
+  /** Host-selected BCP 47 locale for renderer-side number and currency formatting. */
+  readonly locale?: string;
   /** Injectable RFC 3339 timestamp source for host clocks and deterministic tests. */
   readonly now?: () => string;
 }
@@ -189,6 +191,7 @@ export function A2uiV1NativeSurface({
   onAction,
   onDataModelChange,
   actionMetadata,
+  locale,
   now = currentTimestamp,
 }: A2uiV1NativeSurfaceProps): ReactElement {
   const validatedSurface = useMemo(
@@ -216,8 +219,12 @@ export function A2uiV1NativeSurface({
   }, [sourceDataModel, sourceDataModelKey]);
 
   const plan = useMemo(
-    () => createA2uiV1NativeRenderPlan(validatedSurface, policy, { dataModel }),
-    [dataModel, policy, validatedSurface],
+    () =>
+      createA2uiV1NativeRenderPlan(validatedSurface, policy, {
+        dataModel,
+        ...(locale === undefined ? {} : { locale }),
+      }),
+    [dataModel, locale, policy, validatedSurface],
   );
   const handleBindingChange = useCallback(
     (binding: string, value: string) => {
@@ -236,7 +243,10 @@ export function A2uiV1NativeSurface({
         policy,
         event.sourceComponentId,
         currentDataModel,
-        event.instanceKey === undefined ? {} : { instanceKey: event.instanceKey },
+        {
+          ...(event.instanceKey === undefined ? {} : { instanceKey: event.instanceKey }),
+          ...(locale === undefined ? {} : { locale }),
+        },
       );
       const envelope = createA2uiV1ActionEnvelope({
         name: resolved.name,
@@ -253,7 +263,7 @@ export function A2uiV1NativeSurface({
         onAction(envelope);
       }
     },
-    [actionMetadata, now, onAction, policy, validatedSurface],
+    [actionMetadata, locale, now, onAction, policy, validatedSurface],
   );
 
   return renderElement(plan, components, {

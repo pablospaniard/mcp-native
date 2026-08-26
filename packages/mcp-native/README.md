@@ -110,6 +110,7 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - strict A2UI resource-link resolution from tool results;
 - strict A2UI v1 catalog-capability parsing and overlap negotiation;
 - bounded A2UI v1 dynamic lists with relative renderer-local bindings and `@index`;
+- host-localized A2UI v1 number and currency formatting;
 - trusted render plans for `View`, `Text`, `Button`, and `TextInput`;
 - mounting through host-provided components with action and text-binding event translation;
 - memoized render-plan and safely observed asynchronous action-dispatch hooks;
@@ -118,7 +119,7 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - pinned current-protocol integration coverage through the SDK HTTP handler/fetch path;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-The supported A2UI v1 native subset now includes renderer-local absolute and dynamic-list-relative string bindings, bounded `formatString`, template-instance action resolution, `@index` with offsets, host-callback action envelopes, and closed catalog-capability metadata with inline catalogs disabled. Remaining renderer functions and checks, full streaming host integration, transport placement for A2UI capability objects, authentication helpers, and a runnable mobile demo remain incomplete. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
+The supported A2UI v1 native subset now includes renderer-local absolute and dynamic-list-relative string bindings, bounded `formatString`, host-localized `formatNumber` and `formatCurrency`, template-instance action resolution, `@index` with offsets, host-callback action envelopes, and closed catalog-capability metadata with inline catalogs disabled. Remaining renderer functions and checks, full streaming host integration, transport placement for A2UI capability objects, authentication helpers, and a runnable mobile demo remain incomplete. Follow the [roadmap](https://github.com/pablospaniard/mcp-native#roadmap) for progress.
 
 ## Security model
 

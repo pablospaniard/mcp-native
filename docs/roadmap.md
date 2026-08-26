@@ -58,7 +58,7 @@ Exit criterion: UI protocols can determine mutual support without guessing from 
 
 ## Milestone 3: A2UI v1.0 Candidate adapter
 
-Status: partial — schemas, lifecycle store, capability negotiation, bounded semantic validation, and native-plan adaptation with dynamic lists and `formatString`.
+Status: partial — schemas, lifecycle store, capability negotiation, bounded semantic validation, and native-plan adaptation with dynamic lists plus string, number, and currency formatting.
 
 - [x] Verify a pinned official JSON Schema bundle.
 - [x] Parse official `v1.0` agent-to-renderer lifecycle envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`); renderer-to-agent parsing remains deferred.
@@ -68,8 +68,9 @@ Status: partial — schemas, lifecycle store, capability negotiation, bounded se
 - [x] Validate closed renderer and agent capability metadata beyond schema checks, require normative catalog declarations, negotiate exact catalog overlap, and keep inline catalogs disabled.
 - [x] Expand bounded dynamic `List` templates, resolve template-relative bindings into renderer-local state, evaluate `@index`, and retain template-instance identity through dispatch-time action resolution.
 - [x] Execute literal `formatString` with bounded interpolation, official JSON coercion, nested supported expressions, renderer-local state, and `@index` offsets.
+- [x] Execute host-localized `formatNumber` and `formatCurrency` with dynamic arguments, bounded output, validated locale/precision/currency options, nested interpolation, and dispatch-time state.
 - [ ] Validate and execute remaining renderer functions and renderer checks plus platform accessibility behavior.
-- [x] Adapt the supported component subset, container alignment, absolute data bindings, dynamic lists, and `formatString` into the existing trusted native render plan; remaining renderer functions and renderer-side checks remain deferred.
+- [x] Adapt the supported component subset, container alignment, absolute data bindings, dynamic lists, and supported formatting functions into the existing trusted native render plan; remaining renderer functions and renderer-side checks remain deferred.
 - [x] Add official examples, negative fixtures, and lifecycle tests for the implemented parse/store path; broader interoperability remains deferred.
 
 Exit criterion: conformance is reported per implemented A2UI feature against the pinned Candidate revision; the custom `0.1` input is deprecated or made explicitly internal.
