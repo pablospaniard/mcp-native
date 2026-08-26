@@ -97,7 +97,7 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | HTML policy primitives for the planned MCP Apps compatibility path         |
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                    |
 
-The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. Release `0.1.0` is the first coordinated experimental API baseline. Its package version is independent of the internal A2UI proof-of-concept surface value `"0.1"`.
+The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. Release `0.2.0` adds the first standards-pinned A2UI v1 Candidate path on top of the coordinated experimental API baseline. Its package version is independent of the internal A2UI proof-of-concept surface value `"0.1"`.
 
 ## Installation
 
