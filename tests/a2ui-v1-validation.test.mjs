@@ -144,6 +144,20 @@ test("the public snapshot validator reconstructs untyped input into owned schema
       ),
     (error) => error instanceof A2uiParseError && /Unexpected.*snapshot field/.test(error.message),
   );
+  assert.throws(
+    () =>
+      validateA2uiV1SurfaceState(
+        {
+          surfaceId: "forged",
+          sendDataModel: false,
+          dataModelRevision: -1,
+          components: new Map([["root", { id: "root", component: "Text", text: "Hello" }]]),
+          dataModel: {},
+        },
+        basicPolicy(),
+      ),
+    (error) => error instanceof A2uiParseError && /dataModelRevision/.test(error.message),
+  );
 
   const source = createStore([{ id: "root", component: "Text", text: "Original" }]).get(
     "validated",
@@ -153,6 +167,7 @@ test("the public snapshot validator reconstructs untyped input into owned schema
   source.dataModel.changed = true;
   assert.equal(validated.components.get("root")?.text, "Original");
   assert.equal(validated.dataModel.changed, undefined);
+  assert.equal(validated.dataModelRevision, 0);
 });
 
 test("component graph validation rejects missing children and reachable cycles", async (t) => {

@@ -46,6 +46,7 @@ for (const file of actualFiles) {
 const runtimeCopies = new Map([
   ["json/agent_to_renderer.json", "agent_to_renderer.json"],
   ["json/common_types.json", "common_types.json"],
+  ["json/renderer_to_agent.json", "renderer_to_agent.json"],
   ["catalogs/basic/catalog.json", "catalog.json"],
 ]);
 const runtimeDirectory = join("packages", "a2ui", "src", "v1", "vendor");

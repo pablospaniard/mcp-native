@@ -32,6 +32,7 @@ export {
   A2UI_V1_MAX_COMPONENTS,
   A2UI_V1_MAX_SURFACES,
   A2uiSurfaceStore,
+  createA2uiV1ActionEnvelope,
   createA2uiV1BasicCatalogPolicy,
   parseA2uiV1Envelope,
   parseA2uiV1Jsonl,
@@ -39,6 +40,9 @@ export {
   validateA2uiV1SurfaceState,
 } from "./v1/index.js";
 export type {
+  A2uiV1Action,
+  A2uiV1ActionEnvelope,
+  A2uiV1ActionEnvelopeInput,
   A2uiV1BasicCatalogPolicyOptions,
   A2uiV1Component,
   A2uiV1CreateSurfaceEnvelope,

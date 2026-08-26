@@ -138,7 +138,7 @@ const surface = store.getValidated(
 );
 ```
 
-Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` envelopes are accepted in this milestone. Raw store snapshots may be incomplete while ordered updates arrive. The store bounds retained surfaces and components; `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, and component placement rules. The React Native package adapts the supported static subset after revalidation. Function-call envelopes, dynamic templates, mounted v1 interactions, and renderer-to-agent messages remain deferred. The custom `0.1` resolver is unchanged and never receives a failed v1 stream.
+Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` agent-to-renderer envelopes are accepted by the lifecycle parser. Raw store snapshots may be incomplete while ordered updates arrive. Store snapshots include a host-owned `dataModelRevision` that changes only after an accepted agent data-model update, allowing renderers to preserve local edits across equivalent fresh snapshots. The store bounds retained surfaces and components; `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, and component placement rules. The React Native package adapts and mounts the supported static subset after revalidation. `createA2uiV1ActionEnvelope` constructs the supported renderer-to-agent action envelope from resolved, host-owned input; the host remains responsible for transport delivery. Function-call envelopes, dynamic templates, and the remaining renderer-to-agent message kinds remain deferred. The custom `0.1` resolver is unchanged and never receives a failed v1 stream.
 
 ## Supported surface
 
@@ -153,27 +153,28 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 
 ## Public API
 
-| Export                                                                                                    | Purpose                                                          |
-| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `resolveA2uiResourceFromToolResult`                                                                       | Reads and parses the single explicit A2UI link in a tool result. |
-| `parseA2uiSurface`                                                                                        | Validates input and returns a typed `A2uiSurface`.               |
-| `A2uiResourceError`, `A2uiParseError`                                                                     | Specific resolution and parsing failures.                        |
-| `A2UI_MIME_TYPE`, `A2UI_VERSION`                                                                          | Exact media type and current proof-of-concept version.           |
-| `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                                                                        | Container-tree complexity limits.                                |
-| `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH`                                                        | Serialized-input and string-field limits.                        |
-| `A2UI_MCP_EXTENSION_ID`, `A2UI_MCP_EXTENSION_CAPABILITIES`                                                | Exact project-owned extension declaration.                       |
-| `negotiateA2uiMcpBinding`, `A2uiMcpBindingNegotiation`, `A2uiMcpBindingGrant`                             | Exact-match negotiation with typed fallback reasons.             |
-| `A2UI_MCP_BINDING_VERSION`, `A2UI_MCP_PROTOCOL_VERSION`, `A2UI_MCP_SCHEMA_REVISION`, `A2UI_MCP_TRANSPORT` | Pinned binding and Candidate transport values.                   |
-| `parseA2uiV1Envelope`, `parseA2uiV1Jsonl`                                                                 | Schema-validate v1 lifecycle envelopes and JSONL batches.        |
-| `A2uiSurfaceStore`                                                                                        | Ordered lifecycle state plus policy-gated `getValidated`.        |
-| `createA2uiV1BasicCatalogPolicy`, `A2uiV1SurfaceValidationPolicy`                                         | Explicit host allowlists for components, events, and functions.  |
-| `validateA2uiV1SurfaceState`                                                                              | Revalidate a complete snapshot at another public trust boundary. |
-| `A2UI_V1_BASIC_CATALOG_ID`, catalog name constants                                                        | Exact pinned catalog identity and selectable host capabilities.  |
-| `resolveA2uiV1JsonlFromToolResult`, `ResolvedA2uiV1JsonlResource`                                         | Resolve a JSONL A2UI resource without using the `0.1` parser.    |
-| `A2UI_V1_PROTOCOL_VERSION`, `A2UI_V1_MAX_SOURCE_LENGTH`, `A2UI_V1_MAX_ENVELOPES`, store limit constants   | v1 protocol and complexity limits.                               |
-| `ResolvedA2uiResource`                                                                                    | URI, MIME type, and validated surface returned by the resolver.  |
-| `A2uiSurface`, `A2uiNode`                                                                                 | Validated surface and node unions.                               |
-| Node interfaces                                                                                           | Typed container, text, button, and text-input nodes.             |
+| Export                                                                                                    | Purpose                                                               |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `resolveA2uiResourceFromToolResult`                                                                       | Reads and parses the single explicit A2UI link in a tool result.      |
+| `parseA2uiSurface`                                                                                        | Validates input and returns a typed `A2uiSurface`.                    |
+| `A2uiResourceError`, `A2uiParseError`                                                                     | Specific resolution and parsing failures.                             |
+| `A2UI_MIME_TYPE`, `A2UI_VERSION`                                                                          | Exact media type and current proof-of-concept version.                |
+| `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                                                                        | Container-tree complexity limits.                                     |
+| `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH`                                                        | Serialized-input and string-field limits.                             |
+| `A2UI_MCP_EXTENSION_ID`, `A2UI_MCP_EXTENSION_CAPABILITIES`                                                | Exact project-owned extension declaration.                            |
+| `negotiateA2uiMcpBinding`, `A2uiMcpBindingNegotiation`, `A2uiMcpBindingGrant`                             | Exact-match negotiation with typed fallback reasons.                  |
+| `A2UI_MCP_BINDING_VERSION`, `A2UI_MCP_PROTOCOL_VERSION`, `A2UI_MCP_SCHEMA_REVISION`, `A2UI_MCP_TRANSPORT` | Pinned binding and Candidate transport values.                        |
+| `parseA2uiV1Envelope`, `parseA2uiV1Jsonl`                                                                 | Schema-validate v1 lifecycle envelopes and JSONL batches.             |
+| `A2uiSurfaceStore`                                                                                        | Ordered lifecycle state plus policy-gated `getValidated`.             |
+| `createA2uiV1BasicCatalogPolicy`, `A2uiV1SurfaceValidationPolicy`                                         | Explicit host allowlists for components, events, and functions.       |
+| `validateA2uiV1SurfaceState`                                                                              | Revalidate a complete snapshot at another public trust boundary.      |
+| `createA2uiV1ActionEnvelope`, `A2uiV1ActionEnvelope`                                                      | Construct an owned, pinned-schema renderer action for host transport. |
+| `A2UI_V1_BASIC_CATALOG_ID`, catalog name constants                                                        | Exact pinned catalog identity and selectable host capabilities.       |
+| `resolveA2uiV1JsonlFromToolResult`, `ResolvedA2uiV1JsonlResource`                                         | Resolve a JSONL A2UI resource without using the `0.1` parser.         |
+| `A2UI_V1_PROTOCOL_VERSION`, `A2UI_V1_MAX_SOURCE_LENGTH`, `A2UI_V1_MAX_ENVELOPES`, store limit constants   | v1 protocol and complexity limits.                                    |
+| `ResolvedA2uiResource`                                                                                    | URI, MIME type, and validated surface returned by the resolver.       |
+| `A2uiSurface`, `A2uiNode`                                                                                 | Validated surface and node unions.                                    |
+| Node interfaces                                                                                           | Typed container, text, button, and text-input nodes.                  |
 
 ## Security behavior
 
@@ -185,6 +186,7 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 - Tool arguments are recursively constrained to finite, acyclic JSON values in plain objects.
 - JSON keys such as `__proto__` are preserved as ordinary own data properties without changing object prototypes.
 - Parsing never resolves components or executes server-provided code.
+- Renderer action construction selects a closed field set, owns its JSON context and metadata, and validates the official pinned renderer-to-agent schema.
 - Renderer-ready v1 snapshots require a complete acyclic root-reachable graph and explicit host allowlists.
 - Relative bindings and `@index` are accepted only inside dynamic-list template context.
 - Catalog functions and agent events are denied unless named by host policy.

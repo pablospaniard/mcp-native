@@ -61,27 +61,29 @@ Exit criterion: UI protocols can determine mutual support without guessing from 
 Status: partial — schemas, lifecycle store, bounded semantic validation, and static native-plan adaptation.
 
 - [x] Verify a pinned official JSON Schema bundle.
-- [x] Parse official `v1.0` agent-to-renderer lifecycle envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`); renderer-to-agent remains deferred.
+- [x] Parse official `v1.0` agent-to-renderer lifecycle envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`); renderer-to-agent parsing remains deferred.
 - [x] Implement ordered create, component update, data-model update, and delete behavior.
 - [x] Validate the pinned catalog identity, host component/event/function allowlists, reachable graph references and cycles, JSON Pointer syntax, template-relative bindings, and beyond-schema placement rules before rendering.
 - [x] Parse and validate literal `formatString` sources, including nested bindings and named function calls, against the pinned catalog, template context, host allowlist, and explicit complexity limits; reject runtime-provided format sources.
 - [ ] Validate remaining dynamic-value execution behavior, platform accessibility behavior, and renderer capability metadata beyond schema checks.
-- [x] Adapt the supported static component subset, container alignment, and absolute data bindings into the existing trusted native render plan; dynamic templates, renderer functions, renderer-side checks, and event mounting remain deferred.
+- [x] Adapt the supported static component subset, container alignment, and absolute data bindings into the existing trusted native render plan; dynamic templates, renderer functions, and renderer-side checks remain deferred.
 - [x] Add official examples, negative fixtures, and lifecycle tests for the implemented parse/store path; broader interoperability remains deferred.
 
 Exit criterion: conformance is reported per implemented A2UI feature against the pinned Candidate revision; the custom `0.1` input is deprecated or made explicitly internal.
 
 ## Milestone 4: production native renderer behavior
 
-- Add renderer-local data-model updates without network calls on each keystroke.
-- Resolve A2UI action context at dispatch time.
-- Add richer host-owned components and styling without unchecked prop spreading.
-- Implement explicit accessibility attributes and inferred fallbacks.
-- Test VoiceOver and Android accessibility behavior, dynamic type, focus, reduced motion, contrast, touch targets, orientation, and screen-reader actions.
-- Define the supported iOS and Android version matrix and exercise real host applications in simulator, emulator, and device CI where available.
-- Establish parse, update, render-latency, and memory budgets for supported surface sizes, with large-surface and rapid-update stress tests.
-- Add fuzz and property-based tests for protocol parsing, render-plan conversion, and renderer failure paths.
-- Target applicable WCAG 2.2 Level AA outcomes and document exceptions.
+Status: partial — renderer-local string bindings and action-envelope emission.
+
+- [x] Add renderer-local data-model updates without network calls on each keystroke.
+- [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
+- [ ] Add richer host-owned components and styling without unchecked prop spreading.
+- [x] Mount explicit label, description, live-region, and hidden accessibility attributes for the supported subset, with inferred button and input labels.
+- [ ] Test VoiceOver and Android accessibility behavior, dynamic type, focus, reduced motion, contrast, touch targets, orientation, and screen-reader actions.
+- [ ] Define the supported iOS and Android version matrix and exercise real host applications in simulator, emulator, and device CI where available.
+- [ ] Establish parse, update, render-latency, and memory budgets for supported surface sizes, with large-surface and rapid-update stress tests.
+- [ ] Add fuzz and property-based tests for protocol parsing, render-plan conversion, and renderer failure paths.
+- [ ] Target applicable WCAG 2.2 Level AA outcomes and document exceptions.
 
 Exit criterion: supported iOS and Android hosts render and interact with the supported A2UI subset accessibly, within documented performance budgets, and without weakening the component or capability boundary.
 

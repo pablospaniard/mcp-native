@@ -5,6 +5,7 @@ import addFormatsImport from "ajv-formats";
 import agentToRenderer from "./vendor/agent_to_renderer.json" with { type: "json" };
 import basicCatalog from "./vendor/catalog.json" with { type: "json" };
 import commonTypes from "./vendor/common_types.json" with { type: "json" };
+import rendererToAgent from "./vendor/renderer_to_agent.json" with { type: "json" };
 
 type AjvInstance = {
   addSchema(schema: object): unknown;
@@ -52,6 +53,7 @@ function addSchemaAs(ajv: AjvInstance, schema: Record<string, unknown>, id: stri
 
 let cachedValidate: ValidateFunction | undefined;
 let cachedFunctionValidate: ValidateFunction | undefined;
+let cachedRendererToAgentValidate: ValidateFunction | undefined;
 
 /** Compiles the pinned agent-to-renderer schema once with the basic catalog mapped in. */
 export function getA2uiV1EnvelopeValidator(): ValidateFunction {
@@ -85,6 +87,19 @@ export function getA2uiV1FunctionCallValidator(): ValidateFunction {
     ],
   });
   return cachedFunctionValidate;
+}
+
+/** Compiles the pinned renderer-to-agent schema once with its standard references. */
+export function getA2uiV1RendererToAgentValidator(): ValidateFunction {
+  if (cachedRendererToAgentValidate !== undefined) {
+    return cachedRendererToAgentValidate;
+  }
+
+  const common = commonTypes as Record<string, unknown>;
+  const catalog = basicCatalog as Record<string, unknown>;
+  const ajv = createCatalogAjv(common, catalog);
+  cachedRendererToAgentValidate = ajv.compile(stripDiscriminator(rendererToAgent) as object);
+  return cachedRendererToAgentValidate;
 }
 
 function createCatalogAjv(

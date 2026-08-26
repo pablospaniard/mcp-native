@@ -167,6 +167,7 @@ function reconstructSurfaceSnapshot(input: unknown): A2uiV1SurfaceState {
     "catalogId",
     "components",
     "dataModel",
+    "dataModelRevision",
     "metadata",
     "sendDataModel",
     "surfaceId",
@@ -183,6 +184,16 @@ function reconstructSurfaceSnapshot(input: unknown): A2uiV1SurfaceState {
     throw new A2uiParseError(
       `A2UI surface exceeds maximum of ${A2UI_V1_MAX_COMPONENTS} components`,
     );
+  }
+  const dataModelRevision = source.dataModelRevision;
+  if (dataModelRevision !== undefined) {
+    if (
+      typeof dataModelRevision !== "number" ||
+      !Number.isSafeInteger(dataModelRevision) ||
+      dataModelRevision < 0
+    ) {
+      throw new A2uiParseError("Expected a non-negative safe integer at surface.dataModelRevision");
+    }
   }
 
   const sourceEntries = [...source.components.entries()] as readonly (readonly [
@@ -230,6 +241,7 @@ function reconstructSurfaceSnapshot(input: unknown): A2uiV1SurfaceState {
       ? {}
       : { catalogId: envelope.createSurface.catalogId }),
     sendDataModel: envelope.createSurface.sendDataModel === true,
+    ...(dataModelRevision === undefined ? {} : { dataModelRevision }),
     components,
     dataModel: envelope.createSurface.dataModel ?? {},
     ...(envelope.createSurface.metadata === undefined

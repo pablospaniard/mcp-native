@@ -69,7 +69,35 @@ export interface A2uiV1SurfaceState {
   readonly surfaceId: string;
   readonly catalogId?: string;
   readonly sendDataModel: boolean;
+  /** Host-owned revision incremented after each accepted agent data-model update. */
+  readonly dataModelRevision?: number;
   readonly components: ReadonlyMap<string, A2uiV1Component>;
   readonly dataModel: JsonObject;
   readonly metadata?: JsonObject;
+}
+
+export interface A2uiV1Action {
+  readonly name: string;
+  readonly surfaceId: string;
+  readonly sourceComponentId: string;
+  readonly timestamp: string;
+  readonly context: JsonObject;
+  readonly userMessage?: string;
+  readonly metadata?: JsonObject;
+}
+
+export interface A2uiV1ActionEnvelope {
+  readonly version: typeof A2UI_V1_PROTOCOL_VERSION;
+  readonly action: A2uiV1Action;
+}
+
+export interface A2uiV1ActionEnvelopeInput {
+  readonly name: string;
+  readonly surfaceId: string;
+  readonly sourceComponentId: string;
+  readonly context: JsonObject;
+  readonly userMessage?: string;
+  readonly metadata?: JsonObject;
+  /** RFC 3339 timestamp. Defaults to the current time when omitted. */
+  readonly timestamp?: string;
 }

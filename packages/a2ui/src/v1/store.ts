@@ -12,6 +12,7 @@ interface MutableSurface {
   surfaceId: string;
   catalogId?: string;
   sendDataModel: boolean;
+  dataModelRevision: number;
   components: Map<string, A2uiV1Component>;
   dataModel: JsonObject;
   metadata?: JsonObject;
@@ -126,6 +127,7 @@ export class A2uiSurfaceStore {
     const surface: MutableSurface = {
       surfaceId: message.surfaceId,
       sendDataModel: message.sendDataModel === true,
+      dataModelRevision: 0,
       components,
       dataModel,
     };
@@ -161,6 +163,7 @@ export class A2uiSurfaceStore {
     );
     try {
       surface.dataModel = parseJsonObject(updatedDataModel, "updateDataModel.result");
+      surface.dataModelRevision += 1;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Invalid merged data model";
       throw new A2uiParseError(`Updated A2UI data model is invalid: ${errorMessage}`, {
@@ -221,6 +224,7 @@ function freezeSurface(surface: MutableSurface): A2uiV1SurfaceState {
     surfaceId: surface.surfaceId,
     ...(surface.catalogId === undefined ? {} : { catalogId: surface.catalogId }),
     sendDataModel: surface.sendDataModel,
+    dataModelRevision: surface.dataModelRevision,
     components: cloneComponents(surface.components),
     dataModel: parseJsonObject(surface.dataModel, "surface.dataModel"),
     ...(surface.metadata === undefined
@@ -236,6 +240,7 @@ function cloneSurfaces(surfaces: ReadonlyMap<string, MutableSurface>): Map<strin
       surfaceId: surface.surfaceId,
       ...(surface.catalogId === undefined ? {} : { catalogId: surface.catalogId }),
       sendDataModel: surface.sendDataModel,
+      dataModelRevision: surface.dataModelRevision,
       components: cloneComponents(surface.components),
       dataModel: parseJsonObject(surface.dataModel, "surface.dataModel"),
       ...(surface.metadata === undefined
