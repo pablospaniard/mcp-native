@@ -4,6 +4,36 @@ All notable changes to MCP Native are documented here. Until the project reaches
 breaking public API changes increment the minor version; patch releases remain compatible within
 their minor release line.
 
+## 0.3.0 - 2026-08-26
+
+Expands the standards-pinned A2UI v1 Candidate path from static native plans into bounded,
+interactive rendering with capability negotiation, dynamic lists, and the first executable
+catalog functions. The adapter remains intentionally partial and fails closed for unsupported
+renderer semantics.
+
+### Added
+
+- Strict agent and renderer capability parsing with exact catalog overlap negotiation and inline
+  catalogs disabled.
+- Renderer-local data-model updates, dispatch-time action context resolution, and official
+  renderer-to-agent action envelope construction.
+- Bounded dynamic `List` templates with relative bindings, stable instance identity, and
+  dispatch-time `@index` evaluation.
+- Bounded `formatString` execution with official JSON coercion, nested supported expressions, and
+  renderer-local state.
+- Host-localized `formatNumber`, `formatCurrency`, and `pluralize` execution with validated dynamic
+  arguments, locale options, and bounded output.
+- Strict `and`, `or`, and `not` evaluation across render and dispatch-time state.
+
+### Security
+
+- Validate nested boolean operands against the host function allowlist before rendering or
+  dispatching actions.
+- Reject unsupported locales, currencies, precision settings, plural operands, and boolean values
+  with controlled parse errors.
+- Preserve renderer expansion and formatted-output budgets across dynamic lists and nested
+  function evaluation.
+
 ## 0.2.0 - 2026-08-26
 
 Adds the first standards-pinned A2UI v1 Candidate path while retaining the custom `0.1` surface
