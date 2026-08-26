@@ -14,6 +14,7 @@ import {
   A2uiParseError,
   A2uiSurfaceStore,
   createA2uiV1BasicCatalogPolicy,
+  evaluateA2uiV1FormatString,
   validateA2uiV1SurfaceState,
 } from "../packages/a2ui/dist/index.js";
 
@@ -378,6 +379,59 @@ test("formatString validates nested functions, bindings, accessibility, and temp
       "validated",
       basicPolicy({ allowedFunctionNames: ["formatString", "@index"] }),
     ),
+  );
+});
+
+test("formatString evaluation interpolates JSON values and escaped literals with bounded output", () => {
+  const values = new Map([
+    ["/name", "Ada"],
+    ["/count", 42],
+    ["/active", true],
+    ["/nothing", null],
+    ["/object", { role: "admin" }],
+    ["/array", [1, "two"]],
+  ]);
+  const result = evaluateA2uiV1FormatString(
+    "${/name} ${/count} ${/active} ${/nothing} ${/object} ${/array} \\${literal}",
+    (expression) =>
+      expression !== null &&
+      typeof expression === "object" &&
+      !Array.isArray(expression) &&
+      typeof expression.path === "string"
+        ? values.get(expression.path)
+        : expression,
+  );
+
+  assert.equal(result, 'Ada 42 true  {"role":"admin"} [1,"two"] ${literal}');
+  let consumedExpressionCount = 0;
+  assert.equal(
+    evaluateA2uiV1FormatString(
+      "${${/name}}",
+      (expression) => values.get(expression.path),
+      "nested-budget",
+      (expressionCount) => {
+        consumedExpressionCount += expressionCount;
+      },
+    ),
+    "Ada",
+  );
+  assert.equal(consumedExpressionCount, 2);
+  const maximumValue = "x".repeat(65_536);
+  assert.throws(
+    () => evaluateA2uiV1FormatString("${/value}${/value}", () => maximumValue, "bounded"),
+    (error) => error instanceof A2uiParseError && /output at bounded.*65536/.test(error.message),
+  );
+  assert.throws(
+    () => evaluateA2uiV1FormatString("${/value}", null),
+    (error) => error instanceof A2uiParseError && /expression resolver/.test(error.message),
+  );
+  assert.throws(
+    () => evaluateA2uiV1FormatString("x".repeat(65_537), () => null),
+    (error) => error instanceof A2uiParseError && /source.*65536/.test(error.message),
+  );
+  assert.throws(
+    () => evaluateA2uiV1FormatString("${null}", () => null, "budgeted", null),
+    (error) => error instanceof A2uiParseError && /budget consumer at budgeted/.test(error.message),
   );
 });
 
