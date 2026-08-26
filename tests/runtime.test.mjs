@@ -9,9 +9,128 @@ import {
   McpNativeActionDeniedError,
   McpNativeRuntime,
   createAllowlistActionPolicy,
+  isMcpExtensionIdentifier,
+  negotiateMcpExtension,
   parseJsonValue,
+  parseMcpExtensionSettings,
   parseMcpNativeAction,
 } from "../packages/core/dist/index.js";
+
+const TEST_EXTENSION_ID = "com.example/native-ui";
+
+test("extension settings require prefixed identifiers and JSON objects", () => {
+  const extensions = parseMcpExtensionSettings(
+    JSON.parse('{"com.example/native-ui":{"version":"1","__proto__":{"safe":true}}}'),
+  );
+
+  assert.equal(isMcpExtensionIdentifier(TEST_EXTENSION_ID), true);
+  assert.equal(isMcpExtensionIdentifier("native-ui"), false);
+  assert.equal(isMcpExtensionIdentifier("com.example/native/ui"), false);
+  assert.equal(Object.hasOwn(extensions[TEST_EXTENSION_ID], "__proto__"), true);
+  assert.equal(extensions[TEST_EXTENSION_ID].safe, undefined);
+  assert.throws(
+    () => parseMcpExtensionSettings({ "native-ui": {} }),
+    (error) => error instanceof JsonValidationError && /extension identifier/.test(error.message),
+  );
+  assert.throws(
+    () => parseMcpExtensionSettings({ [TEST_EXTENSION_ID]: true }),
+    (error) => error instanceof JsonValidationError && /Expected an object/.test(error.message),
+  );
+});
+
+test("extensions negotiate only from mutual capability declarations", () => {
+  const capabilities = { [TEST_EXTENSION_ID]: { version: "1" } };
+
+  assert.deepEqual(negotiateMcpExtension(TEST_EXTENSION_ID, capabilities, capabilities), {
+    kind: "negotiated",
+    identifier: TEST_EXTENSION_ID,
+    clientSettings: { version: "1" },
+    serverSettings: { version: "1" },
+  });
+  assert.deepEqual(negotiateMcpExtension(TEST_EXTENSION_ID, {}, capabilities), {
+    kind: "fallback",
+    identifier: TEST_EXTENSION_ID,
+    reason: "client-unsupported",
+  });
+  assert.deepEqual(negotiateMcpExtension(TEST_EXTENSION_ID, capabilities, {}), {
+    kind: "fallback",
+    identifier: TEST_EXTENSION_ID,
+    reason: "server-unsupported",
+  });
+});
+
+test("extension metadata never grants a capability", async () => {
+  const runtime = new McpNativeRuntime({
+    async listTools() {
+      return { tools: [], _meta: { [TEST_EXTENSION_ID]: { version: "1" } } };
+    },
+    async callTool() {
+      return { content: [{ type: "text", text: "core fallback" }] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+    getClientExtensionSettings() {
+      return { [TEST_EXTENSION_ID]: { version: "1" } };
+    },
+  });
+
+  assert.deepEqual(runtime.negotiateExtension(TEST_EXTENSION_ID), {
+    kind: "fallback",
+    identifier: TEST_EXTENSION_ID,
+    reason: "server-unsupported",
+  });
+  assert.deepEqual((await runtime.listTools())["_meta"], {
+    [TEST_EXTENSION_ID]: { version: "1" },
+  });
+});
+
+test("runtime negotiation uses only advertised client capabilities", () => {
+  const serverExtensions = { [TEST_EXTENSION_ID]: { version: "1" } };
+  const withoutAdvertisement = new McpNativeRuntime({
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+    getServerExtensionSettings() {
+      return serverExtensions;
+    },
+  });
+  const withAdvertisement = new McpNativeRuntime({
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+    getClientExtensionSettings() {
+      return serverExtensions;
+    },
+    getServerExtensionSettings() {
+      return serverExtensions;
+    },
+  });
+
+  assert.deepEqual(withoutAdvertisement.negotiateExtension(TEST_EXTENSION_ID), {
+    kind: "fallback",
+    identifier: TEST_EXTENSION_ID,
+    reason: "client-unsupported",
+  });
+  assert.deepEqual(withAdvertisement.negotiateExtension(TEST_EXTENSION_ID), {
+    kind: "negotiated",
+    identifier: TEST_EXTENSION_ID,
+    clientSettings: { version: "1" },
+    serverSettings: { version: "1" },
+  });
+});
 
 test("the public JSON validators enforce depth, value-count, and string limits", () => {
   let nested = null;

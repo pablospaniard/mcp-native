@@ -130,6 +130,8 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Exact protocol options for the `2026-07-28` target and tested `2025-11-25` compatibility lane
 - Seven pinned official MCP client scenarios covering the implemented modern HTTP boundary
 - Frozen official requirement accounting and shared-cache isolation tests across principals
+- Explicit MCP extension settings and mutual negotiation without MIME or metadata inference
+- A project-owned, exact-match [A2UI-over-MCP transport binding](docs/a2ui-mcp-binding.md) with ordinary MCP fallback
 - Typed `tools/call` action routing with a fail-closed host policy
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
@@ -282,7 +284,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Inventory normative standards and publish explicit compatibility status
 - [x] Preserve MCP `2026-07-28` tool/resource fields and test the current HTTP path
 - [x] Pin official MCP conformance scenarios and document backwards compatibility
-- [ ] Add extension negotiation and metadata-preserving capability contracts
+- [x] Add extension negotiation and metadata-preserving capability contracts
 - [ ] Implement an A2UI v1.0 conformance foundation from pinned official schemas
 - [ ] Support the A2UI surface lifecycle, local data model, bindings, and streaming updates
 - [ ] Complete native accessibility and action-context behavior

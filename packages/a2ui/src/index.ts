@@ -1,6 +1,8 @@
-import { parseMcpNativeAction } from "@mcp-native/core";
+import { negotiateMcpExtension, parseMcpNativeAction } from "@mcp-native/core";
 import type {
+  JsonObject,
   McpContent,
+  McpExtensionSettings,
   McpReadResourceResult,
   McpToolCallResult,
   ToolAction,
@@ -8,6 +10,83 @@ import type {
 
 export const A2UI_VERSION = "0.1" as const;
 export const A2UI_MIME_TYPE = "application/a2ui+json" as const;
+
+/** Project-owned MCP binding for carrying ordered official A2UI messages. */
+export const A2UI_MCP_EXTENSION_ID = "io.github.pablospaniard/mcp-native-a2ui" as const;
+export const A2UI_MCP_BINDING_VERSION = "0.1" as const;
+export const A2UI_MCP_PROTOCOL_VERSION = "v1.0" as const;
+export const A2UI_MCP_SCHEMA_REVISION = "7541f953050cd58b80f0bf5d85fe2d63192af305" as const;
+export const A2UI_MCP_TRANSPORT = "resource-text-jsonl" as const;
+
+const a2uiMcpSettings = Object.freeze({
+  bindingVersion: A2UI_MCP_BINDING_VERSION,
+  protocolVersion: A2UI_MCP_PROTOCOL_VERSION,
+  schemaRevision: A2UI_MCP_SCHEMA_REVISION,
+  transport: A2UI_MCP_TRANSPORT,
+  mimeType: A2UI_MIME_TYPE,
+}) satisfies JsonObject;
+
+/** Reuse this exact map for SDK advertisement and local negotiation. */
+export const A2UI_MCP_EXTENSION_CAPABILITIES: McpExtensionSettings = Object.freeze({
+  [A2UI_MCP_EXTENSION_ID]: a2uiMcpSettings,
+});
+
+export type A2uiMcpBindingNegotiation =
+  | {
+      readonly kind: "fallback";
+      readonly identifier: typeof A2UI_MCP_EXTENSION_ID;
+      readonly reason: "client-unsupported" | "server-unsupported" | "incompatible-settings";
+    }
+  | {
+      readonly kind: "negotiated";
+      readonly identifier: typeof A2UI_MCP_EXTENSION_ID;
+      readonly bindingVersion: typeof A2UI_MCP_BINDING_VERSION;
+      readonly protocolVersion: typeof A2UI_MCP_PROTOCOL_VERSION;
+      readonly schemaRevision: typeof A2UI_MCP_SCHEMA_REVISION;
+      readonly transport: typeof A2UI_MCP_TRANSPORT;
+      readonly mimeType: typeof A2UI_MIME_TYPE;
+    };
+
+/**
+ * Enables the project A2UI binding only for an exact, mutual settings match.
+ * A fallback result means callers must use ordinary MCP text/structured data.
+ */
+export function negotiateA2uiMcpBinding(
+  clientExtensions: unknown,
+  serverExtensions: unknown,
+): A2uiMcpBindingNegotiation {
+  const negotiation = negotiateMcpExtension(
+    A2UI_MCP_EXTENSION_ID,
+    clientExtensions,
+    serverExtensions,
+  );
+  if (negotiation.kind === "fallback") {
+    return {
+      kind: "fallback",
+      identifier: A2UI_MCP_EXTENSION_ID,
+      reason: negotiation.reason,
+    };
+  }
+  if (
+    !matchesA2uiMcpSettings(negotiation.clientSettings) ||
+    !matchesA2uiMcpSettings(negotiation.serverSettings)
+  ) {
+    return {
+      kind: "fallback",
+      identifier: A2UI_MCP_EXTENSION_ID,
+      reason: "incompatible-settings",
+    };
+  }
+  return {
+    kind: "negotiated",
+    identifier: A2UI_MCP_EXTENSION_ID,
+    bindingVersion: A2UI_MCP_BINDING_VERSION,
+    protocolVersion: A2UI_MCP_PROTOCOL_VERSION,
+    schemaRevision: A2UI_MCP_SCHEMA_REVISION,
+    transport: A2UI_MCP_TRANSPORT,
+    mimeType: A2UI_MIME_TYPE,
+  };
+}
 
 /** Maximum nesting depth for container trees (root is depth 0). */
 export const A2UI_MAX_DEPTH = 32;
@@ -331,6 +410,17 @@ function expectString(value: unknown, path: string): string {
 
 function optionalString(value: unknown, path: string): string | undefined {
   return value === undefined ? undefined : expectString(value, path);
+}
+
+function matchesA2uiMcpSettings(settings: JsonObject): boolean {
+  return (
+    Object.keys(settings).length === 5 &&
+    settings.bindingVersion === A2UI_MCP_BINDING_VERSION &&
+    settings.protocolVersion === A2UI_MCP_PROTOCOL_VERSION &&
+    settings.schemaRevision === A2UI_MCP_SCHEMA_REVISION &&
+    settings.transport === A2UI_MCP_TRANSPORT &&
+    settings.mimeType === A2UI_MIME_TYPE
+  );
 }
 
 function expectOnlyKeys(

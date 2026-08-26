@@ -1,5 +1,6 @@
 import type { Client, ClientOptions } from "@modelcontextprotocol/client";
 import {
+  parseMcpExtensionSettings,
   parseJsonObject as parseCoreJsonObject,
   parseJsonValue as parseCoreJsonValue,
 } from "@mcp-native/core";
@@ -10,6 +11,7 @@ import type {
   McpCacheScope,
   McpClient,
   McpContent,
+  McpExtensionSettings,
   McpIcon,
   McpListToolsResult,
   McpReadResourceResult,
@@ -19,7 +21,17 @@ import type {
   McpToolCallResult,
 } from "@mcp-native/core";
 
-type OfficialMcpClient = Pick<Client, "callTool" | "listTools" | "readResource">;
+type OfficialMcpClient = Pick<Client, "callTool" | "listTools" | "readResource"> &
+  Partial<Pick<Client, "getServerCapabilities">>;
+
+export interface McpSdkClientAdapterOptions {
+  /**
+   * Extension map advertised when constructing the official SDK client.
+   * Must match the capabilities passed to `createMcpNativeClientOptions()`.
+   * Omission means the client advertised none.
+   */
+  readonly clientExtensions?: unknown;
+}
 
 /** The exact MCP core revision targeted by MCP Native's modern compatibility lane. */
 export const MCP_NATIVE_PROTOCOL_REVISION = "2026-07-28" as const;
@@ -35,30 +47,55 @@ export const MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS = Object.freeze([
 
 export type McpNativeProtocolMode = "auto" | "legacy-only" | "modern-only";
 
+export interface McpNativeClientCapabilityOptions {
+  /** Explicit, host-approved MCP extensions to advertise. Omission advertises none. */
+  readonly extensions?: unknown;
+}
+
 /**
  * Creates official SDK client options matching MCP Native's documented
  * protocol policy. The host still owns client construction and connection.
  */
-export function createMcpNativeClientOptions(mode: McpNativeProtocolMode = "auto"): ClientOptions {
-  switch (mode) {
-    case "auto":
-      return {
-        supportedProtocolVersions: [...MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS],
-        versionNegotiation: { mode: "auto" },
-      };
-    case "modern-only":
-      return {
-        supportedProtocolVersions: [MCP_NATIVE_PROTOCOL_REVISION],
-        versionNegotiation: { mode: { pin: MCP_NATIVE_PROTOCOL_REVISION } },
-      };
-    case "legacy-only":
-      return {
-        supportedProtocolVersions: [MCP_NATIVE_LEGACY_PROTOCOL_REVISION],
-        versionNegotiation: { mode: "legacy" },
-      };
-    default:
-      throw new TypeError(`Unsupported MCP Native protocol mode: ${String(mode)}`);
+export function createMcpNativeClientOptions(
+  mode: McpNativeProtocolMode = "auto",
+  capabilityOptions: McpNativeClientCapabilityOptions = {},
+): ClientOptions {
+  const protocolOptions: ClientOptions = (() => {
+    switch (mode) {
+      case "auto":
+        return {
+          supportedProtocolVersions: [...MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS],
+          versionNegotiation: { mode: "auto" },
+        };
+      case "modern-only":
+        return {
+          supportedProtocolVersions: [MCP_NATIVE_PROTOCOL_REVISION],
+          versionNegotiation: { mode: { pin: MCP_NATIVE_PROTOCOL_REVISION } },
+        };
+      case "legacy-only":
+        return {
+          supportedProtocolVersions: [MCP_NATIVE_LEGACY_PROTOCOL_REVISION],
+          versionNegotiation: { mode: "legacy" },
+        };
+      default:
+        throw new TypeError(`Unsupported MCP Native protocol mode: ${String(mode)}`);
+    }
+  })();
+  if (capabilityOptions.extensions === undefined) {
+    return protocolOptions;
   }
+
+  return {
+    ...protocolOptions,
+    capabilities: {
+      // The SDK models JSON to a finite recursive depth while core validates
+      // the same values with explicit runtime depth and size limits.
+      extensions: parseMcpExtensionSettings(
+        capabilityOptions.extensions,
+        "client capability extensions",
+      ) as unknown as NonNullable<NonNullable<ClientOptions["capabilities"]>["extensions"]>,
+    },
+  };
 }
 
 /** Thrown when an SDK result cannot be represented by MCP Native's JSON-safe contracts. */
@@ -75,9 +112,18 @@ export class McpSdkAdapterError extends Error {
  */
 export class McpSdkClientAdapter implements McpClient {
   readonly #client: OfficialMcpClient;
+  readonly #clientExtensions: McpExtensionSettings;
 
-  constructor(client: OfficialMcpClient) {
+  constructor(client: OfficialMcpClient, options: McpSdkClientAdapterOptions = {}) {
     this.#client = client;
+    this.#clientExtensions =
+      options.clientExtensions === undefined
+        ? {}
+        : parseMcpExtensionSettings(options.clientExtensions, "client capability extensions");
+  }
+
+  getClientExtensionSettings(): McpExtensionSettings {
+    return this.#clientExtensions;
   }
 
   async listTools(): Promise<McpListToolsResult> {
@@ -123,10 +169,27 @@ export class McpSdkClientAdapter implements McpClient {
       ...mapResultMeta(result, "resource result"),
     };
   }
+
+  getServerExtensionSettings(): McpExtensionSettings {
+    const extensions = this.#client.getServerCapabilities?.()?.extensions;
+    if (extensions === undefined) {
+      return {};
+    }
+    try {
+      return parseMcpExtensionSettings(extensions, "server capability extensions");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Invalid server capability extensions";
+      throw new McpSdkAdapterError(message, { cause: error });
+    }
+  }
 }
 
-export function createMcpSdkClientAdapter(client: OfficialMcpClient): McpSdkClientAdapter {
-  return new McpSdkClientAdapter(client);
+export function createMcpSdkClientAdapter(
+  client: OfficialMcpClient,
+  options: McpSdkClientAdapterOptions = {},
+): McpSdkClientAdapter {
+  return new McpSdkClientAdapter(client, options);
 }
 
 function mapContent(value: unknown, path: string): McpContent {

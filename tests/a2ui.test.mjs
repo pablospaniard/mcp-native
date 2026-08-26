@@ -6,14 +6,72 @@ import {
   A2UI_MAX_NODES,
   A2UI_MAX_SOURCE_LENGTH,
   A2UI_MAX_STRING_LENGTH,
+  A2UI_MCP_BINDING_VERSION,
+  A2UI_MCP_EXTENSION_CAPABILITIES,
+  A2UI_MCP_EXTENSION_ID,
+  A2UI_MCP_PROTOCOL_VERSION,
+  A2UI_MCP_SCHEMA_REVISION,
+  A2UI_MCP_TRANSPORT,
   A2UI_MIME_TYPE,
   A2UI_VERSION,
   A2uiParseError,
   A2uiResourceError,
+  negotiateA2uiMcpBinding,
   parseA2uiSurface,
   resolveA2uiResourceFromToolResult,
 } from "../packages/a2ui/dist/index.js";
 import { createNativeRenderPlan } from "../packages/react-native/dist/index.js";
+
+test("the project-owned A2UI binding requires an exact mutual capability match", () => {
+  assert.deepEqual(
+    negotiateA2uiMcpBinding(A2UI_MCP_EXTENSION_CAPABILITIES, A2UI_MCP_EXTENSION_CAPABILITIES),
+    {
+      kind: "negotiated",
+      identifier: A2UI_MCP_EXTENSION_ID,
+      bindingVersion: A2UI_MCP_BINDING_VERSION,
+      protocolVersion: A2UI_MCP_PROTOCOL_VERSION,
+      schemaRevision: A2UI_MCP_SCHEMA_REVISION,
+      transport: A2UI_MCP_TRANSPORT,
+      mimeType: A2UI_MIME_TYPE,
+    },
+  );
+});
+
+test("A2UI negotiation falls back to ordinary MCP content", () => {
+  const toolResult = {
+    content: [
+      { type: "text", text: "Your profile was saved." },
+      {
+        type: "resource_link",
+        name: "Profile UI",
+        uri: "ui://profile",
+        mimeType: A2UI_MIME_TYPE,
+      },
+    ],
+    structuredContent: { saved: true },
+  };
+
+  assert.deepEqual(negotiateA2uiMcpBinding(A2UI_MCP_EXTENSION_CAPABILITIES, {}), {
+    kind: "fallback",
+    identifier: A2UI_MCP_EXTENSION_ID,
+    reason: "server-unsupported",
+  });
+  assert.deepEqual(
+    negotiateA2uiMcpBinding(A2UI_MCP_EXTENSION_CAPABILITIES, {
+      [A2UI_MCP_EXTENSION_ID]: {
+        ...A2UI_MCP_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+        transport: "unordered",
+      },
+    }),
+    {
+      kind: "fallback",
+      identifier: A2UI_MCP_EXTENSION_ID,
+      reason: "incompatible-settings",
+    },
+  );
+  assert.equal(toolResult.content[0].text, "Your profile was saved.");
+  assert.deepEqual(toolResult.structuredContent, { saved: true });
+});
 
 test("a validated A2UI surface becomes a native render plan for every node type", () => {
   const surface = parseA2uiSurface({

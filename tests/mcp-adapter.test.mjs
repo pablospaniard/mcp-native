@@ -9,7 +9,13 @@ import {
 } from "@modelcontextprotocol/client";
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 
-import { A2UI_MIME_TYPE, resolveA2uiResourceFromToolResult } from "../packages/a2ui/dist/index.js";
+import {
+  A2UI_MCP_EXTENSION_CAPABILITIES,
+  A2UI_MCP_EXTENSION_ID,
+  A2UI_MIME_TYPE,
+  negotiateA2uiMcpBinding,
+  resolveA2uiResourceFromToolResult,
+} from "../packages/a2ui/dist/index.js";
 import { McpNativeRuntime } from "../packages/core/dist/index.js";
 import {
   createMcpSdkClientAdapter,
@@ -103,6 +109,27 @@ test("the adapter exports an exact, fail-closed protocol compatibility policy", 
     supportedProtocolVersions: ["2025-11-25"],
     versionNegotiation: { mode: "legacy" },
   });
+  assert.deepEqual(
+    createMcpNativeClientOptions("modern-only", {
+      extensions: A2UI_MCP_EXTENSION_CAPABILITIES,
+    }),
+    {
+      supportedProtocolVersions: ["2026-07-28"],
+      versionNegotiation: { mode: { pin: "2026-07-28" } },
+      capabilities: { extensions: A2UI_MCP_EXTENSION_CAPABILITIES },
+    },
+  );
+  assert.throws(
+    () => createMcpNativeClientOptions("modern-only", { extensions: { a2ui: {} } }),
+    /Invalid MCP extension identifier "a2ui"/,
+  );
+  assert.throws(
+    () =>
+      createMcpNativeClientOptions("modern-only", {
+        extensions: { [A2UI_MCP_EXTENSION_ID]: true },
+      }),
+    /Expected an object at client capability extensions/,
+  );
   assert.throws(
     () => createMcpNativeClientOptions("future"),
     /Unsupported MCP Native protocol mode/,
@@ -112,6 +139,9 @@ test("the adapter exports an exact, fail-closed protocol compatibility policy", 
 test("the SDK adapter maps the complete core client boundary", async () => {
   const calls = [];
   const sdkClient = {
+    getServerCapabilities() {
+      return { extensions: A2UI_MCP_EXTENSION_CAPABILITIES };
+    },
     async listTools() {
       calls.push(["listTools"]);
       return {
@@ -198,8 +228,12 @@ test("the SDK adapter maps the complete core client boundary", async () => {
     },
   };
 
-  const adapter = createMcpSdkClientAdapter(sdkClient);
+  const adapter = createMcpSdkClientAdapter(sdkClient, {
+    clientExtensions: A2UI_MCP_EXTENSION_CAPABILITIES,
+  });
   assert.ok(adapter instanceof McpSdkClientAdapter);
+  assert.deepEqual(adapter.getClientExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
+  assert.deepEqual(adapter.getServerExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
 
   assert.deepEqual(await adapter.listTools(), {
     tools: [
@@ -294,6 +328,99 @@ test("the SDK adapter omits absent optional tool result fields", async () => {
 
   assert.deepEqual(await adapter.callTool("ping", {}), { content: [] });
   assert.deepEqual(await adapter.readResource("ui://empty"), { contents: [] });
+  assert.deepEqual(adapter.getClientExtensionSettings(), {});
+  assert.deepEqual(adapter.getServerExtensionSettings(), {});
+});
+
+test("the SDK adapter retains only the advertised client extension snapshot", () => {
+  const adapter = new McpSdkClientAdapter(
+    {
+      getServerCapabilities() {
+        return { extensions: A2UI_MCP_EXTENSION_CAPABILITIES };
+      },
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool() {
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    { clientExtensions: A2UI_MCP_EXTENSION_CAPABILITIES },
+  );
+  const withoutAdvertisement = new McpSdkClientAdapter({
+    getServerCapabilities() {
+      return { extensions: A2UI_MCP_EXTENSION_CAPABILITIES };
+    },
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  });
+  const runtime = new McpNativeRuntime(adapter);
+  const unadvertisedRuntime = new McpNativeRuntime(withoutAdvertisement);
+
+  assert.deepEqual(adapter.getClientExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
+  assert.deepEqual(runtime.negotiateExtension(A2UI_MCP_EXTENSION_ID), {
+    kind: "negotiated",
+    identifier: A2UI_MCP_EXTENSION_ID,
+    clientSettings: A2UI_MCP_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+    serverSettings: A2UI_MCP_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+  });
+  assert.deepEqual(unadvertisedRuntime.negotiateExtension(A2UI_MCP_EXTENSION_ID), {
+    kind: "fallback",
+    identifier: A2UI_MCP_EXTENSION_ID,
+    reason: "client-unsupported",
+  });
+  assert.throws(
+    () =>
+      new McpSdkClientAdapter(
+        {
+          async listTools() {
+            return { tools: [] };
+          },
+          async callTool() {
+            return { content: [] };
+          },
+          async readResource() {
+            return { contents: [] };
+          },
+        },
+        { clientExtensions: { a2ui: {} } },
+      ),
+    /extension identifier/,
+  );
+});
+
+test("the SDK adapter rejects malformed server extension declarations", () => {
+  const adapter = new McpSdkClientAdapter({
+    getServerCapabilities() {
+      return { extensions: { a2ui: {} } };
+    },
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  });
+
+  assert.throws(
+    () => adapter.getServerExtensionSettings(),
+    (error) =>
+      error instanceof McpSdkAdapterError &&
+      /Invalid MCP extension identifier "a2ui"/.test(error.message),
+  );
 });
 
 test("the SDK adapter preserves prototype-named JSON keys as own data properties", async () => {
@@ -427,6 +554,7 @@ test("the adapter preserves MCP 2026-07-28 results through the official HTTP han
   const handler = createMcpHandler(
     () => {
       const server = new McpServer(MODERN_SERVER_INFO, {
+        capabilities: { extensions: A2UI_MCP_EXTENSION_CAPABILITIES },
         cacheHints: {
           "tools/list": { ttlMs: 30_000, cacheScope: "private" },
           "resources/read": { ttlMs: 5_000, cacheScope: "public" },
@@ -493,14 +621,42 @@ test("the adapter preserves MCP 2026-07-28 results through the official HTTP han
   });
   const client = new Client(
     { name: "mcp-native-modern-client", version: "1.0.0" },
-    createMcpNativeClientOptions("modern-only"),
+    createMcpNativeClientOptions("modern-only", {
+      extensions: A2UI_MCP_EXTENSION_CAPABILITIES,
+    }),
   );
 
   try {
     await client.connect(transport);
     assert.equal(client.getProtocolEra(), "modern");
     assert.equal(client.getNegotiatedProtocolVersion(), MCP_NATIVE_PROTOCOL_REVISION);
-    const runtime = new McpNativeRuntime(new McpSdkClientAdapter(client));
+    const adapter = new McpSdkClientAdapter(client, {
+      clientExtensions: A2UI_MCP_EXTENSION_CAPABILITIES,
+    });
+    const runtime = new McpNativeRuntime(adapter);
+    assert.deepEqual(adapter.getClientExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
+    assert.deepEqual(adapter.getServerExtensionSettings(), A2UI_MCP_EXTENSION_CAPABILITIES);
+    assert.deepEqual(runtime.negotiateExtension(A2UI_MCP_EXTENSION_ID), {
+      kind: "negotiated",
+      identifier: A2UI_MCP_EXTENSION_ID,
+      clientSettings: A2UI_MCP_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+      serverSettings: A2UI_MCP_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+    });
+    assert.deepEqual(
+      negotiateA2uiMcpBinding(
+        adapter.getClientExtensionSettings(),
+        adapter.getServerExtensionSettings(),
+      ),
+      {
+        kind: "negotiated",
+        identifier: A2UI_MCP_EXTENSION_ID,
+        bindingVersion: "0.1",
+        protocolVersion: "v1.0",
+        schemaRevision: "7541f953050cd58b80f0bf5d85fe2d63192af305",
+        transport: "resource-text-jsonl",
+        mimeType: A2UI_MIME_TYPE,
+      },
+    );
     const toolsResult = await runtime.listTools();
     const callResult = await runtime.callTool("open-modern-surface");
     const readResult = await runtime.readResource("ui://modern");
@@ -541,10 +697,9 @@ test("the adapter preserves MCP 2026-07-28 results through the official HTTP han
         request.body.params["_meta"]["io.modelcontextprotocol/protocolVersion"],
         MCP_NATIVE_PROTOCOL_REVISION,
       );
-      assert.deepEqual(
-        request.body.params["_meta"]["io.modelcontextprotocol/clientCapabilities"],
-        {},
-      );
+      assert.deepEqual(request.body.params["_meta"]["io.modelcontextprotocol/clientCapabilities"], {
+        extensions: A2UI_MCP_EXTENSION_CAPABILITIES,
+      });
     }
   } finally {
     await client.close();
