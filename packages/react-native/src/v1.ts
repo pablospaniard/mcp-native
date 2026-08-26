@@ -70,6 +70,7 @@ interface AdapterContext {
   readonly dataModel: JsonObject;
   readonly locale: string | undefined;
   readonly numberFormats: Map<string, Intl.NumberFormat>;
+  readonly pluralRules: Map<string, Intl.PluralRules>;
   readonly visiting: Set<string>;
   formatStringExpressionCount: number;
   formattedStringLength: number;
@@ -164,6 +165,7 @@ function createAdapterContext(
     dataModel: parseJsonObject(validated.dataModel, "surface.dataModel"),
     locale,
     numberFormats: new Map<string, Intl.NumberFormat>(),
+    pluralRules: new Map<string, Intl.PluralRules>(),
     visiting: new Set<string>(),
     formatStringExpressionCount: 0,
     formattedStringLength: 0,
@@ -657,6 +659,16 @@ function resolveDynamicValue(
     if (value.call === "formatNumber" || value.call === "formatCurrency") {
       return resolveNumberFormat(value, path, context, scope);
     }
+    if (value.call === "pluralize") {
+      return resolvePluralize(value, path, context, scope);
+    }
+    if (value.call === "and" || value.call === "or") {
+      return resolveBooleanList(value, path, context, scope);
+    }
+    if (value.call === "not") {
+      const args = expectObject(value.args, `${path}.args`);
+      return !resolveDynamicBoolean(args.value, `${path}.args.value`, context, scope);
+    }
     if (value.call === "formatString") {
       const args = expectObject(value.args, `${path}.args`);
       const source = expectString(args.value, `${path}.args.value`);
@@ -745,6 +757,77 @@ function resolveNumberFormat(
       { cause },
     );
   }
+}
+
+const PLURAL_CATEGORIES = Object.freeze(["zero", "one", "two", "few", "many", "other"] as const);
+
+function resolvePluralize(
+  call: JsonObject,
+  path: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): string {
+  const args = expectObject(call.args, `${path}.args`);
+  const value = resolveDynamicNumber(args.value, `${path}.args.value`, context, scope);
+  const forms = new Map<Intl.LDMLPluralRule, string>();
+  for (const category of PLURAL_CATEGORIES) {
+    if (args[category] !== undefined) {
+      forms.set(
+        category,
+        resolveDynamicString(args[category], `${path}.args.${category}`, context, scope),
+      );
+    }
+  }
+  const other = forms.get("other");
+  if (other === undefined) {
+    throw new A2uiParseError(`Missing plural fallback at ${path}.args.other`);
+  }
+  const category = getPluralRules(context, path).select(value);
+  return recordFormattedString(forms.get(category) ?? other, path, context);
+}
+
+function getPluralRules(context: AdapterContext, path: string): Intl.PluralRules {
+  const key = context.locale ?? "";
+  const cached = context.pluralRules.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  try {
+    if (
+      context.locale !== undefined &&
+      Intl.PluralRules.supportedLocalesOf(context.locale, { localeMatcher: "lookup" }).length === 0
+    ) {
+      throw new A2uiParseError(
+        `Locale ${JSON.stringify(context.locale)} does not support plural rules at ${path}`,
+      );
+    }
+    const rules = new Intl.PluralRules(context.locale, { type: "cardinal" });
+    context.pluralRules.set(key, rules);
+    return rules;
+  } catch (cause) {
+    if (cause instanceof A2uiParseError) {
+      throw cause;
+    }
+    throw new A2uiParseError(`A2UI native adapter could not construct plural rules at ${path}`, {
+      cause,
+    });
+  }
+}
+
+function resolveBooleanList(
+  call: JsonObject & { readonly call: string },
+  path: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): boolean {
+  const args = expectObject(call.args, `${path}.args`);
+  if (!Array.isArray(args.values) || args.values.length < 2) {
+    throw new A2uiParseError(`Expected at least two boolean values at ${path}.args.values`);
+  }
+  const values = args.values.map((value, index) =>
+    resolveDynamicBoolean(value, `${path}.args.values[${index}]`, context, scope),
+  );
+  return call.call === "and" ? values.every(Boolean) : values.some(Boolean);
 }
 
 function parseDecimalPlaces(value: number, path: string): number {

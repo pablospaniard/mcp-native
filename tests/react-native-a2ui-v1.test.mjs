@@ -896,6 +896,184 @@ test("localized number formatting fails closed for invalid dynamic and host opti
   );
 });
 
+test("pluralize and boolean functions use host locale and current dispatch state", async () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["plural", "number", "submit"] },
+      {
+        id: "plural",
+        component: "Text",
+        text: {
+          call: "formatString",
+          args: {
+            value:
+              "Count: ${pluralize(value:${/count}, zero:'zero', one:'item', two:'two', few:'few', many:'many', other:'items')}",
+          },
+        },
+      },
+      {
+        id: "number",
+        component: "Text",
+        text: {
+          call: "formatNumber",
+          args: {
+            value: { path: "/amount" },
+            decimals: 0,
+            grouping: {
+              call: "and",
+              args: {
+                values: [
+                  { path: "/ready" },
+                  { call: "not", args: { value: { path: "/blocked" } } },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        id: "submit",
+        component: "Button",
+        child: "submit-label",
+        action: {
+          event: {
+            name: "submit",
+            context: {
+              label: {
+                call: "pluralize",
+                args: {
+                  value: { path: "/count" },
+                  zero: "zero",
+                  one: "item",
+                  two: "two",
+                  few: "few",
+                  many: "many",
+                  other: "items",
+                },
+              },
+              enabled: {
+                call: "and",
+                args: {
+                  values: [
+                    { path: "/ready" },
+                    { call: "not", args: { value: { path: "/blocked" } } },
+                  ],
+                },
+              },
+              alternative: {
+                call: "or",
+                args: {
+                  values: [
+                    { path: "/blocked" },
+                    { call: "not", args: { value: { path: "/alternate" } } },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      { id: "submit-label", component: "Text", text: "Submit" },
+    ],
+    { count: 0, amount: 12345, ready: true, blocked: false, alternate: false },
+  );
+  const policy = nativePolicy({
+    allowedEventNames: ["submit"],
+    allowedFunctionNames: ["formatString", "formatNumber", "pluralize", "and", "or", "not"],
+  });
+
+  const englishPlan = createA2uiV1NativeRenderPlan(surface, policy, { locale: "en-US" });
+  assert.equal(englishPlan.children?.[0]?.props.children, "Count: items");
+  assert.equal(englishPlan.children?.[1]?.props.children, "12,345");
+  const frenchPlan = createA2uiV1NativeRenderPlan(surface, policy, { locale: "fr-FR" });
+  assert.equal(frenchPlan.children?.[0]?.props.children, "Count: item");
+  const arabicPlan = createA2uiV1NativeRenderPlan(surface, policy, {
+    dataModel: { ...surface.dataModel, count: 5 },
+    locale: "ar",
+  });
+  assert.equal(arabicPlan.children?.[0]?.props.children, "Count: few");
+  assert.deepEqual(
+    resolveA2uiV1NativeEvent(surface, policy, "submit", surface.dataModel, {
+      locale: "fr-FR",
+    }).context,
+    { label: "item", enabled: true, alternative: true },
+  );
+
+  const actions = [];
+  const root = createRoot({ textComponentTypes: ["Text"] });
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy,
+        locale: "fr-FR",
+        components: nativeComponents,
+        now: () => "2026-08-26T20:15:00.000Z",
+        onAction: (envelope) => actions.push(envelope),
+      }),
+    );
+  });
+  root.container.queryAll((element) => element.type === "Button")[0].props.onPress();
+  assert.deepEqual(actions[0].action.context, {
+    label: "item",
+    enabled: true,
+    alternative: true,
+  });
+});
+
+test("pluralize and boolean functions fail closed for invalid bound values", () => {
+  const pluralSurface = createSurface(
+    [
+      {
+        id: "root",
+        component: "Text",
+        text: {
+          call: "pluralize",
+          args: { value: { path: "/count" }, one: "item", other: "items" },
+        },
+      },
+    ],
+    { count: "1" },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        pluralSurface,
+        nativePolicy({ allowedFunctionNames: ["pluralize"] }),
+        { locale: "en-US" },
+      ),
+    (error) => error instanceof A2uiParseError && /finite number/.test(error.message),
+  );
+
+  const booleanSurface = createSurface(
+    [
+      {
+        id: "root",
+        component: "Text",
+        text: {
+          call: "formatNumber",
+          args: {
+            value: 42,
+            grouping: {
+              call: "and",
+              args: { values: [{ path: "/ready" }, true] },
+            },
+          },
+        },
+      },
+    ],
+    { ready: "true" },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        booleanSurface,
+        nativePolicy({ allowedFunctionNames: ["formatNumber", "and"] }),
+      ),
+    (error) => error instanceof A2uiParseError && /Expected a boolean/.test(error.message),
+  );
+});
+
 test("template instance keys remain unique for component IDs containing key delimiters", () => {
   const surface = createSurface(
     [
