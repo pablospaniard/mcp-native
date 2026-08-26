@@ -4,6 +4,30 @@ All notable changes to MCP Native are documented here. Until the project reaches
 breaking public API changes increment the minor version; patch releases remain compatible within
 their minor release line.
 
+## 0.2.0 - 2026-08-26
+
+Adds the first standards-pinned A2UI v1 Candidate path while retaining the custom `0.1` surface
+model for compatibility. The v1 adapter remains intentionally partial and fail-closed for
+renderer behavior that is not yet implemented.
+
+### Added
+
+- MCP extension capability negotiation and the project-owned A2UI-over-MCP transport binding.
+- Checksum-verified A2UI v1 Candidate schemas pinned to an exact upstream revision.
+- Ordered v1 lifecycle parsing and bounded surface state for create, component update, data-model
+  update, and delete messages.
+- Pre-render catalog, graph, binding, placement, event, function, and nested `formatString`
+  validation with explicit host allowlists.
+- A React Native adapter for the supported static A2UI v1 component subset.
+
+### Security
+
+- Reject runtime-provided `formatString` sources and validate literal-source interpolations
+  against the pinned catalog before rendering.
+- Bound interpolation depth, expression count, and cumulative source length.
+- Make npm trusted-publishing recovery retry-safe while retaining immutable release-commit
+  verification and package provenance.
+
 ## 0.1.0 - 2026-08-25
 
 First coordinated experimental API baseline. The package release version is independent of the
