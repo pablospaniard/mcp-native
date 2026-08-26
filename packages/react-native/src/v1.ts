@@ -18,6 +18,7 @@ import {
 } from "@mcp-native/core";
 import type { JsonObject, JsonValue } from "@mcp-native/core";
 
+import { ISO_4217_CURRENCY_CODES } from "./iso-4217.js";
 import type { NativeElement } from "./index.js";
 
 export const A2UI_V1_NATIVE_COMPONENT_NAMES = Object.freeze([
@@ -229,8 +230,14 @@ function parseLocale(value: unknown, path: string): string {
     throw new A2uiParseError(`Expected a non-empty BCP 47 locale at ${path}`);
   }
   try {
+    if (Intl.NumberFormat.supportedLocalesOf(value, { localeMatcher: "lookup" }).length === 0) {
+      throw new A2uiParseError(`Unsupported BCP 47 locale ${JSON.stringify(value)} at ${path}`);
+    }
     return new Intl.NumberFormat(value).resolvedOptions().locale;
   } catch (cause) {
+    if (cause instanceof A2uiParseError) {
+      throw cause;
+    }
     throw new A2uiParseError(`Invalid BCP 47 locale ${JSON.stringify(value)} at ${path}`, {
       cause,
     });
@@ -748,10 +755,11 @@ function parseDecimalPlaces(value: number, path: string): number {
 }
 
 function parseCurrencyCode(value: string, path: string): string {
-  if (!/^[A-Za-z]{3}$/.test(value)) {
-    throw new A2uiParseError(`Expected a three-letter ISO 4217 currency code at ${path}`);
+  const currency = value.toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency) || !ISO_4217_CURRENCY_CODES.has(currency)) {
+    throw new A2uiParseError(`Expected a current ISO 4217 currency code at ${path}`);
   }
-  return value.toUpperCase();
+  return currency;
 }
 
 function getNumberFormat(

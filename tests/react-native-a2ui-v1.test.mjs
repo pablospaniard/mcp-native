@@ -867,12 +867,28 @@ test("localized number formatting fails closed for invalid dynamic and host opti
   ]);
   assert.throws(
     () => createA2uiV1NativeRenderPlan(currencySurface, policy),
-    (error) => error instanceof A2uiParseError && /three-letter ISO 4217/.test(error.message),
+    (error) => error instanceof A2uiParseError && /current ISO 4217/.test(error.message),
+  );
+
+  const unknownCurrencySurface = createSurface([
+    {
+      id: "root",
+      component: "Text",
+      text: { call: "formatCurrency", args: { value: 42, currency: "ZZZ" } },
+    },
+  ]);
+  assert.throws(
+    () => createA2uiV1NativeRenderPlan(unknownCurrencySurface, policy),
+    (error) => error instanceof A2uiParseError && /current ISO 4217/.test(error.message),
   );
 
   assert.throws(
     () => createA2uiV1NativeRenderPlan(decimalSurface, policy, { locale: "not_a_locale" }),
     (error) => error instanceof A2uiParseError && /Invalid BCP 47 locale/.test(error.message),
+  );
+  assert.throws(
+    () => createA2uiV1NativeRenderPlan(decimalSurface, policy, { locale: "zz-ZZ" }),
+    (error) => error instanceof A2uiParseError && /Unsupported BCP 47 locale/.test(error.message),
   );
   assert.throws(
     () => createA2uiV1NativeRenderPlan(decimalSurface, policy, { executable: true }),
