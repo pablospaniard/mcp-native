@@ -187,6 +187,7 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 - Renderer-ready v1 snapshots require a complete acyclic root-reachable graph and explicit host allowlists.
 - Relative bindings and `@index` are accepted only inside dynamic-list template context.
 - Catalog functions and agent events are denied unless named by host policy.
+- `formatString` is rejected even when allowlisted until its nested interpolation language has a strict parser and every embedded function and binding can be validated.
 - Successful parsing does not grant device capabilities or permission to call a tool; the host still owns those decisions.
 
 ## Next layer

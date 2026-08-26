@@ -212,18 +212,38 @@ test("agent events and catalog functions require explicit host allowlists", () =
     {
       id: "root",
       component: "Text",
-      text: { call: "formatString", args: { value: "Hello" } },
+      text: { call: "formatNumber", args: { value: 42 } },
     },
   ]);
   assert.throws(
     () => functionStore.getValidated("validated", basicPolicy()),
-    (error) => error instanceof A2uiParseError && /function "formatString"/.test(error.message),
+    (error) => error instanceof A2uiParseError && /function "formatNumber"/.test(error.message),
   );
   assert.ok(
     functionStore.getValidated(
       "validated",
-      basicPolicy({ allowedFunctionNames: ["formatString"] }),
+      basicPolicy({ allowedFunctionNames: ["formatNumber"] }),
     ),
+  );
+});
+
+test("formatString cannot hide nested functions from the host allowlist", () => {
+  const store = createStore([
+    {
+      id: "root",
+      component: "Text",
+      text: {
+        call: "formatString",
+        args: { value: "Open ${openUrl(url:'https://example.com')}" },
+      },
+    },
+  ]);
+
+  assert.throws(
+    () => store.getValidated("validated", basicPolicy({ allowedFunctionNames: ["formatString"] })),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /formatString.*unsupported until every interpolation expression/.test(error.message),
   );
 });
 

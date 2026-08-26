@@ -64,7 +64,7 @@ Status: partial — schemas, lifecycle store, and the pre-render surface-validat
 - [x] Parse official `v1.0` agent-to-renderer lifecycle envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`); renderer-to-agent remains deferred.
 - [x] Implement ordered create, component update, data-model update, and delete behavior.
 - [x] Validate the pinned catalog identity, host component/event/function allowlists, reachable graph references and cycles, JSON Pointer syntax, template-relative bindings, and beyond-schema placement rules before rendering.
-- [ ] Validate remaining dynamic-value resolution, accessibility behavior, and renderer capability metadata beyond schema checks.
+- [ ] Validate remaining dynamic-value resolution, including nested `formatString` expressions, accessibility behavior, and renderer capability metadata beyond schema checks.
 - [ ] Adapt protocol state into the existing trusted native render plan.
 - [x] Add official examples, negative fixtures, and lifecycle tests for the implemented parse/store path; broader interoperability remains deferred.
 

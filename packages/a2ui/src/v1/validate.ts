@@ -251,6 +251,11 @@ function validateSemanticValue(
         `A2UI function ${JSON.stringify(functionName)} at ${path}.call is not allowed by the host`,
       );
     }
+    if (functionName === "formatString") {
+      throw new A2uiParseError(
+        `A2UI function "formatString" at ${path}.call is unsupported until every interpolation expression can be validated`,
+      );
+    }
     if (functionName === "@index" && context !== "template") {
       throw new A2uiParseError(
         `A2UI system function "@index" at ${path}.call is only valid inside a dynamic-list template`,
