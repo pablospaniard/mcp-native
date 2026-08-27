@@ -22,8 +22,11 @@ import {
 
 import {
   createA2uiV1NativeRenderPlan,
+  parseA2uiV1NativeOpenUrlDescriptor,
   resolveA2uiV1NativeEvent,
+  resolveA2uiV1NativeOpenUrl,
   type A2uiV1NativeEventDescriptor,
+  type A2uiV1NativeOpenUrlDescriptor,
 } from "./v1.js";
 
 export type NativeComponentName = "Button" | "Text" | "TextInput" | "View";
@@ -113,12 +116,22 @@ export type A2uiV1NativeActionHandler = (
   dataModel?: JsonObject,
 ) => void;
 
+/** Synchronous host authorization checked during the originating Button press. */
+export type A2uiV1NativeOpenUrlPolicy = (request: A2uiV1NativeOpenUrlDescriptor) => boolean;
+
+/** Host-owned platform opener. The library never invokes a browser or URL handler directly. */
+export type A2uiV1NativeOpenUrlHandler = (request: A2uiV1NativeOpenUrlDescriptor) => void;
+
 export interface A2uiV1NativeSurfaceProps {
   readonly surface: A2uiV1SurfaceState;
   readonly policy: A2uiV1SurfaceValidationPolicy;
   readonly components: NativeComponentCatalog;
   /** Receives an official envelope and, only after explicit surface opt-in, the local model. */
   readonly onAction: A2uiV1NativeActionHandler;
+  /** Required with `onOpenUrl` when this surface is allowed to use the local `openUrl` function. */
+  readonly openUrlPolicy?: A2uiV1NativeOpenUrlPolicy;
+  /** Executes an authorized URL while the originating Button press is still active. */
+  readonly onOpenUrl?: A2uiV1NativeOpenUrlHandler;
   /** Observes renderer-local state changes without turning keystrokes into network calls. */
   readonly onDataModelChange?: (dataModel: JsonObject) => void;
   readonly actionMetadata?: JsonObject;
@@ -193,6 +206,8 @@ export function A2uiV1NativeSurface({
   policy,
   components,
   onAction,
+  openUrlPolicy,
+  onOpenUrl,
   onDataModelChange,
   actionMetadata,
   locale,
@@ -269,10 +284,31 @@ export function A2uiV1NativeSurface({
     },
     [actionMetadata, locale, now, onAction, policy, validatedSurface],
   );
+  const handleOpenUrl = useCallback(
+    (request: A2uiV1NativeOpenUrlDescriptor) => {
+      const resolved = resolveA2uiV1NativeOpenUrl(
+        validatedSurface,
+        policy,
+        request.sourceComponentId,
+        dataModelRef.current,
+        {
+          ...(request.instanceKey === undefined ? {} : { instanceKey: request.instanceKey }),
+          ...(locale === undefined ? {} : { locale }),
+        },
+      );
+      if (openUrlPolicy?.(resolved) === true) {
+        onOpenUrl?.(resolved);
+      }
+    },
+    [locale, onOpenUrl, openUrlPolicy, policy, validatedSurface],
+  );
 
   return renderElement(plan, components, {
     onBindingChange: handleBindingChange,
     onV1Event: handleEvent,
+    ...(openUrlPolicy === undefined || onOpenUrl === undefined
+      ? {}
+      : { onV1OpenUrl: handleOpenUrl }),
   });
 }
 
@@ -343,6 +379,7 @@ interface NativeRenderHandlers {
   readonly onAction?: NativeActionHandler;
   readonly onBindingChange?: NativeBindingChangeHandler;
   readonly onV1Event?: (event: A2uiV1NativeEventDescriptor) => void;
+  readonly onV1OpenUrl?: (request: A2uiV1NativeOpenUrlDescriptor) => void;
 }
 
 function renderElement(
@@ -526,8 +563,11 @@ function createButtonPressHandler(
   const disabled = optionalBooleanProp(element, "disabled") === true;
   const hasAction = Object.hasOwn(element.props, "action");
   const hasEvent = Object.hasOwn(element.props, "event");
-  if (hasAction === hasEvent) {
-    throw new TypeError(`Expected exactly one action or event at native element ${element.key}`);
+  const hasOpenUrl = Object.hasOwn(element.props, "openUrl");
+  if (Number(hasAction) + Number(hasEvent) + Number(hasOpenUrl) !== 1) {
+    throw new TypeError(
+      `Expected exactly one action, event, or openUrl at native element ${element.key}`,
+    );
   }
   if (hasAction) {
     const action = expectActionProp(element);
@@ -536,11 +576,18 @@ function createButtonPressHandler(
     }
     return disabled ? () => undefined : () => handlers.onAction?.(action);
   }
-  const event = expectV1EventProp(element);
-  if (handlers.onV1Event === undefined) {
-    throw new TypeError(`Missing A2UI v1 event handler for element ${element.key}`);
+  if (hasEvent) {
+    const event = expectV1EventProp(element);
+    if (handlers.onV1Event === undefined) {
+      throw new TypeError(`Missing A2UI v1 event handler for element ${element.key}`);
+    }
+    return disabled ? () => undefined : () => handlers.onV1Event?.(event);
   }
-  return disabled ? () => undefined : () => handlers.onV1Event?.(event);
+  const request = expectV1OpenUrlProp(element);
+  if (handlers.onV1OpenUrl === undefined) {
+    throw new TypeError(`Missing A2UI v1 openUrl policy or handler for element ${element.key}`);
+  }
+  return disabled ? () => undefined : () => handlers.onV1OpenUrl?.(request);
 }
 
 function selectAccessibilityProps(element: NativeElement): NativeAccessibilityProps {
@@ -659,6 +706,16 @@ function expectV1EventProp(element: NativeElement): A2uiV1NativeEventDescriptor 
   };
 }
 
+function expectV1OpenUrlProp(element: NativeElement): A2uiV1NativeOpenUrlDescriptor {
+  const path = `native element ${element.key}.openUrl`;
+  try {
+    return parseA2uiV1NativeOpenUrlDescriptor(element.props.openUrl, path);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : `Expected an openUrl at ${path}`;
+    throw new TypeError(message, { cause: error });
+  }
+}
+
 function expectObjectString(value: JsonObject, name: string, path: string): string {
   const field = value[name];
   if (typeof field !== "string" || field.length === 0) {
@@ -759,12 +816,16 @@ function defineJsonProperty(
 
 export {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
+  A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH,
   A2UI_V1_NATIVE_MAX_RENDER_NODES,
   createA2uiV1NativeRenderPlan,
   resolveA2uiV1NativeEvent,
+  resolveA2uiV1NativeOpenUrl,
 } from "./v1.js";
 export type {
   A2uiV1NativeEventDescriptor,
   A2uiV1NativeEventResolutionOptions,
+  A2uiV1NativeOpenUrlDescriptor,
+  A2uiV1NativeOpenUrlResolutionOptions,
   A2uiV1NativeRenderPlanOptions,
 } from "./v1.js";

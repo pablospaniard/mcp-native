@@ -13,6 +13,8 @@ their minor release line.
 - A2UI v1 `required`, `regex`, `length`, `numeric`, and `email` validation functions plus
   renderer-side checks for supported text fields and buttons. Failed field checks expose their
   messages to host components, while failed button checks disable dispatch.
+- Policy-gated A2UI v1 `openUrl` Button actions with press-time data resolution, canonical HTTP(S)
+  descriptors, and host-owned platform execution.
 
 ### Security
 
@@ -21,6 +23,9 @@ their minor release line.
 - Bound expanded renderer checks, validation accessibility output, and agent-supplied regular
   expressions; reject potentially expensive regex constructs, invalid ranges, and non-boolean
   check results.
+- Require both the catalog function allowlist and a synchronous host URL policy before `openUrl`
+  execution; reject relative URLs, non-HTTP(S) schemes, credentials, whitespace, control and
+  Unicode format characters, oversized URLs, and cumulative dynamic-list amplification.
 
 ## 0.3.0 - 2026-08-26
 

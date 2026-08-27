@@ -34,6 +34,9 @@ export const A2UI_V1_NATIVE_COMPONENT_NAMES = Object.freeze([
 /** Maximum expanded native-plan nodes, including repeated component references. */
 export const A2UI_V1_NATIVE_MAX_RENDER_NODES = A2UI_V1_MAX_COMPONENTS;
 
+/** Maximum canonical HTTP(S) URL retained for one supported local action. */
+export const A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH = 8_192;
+
 /** Resolved event data retained in a trusted plan until renderer-to-agent dispatch. */
 export interface A2uiV1NativeEventDescriptor {
   readonly name: string;
@@ -43,6 +46,15 @@ export interface A2uiV1NativeEventDescriptor {
   readonly instanceKey?: string;
   readonly userMessage?: string;
   readonly context: JsonObject;
+}
+
+/** A validated local URL action that can only be executed by a host press handler. */
+export interface A2uiV1NativeOpenUrlDescriptor {
+  readonly url: string;
+  readonly surfaceId: string;
+  readonly sourceComponentId: string;
+  /** Identifies one expanded template instance without changing the wire component ID. */
+  readonly instanceKey?: string;
 }
 
 export interface A2uiV1NativeRenderPlanOptions {
@@ -56,6 +68,13 @@ export interface A2uiV1NativeEventResolutionOptions {
   /** Required when one template component expands into multiple reachable event sources. */
   readonly instanceKey?: string;
   /** Must match the locale used to render localized event values. */
+  readonly locale?: string;
+}
+
+export interface A2uiV1NativeOpenUrlResolutionOptions {
+  /** Required when one template component expands into multiple reachable URL sources. */
+  readonly instanceKey?: string;
+  /** Must match the locale used to resolve any localized URL value. */
   readonly locale?: string;
 }
 
@@ -75,6 +94,7 @@ interface AdapterContext {
   readonly visiting: Set<string>;
   formatStringExpressionCount: number;
   formattedStringLength: number;
+  openUrlLength: number;
   renderNodeCount: number;
   validationCheckCount: number;
   validationOutputLength: number;
@@ -138,6 +158,45 @@ export function resolveA2uiV1NativeEvent(
   return events[0]!;
 }
 
+/** Resolves one supported local URL action against the latest renderer-local data model. */
+export function resolveA2uiV1NativeOpenUrl(
+  surface: A2uiV1SurfaceState,
+  policy: A2uiV1SurfaceValidationPolicy,
+  sourceComponentId: string,
+  dataModel: JsonObject,
+  options: A2uiV1NativeOpenUrlResolutionOptions = {},
+): A2uiV1NativeOpenUrlDescriptor {
+  if (typeof sourceComponentId !== "string" || sourceComponentId.length === 0) {
+    throw new A2uiParseError("Expected a non-empty A2UI openUrl source component id");
+  }
+  const parsedOptions = parseOpenUrlResolutionOptions(options);
+  const context = createAdapterContext(surface, policy, dataModel, parsedOptions.locale);
+  const plan = adaptComponent("root", "root", context, undefined);
+  const openUrls = findNativeOpenUrls(plan, sourceComponentId, parsedOptions.instanceKey);
+  if (openUrls.length === 0) {
+    const disabledOpenUrls = findNativeOpenUrls(
+      plan,
+      sourceComponentId,
+      parsedOptions.instanceKey,
+      true,
+    );
+    if (disabledOpenUrls.length > 0) {
+      throw new A2uiParseError(
+        `A2UI native openUrl source ${JSON.stringify(sourceComponentId)} is disabled by failed renderer checks`,
+      );
+    }
+    throw new A2uiParseError(
+      `A2UI native openUrl source ${JSON.stringify(sourceComponentId)} is not a reachable supported Button`,
+    );
+  }
+  if (openUrls.length > 1) {
+    throw new A2uiParseError(
+      `A2UI native openUrl source ${JSON.stringify(sourceComponentId)} is ambiguous without its template instance key`,
+    );
+  }
+  return openUrls[0]!;
+}
+
 function findNativeEvents(
   element: NativeElement,
   sourceComponentId: string,
@@ -157,6 +216,27 @@ function findNativeEvents(
     events.push(...findNativeEvents(child, sourceComponentId, instanceKey, includeDisabled));
   }
   return events;
+}
+
+function findNativeOpenUrls(
+  element: NativeElement,
+  sourceComponentId: string,
+  instanceKey: string | undefined,
+  includeDisabled = false,
+): readonly A2uiV1NativeOpenUrlDescriptor[] {
+  const openUrls: A2uiV1NativeOpenUrlDescriptor[] = [];
+  const openUrl = element.props.openUrl as A2uiV1NativeOpenUrlDescriptor | undefined;
+  if (
+    openUrl?.sourceComponentId === sourceComponentId &&
+    (includeDisabled || element.props.disabled !== true) &&
+    (instanceKey === undefined || openUrl.instanceKey === instanceKey)
+  ) {
+    openUrls.push(openUrl);
+  }
+  for (const child of element.children ?? []) {
+    openUrls.push(...findNativeOpenUrls(child, sourceComponentId, instanceKey, includeDisabled));
+  }
+  return openUrls;
 }
 
 function createAdapterContext(
@@ -183,6 +263,7 @@ function createAdapterContext(
     visiting: new Set<string>(),
     formatStringExpressionCount: 0,
     formattedStringLength: 0,
+    openUrlLength: 0,
     renderNodeCount: 0,
     validationCheckCount: 0,
     validationOutputLength: 0,
@@ -214,6 +295,25 @@ function parseEventResolutionOptions(options: unknown): A2uiV1NativeEventResolut
     (typeof parsed.instanceKey !== "string" || parsed.instanceKey.length === 0)
   ) {
     throw new A2uiParseError("Expected a non-empty A2UI native event instance key");
+  }
+  return {
+    ...(parsed.instanceKey === undefined ? {} : { instanceKey: parsed.instanceKey }),
+    ...(parsed.locale === undefined
+      ? {}
+      : { locale: parseLocale(parsed.locale, "options.locale") }),
+  };
+}
+
+function parseOpenUrlResolutionOptions(options: unknown): A2uiV1NativeOpenUrlResolutionOptions {
+  const parsed = parseOptionsObject(options, "A2UI native openUrl resolution options", [
+    "instanceKey",
+    "locale",
+  ]);
+  if (
+    parsed.instanceKey !== undefined &&
+    (typeof parsed.instanceKey !== "string" || parsed.instanceKey.length === 0)
+  ) {
+    throw new A2uiParseError("Expected a non-empty A2UI native openUrl instance key");
   }
   return {
     ...(parsed.instanceKey === undefined ? {} : { instanceKey: parsed.instanceKey }),
@@ -467,9 +567,9 @@ function adaptButton(
   }
   const props: Record<string, unknown> = {
     title: resolveDynamicString(child.text, `components.${child.id}.text`, context, scope),
-    // Validate event context even while checks disable dispatch, so inactive state cannot conceal
+    // Validate action input even while checks disable dispatch, so inactive state cannot conceal
     // malformed or host-denied dynamic semantics.
-    event: resolveButtonEvent(component, key, context, scope),
+    ...resolveButtonAction(component, key, context, scope),
   };
   if (component.variant !== undefined) {
     props.variant = component.variant;
@@ -747,16 +847,45 @@ function throwUnsupportedValidationRegex(pattern: string, path: string): never {
   );
 }
 
-function resolveButtonEvent(
+function resolveButtonAction(
   component: A2uiV1Component,
   key: string,
   context: AdapterContext,
   scope: BindingScope | undefined,
-): A2uiV1NativeEventDescriptor {
+):
+  | { readonly event: A2uiV1NativeEventDescriptor }
+  | { readonly openUrl: A2uiV1NativeOpenUrlDescriptor } {
   const action = expectObject(component.action, `components.${component.id}.action`);
+  if (Object.hasOwn(action, "functionCall")) {
+    const call = expectObject(
+      action.functionCall,
+      `components.${component.id}.action.functionCall`,
+    );
+    const name = expectString(call.call, `components.${component.id}.action.functionCall.call`);
+    if (name !== "openUrl") {
+      throw new A2uiParseError(
+        `A2UI native Button ${JSON.stringify(component.id)} does not support local function ${JSON.stringify(name)}`,
+      );
+    }
+    const args = expectObject(call.args, `components.${component.id}.action.functionCall.args`);
+    const path = `components.${component.id}.action.functionCall.args.url`;
+    const url = recordOpenUrl(
+      normalizeOpenUrl(resolveDynamicString(args.url, path, context, scope), path),
+      path,
+      context,
+    );
+    return {
+      openUrl: {
+        url,
+        surfaceId: context.surface.surfaceId,
+        sourceComponentId: component.id,
+        instanceKey: key,
+      },
+    };
+  }
   if (!Object.hasOwn(action, "event")) {
     throw new A2uiParseError(
-      `A2UI native Button ${JSON.stringify(component.id)} does not support local function actions`,
+      `A2UI native Button ${JSON.stringify(component.id)} requires an event or supported local function action`,
     );
   }
   const event = expectObject(action.event, `components.${component.id}.action.event`);
@@ -788,13 +917,116 @@ function resolveButtonEvent(
           scope,
         );
   return {
-    name: eventName,
-    surfaceId: context.surface.surfaceId,
-    sourceComponentId: component.id,
-    instanceKey: key,
-    ...(userMessage === undefined ? {} : { userMessage }),
-    context: parseJsonObject(resolvedContext, `components.${component.id}.action.event.context`),
+    event: {
+      name: eventName,
+      surfaceId: context.surface.surfaceId,
+      sourceComponentId: component.id,
+      instanceKey: key,
+      ...(userMessage === undefined ? {} : { userMessage }),
+      context: parseJsonObject(resolvedContext, `components.${component.id}.action.event.context`),
+    },
   };
+}
+
+interface UrlLike {
+  readonly href: string;
+  readonly password: string;
+  readonly protocol: string;
+  readonly username: string;
+}
+
+interface UrlConstructorLike {
+  new (url: string): UrlLike;
+}
+
+function normalizeOpenUrl(value: string, path: string): string {
+  if (value.length === 0 || value.length > A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH) {
+    throw new A2uiParseError(
+      `Expected an HTTP(S) URL up to ${A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH} characters at ${path}`,
+    );
+  }
+  if (/\s|\p{Cf}/u.test(value) || hasAsciiControlCharacter(value)) {
+    throw new A2uiParseError(
+      `Expected an HTTP(S) URL without whitespace, control, or Unicode format characters at ${path}`,
+    );
+  }
+  const UrlConstructor = (globalThis as unknown as { readonly URL?: UrlConstructorLike }).URL;
+  if (UrlConstructor === undefined) {
+    throw new A2uiParseError(`The host runtime cannot validate an openUrl value at ${path}`);
+  }
+  let parsed: UrlLike;
+  try {
+    parsed = new UrlConstructor(value);
+  } catch (cause) {
+    throw new A2uiParseError(`Expected an absolute HTTP(S) URL at ${path}`, { cause });
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new A2uiParseError(`Expected an HTTP(S) URL at ${path}`);
+  }
+  if (parsed.username.length > 0 || parsed.password.length > 0) {
+    throw new A2uiParseError(`A2UI openUrl does not allow URL credentials at ${path}`);
+  }
+  if (parsed.href.length > A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH) {
+    throw new A2uiParseError(
+      `Canonical A2UI openUrl at ${path} exceeds maximum length of ${A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH}`,
+    );
+  }
+  return parsed.href;
+}
+
+function hasAsciiControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 31 || code === 127) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function recordOpenUrl(value: string, path: string, context: AdapterContext): string {
+  context.openUrlLength += value.length;
+  if (context.openUrlLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum openUrl length of ${A2UI_V1_MAX_SOURCE_LENGTH} at ${path}`,
+    );
+  }
+  return value;
+}
+
+/** Revalidates an untrusted URL descriptor before it crosses into a host component callback. */
+export function parseA2uiV1NativeOpenUrlDescriptor(
+  value: unknown,
+  path: string,
+): A2uiV1NativeOpenUrlDescriptor {
+  const descriptor = parseJsonObject(value, path);
+  const allowedKeys = new Set(["instanceKey", "sourceComponentId", "surfaceId", "url"]);
+  for (const key of Object.keys(descriptor)) {
+    if (!allowedKeys.has(key)) {
+      throw new A2uiParseError(`Unexpected field ${JSON.stringify(key)} at ${path}`);
+    }
+  }
+  const instanceKey = descriptor.instanceKey;
+  if (instanceKey !== undefined && (typeof instanceKey !== "string" || instanceKey.length === 0)) {
+    throw new A2uiParseError(`Expected a non-empty string at ${path}.instanceKey`);
+  }
+  return {
+    url: normalizeOpenUrl(expectString(descriptor.url, `${path}.url`), `${path}.url`),
+    surfaceId: expectNonEmptyString(descriptor.surfaceId, `${path}.surfaceId`),
+    sourceComponentId: expectNonEmptyString(
+      descriptor.sourceComponentId,
+      `${path}.sourceComponentId`,
+    ),
+    ...(instanceKey === undefined ? {} : { instanceKey }),
+  };
+}
+
+function expectNonEmptyString(value: JsonValue | undefined, path: string): string {
+  const result = expectString(value, path);
+  if (result.length === 0) {
+    throw new A2uiParseError(`Expected a non-empty string at ${path}`);
+  }
+  return result;
 }
 
 function addCommonProps(
