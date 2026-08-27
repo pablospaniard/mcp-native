@@ -77,6 +77,7 @@ interface AdapterContext {
   formattedStringLength: number;
   renderNodeCount: number;
   validationCheckCount: number;
+  validationOutputLength: number;
 }
 
 /**
@@ -184,6 +185,7 @@ function createAdapterContext(
     formattedStringLength: 0,
     renderNodeCount: 0,
     validationCheckCount: 0,
+    validationOutputLength: 0,
   };
 }
 
@@ -561,12 +563,29 @@ function addValidationProps(
   if (messages.length === 0) {
     return;
   }
+  const existingHint =
+    typeof props.accessibilityHint === "string" ? props.accessibilityHint : undefined;
+  const validationHintLength = messages.reduce(
+    (length, message, index) => length + message.length + (index === 0 ? 0 : 1),
+    0,
+  );
+  const outputLength =
+    validationHintLength + (existingHint === undefined ? 0 : existingHint.length + 1);
+  if (outputLength > JSON_MAX_STRING_LENGTH) {
+    throw new A2uiParseError(
+      `A2UI validation output at components.${component.id}.checks exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
+    );
+  }
+  context.validationOutputLength += outputLength;
+  if (context.validationOutputLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum validation-output length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
+    );
+  }
   props.validationMessages = Object.freeze(messages);
   const validationHint = messages.join(" ");
   props.accessibilityHint =
-    typeof props.accessibilityHint === "string"
-      ? `${props.accessibilityHint} ${validationHint}`
-      : validationHint;
+    existingHint === undefined ? validationHint : `${existingHint} ${validationHint}`;
 }
 
 const VALIDATION_FUNCTION_NAMES: ReadonlySet<string> = new Set([

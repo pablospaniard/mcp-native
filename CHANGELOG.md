@@ -18,8 +18,9 @@ their minor release line.
 
 - Reject invalid date values, ambiguous 12-hour patterns, unsupported Unicode pattern tokens,
   malformed quoted literals, out-of-range epochs, and patterns exceeding the renderer work limit.
-- Bound expanded renderer checks and agent-supplied regular expressions; reject potentially
-  expensive regex constructs, invalid ranges, and non-boolean check results.
+- Bound expanded renderer checks, validation accessibility output, and agent-supplied regular
+  expressions; reject potentially expensive regex constructs, invalid ranges, and non-boolean
+  check results.
 
 ## 0.3.0 - 2026-08-26
 

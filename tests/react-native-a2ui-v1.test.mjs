@@ -1801,6 +1801,69 @@ test("validation functions reject unsafe patterns, invalid bounds, and non-boole
   );
 });
 
+test("expanded validation output remains bounded before accessibility strings are built", () => {
+  const oversizedHint = createSurface(
+    [
+      {
+        id: "root",
+        component: "TextField",
+        label: "Name",
+        accessibility: { description: "x".repeat(32_768) },
+        checks: [
+          {
+            condition: { call: "required", args: { value: "" } },
+            message: "y".repeat(32_768),
+          },
+        ],
+      },
+    ],
+    {},
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        oversizedHint,
+        nativePolicy({ allowedFunctionNames: ["required"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /validation output.*exceeds maximum length of 65536/.test(error.message),
+  );
+
+  const amplifiedOutput = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      {
+        id: "item",
+        component: "TextField",
+        label: "Name",
+        value: { path: "name" },
+        checks: [
+          {
+            condition: { call: "required", args: { value: { path: "name" } } },
+            message: "x".repeat(2_048),
+          },
+        ],
+      },
+    ],
+    { items: Array.from({ length: 513 }, () => ({ name: "" })) },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        amplifiedOutput,
+        nativePolicy({ allowedFunctionNames: ["required"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /maximum validation-output length of 1048576/.test(error.message),
+  );
+});
+
 test("template instance keys remain unique for component IDs containing key delimiters", () => {
   const surface = createSurface(
     [
