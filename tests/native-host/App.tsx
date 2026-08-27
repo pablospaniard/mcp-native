@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Pressable,
@@ -400,8 +400,23 @@ const catalogs: Readonly<Record<CatalogMode, NativeComponentCatalog>> = {
 
 export default function App() {
   const [mode, setMode] = useState<CatalogMode>("primitives");
+  const actionCallbackCountRef = useRef(0);
+  const [actionCallbackCount, setActionCallbackCount] = useState(0);
   const [status, setStatus] = useState("No action dispatched");
   const catalog = useMemo(() => catalogs[mode], [mode]);
+
+  const recordActionCallback = (actionName: string) => {
+    const nextCount = actionCallbackCountRef.current + 1;
+    actionCallbackCountRef.current = nextCount;
+    setActionCallbackCount(nextCount);
+    setStatus(`Observed action callback ${nextCount}: ${actionName}`);
+  };
+
+  const resetActionCallbackCount = () => {
+    actionCallbackCountRef.current = 0;
+    setActionCallbackCount(0);
+    setStatus("Action callback count reset; activate one renderer control");
+  };
 
   return (
     <ScrollView
@@ -432,14 +447,27 @@ export default function App() {
           </Pressable>
         ))}
       </ReactNativeView>
-      <ReactNativeText accessibilityLiveRegion="polite" allowFontScaling style={styles.status}>
-        {status}
-      </ReactNativeText>
+      <ReactNativeView accessibilityLabel="Action callback observation" style={styles.counterPanel}>
+        <ReactNativeText accessibilityLiveRegion="polite" allowFontScaling style={styles.status}>
+          {`Callbacks since reset: ${actionCallbackCount}. ${status}`}
+        </ReactNativeText>
+        <Pressable
+          accessibilityHint="Use before each test activation so duplicate callbacks are visible"
+          accessibilityLabel="Reset action callback count"
+          accessibilityRole="button"
+          onPress={resetActionCallbackCount}
+          style={({ pressed }) => [styles.counterButton, pressed && styles.buttonPressed]}
+        >
+          <ReactNativeText allowFontScaling style={styles.counterButtonLabel}>
+            Reset callback count
+          </ReactNativeText>
+        </Pressable>
+      </ReactNativeView>
       <A2uiV1NativeSurface
         components={catalog}
         key={mode}
         now={() => new Date().toISOString()}
-        onAction={(envelope) => setStatus(`Dispatched ${envelope.action.name} exactly once`)}
+        onAction={(envelope) => recordActionCallback(envelope.action.name)}
         onDataModelChange={() => setStatus("Renderer-local data changed without an agent action")}
         policy={policy}
         surface={fixtureSurface}
@@ -495,6 +523,18 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   column: { gap: 12 },
+  counterButton: {
+    alignItems: "center",
+    borderColor: "#486581",
+    borderRadius: 6,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  counterButtonLabel: { color: "#102A43", fontSize: 16, fontWeight: "600" },
+  counterPanel: { gap: 8 },
   disabledButton: { opacity: 0.5 },
   heading: { color: "#102A43", fontSize: 24, fontWeight: "700" },
   input: {

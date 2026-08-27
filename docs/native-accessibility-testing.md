@@ -73,8 +73,9 @@ do not expand MCP Native's native component or capability catalog.
    every visible actionable control is reachable, and hidden content is neither focused nor read.
 2. Confirm text, buttons, field labels, values, hints, validation messages, live-region updates, and
    button disabled state are announced accurately without duplicate or stale announcements.
-3. Activate every enabled button using the screen reader. Each activation dispatches exactly once;
-   disabled buttons and failed renderer checks dispatch nothing.
+3. Reset the host callback count before activating each enabled button with the screen reader. One
+   activation must produce a count of exactly one; disabled buttons and failed renderer checks must
+   leave the count at zero.
 4. Edit every input type. Labels remain available while values change, secure values are not spoken
    as plain text, local updates do not create network actions, and submission uses current state.
 5. Test the normal size and each supported larger system text size. Text and inputs scale without
@@ -96,7 +97,7 @@ Use `tests/fixtures/a2ui-v1/accessibility-surface.json` for every matrix row. It
 hidden text, polite and assertive live regions, enabled and renderer-disabled buttons, valid and
 invalid fields, all four text-input variants, every closed view/text/button variant, and a dynamic
 list. The repository test suite mounts the same payload through the primitive catalog and verifies
-the trusted props, local edits, current-state validation, and exactly-once action dispatch.
+the trusted props, local edits, current-state validation, and observable action callback counts.
 
 For adapter and variant runs, map the fixture through the host's real locally bundled catalog. Do
 not edit the protocol fixture to compensate for a host adapter that drops accessibility props. Add
@@ -106,7 +107,8 @@ wire properties.
 
 `tests/native-host/App.tsx` is the hand-authored host screen. It provides selectable primitive,
 typed-adapter, and closed-variant catalog paths, bounded local styling, a scroll container, and a
-live status that distinguishes renderer-local edits from exactly-once action dispatch. It is copied
+live status plus a resettable callback count that distinguishes renderer-local edits, one dispatch,
+and duplicate dispatches. It is copied
 into an official temporary host; no Android/iOS scaffold or independent lockfile is committed.
 
 Use Node.js 22.14 or newer and generate one pinned host outside the repository:
