@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { pathToFileURL, URL } from "node:url";
 
 export const NATIVE_ACCESSIBILITY_EVIDENCE_PATH = "docs/evidence/native-accessibility-0.4.0.json";
 
@@ -195,7 +195,8 @@ function expectReleaseEvidenceFields(row, path) {
     throw new Error(`${path}.revision must be a full lowercase Git commit SHA`);
   }
   const date = expectNonEmptyString(row.date, `${path}.date`);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) {
+  const dateParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (dateParts === null || !isExactCalendarDate(dateParts)) {
     throw new Error(`${path}.date must be an ISO calendar date`);
   }
   expectNonEmptyString(row.tester, `${path}.tester`);
@@ -211,6 +212,20 @@ function expectReleaseEvidenceFields(row, path) {
 function validateEvidenceReference(value, path, evidenceRoot) {
   const reference = expectNonEmptyString(value, path);
   if (/^https:\/\//.test(reference)) {
+    let url;
+    try {
+      url = new URL(reference);
+    } catch {
+      throw new Error(`${path} must be a valid HTTPS URL`);
+    }
+    if (
+      url.protocol !== "https:" ||
+      url.hostname.length === 0 ||
+      url.username.length !== 0 ||
+      url.password.length !== 0
+    ) {
+      throw new Error(`${path} must be a credential-free HTTPS URL`);
+    }
     return;
   }
   if (isAbsolute(reference) || reference.includes("\\") || reference.split("/").includes("..")) {
@@ -219,6 +234,20 @@ function validateEvidenceReference(value, path, evidenceRoot) {
   if (!existsSync(resolve(evidenceRoot, reference))) {
     throw new Error(`${path} references missing evidence ${JSON.stringify(reference)}`);
   }
+}
+
+function isExactCalendarDate([, yearText, monthText, dayText]) {
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const normalized = new Date(0);
+  normalized.setUTCHours(0, 0, 0, 0);
+  normalized.setUTCFullYear(year, month - 1, day);
+  return (
+    normalized.getUTCFullYear() === year &&
+    normalized.getUTCMonth() === month - 1 &&
+    normalized.getUTCDate() === day
+  );
 }
 
 function expectObject(value, path) {

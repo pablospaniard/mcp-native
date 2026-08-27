@@ -123,6 +123,26 @@ test("native evidence rejects unsafe or missing artifact references", () => {
     () => validateNativeAccessibilityEvidence(invalid),
     /safe repository-relative path/,
   );
+
+  invalid.matrix[0].evidence = ["https://"];
+  assert.throws(() => validateNativeAccessibilityEvidence(invalid), /valid HTTPS URL/);
+});
+
+test("native evidence rejects normalized impossible calendar dates", () => {
+  const invalid = structuredClone(pendingEvidence);
+  const row = invalid.matrix[0];
+  row.assistiveTechnologyVersion = "test-version";
+  row.locale = "en-US";
+  row.textSize = "normal and all supported larger sizes";
+  row.device = "Test device";
+  row.revision = "a".repeat(40);
+  row.date = "2026-02-30";
+  row.tester = "Test operator";
+  row.result = "pass";
+  row.evidence = ["https://example.com/evidence/ios-minimum"];
+  row.cases = Object.fromEntries(NATIVE_ACCESSIBILITY_CASES.map((name) => [name, "pass"]));
+
+  assert.throws(() => validateNativeAccessibilityEvidence(invalid), /ISO calendar date/);
 });
 
 test("native evidence cannot relabel a required platform row", () => {
