@@ -16,6 +16,12 @@ Before creating a release:
    `GITHUB_REF_NAME=v<version> node scripts/verify-release-version.mjs`.
 4. Merge the release pull request and publish the matching GitHub Release.
 
+`npm run release:verify` includes the strict native accessibility evidence gate. For `0.4.0` and
+later releases, all required rows in `docs/evidence/native-accessibility-0.4.0.json` must pass with
+reviewable physical-device or emulator evidence as required by the matrix. A generated host,
+successful Metro/native build, simulator inspection, or pending placeholder is not a substitute for
+a required physical row.
+
 The release workflow publishes packages in dependency order. It first checks whether each exact
 version already exists, so an interrupted release can be resumed without attempting to overwrite
 immutable npm versions. A maintainer can manually dispatch the same workflow with the existing

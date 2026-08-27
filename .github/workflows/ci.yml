@@ -19,3 +19,29 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+
+  native-host-bundle:
+    name: Native host bundle (React Native ${{ matrix.react-native }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        react-native: ["0.87.1", "0.86.3"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+      - run: npm ci
+      - name: Generate temporary host
+        run: >-
+          node scripts/prepare-native-host.mjs
+          --react-native ${{ matrix.react-native }}
+          --output "${RUNNER_TEMP}/mcp-native-host-${{ matrix.react-native }}"
+      - name: Bundle Android host
+        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}
+        run: npm run mcp-native:bundle:android
+      - name: Bundle iOS host
+        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}
+        run: npm run mcp-native:bundle:ios

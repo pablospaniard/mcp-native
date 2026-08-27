@@ -95,7 +95,8 @@ Exit criterion: conformance is reported per implemented A2UI feature against the
 ## Milestone 4: production native renderer behavior
 
 Status: partial — renderer-local state, action-envelope emission, closed accessibility semantics,
-an automated platform fixture with a defined target matrix, and CI performance/fuzz gates.
+a generated platform fixture with build/evidence gates, a WCAG assessment, and CI performance/fuzz
+gates. Physical-device matrix execution remains outstanding.
 
 - [x] Add renderer-local data-model updates without network calls on each keystroke.
 - [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
@@ -108,7 +109,7 @@ an automated platform fixture with a defined target matrix, and CI performance/f
 - [ ] Execute the fixture across the target matrix in real host applications; test VoiceOver, TalkBack, dynamic type, focus, reduced motion, contrast, touch targets, orientation, and screen-reader actions in simulator, emulator, device CI, and physical devices where required.
 - [x] Establish [parse, update, render-plan, and retained-memory budgets](a2ui-v1-performance.md) for supported surface sizes, with large-surface and rapid-update stress tests.
 - [x] Add deterministic fuzz and property tests for bidirectional protocol parsing, lifecycle state, render-plan conversion, and renderer failure paths.
-- [ ] Target applicable WCAG 2.2 Level AA outcomes and document exceptions.
+- [x] Target applicable [WCAG 2.2 Level AA outcomes](wcag-2.2-native-assessment.md), separate library and host responsibilities, and document exceptions without making an unqualified conformance claim.
 
 Exit criterion: supported iOS and Android hosts render and interact with the supported A2UI subset accessibly, within documented performance budgets, and without weakening the component or capability boundary.
 

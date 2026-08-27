@@ -97,7 +97,7 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | HTML policy primitives for the planned MCP Apps compatibility path            |
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                       |
 
-The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. Release `0.3.0` expands the standards-pinned A2UI v1 Candidate path with capability negotiation, native interactions, dynamic lists, and bounded catalog-function execution. Its package version is independent of the internal A2UI proof-of-concept surface value `"0.1"`.
+The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. Release `0.4.0` completes the feature-scoped A2UI v1 Candidate adapter, adds closed native component variants and accessibility semantics, and introduces automated robustness plus real-platform release gates. Its package version is independent of the internal A2UI proof-of-concept surface value `"0.1"`.
 
 ## Installation
 
@@ -228,7 +228,7 @@ function ProfileScreen() {
 ```
 
 `onAction` receives a validated official envelope and, only after surface opt-in, the renderer-local
-data model. `deliverA2uiAction` is deliberately host-owned: version `0.3.0` does not choose or invoke
+data model. `deliverA2uiAction` is deliberately host-owned: version `0.4.0` does not choose or invoke
 a renderer-to-agent transport. `openUrl` needs all three grants: the catalog function allowlist,
 the synchronous `openUrlPolicy`, and `onOpenUrl`. The adapter accepts only bounded, credential-free
 HTTP(S) URLs, resolves the current value during the originating Button press, and calls the host
@@ -325,21 +325,23 @@ npm test
 
 Useful commands:
 
-| Command                    | Purpose                                                         |
-| -------------------------- | --------------------------------------------------------------- |
-| `npm run build`            | Build every workspace with TypeScript project references        |
-| `npm run check`            | Run formatting, linting, types, schemas, tests, and conformance |
-| `npm run format:check`     | Check formatting without changing files                         |
-| `npm run format:fix`       | Format supported project files with Oxfmt                       |
-| `npm run lint`             | Check source files with Oxlint                                  |
-| `npm run lint:fix`         | Apply safe Oxlint fixes, then report any remaining diagnostics  |
-| `npm run typecheck`        | Type-check all TypeScript project references                    |
-| `npm test`                 | Build and run the Node test suite                               |
-| `npm run test:coverage`    | Run tests and enforce coverage thresholds                       |
-| `npm run test:performance` | Enforce documented A2UI performance regression budgets          |
-| `npm run schemas:verify`   | Verify the pinned A2UI schema bundle and runtime copies         |
-| `npm run package:smoke`    | Build, pack, and install all publishable packages offline       |
-| `npm run clean`            | Remove TypeScript project build outputs                         |
+| Command                          | Purpose                                                         |
+| -------------------------------- | --------------------------------------------------------------- |
+| `npm run build`                  | Build every workspace with TypeScript project references        |
+| `npm run check`                  | Run formatting, linting, types, schemas, tests, and conformance |
+| `npm run format:check`           | Check formatting without changing files                         |
+| `npm run format:fix`             | Format supported project files with Oxfmt                       |
+| `npm run lint`                   | Check source files with Oxlint                                  |
+| `npm run lint:fix`               | Apply safe Oxlint fixes, then report any remaining diagnostics  |
+| `npm run typecheck`              | Type-check all TypeScript project references                    |
+| `npm test`                       | Build and run the Node test suite                               |
+| `npm run test:coverage`          | Run tests and enforce coverage thresholds                       |
+| `npm run test:performance`       | Enforce documented A2UI performance regression budgets          |
+| `npm run native:evidence:check`  | Validate the pending native accessibility evidence record       |
+| `npm run native:evidence:verify` | Require complete evidence for release verification              |
+| `npm run schemas:verify`         | Verify the pinned A2UI schema bundle and runtime copies         |
+| `npm run package:smoke`          | Build, pack, and install all publishable packages offline       |
+| `npm run clean`                  | Remove TypeScript project build outputs                         |
 
 Maintainers should follow the tokenless [release and package-onboarding process](docs/releasing.md).
 
@@ -395,6 +397,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Derive closed native text/button semantics and preserve text scaling at the host boundary
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
+- [x] Generate pinned RN 0.87/0.86 hosts and enforce a strict WCAG/platform evidence release gate
 - [ ] Complete real-platform accessibility behavior and testing
 - [ ] Execute the supported iOS/Android fixture and accessibility matrix in real host applications
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility

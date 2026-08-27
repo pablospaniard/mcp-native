@@ -111,6 +111,11 @@ The [automated robustness gates](../../docs/a2ui-v1-performance.md) separately d
 Node.js render-plan budgets and fixed-seed generated-input coverage; they do not measure native
 frame time or device memory.
 
+For release/platform testing, `npm run native:host:prepare` generates an official temporary React
+Native `0.87.1` or `0.86.3` host from local package tarballs and the pinned accessibility fixture.
+The [native accessibility test plan](../../docs/native-accessibility-testing.md) documents Metro and
+native build preflight, physical VoiceOver/TalkBack rows, WCAG scope, and the strict evidence gate.
+
 ### Host component adapters
 
 The catalog may use React Native primitives directly or typed adapters around any locally bundled design system. The adapter helpers receive only the trusted primitive props selected by MCP Native and map them into the host component's API:

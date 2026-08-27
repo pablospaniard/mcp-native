@@ -1,0 +1,81 @@
+name: Native platform preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android build (React Native ${{ matrix.react-native }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        react-native: ["0.87.1", "0.86.3"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Android 37 SDK
+        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"
+      - run: npm ci
+      - name: Generate temporary host
+        run: >-
+          node scripts/prepare-native-host.mjs
+          --react-native ${{ matrix.react-native }}
+          --output "${RUNNER_TEMP}/mcp-native-host-${{ matrix.react-native }}"
+      - name: Assemble debug application
+        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}/android
+        run: ./gradlew assembleDebug --no-daemon -PreactNativeArchitectures=x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-rn-${{ matrix.react-native }}
+          path: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  ios:
+    name: iOS simulator build (React Native ${{ matrix.react-native }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        react-native: ["0.87.1", "0.86.3"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+      - run: npm ci
+      - name: Generate temporary host
+        run: >-
+          node scripts/prepare-native-host.mjs
+          --react-native ${{ matrix.react-native }}
+          --output "${RUNNER_TEMP}/mcp-native-host-${{ matrix.react-native }}"
+      - name: Install CocoaPods dependencies
+        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}/ios
+        run: bundle install && bundle exec pod install
+      - name: Build simulator application
+        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}/ios
+        run: >-
+          xcodebuild
+          -workspace McpNativeAccessibilityHost.xcworkspace
+          -scheme McpNativeAccessibilityHost
+          -configuration Debug
+          -sdk iphonesimulator
+          -derivedDataPath "${RUNNER_TEMP}/mcp-native-ios-${{ matrix.react-native }}"
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-rn-${{ matrix.react-native }}
+          path: ${{ runner.temp }}/mcp-native-ios-${{ matrix.react-native }}/Build/Products/Debug-iphonesimulator/McpNativeAccessibilityHost.app
+          if-no-files-found: error
