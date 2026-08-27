@@ -92,7 +92,8 @@ Exit criterion: conformance is reported per implemented A2UI feature against the
 
 ## Milestone 4: production native renderer behavior
 
-Status: partial — renderer-local string bindings and action-envelope emission.
+Status: partial — renderer-local state, action-envelope emission, closed accessibility semantics,
+and an automated platform fixture with a defined target matrix.
 
 - [x] Add renderer-local data-model updates without network calls on each keystroke.
 - [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
@@ -101,8 +102,8 @@ Status: partial — renderer-local string bindings and action-envelope emission.
       primitive fallbacks, and explicit prop selection without unchecked prop spreading.
 - [x] Mount explicit label, description, live-region, and hidden accessibility attributes for the supported subset, with inferred button and input labels.
 - [x] Derive closed text and button roles, button disabled state, hidden-element focus exclusion, and explicit Text/TextInput font scaling at the host boundary; add regression coverage and a real-platform test plan.
-- [ ] Test VoiceOver and Android accessibility behavior, dynamic type, focus, reduced motion, contrast, touch targets, orientation, and screen-reader actions.
-- [ ] Define the supported iOS and Android version matrix and exercise real host applications in simulator, emulator, and device CI where available.
+- [x] Define the initial iOS, Android, and React Native target test matrix and add one pinned fixture that exercises base primitives, adapters, variants, dynamic lists, validation, and screen-reader semantics.
+- [ ] Execute the fixture across the target matrix in real host applications; test VoiceOver, TalkBack, dynamic type, focus, reduced motion, contrast, touch targets, orientation, and screen-reader actions in simulator, emulator, device CI, and physical devices where required.
 - [ ] Establish parse, update, render-latency, and memory budgets for supported surface sizes, with large-surface and rapid-update stress tests.
 - [ ] Add fuzz and property-based tests for protocol parsing, render-plan conversion, and renderer failure paths.
 - [ ] Target applicable WCAG 2.2 Level AA outcomes and document exceptions.

@@ -22,6 +22,8 @@ their minor release line.
 - Closed React Native accessibility semantics for rendered text and buttons, explicit disabled state,
   enabled text scaling, and a real-platform verification plan that records evidence without claiming
   unexecuted device coverage.
+- A pinned native accessibility fixture and initial React Native, iOS, and Android target test matrix
+  for consistent primitive, adapter, variant, dynamic-list, validation, and screen-reader runs.
 
 ### Security
 

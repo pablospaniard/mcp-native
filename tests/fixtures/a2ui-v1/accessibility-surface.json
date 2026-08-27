@@ -1,0 +1,187 @@
+{
+  "version": "v1.0",
+  "createSurface": {
+    "surfaceId": "native-accessibility",
+    "sendDataModel": true,
+    "components": [
+      {
+        "id": "root",
+        "component": "Card",
+        "child": "content",
+        "accessibility": { "label": "Accessibility test surface" }
+      },
+      {
+        "id": "content",
+        "component": "Column",
+        "children": [
+          "row",
+          "body",
+          "caption",
+          "hidden-text",
+          "polite-status",
+          "assertive-status",
+          "short-input",
+          "invalid-input",
+          "long-input",
+          "number-input",
+          "obscured-input",
+          "default-button",
+          "primary-button",
+          "borderless-button",
+          "disabled-button",
+          "dynamic-list"
+        ]
+      },
+      { "id": "row", "component": "Row", "children": [] },
+      { "id": "body", "component": "Text", "text": "Visible body text" },
+      { "id": "caption", "component": "Text", "text": "Visible caption", "variant": "caption" },
+      {
+        "id": "hidden-text",
+        "component": "Text",
+        "text": "This must not be announced",
+        "accessibility": { "hidden": true }
+      },
+      {
+        "id": "polite-status",
+        "component": "Text",
+        "text": { "path": "/form/name" },
+        "accessibility": { "label": "Name preview", "live": "polite" }
+      },
+      {
+        "id": "assertive-status",
+        "component": "Text",
+        "text": { "path": "/form/status" },
+        "accessibility": { "label": "Form status", "live": "assertive" }
+      },
+      {
+        "id": "short-input",
+        "component": "TextField",
+        "label": "Display name",
+        "placeholder": "Enter a display name",
+        "value": { "path": "/form/name" },
+        "variant": "shortText",
+        "accessibility": { "description": "Shown in the polite preview" }
+      },
+      {
+        "id": "invalid-input",
+        "component": "TextField",
+        "label": "Email",
+        "value": { "path": "/form/email" },
+        "checks": [
+          {
+            "condition": { "call": "required", "args": { "value": { "path": "/form/email" } } },
+            "message": "Email is required."
+          },
+          {
+            "condition": { "call": "email", "args": { "value": { "path": "/form/email" } } },
+            "message": "Enter a valid email."
+          }
+        ]
+      },
+      {
+        "id": "long-input",
+        "component": "TextField",
+        "label": "Notes",
+        "value": { "path": "/form/notes" },
+        "variant": "longText"
+      },
+      {
+        "id": "number-input",
+        "component": "TextField",
+        "label": "Quantity",
+        "value": { "path": "/form/quantity" },
+        "variant": "number"
+      },
+      {
+        "id": "obscured-input",
+        "component": "TextField",
+        "label": "Password",
+        "value": { "path": "/form/password" },
+        "variant": "obscured",
+        "accessibility": { "description": "Secure value" }
+      },
+      {
+        "id": "default-button",
+        "component": "Button",
+        "child": "default-label",
+        "action": { "event": { "name": "activate", "context": { "variant": "default" } } }
+      },
+      { "id": "default-label", "component": "Text", "text": "Default action" },
+      {
+        "id": "primary-button",
+        "component": "Button",
+        "child": "primary-label",
+        "variant": "primary",
+        "accessibility": { "label": "Primary action" },
+        "action": { "event": { "name": "activate", "context": { "variant": "primary" } } }
+      },
+      { "id": "primary-label", "component": "Text", "text": "Primary" },
+      {
+        "id": "borderless-button",
+        "component": "Button",
+        "child": "borderless-label",
+        "variant": "borderless",
+        "action": { "event": { "name": "activate", "context": { "variant": "borderless" } } }
+      },
+      { "id": "borderless-label", "component": "Text", "text": "Borderless action" },
+      {
+        "id": "disabled-button",
+        "component": "Button",
+        "child": "disabled-label",
+        "checks": [
+          {
+            "condition": { "call": "required", "args": { "value": { "path": "/form/email" } } },
+            "message": "Enter an email before submitting."
+          }
+        ],
+        "action": {
+          "event": {
+            "name": "submit",
+            "context": { "email": { "path": "/form/email" }, "name": { "path": "/form/name" } }
+          }
+        }
+      },
+      { "id": "disabled-label", "component": "Text", "text": "Submit" },
+      {
+        "id": "dynamic-list",
+        "component": "List",
+        "children": { "path": "/items", "componentId": "item" }
+      },
+      {
+        "id": "item",
+        "component": "Column",
+        "children": ["item-name", "item-input", "item-button"]
+      },
+      { "id": "item-name", "component": "Text", "text": { "path": "name" } },
+      {
+        "id": "item-input",
+        "component": "TextField",
+        "label": "Item name",
+        "value": { "path": "name" }
+      },
+      {
+        "id": "item-button",
+        "component": "Button",
+        "child": "item-button-label",
+        "action": {
+          "event": {
+            "name": "choose_item",
+            "context": { "name": { "path": "name" }, "index": { "call": "@index" } }
+          }
+        }
+      },
+      { "id": "item-button-label", "component": "Text", "text": "Choose item" }
+    ],
+    "dataModel": {
+      "form": {
+        "name": "Ada",
+        "email": "",
+        "notes": "A multiline value",
+        "quantity": "2",
+        "password": "not-a-real-secret",
+        "status": "Email is incomplete"
+      },
+      "items": [{ "name": "First item" }, { "name": "Second item" }]
+    }
+  }
+}

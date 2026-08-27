@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { act, createElement } from "react";
@@ -39,6 +40,10 @@ const nativeComponents = {
   TextInput: hostComponent("TextInput"),
 };
 
+const accessibilityFixture = JSON.parse(
+  readFileSync(new URL("fixtures/a2ui-v1/accessibility-surface.json", import.meta.url), "utf8"),
+);
+
 function createSurface(components, dataModel = {}, options = {}) {
   const store = new A2uiSurfaceStore();
   store.apply({
@@ -46,6 +51,12 @@ function createSurface(components, dataModel = {}, options = {}) {
     createSurface: { surfaceId: "native", components, dataModel, ...options },
   });
   return store.get("native");
+}
+
+function createFixtureSurface(message) {
+  const store = new A2uiSurfaceStore();
+  store.apply(message);
+  return store.get(message.createSurface.surfaceId);
 }
 
 function nativePolicy(options = {}) {
@@ -85,6 +96,105 @@ function normalizedIntlDateNumber(locale, date, options, type, width) {
   }
   return `${zero.repeat(Math.max(0, width - Array.from(value).length))}${value}`;
 }
+
+test("the platform accessibility fixture exercises the complete trusted host boundary", async () => {
+  const surface = createFixtureSurface(accessibilityFixture);
+  const policy = nativePolicy({
+    allowedEventNames: ["activate", "choose_item", "submit"],
+    allowedFunctionNames: ["@index", "email", "required"],
+  });
+  const actions = [];
+  const localModels = [];
+  const root = createRoot({ textComponentTypes: ["Text"] });
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy,
+        components: nativeComponents,
+        onAction: (envelope, dataModel) => actions.push({ envelope, dataModel }),
+        onDataModelChange: (dataModel) => localModels.push(dataModel),
+        now: () => "2026-08-27T15:00:00.000Z",
+      }),
+    );
+  });
+
+  const findText = (value) =>
+    root.container
+      .queryAll((element) => element.type === "Text")
+      .find((element) => element.children.includes(value));
+  const findInput = (label) =>
+    root.container
+      .queryAll((element) => element.type === "TextInput")
+      .find((element) => element.props.accessibilityLabel === label);
+  const findButton = (title) =>
+    root.container
+      .queryAll((element) => element.type === "Button")
+      .find((element) => element.props.title === title);
+
+  assert.equal(findText("Visible body text")?.props.accessibilityRole, "text");
+  assert.equal(findText("Visible caption")?.props.allowFontScaling, true);
+  assert.equal(findText("This must not be announced")?.props.accessible, false);
+  assert.equal(
+    findText("This must not be announced")?.props.importantForAccessibility,
+    "no-hide-descendants",
+  );
+  assert.equal(findText("Ada")?.props.accessibilityLiveRegion, "polite");
+  assert.equal(findText("Email is incomplete")?.props.accessibilityLiveRegion, "assertive");
+
+  let nameInput = findInput("Display name");
+  let emailInput = findInput("Email");
+  assert.equal(nameInput?.props.allowFontScaling, true);
+  assert.equal(nameInput?.props.accessibilityHint, "Shown in the polite preview");
+  assert.equal(emailInput?.props.invalid, true);
+  assert.deepEqual(emailInput?.props.validationMessages, [
+    "Email is required.",
+    "Enter a valid email.",
+  ]);
+  assert.equal(findInput("Notes")?.props.multiline, true);
+  assert.equal(findInput("Quantity")?.props.keyboardType, "numeric");
+  assert.equal(findInput("Password")?.props.secureTextEntry, true);
+
+  const defaultButton = findButton("Default action");
+  let submitButton = findButton("Submit");
+  assert.deepEqual(defaultButton?.props.accessibilityState, { disabled: false });
+  assert.deepEqual(submitButton?.props.accessibilityState, { disabled: true });
+  defaultButton.props.onPress();
+  submitButton.props.onPress();
+  assert.equal(actions.length, 1);
+  assert.equal(actions[0].envelope.action.name, "activate");
+  assert.equal(actions[0].envelope.action.context.variant, "default");
+
+  await act(async () => nameInput.props.onChangeText("Grace"));
+  assert.equal(findText("Grace")?.props.accessibilityLiveRegion, "polite");
+  assert.equal(localModels.at(-1).form.name, "Grace");
+
+  emailInput = findInput("Email");
+  await act(async () => emailInput.props.onChangeText("grace@example.com"));
+  emailInput = findInput("Email");
+  submitButton = findButton("Submit");
+  assert.equal(emailInput.props.invalid, undefined);
+  assert.equal(emailInput.props.validationMessages, undefined);
+  assert.deepEqual(submitButton.props.accessibilityState, { disabled: false });
+  submitButton.props.onPress();
+  assert.equal(actions.length, 2);
+  assert.deepEqual(actions[1].envelope.action.context, {
+    email: "grace@example.com",
+    name: "Grace",
+  });
+  assert.equal(actions[1].dataModel.form.email, "grace@example.com");
+
+  const chooseButtons = root.container
+    .queryAll((element) => element.type === "Button")
+    .filter((element) => element.props.title === "Choose item");
+  assert.equal(chooseButtons.length, 2);
+  chooseButtons[1].props.onPress();
+  assert.equal(actions.length, 3);
+  assert.deepEqual(actions[2].envelope.action.context, { name: "Second item", index: 1 });
+
+  await act(async () => root.unmount());
+});
 
 test("mounted v1 surfaces keep input local and resolve actions at dispatch time", async () => {
   const surface = createSurface(
