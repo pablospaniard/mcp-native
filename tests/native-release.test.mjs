@@ -174,6 +174,8 @@ test("CI pins both maintained React Native host lines and release evidence", () 
     (step) => step.name === "Install Android 37 SDK",
   );
   assert.match(androidSdkStep.run, /ANDROID_HOME.*cmdline-tools\/latest\/bin\/sdkmanager/);
+  assert.match(androidSdkStep.run, /platforms;android-37\.0/);
+  assert.match(androidSdkStep.run, /build-tools;37\.0\.0/);
 
   const rootPackage = JSON.parse(readFileSync("package.json", "utf8"));
   assert.match(rootPackage.scripts["release:verify"], /native:evidence:verify/);
