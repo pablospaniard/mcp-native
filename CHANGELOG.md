@@ -15,6 +15,8 @@ their minor release line.
   messages to host components, while failed button checks disable dispatch.
 - Policy-gated A2UI v1 `openUrl` Button actions with press-time data resolution, canonical HTTP(S)
   descriptors, host-owned platform execution, and non-dispatchable temporary invalid local edits.
+- Typed React Native host adapters for mapping trusted `View`, `Text`, `Button`, and `TextInput`
+  props into locally bundled third-party component APIs.
 
 ### Security
 
@@ -26,6 +28,8 @@ their minor release line.
 - Require both the catalog function allowlist and a synchronous host URL policy before `openUrl`
   execution; reject relative URLs, non-HTTP(S) schemes, credentials, whitespace, control and
   Unicode format characters, oversized URLs, and cumulative dynamic-list amplification.
+- Keep host component adapters behind the existing closed primitive catalog: servers cannot select
+  modules, register component names, choose prop mappers, or spread unchecked props.
 
 ## 0.3.0 - 2026-08-26
 

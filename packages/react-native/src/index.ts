@@ -15,10 +15,15 @@ import {
   useMemo,
   useRef,
   useState,
-  type ComponentType,
   type ReactElement,
-  type ReactNode,
 } from "react";
+
+import type {
+  NativeAccessibilityProps,
+  NativeComponentCatalog,
+  NativeTextInputComponentProps,
+  NativeViewStyle,
+} from "./component-adapters.js";
 
 import {
   createA2uiV1NativeRenderPlan,
@@ -29,6 +34,23 @@ import {
   type A2uiV1NativeEventDescriptor,
   type A2uiV1NativeOpenUrlDescriptor,
 } from "./v1.js";
+
+export {
+  createNativeButtonAdapter,
+  createNativeTextAdapter,
+  createNativeTextInputAdapter,
+  createNativeViewAdapter,
+} from "./component-adapters.js";
+export type { NativeComponentPropMapper } from "./component-adapters.js";
+export type {
+  NativeAccessibilityProps,
+  NativeButtonComponentProps,
+  NativeComponentCatalog,
+  NativeTextComponentProps,
+  NativeTextInputComponentProps,
+  NativeViewComponentProps,
+  NativeViewStyle,
+} from "./component-adapters.js";
 
 export type NativeComponentName = "Button" | "Text" | "TextInput" | "View";
 
@@ -41,64 +63,6 @@ export interface NativeElement {
   readonly component: NativeComponentName;
   readonly props: Readonly<Record<string, unknown>>;
   readonly children?: readonly NativeElement[];
-}
-
-export interface NativeAccessibilityProps {
-  readonly accessibilityElementsHidden?: boolean;
-  readonly accessibilityHint?: string;
-  readonly accessibilityLabel?: string;
-  readonly accessibilityLiveRegion?: "assertive" | "none" | "polite";
-  readonly importantForAccessibility?: "auto" | "no-hide-descendants";
-}
-
-export interface NativeViewStyle {
-  readonly alignItems?: "center" | "flex-end" | "flex-start" | "stretch";
-  readonly flexDirection?: "column" | "row";
-  readonly flexGrow?: number;
-  readonly justifyContent?:
-    | "center"
-    | "flex-end"
-    | "flex-start"
-    | "space-around"
-    | "space-between"
-    | "space-evenly";
-}
-
-export interface NativeViewComponentProps extends NativeAccessibilityProps {
-  readonly children?: ReactNode;
-  readonly style?: NativeViewStyle;
-}
-
-export interface NativeTextComponentProps extends NativeAccessibilityProps {
-  readonly children: string;
-}
-
-export interface NativeButtonComponentProps extends NativeAccessibilityProps {
-  readonly accessibilityLabel: string;
-  readonly disabled?: boolean;
-  readonly onPress: () => void;
-  readonly title: string;
-  readonly validationMessages?: readonly string[];
-}
-
-export interface NativeTextInputComponentProps extends NativeAccessibilityProps {
-  readonly accessibilityLabel: string;
-  readonly invalid?: boolean;
-  readonly keyboardType?: "numeric";
-  readonly multiline?: boolean;
-  readonly onChangeText?: (value: string) => void;
-  readonly placeholder: string;
-  readonly secureTextEntry?: boolean;
-  readonly validationMessages?: readonly string[];
-  readonly value?: string;
-}
-
-/** Locally bundled components chosen by the host application. */
-export interface NativeComponentCatalog {
-  readonly View: ComponentType<NativeViewComponentProps>;
-  readonly Text: ComponentType<NativeTextComponentProps>;
-  readonly Button: ComponentType<NativeButtonComponentProps>;
-  readonly TextInput: ComponentType<NativeTextInputComponentProps>;
 }
 
 export type NativeActionHandler = (action: McpNativeAction) => void;

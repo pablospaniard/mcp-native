@@ -103,6 +103,36 @@ const plan = surface && createA2uiV1NativeRenderPlan(surface, policy);
 
 The adapter maps `Row`, `Column`, static or dynamic `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. Dynamic lists expand one validated template component per bound array item and remain inside the 1,024-node plan limit. The adapter resolves absolute and item-relative JSON Pointer values, translates relative `TextField` bindings into absolute renderer-local pointers, evaluates bounded literal `formatString`, host-localized `formatNumber`, `formatCurrency`, `formatDate`, and `pluralize`, pure `and`, `or`, and `not`, `required`, bounded `regex`, `length`, `numeric`, and `email`, and `@index` with optional offsets, maps supported container direction and alignment to owned React Native flex styles, applies component weight through a host-owned `View` wrapper with `flexGrow`, maps `TextField` variants to explicit native input behavior (including `secureTextEntry` for `obscured`), and preserves event context and explicit accessibility fields. Supported `TextField` checks set explicit `invalid` and `validationMessages` props on the host component and append declared failures to its accessibility hint; supported `Button` checks set `disabled`, expose declared messages, and cannot resolve or dispatch the event or local URL action until current renderer-local state passes. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
 
+### Host component adapters
+
+The catalog may use React Native primitives directly or typed adapters around any locally bundled design system. The adapter helpers receive only the trusted primitive props selected by MCP Native and map them into the host component's API:
+
+```tsx
+import { createNativeButtonAdapter, type NativeComponentCatalog } from "@mcp-native/react-native";
+import { Text, TextInput, View } from "react-native";
+import { DesignButton } from "your-design-system";
+
+const components: NativeComponentCatalog = {
+  View,
+  Text,
+  TextInput,
+  Button: createNativeButtonAdapter(
+    DesignButton,
+    ({ title, onPress, disabled, accessibilityLabel, validationMessages }) => ({
+      label: title,
+      onActivate: onPress,
+      inactive: disabled === true,
+      assistiveLabel: accessibilityLabel,
+      ...(validationMessages === undefined ? {} : { errors: validationMessages }),
+    }),
+  ),
+};
+```
+
+`createNativeViewAdapter`, `createNativeTextAdapter`, and `createNativeTextInputAdapter` provide the same typed boundary for the other primitives. This supports wrappers around libraries such as Expo UI or Gluestack without coupling MCP Native to them. These helpers do not create new wire-level components: the supported semantic names remain the closed `View`, `Text`, `Button`, and `TextInput` render-plan catalog, and the A2UI adapter continues to reject components outside its explicit host allowlist. Mapper functions and target components are trusted application code; server input never selects an import, mapper, or unchecked target prop.
+
+Create adapter components and the catalog at module scope, as above, or memoize them with stable dependencies. Each factory call intentionally creates a new React component type; calling one during every host render would remount that catalog entry and discard its component-local state. Generated adapters include descriptive React DevTools display names.
+
 Use `A2uiV1NativeSurface` to mount that subset with renderer-local string state and official action envelopes:
 
 ```tsx
@@ -158,6 +188,8 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 | `A2uiV1NativeOpenUrlPolicy`             | Synchronous host predicate authorizing one canonical URL during its Button press.                        |
 | `A2uiV1NativeOpenUrlHandler`            | Host-owned callback that opens an authorized URL through a platform API.                                 |
 | `NativeComponentCatalog`                | Contract for locally bundled `View`, `Text`, `Button`, and `TextInput` implementations.                  |
+| `createNative*Adapter` helpers          | Typed mappings from trusted primitive props into locally bundled component-library APIs.                 |
+| `NativeComponentPropMapper`             | Generic mapper type used by the four host component adapter helpers.                                     |
 | `NativeActionHandler`                   | Synchronous handler for a validated declared action.                                                     |
 | `NativeBindingChangeHandler`            | Handler receiving a validated binding name and the next text value.                                      |
 | `McpNativeActionDispatcherOptions`      | Required action error callback and optional result callback.                                             |

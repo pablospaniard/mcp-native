@@ -150,6 +150,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Strict parsing of a deliberately small declarative UI subset
 - Conversion from a validated surface to a trusted native render plan
 - Mounting through host-provided `View`, `Text`, `Button`, and `TextInput` components
+- Typed adapters from those trusted primitives into locally bundled design-system components
 - React hooks for memoized render plans and safely observed asynchronous action dispatch
 - Accessibility labels and controlled text-input binding events selected at the renderer boundary
 - Fail-closed behavior for unknown nodes, actions, protocol versions, and WebView MIME types
@@ -381,6 +382,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Execute bounded host-localized A2UI `formatDate` with the pinned token subset
 - [x] Execute host-localized A2UI `pluralize` and pure `and`, `or`, and `not`
 - [x] Implement bounded policy-gated HTTP(S) `openUrl` with explicit user activation
+- [x] Add typed adapters for host-owned React Native component libraries
 - [ ] Implement remaining renderer-to-agent lifecycle messages
 - [ ] Complete real-platform accessibility behavior and testing
 - [ ] Establish native performance budgets, parser/renderer fuzzing, and a supported iOS/Android CI matrix
