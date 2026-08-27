@@ -4,6 +4,18 @@ All notable changes to MCP Native are documented here. Until the project reaches
 breaking public API changes increment the minor version; patch releases remain compatible within
 their minor release line.
 
+## Unreleased
+
+### Added
+
+- Bounded, host-localized A2UI v1 `formatDate` execution for strict calendar dates, RFC 3339
+  timestamps, Unix epochs, nested interpolation, and dispatch-time values.
+
+### Security
+
+- Reject invalid date values, ambiguous 12-hour patterns, unsupported Unicode pattern tokens,
+  malformed quoted literals, out-of-range epochs, and patterns exceeding the renderer work limit.
+
 ## 0.3.0 - 2026-08-26
 
 Expands the standards-pinned A2UI v1 Candidate path from static native plans into bounded,
