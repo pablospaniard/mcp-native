@@ -71,17 +71,21 @@ export interface NativeTextComponentProps extends NativeAccessibilityProps {
 
 export interface NativeButtonComponentProps extends NativeAccessibilityProps {
   readonly accessibilityLabel: string;
+  readonly disabled?: boolean;
   readonly onPress: () => void;
   readonly title: string;
+  readonly validationMessages?: readonly string[];
 }
 
 export interface NativeTextInputComponentProps extends NativeAccessibilityProps {
   readonly accessibilityLabel: string;
+  readonly invalid?: boolean;
   readonly keyboardType?: "numeric";
   readonly multiline?: boolean;
   readonly onChangeText?: (value: string) => void;
   readonly placeholder: string;
   readonly secureTextEntry?: boolean;
+  readonly validationMessages?: readonly string[];
   readonly value?: string;
 }
 
@@ -368,12 +372,16 @@ function renderElement(
       });
     case "Button": {
       const title = expectStringProp(element, "title");
+      const disabled = optionalBooleanProp(element, "disabled");
+      const validationMessages = optionalStringArrayProp(element, "validationMessages");
       const onPress = createButtonPressHandler(element, handlers);
       return createElement(components.Button, {
         key: element.key,
         title,
         accessibilityLabel: accessibilityProps.accessibilityLabel ?? title,
         ...accessibilityProps,
+        ...(disabled === undefined ? {} : { disabled }),
+        ...(validationMessages === undefined ? {} : { validationMessages }),
         onPress,
       });
     }
@@ -383,6 +391,8 @@ function renderElement(
       const placeholder = optionalStringProp(element, "placeholder") ?? label;
       const value = optionalStringProp(element, "value");
       const binding = optionalStringProp(element, "binding");
+      const invalid = optionalBooleanProp(element, "invalid");
+      const validationMessages = optionalStringArrayProp(element, "validationMessages");
       const behaviorProps = selectTextInputBehaviorProps(element);
       return createElement(components.TextInput, {
         key: element.key,
@@ -390,6 +400,8 @@ function renderElement(
         ...accessibilityProps,
         ...behaviorProps,
         placeholder,
+        ...(invalid === undefined ? {} : { invalid }),
+        ...(validationMessages === undefined ? {} : { validationMessages }),
         ...(value === undefined ? {} : { value }),
         ...(binding === undefined || handlers.onBindingChange === undefined
           ? {}
@@ -511,6 +523,7 @@ function createButtonPressHandler(
   element: NativeElement,
   handlers: NativeRenderHandlers,
 ): () => void {
+  const disabled = optionalBooleanProp(element, "disabled") === true;
   const hasAction = Object.hasOwn(element.props, "action");
   const hasEvent = Object.hasOwn(element.props, "event");
   if (hasAction === hasEvent) {
@@ -521,13 +534,13 @@ function createButtonPressHandler(
     if (handlers.onAction === undefined) {
       throw new TypeError(`Missing native action handler for element ${element.key}`);
     }
-    return () => handlers.onAction?.(action);
+    return disabled ? () => undefined : () => handlers.onAction?.(action);
   }
   const event = expectV1EventProp(element);
   if (handlers.onV1Event === undefined) {
     throw new TypeError(`Missing A2UI v1 event handler for element ${element.key}`);
   }
-  return () => handlers.onV1Event?.(event);
+  return disabled ? () => undefined : () => handlers.onV1Event?.(event);
 }
 
 function selectAccessibilityProps(element: NativeElement): NativeAccessibilityProps {
@@ -561,6 +574,20 @@ function expectStringProp(element: NativeElement, name: string): string {
 function optionalStringProp(element: NativeElement, name: string): string | undefined {
   const value = element.props[name];
   return value === undefined ? undefined : expectStringProp(element, name);
+}
+
+function optionalStringArrayProp(
+  element: NativeElement,
+  name: string,
+): readonly string[] | undefined {
+  const value = element.props[name];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new TypeError(`Expected an array of strings at native element ${element.key}.${name}`);
+  }
+  return value as readonly string[];
 }
 
 function optionalBooleanProp(element: NativeElement, name: string): boolean | undefined {

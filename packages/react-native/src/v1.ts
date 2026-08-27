@@ -76,6 +76,7 @@ interface AdapterContext {
   formatStringExpressionCount: number;
   formattedStringLength: number;
   renderNodeCount: number;
+  validationCheckCount: number;
 }
 
 /**
@@ -110,12 +111,20 @@ export function resolveA2uiV1NativeEvent(
   }
   const parsedOptions = parseEventResolutionOptions(options);
   const context = createAdapterContext(surface, policy, dataModel, parsedOptions.locale);
-  const events = findNativeEvents(
-    adaptComponent("root", "root", context, undefined),
-    sourceComponentId,
-    parsedOptions.instanceKey,
-  );
+  const plan = adaptComponent("root", "root", context, undefined);
+  const events = findNativeEvents(plan, sourceComponentId, parsedOptions.instanceKey);
   if (events.length === 0) {
+    const disabledEvents = findNativeEvents(
+      plan,
+      sourceComponentId,
+      parsedOptions.instanceKey,
+      true,
+    );
+    if (disabledEvents.length > 0) {
+      throw new A2uiParseError(
+        `A2UI native event source ${JSON.stringify(sourceComponentId)} is disabled by failed renderer checks`,
+      );
+    }
     throw new A2uiParseError(
       `A2UI native event source ${JSON.stringify(sourceComponentId)} is not a reachable supported Button`,
     );
@@ -132,17 +141,19 @@ function findNativeEvents(
   element: NativeElement,
   sourceComponentId: string,
   instanceKey: string | undefined,
+  includeDisabled = false,
 ): readonly A2uiV1NativeEventDescriptor[] {
   const events: A2uiV1NativeEventDescriptor[] = [];
   const event = element.props.event as A2uiV1NativeEventDescriptor | undefined;
   if (
     event?.sourceComponentId === sourceComponentId &&
+    (includeDisabled || element.props.disabled !== true) &&
     (instanceKey === undefined || event.instanceKey === instanceKey)
   ) {
     events.push(event);
   }
   for (const child of element.children ?? []) {
-    events.push(...findNativeEvents(child, sourceComponentId, instanceKey));
+    events.push(...findNativeEvents(child, sourceComponentId, instanceKey, includeDisabled));
   }
   return events;
 }
@@ -172,6 +183,7 @@ function createAdapterContext(
     formatStringExpressionCount: 0,
     formattedStringLength: 0,
     renderNodeCount: 0,
+    validationCheckCount: 0,
   };
 }
 
@@ -444,7 +456,6 @@ function adaptButton(
   context: AdapterContext,
   scope: BindingScope | undefined,
 ): NativeElement {
-  rejectUnsupportedChecks(component);
   const childId = expectString(component.child, `components.${component.id}.child`);
   const child = context.surface.components.get(childId);
   if (child?.component !== "Text") {
@@ -454,12 +465,15 @@ function adaptButton(
   }
   const props: Record<string, unknown> = {
     title: resolveDynamicString(child.text, `components.${child.id}.text`, context, scope),
+    // Validate event context even while checks disable dispatch, so inactive state cannot conceal
+    // malformed or host-denied dynamic semantics.
     event: resolveButtonEvent(component, key, context, scope),
   };
   if (component.variant !== undefined) {
     props.variant = component.variant;
   }
   addCommonProps(component, props, context, scope);
+  addValidationProps(component, props, context, scope, "button");
   if (props.accessibilityLabel === undefined) {
     props.accessibilityLabel = props.title;
   }
@@ -472,7 +486,6 @@ function adaptTextField(
   context: AdapterContext,
   scope: BindingScope | undefined,
 ): NativeElement {
-  rejectUnsupportedChecks(component);
   const componentPath = `components.${component.id}`;
   const label = resolveDynamicString(component.label, `${componentPath}.label`, context, scope);
   const props: Record<string, unknown> = {
@@ -501,18 +514,218 @@ function adaptTextField(
     props.variant = component.variant;
   }
   addCommonProps(component, props, context, scope);
+  addValidationProps(component, props, context, scope, "input");
   if (props.accessibilityLabel === undefined) {
     props.accessibilityLabel = label;
   }
   return { key, component: "TextInput", props };
 }
 
-function rejectUnsupportedChecks(component: A2uiV1Component): void {
-  if (component.checks !== undefined) {
-    throw new A2uiParseError(
-      `A2UI native adapter does not yet support renderer-side checks at components.${component.id}.checks`,
+function addValidationProps(
+  component: A2uiV1Component,
+  props: Record<string, unknown>,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+  target: "button" | "input",
+): void {
+  if (component.checks === undefined) {
+    return;
+  }
+  if (!Array.isArray(component.checks)) {
+    throw new A2uiParseError(`Expected an array at components.${component.id}.checks`);
+  }
+  const messages: string[] = [];
+  let valid = true;
+  for (const [index, value] of component.checks.entries()) {
+    context.validationCheckCount += 1;
+    if (context.validationCheckCount > JSON_MAX_VALUES) {
+      throw new A2uiParseError(
+        `Expanded A2UI native plan exceeds maximum of ${JSON_MAX_VALUES} renderer checks`,
+      );
+    }
+    const path = `components.${component.id}.checks[${index}]`;
+    const check = expectObject(value, path);
+    // The pinned Candidate's CheckRule prose says ValidationResult object, but its Checkable
+    // contract and reference implementation use a boolean. Follow that executable contract.
+    if (!resolveDynamicBoolean(check.condition, `${path}.condition`, context, scope)) {
+      valid = false;
+      if (check.message !== undefined) {
+        messages.push(expectString(check.message, `${path}.message`));
+      }
+    }
+  }
+  if (valid) {
+    return;
+  }
+  props[target === "button" ? "disabled" : "invalid"] = true;
+  if (messages.length === 0) {
+    return;
+  }
+  props.validationMessages = Object.freeze(messages);
+  const validationHint = messages.join(" ");
+  props.accessibilityHint =
+    typeof props.accessibilityHint === "string"
+      ? `${props.accessibilityHint} ${validationHint}`
+      : validationHint;
+}
+
+const VALIDATION_FUNCTION_NAMES: ReadonlySet<string> = new Set([
+  "required",
+  "regex",
+  "length",
+  "numeric",
+  "email",
+]);
+const A2UI_V1_MAX_REGEX_PATTERN_LENGTH = 256;
+const A2UI_V1_MAX_REGEX_INPUT_LENGTH = 4_096;
+const A2UI_V1_MAX_REGEX_REPEAT = 4_096;
+const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+function resolveValidationFunction(
+  call: JsonObject & { readonly call: string },
+  path: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): boolean {
+  const args = expectObject(call.args, `${path}.args`);
+  if (call.call === "required") {
+    const value = resolveDynamicValue(args.value, `${path}.args.value`, context, scope);
+    return !(
+      value === null ||
+      (typeof value === "string" && value.length === 0) ||
+      (Array.isArray(value) && value.length === 0)
     );
   }
+  if (call.call === "regex") {
+    const value = resolveDynamicString(args.value, `${path}.args.value`, context, scope);
+    const pattern = expectString(args.pattern, `${path}.args.pattern`);
+    if (value.length > A2UI_V1_MAX_REGEX_INPUT_LENGTH) {
+      return false;
+    }
+    return compileValidationRegex(pattern, path).test(value);
+  }
+  if (call.call === "length") {
+    const value = resolveDynamicString(args.value, `${path}.args.value`, context, scope);
+    const bounds = parseValidationBounds(args, path, true);
+    return (
+      (bounds.min === undefined || value.length >= bounds.min) &&
+      (bounds.max === undefined || value.length <= bounds.max)
+    );
+  }
+  if (call.call === "numeric") {
+    const value = resolveDynamicNumber(args.value, `${path}.args.value`, context, scope);
+    const bounds = parseValidationBounds(args, path, false);
+    return (
+      (bounds.min === undefined || value >= bounds.min) &&
+      (bounds.max === undefined || value <= bounds.max)
+    );
+  }
+  const value = resolveDynamicString(args.value, `${path}.args.value`, context, scope);
+  return value.length <= 320 && EMAIL_PATTERN.test(value);
+}
+
+function parseValidationBounds(
+  args: JsonObject,
+  path: string,
+  integer: boolean,
+): { readonly min: number | undefined; readonly max: number | undefined } {
+  const parseBound = (name: "min" | "max"): number | undefined => {
+    if (args[name] === undefined) {
+      return undefined;
+    }
+    const value = expectFiniteNumber(args[name]!, `${path}.args.${name}`);
+    if (integer && (!Number.isSafeInteger(value) || value < 0)) {
+      throw new A2uiParseError(`Expected a non-negative safe integer at ${path}.args.${name}`);
+    }
+    return value;
+  };
+  const min = parseBound("min");
+  const max = parseBound("max");
+  if (min === undefined && max === undefined) {
+    throw new A2uiParseError(`Expected min or max at ${path}.args`);
+  }
+  if (min !== undefined && max !== undefined && min > max) {
+    throw new A2uiParseError(`Expected min not to exceed max at ${path}.args`);
+  }
+  return { min, max };
+}
+
+function compileValidationRegex(pattern: string, path: string): RegExp {
+  if (pattern.length > A2UI_V1_MAX_REGEX_PATTERN_LENGTH) {
+    throw new A2uiParseError(
+      `A2UI regex pattern at ${path}.args.pattern exceeds maximum length of ${A2UI_V1_MAX_REGEX_PATTERN_LENGTH}`,
+    );
+  }
+  let escaped = false;
+  let inCharacterClass = false;
+  let variableRepeatCount = 0;
+  for (let index = 0; index < pattern.length; index += 1) {
+    const character = pattern[index]!;
+    if (escaped) {
+      if (/[1-9kPp]/.test(character)) {
+        throwUnsupportedValidationRegex(pattern, path);
+      }
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (inCharacterClass) {
+      if (character === "]") {
+        inCharacterClass = false;
+      }
+      continue;
+    }
+    if (character === "[") {
+      inCharacterClass = true;
+      continue;
+    }
+    if (character === "(" || character === ")" || character === "|") {
+      throwUnsupportedValidationRegex(pattern, path);
+    }
+    if (character === "*" || character === "+" || character === "?") {
+      variableRepeatCount += 1;
+      continue;
+    }
+    if (character === "{") {
+      const repeat = /^\{(0|[1-9][0-9]*)(?:,(0|[1-9][0-9]*)?)?\}/.exec(pattern.slice(index));
+      if (repeat === null) {
+        throwUnsupportedValidationRegex(pattern, path);
+      }
+      const min = Number(repeat[1]);
+      const max = repeat[2] === undefined || repeat[2] === "" ? undefined : Number(repeat[2]);
+      if (
+        min > A2UI_V1_MAX_REGEX_REPEAT ||
+        (max !== undefined && (max < min || max > A2UI_V1_MAX_REGEX_REPEAT))
+      ) {
+        throwUnsupportedValidationRegex(pattern, path);
+      }
+      if (repeat[0].includes(",") && max !== min) {
+        variableRepeatCount += 1;
+      }
+      index += repeat[0].length - 1;
+      continue;
+    }
+    if (character === "}") {
+      throwUnsupportedValidationRegex(pattern, path);
+    }
+  }
+  if (variableRepeatCount > 1) {
+    throwUnsupportedValidationRegex(pattern, path);
+  }
+  try {
+    return new RegExp(pattern);
+  } catch (cause) {
+    throw new A2uiParseError(`Invalid regex pattern at ${path}.args.pattern`, { cause });
+  }
+}
+
+function throwUnsupportedValidationRegex(pattern: string, path: string): never {
+  throw new A2uiParseError(
+    `Unsupported potentially expensive regex pattern ${JSON.stringify(pattern)} at ${path}.args.pattern`,
+  );
 }
 
 function resolveButtonEvent(
@@ -661,6 +874,9 @@ function resolveDynamicValue(
           ? 0
           : resolveDynamicNumber(args.offset, `${path}.args.offset`, context, scope);
       return scope.index + offset;
+    }
+    if (VALIDATION_FUNCTION_NAMES.has(value.call)) {
+      return resolveValidationFunction(value, path, context, scope);
     }
     if (value.call === "formatNumber" || value.call === "formatCurrency") {
       return resolveNumberFormat(value, path, context, scope);

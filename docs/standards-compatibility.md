@@ -141,10 +141,15 @@ The implementation order is maintained in [the project roadmap](roadmap.md). The
 1. **Implemented:** pin Candidate revision `7541f953…` and vendor its official JSON Schema bundle plus basic catalog.
 2. **Partial:** parse official `v1.0` agent-to-renderer lifecycle envelopes and construct renderer-to-agent `action`; function calls, responses, and errors remain deferred.
 3. **Implemented:** ordered surface store for create, component update, data-model update, and delete messages.
-4. **Partial:** validate the pinned catalog, explicit host component/event/function allowlists, rooted graph references and cycles, binding syntax and template context, selected placement rules, and bounded nested expressions in literal `formatString` sources against reconstructed pinned-catalog calls; bounded `formatString`, `formatNumber`, `formatCurrency`, `formatDate`, `pluralize`, `and`, `or`, and `not` execution is implemented while remaining function/check execution and platform accessibility behavior remain deferred.
-5. **Partial:** adapt and mount `Row`, `Column`, static and dynamic `List`, `Card`, `Text`, `Button`, and `TextField`; absolute and template-relative string bindings update renderer-local state, supported formatting and boolean functions plus template-scoped `@index` resolve with expansion limits and a host-owned locale, supported accessibility fields are selected explicitly, and template-instance events resolve against current state before envelope emission. Other renderer functions, renderer checks, and unsupported components fail closed.
+4. **Partial:** validate the pinned catalog, explicit host component/event/function allowlists, rooted graph references and cycles, binding syntax and template context, selected placement rules, and bounded nested expressions in literal `formatString` sources against reconstructed pinned-catalog calls; bounded formatting, plural, boolean, and validation function execution plus supported renderer checks are implemented while policy-gated `openUrl` and complete platform accessibility behavior remain deferred.
+5. **Partial:** adapt and mount `Row`, `Column`, static and dynamic `List`, `Card`, `Text`, `Button`, and `TextField`; absolute and template-relative string bindings update renderer-local state, supported formatting, boolean, and validation functions plus template-scoped `@index` resolve with expansion limits and a host-owned locale, failed field checks expose declared messages, invalid buttons are undispatchable, supported accessibility fields are selected explicitly, and template-instance events resolve against current state before envelope emission. `openUrl`, unsupported components, and their behavior fail closed.
 6. **Partial:** closed agent/renderer capability parsing requires the protocol's normative catalog lists, rejects permissive-schema ambiguity, negotiates exact catalog overlap, and leaves inline catalogs disabled; transport-specific placement remains host-owned.
 7. **Partial:** official examples, schema fixtures, malformed-message cases, and lifecycle tests for parse/store; broader interoperability remains deferred.
+
+The pinned Candidate is internally inconsistent about check results: `CheckRule` prose calls the
+result a `ValidationResult` object, while the `Checkable` contract and pinned reference
+implementation use a boolean. MCP Native follows the executable boolean interpretation and rejects
+non-boolean check conditions.
 
 ### MCP Apps compatibility
 
