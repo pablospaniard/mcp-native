@@ -12,10 +12,12 @@ import {
 } from "../packages/a2ui/dist/index.js";
 import {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
+  A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH,
   A2UI_V1_NATIVE_MAX_RENDER_NODES,
   A2uiV1NativeSurface,
   createA2uiV1NativeRenderPlan,
   resolveA2uiV1NativeEvent,
+  resolveA2uiV1NativeOpenUrl,
 } from "../packages/react-native/dist/index.js";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -172,6 +174,181 @@ test("mounted v1 surfaces keep input local and resolve actions at dispatch time"
   ]);
 
   await act(async () => root.unmount());
+});
+
+test("mounted openUrl actions require a press and current-state host authorization", async () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["url", "open"] },
+      { id: "url", component: "TextField", label: "URL", value: { path: "/url" } },
+      {
+        id: "open",
+        component: "Button",
+        child: "open-label",
+        action: {
+          functionCall: { call: "openUrl", args: { url: { path: "/url" } } },
+        },
+      },
+      { id: "open-label", component: "Text", text: "Open" },
+    ],
+    { url: "https://example.com/old" },
+  );
+  const policy = nativePolicy({ allowedFunctionNames: ["openUrl"] });
+  const policyCalls = [];
+  const opened = [];
+  const root = createRoot();
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy,
+        components: nativeComponents,
+        onAction() {},
+        openUrlPolicy: (request) => {
+          policyCalls.push(request);
+          return request.url === "https://example.com/current";
+        },
+        onOpenUrl: (request) => opened.push(request),
+      }),
+    );
+  });
+
+  assert.deepEqual(policyCalls, []);
+  assert.deepEqual(opened, []);
+  let input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  await act(async () => input.props.onChangeText("https:"));
+  let button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(button.props.disabled, true);
+  button.props.onPress();
+  assert.deepEqual(policyCalls, []);
+  assert.deepEqual(opened, []);
+  assert.throws(
+    () => resolveA2uiV1NativeOpenUrl(surface, policy, "open", { url: "https:" }),
+    (error) => error instanceof A2uiParseError && /absolute HTTP\(S\) URL/.test(error.message),
+  );
+
+  input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  await act(async () => input.props.onChangeText("https://example.com/current"));
+  button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(button.props.disabled, undefined);
+  button.props.onPress();
+  assert.deepEqual(policyCalls, [
+    {
+      url: "https://example.com/current",
+      surfaceId: "native",
+      sourceComponentId: "open",
+      instanceKey: "root/open:1",
+    },
+  ]);
+  assert.deepEqual(opened, policyCalls);
+
+  const invalidUpdatedSurface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["field", "open"] },
+      { id: "field", component: "TextField", label: "URL", value: { path: "/url" } },
+      {
+        id: "open",
+        component: "Button",
+        child: "open-label",
+        action: {
+          functionCall: { call: "openUrl", args: { url: "https://user@example.com" } },
+        },
+      },
+      { id: "open-label", component: "Text", text: "Open" },
+    ],
+    { url: "https://example.com/old" },
+  );
+  await assert.rejects(async () => {
+    await act(async () => {
+      root.render(
+        createElement(A2uiV1NativeSurface, {
+          surface: invalidUpdatedSurface,
+          policy,
+          components: nativeComponents,
+          onAction() {},
+          openUrlPolicy: () => true,
+          onOpenUrl() {},
+        }),
+      );
+    });
+  }, /does not allow URL credentials/);
+});
+
+test("openUrl fails closed when host policy denies or capability handlers are incomplete", async () => {
+  const surface = createSurface([
+    {
+      id: "root",
+      component: "Button",
+      child: "label",
+      action: { functionCall: { call: "openUrl", args: { url: "https://example.com" } } },
+    },
+    { id: "label", component: "Text", text: "Open" },
+  ]);
+  const policy = nativePolicy({ allowedFunctionNames: ["openUrl"] });
+  const opened = [];
+  const root = createRoot();
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy,
+        components: nativeComponents,
+        onAction() {},
+        openUrlPolicy: () => false,
+        onOpenUrl: (request) => opened.push(request),
+      }),
+    );
+  });
+  root.container.queryAll((element) => element.type === "Button")[0].props.onPress();
+  assert.deepEqual(opened, []);
+  await act(async () => root.unmount());
+
+  const incompleteRoot = createRoot();
+  await assert.rejects(async () => {
+    await act(async () => {
+      incompleteRoot.render(
+        createElement(A2uiV1NativeSurface, {
+          surface,
+          policy,
+          components: nativeComponents,
+          onAction() {},
+          onOpenUrl() {},
+        }),
+      );
+    });
+  }, /Missing A2UI v1 openUrl policy or handler/);
+
+  const invalidInitialSurface = createSurface(
+    [
+      {
+        id: "root",
+        component: "Button",
+        child: "label",
+        action: {
+          functionCall: { call: "openUrl", args: { url: { path: "/url" } } },
+        },
+      },
+      { id: "label", component: "Text", text: "Open" },
+    ],
+    { url: "https:" },
+  );
+  const invalidRoot = createRoot();
+  await assert.rejects(async () => {
+    await act(async () => {
+      invalidRoot.render(
+        createElement(A2uiV1NativeSurface, {
+          surface: invalidInitialSurface,
+          policy,
+          components: nativeComponents,
+          onAction() {},
+          openUrlPolicy: () => true,
+          onOpenUrl() {},
+        }),
+      );
+    });
+  }, /absolute HTTP\(S\) URL/);
 });
 
 test("mounted formatString values follow renderer-local state through dispatch", async () => {
@@ -457,6 +634,128 @@ test("dispatch-time resolution cannot activate an unreachable server event", () 
     () => resolveA2uiV1NativeEvent(surface, nativePolicy(), "hidden-action", {}),
     (error) =>
       error instanceof A2uiParseError && /not a reachable supported Button/.test(error.message),
+  );
+});
+
+test("openUrl plans retain only a canonical descriptor and resolve reachable current actions", () => {
+  const surface = createSurface([
+    {
+      id: "root",
+      component: "Button",
+      child: "label",
+      action: {
+        functionCall: { call: "openUrl", args: { url: "https://example.com/docs?q=a%20b" } },
+      },
+    },
+    { id: "label", component: "Text", text: "Docs" },
+  ]);
+  const policy = nativePolicy({ allowedFunctionNames: ["openUrl"] });
+  const plan = createA2uiV1NativeRenderPlan(surface, policy);
+
+  assert.deepEqual(plan.props, {
+    title: "Docs",
+    openUrl: {
+      url: "https://example.com/docs?q=a%20b",
+      surfaceId: "native",
+      sourceComponentId: "root",
+      instanceKey: "root",
+    },
+    accessibilityLabel: "Docs",
+  });
+  assert.deepEqual(
+    resolveA2uiV1NativeOpenUrl(surface, policy, "root", surface.dataModel),
+    plan.props.openUrl,
+  );
+
+  const hiddenSurface = createSurface([
+    { id: "root", component: "Text", text: "Visible" },
+    {
+      id: "hidden",
+      component: "Button",
+      child: "hidden-label",
+      action: {
+        functionCall: { call: "openUrl", args: { url: "https://example.com/hidden" } },
+      },
+    },
+    { id: "hidden-label", component: "Text", text: "Hidden" },
+  ]);
+  assert.throws(
+    () => resolveA2uiV1NativeOpenUrl(hiddenSurface, policy, "hidden", {}),
+    (error) =>
+      error instanceof A2uiParseError && /not a reachable supported Button/.test(error.message),
+  );
+});
+
+test("openUrl rejects unsafe dynamic URLs and bounded expansion", async (t) => {
+  const cases = [
+    ["script scheme", "javascript:alert(1)", /Expected an HTTP\(S\) URL/],
+    ["data scheme", "data:text/html,hello", /Expected an HTTP\(S\) URL/],
+    ["file scheme", "file:///private/data", /Expected an HTTP\(S\) URL/],
+    ["relative URL", "/local/path", /absolute HTTP\(S\) URL/],
+    ["credentials", "https://user:secret@example.com", /does not allow URL credentials/],
+    ["whitespace", "https://example.com/a b", /without whitespace/],
+    ["Unicode format character", "https://example.com/a\u200bb", /Unicode format characters/],
+    [
+      "oversized URL",
+      `https://example.com/${"a".repeat(A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH)}`,
+      new RegExp(`up to ${A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH} characters`),
+    ],
+  ];
+
+  await Promise.all(
+    cases.map(([name, url, message]) =>
+      t.test(name, () => {
+        const surface = createSurface(
+          [
+            {
+              id: "root",
+              component: "Button",
+              child: "label",
+              action: {
+                functionCall: { call: "openUrl", args: { url: { path: "/url" } } },
+              },
+            },
+            { id: "label", component: "Text", text: "Open" },
+          ],
+          { url },
+        );
+        assert.throws(
+          () =>
+            createA2uiV1NativeRenderPlan(
+              surface,
+              nativePolicy({ allowedFunctionNames: ["openUrl"] }),
+            ),
+          (error) => error instanceof A2uiParseError && message.test(error.message),
+        );
+      }),
+    ),
+  );
+
+  const longUrl = `https://example.com/${"a".repeat(
+    A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH - "https://example.com/".length,
+  )}`;
+  const expanded = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "link" },
+      },
+      {
+        id: "link",
+        component: "Button",
+        child: "label",
+        action: { functionCall: { call: "openUrl", args: { url: longUrl } } },
+      },
+      { id: "label", component: "Text", text: "Open" },
+    ],
+    { items: Array.from({ length: 129 }, () => ({})) },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(expanded, nativePolicy({ allowedFunctionNames: ["openUrl"] })),
+    (error) =>
+      error instanceof A2uiParseError && /maximum openUrl length of 1048576/.test(error.message),
   );
 });
 
@@ -1659,6 +1958,60 @@ test("renderer checks expose field errors and prevent invalid button dispatch", 
   await act(async () => root.unmount());
 });
 
+test("failed renderer checks prevent local openUrl authorization and dispatch", async () => {
+  const surface = createSurface(
+    [
+      {
+        id: "root",
+        component: "Button",
+        child: "label",
+        checks: [
+          {
+            condition: { call: "required", args: { value: { path: "/consent" } } },
+            message: "Consent is required.",
+          },
+        ],
+        action: {
+          functionCall: { call: "openUrl", args: { url: "https://example.com/terms" } },
+        },
+      },
+      { id: "label", component: "Text", text: "Terms" },
+    ],
+    { consent: "" },
+  );
+  const policy = nativePolicy({ allowedFunctionNames: ["openUrl", "required"] });
+  assert.throws(
+    () => resolveA2uiV1NativeOpenUrl(surface, policy, "root", surface.dataModel),
+    (error) =>
+      error instanceof A2uiParseError && /disabled by failed renderer checks/.test(error.message),
+  );
+
+  const policyCalls = [];
+  const opened = [];
+  const root = createRoot();
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy,
+        components: nativeComponents,
+        onAction() {},
+        openUrlPolicy: (request) => {
+          policyCalls.push(request);
+          return true;
+        },
+        onOpenUrl: (request) => opened.push(request),
+      }),
+    );
+  });
+  const button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(button.props.disabled, true);
+  button.props.onPress();
+  assert.deepEqual(policyCalls, []);
+  assert.deepEqual(opened, []);
+  await act(async () => root.unmount());
+});
+
 test("validation functions reject unsafe patterns, invalid bounds, and non-boolean checks", async (t) => {
   const cases = [
     {
@@ -2060,7 +2413,7 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
       message: /Expected a string at components\.root\.value/,
     },
     {
-      name: "local button function",
+      name: "unsupported local button function",
       surface: createSurface([
         {
           id: "root",
@@ -2068,15 +2421,15 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
           child: "label",
           action: {
             functionCall: {
-              call: "openUrl",
-              args: { url: "https://example.com" },
+              call: "formatString",
+              args: { value: "hello" },
             },
           },
         },
         { id: "label", component: "Text", text: "Open" },
       ]),
-      policy: nativePolicy({ allowedFunctionNames: ["openUrl"] }),
-      message: /does not support local function actions/,
+      policy: nativePolicy({ allowedFunctionNames: ["formatString"] }),
+      message: /does not support local function "formatString"/,
     },
   ];
 

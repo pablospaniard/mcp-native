@@ -156,7 +156,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks for supported text fields and buttons, pure boolean functions, `@index`, and action events returned to a host callback; policy-gated `openUrl`, action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks for supported text fields and buttons, pure boolean functions, `@index`, action events returned to a host callback, and press-time host-policy-gated HTTP(S) `openUrl`; action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
 
 ## A2UI v1 Candidate host flow
 
@@ -172,7 +172,7 @@ import {
   resolveA2uiV1JsonlFromToolResult,
 } from "@mcp-native/a2ui";
 import { A2UI_V1_NATIVE_COMPONENT_NAMES, A2uiV1NativeSurface } from "@mcp-native/react-native";
-import { Button, Text, TextInput, View } from "react-native";
+import { Button, Linking, Text, TextInput, View } from "react-native";
 
 const binding = negotiateA2uiMcpBinding(
   adapter.getClientExtensionSettings(),
@@ -195,7 +195,15 @@ if (surface === undefined) {
 const policy = createA2uiV1BasicCatalogPolicy({
   allowedComponentNames: A2UI_V1_NATIVE_COMPONENT_NAMES,
   allowedEventNames: ["save_profile"],
-  allowedFunctionNames: ["formatString", "formatNumber", "pluralize", "and", "or", "not"],
+  allowedFunctionNames: [
+    "formatString",
+    "formatNumber",
+    "pluralize",
+    "and",
+    "or",
+    "not",
+    "openUrl",
+  ],
 });
 
 function ProfileScreen() {
@@ -207,6 +215,10 @@ function ProfileScreen() {
       onAction={(envelope, dataModel) => {
         void deliverA2uiAction(envelope, dataModel);
       }}
+      openUrlPolicy={({ url }) => new URL(url).origin === "https://docs.example.com"}
+      onOpenUrl={({ url }) => {
+        void Linking.openURL(url).catch(reportOpenUrlError);
+      }}
     />
   );
 }
@@ -214,7 +226,10 @@ function ProfileScreen() {
 
 `onAction` receives a validated official envelope and, only after surface opt-in, the renderer-local
 data model. `deliverA2uiAction` is deliberately host-owned: version `0.3.0` does not choose or invoke
-a renderer-to-agent transport.
+a renderer-to-agent transport. `openUrl` needs all three grants: the catalog function allowlist,
+the synchronous `openUrlPolicy`, and `onOpenUrl`. The adapter accepts only bounded, credential-free
+HTTP(S) URLs, resolves the current value during the originating Button press, and calls the host
+opener only when the policy returns exactly `true`.
 
 ## Legacy `0.1` proof-model example
 
@@ -271,7 +286,7 @@ This legacy resolver requires exactly one `application/a2ui+json` resource link,
 
 MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
 
-Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, mounts the supported subset with bounded dynamic lists, local bindings, supported string, number, currency, date, plural, boolean, and validation functions and checks, and constructs official action envelopes. Transport placement and enforcement of the A2UI capability objects, policy-gated `openUrl`, inline catalogs, the remaining renderer-to-agent lifecycle, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
+Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, mounts the supported subset with bounded dynamic lists, local bindings, supported string, number, currency, date, plural, boolean, and validation functions and checks, executes HTTP(S) `openUrl` only through a press-time host policy, and constructs official action envelopes. Transport placement and enforcement of the A2UI capability objects, inline catalogs, the remaining renderer-to-agent lifecycle, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 
@@ -365,7 +380,8 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Execute host-localized A2UI `formatNumber` and `formatCurrency`
 - [x] Execute bounded host-localized A2UI `formatDate` with the pinned token subset
 - [x] Execute host-localized A2UI `pluralize` and pure `and`, `or`, and `not`
-- [ ] Implement policy-gated `openUrl` and remaining renderer-to-agent lifecycle messages
+- [x] Implement bounded policy-gated HTTP(S) `openUrl` with explicit user activation
+- [ ] Implement remaining renderer-to-agent lifecycle messages
 - [ ] Complete real-platform accessibility behavior and testing
 - [ ] Establish native performance budgets, parser/renderer fuzzing, and a supported iOS/Android CI matrix
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility
