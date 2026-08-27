@@ -1467,6 +1467,403 @@ test("pluralize and boolean functions fail closed for invalid bound values", () 
   );
 });
 
+test("validation functions execute with pinned boolean semantics", () => {
+  const surface = createSurface(
+    [
+      {
+        id: "root",
+        component: "Column",
+        children: ["summary", "submit"],
+      },
+      {
+        id: "summary",
+        component: "Text",
+        text: {
+          call: "formatString",
+          args: { value: "Ready: ${required(value:${/ready})}" },
+        },
+      },
+      {
+        id: "submit",
+        component: "Button",
+        child: "submit-label",
+        action: {
+          event: {
+            name: "submit",
+            context: {
+              requiredValue: { call: "required", args: { value: { path: "/ready" } } },
+              requiredEmpty: { call: "required", args: { value: "" } },
+              requiredEmptyArray: { call: "required", args: { value: [] } },
+              regex: {
+                call: "regex",
+                args: { value: { path: "/zip" }, pattern: "^[0-9]{5}$" },
+              },
+              length: {
+                call: "length",
+                args: { value: { path: "/name" }, min: 2, max: 4 },
+              },
+              numeric: {
+                call: "numeric",
+                args: { value: { path: "/amount" }, min: 5, max: 15 },
+              },
+              email: { call: "email", args: { value: { path: "/email" } } },
+              combined: {
+                call: "and",
+                args: {
+                  values: [
+                    { call: "required", args: { value: { path: "/email" } } },
+                    { call: "email", args: { value: { path: "/email" } } },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      { id: "submit-label", component: "Text", text: "Submit" },
+    ],
+    {
+      ready: "yes",
+      zip: "28001",
+      name: "Ada",
+      amount: 10,
+      email: "ada@example.com",
+    },
+  );
+  const policy = nativePolicy({
+    allowedEventNames: ["submit"],
+    allowedFunctionNames: [
+      "formatString",
+      "required",
+      "regex",
+      "length",
+      "numeric",
+      "email",
+      "and",
+    ],
+  });
+
+  const plan = createA2uiV1NativeRenderPlan(surface, policy);
+  assert.equal(plan.children?.[0]?.props.children, "Ready: true");
+  assert.deepEqual(resolveA2uiV1NativeEvent(surface, policy, "submit", surface.dataModel).context, {
+    requiredValue: true,
+    requiredEmpty: false,
+    requiredEmptyArray: false,
+    regex: true,
+    length: true,
+    numeric: true,
+    email: true,
+    combined: true,
+  });
+});
+
+test("renderer checks expose field errors and prevent invalid button dispatch", async () => {
+  const surface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["email", "submit"] },
+      {
+        id: "email",
+        component: "TextField",
+        label: "Email",
+        value: { path: "/email" },
+        accessibility: { description: "Account email." },
+        checks: [
+          {
+            condition: { call: "required", args: { value: { path: "/email" } } },
+            message: "Email is required.",
+          },
+          {
+            condition: { call: "email", args: { value: { path: "/email" } } },
+            message: "Enter a valid email.",
+          },
+        ],
+      },
+      {
+        id: "submit",
+        component: "Button",
+        child: "submit-label",
+        checks: [
+          {
+            condition: {
+              call: "and",
+              args: {
+                values: [
+                  { call: "required", args: { value: { path: "/email" } } },
+                  { call: "email", args: { value: { path: "/email" } } },
+                ],
+              },
+            },
+            message: "Fix the form before submitting.",
+          },
+        ],
+        action: { event: { name: "submit", context: { email: { path: "/email" } } } },
+      },
+      { id: "submit-label", component: "Text", text: "Submit" },
+    ],
+    { email: "" },
+  );
+  const policy = nativePolicy({
+    allowedEventNames: ["submit"],
+    allowedFunctionNames: ["required", "email", "and"],
+  });
+
+  const plan = createA2uiV1NativeRenderPlan(surface, policy);
+  assert.equal(plan.children?.[0]?.props.invalid, true);
+  assert.deepEqual(plan.children?.[0]?.props.validationMessages, [
+    "Email is required.",
+    "Enter a valid email.",
+  ]);
+  assert.equal(
+    plan.children?.[0]?.props.accessibilityHint,
+    "Account email. Email is required. Enter a valid email.",
+  );
+  assert.equal(plan.children?.[1]?.props.disabled, true);
+  assert.throws(
+    () => resolveA2uiV1NativeEvent(surface, policy, "submit", surface.dataModel),
+    (error) =>
+      error instanceof A2uiParseError && /disabled by failed renderer checks/.test(error.message),
+  );
+
+  const actions = [];
+  const root = createRoot();
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy,
+        components: nativeComponents,
+        now: () => "2026-08-27T08:00:00.000Z",
+        onAction: (envelope) => actions.push(envelope),
+      }),
+    );
+  });
+
+  let input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  let button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(input.props.invalid, true);
+  assert.deepEqual(input.props.validationMessages, ["Email is required.", "Enter a valid email."]);
+  assert.equal(button.props.disabled, true);
+  button.props.onPress();
+  assert.equal(actions.length, 0);
+
+  await act(async () => input.props.onChangeText("ada@example.com"));
+  input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(input.props.invalid, undefined);
+  assert.equal(input.props.validationMessages, undefined);
+  assert.equal(input.props.accessibilityHint, "Account email.");
+  assert.equal(button.props.disabled, undefined);
+  button.props.onPress();
+  assert.equal(actions.length, 1);
+  assert.deepEqual(actions[0].action.context, { email: "ada@example.com" });
+  await act(async () => root.unmount());
+});
+
+test("validation functions reject unsafe patterns, invalid bounds, and non-boolean checks", async (t) => {
+  const cases = [
+    {
+      name: "potentially exponential regex",
+      call: { call: "regex", args: { value: "aaaa", pattern: "(a+)+$" } },
+      functions: ["regex"],
+      message: /potentially expensive regex pattern/,
+    },
+    {
+      name: "multiple variable regex repeats",
+      call: { call: "regex", args: { value: "aaaa", pattern: "a+a+" } },
+      functions: ["regex"],
+      message: /potentially expensive regex pattern/,
+    },
+    {
+      name: "invalid regex syntax",
+      call: { call: "regex", args: { value: "a", pattern: "[" } },
+      functions: ["regex"],
+      message: /Invalid regex pattern/,
+    },
+    {
+      name: "excessive regex pattern",
+      call: { call: "regex", args: { value: "a", pattern: "a".repeat(257) } },
+      functions: ["regex"],
+      message: /exceeds maximum length of 256/,
+    },
+    {
+      name: "reversed length bounds",
+      call: { call: "length", args: { value: "abc", min: 4, max: 2 } },
+      functions: ["length"],
+      message: /min not to exceed max/,
+    },
+    {
+      name: "reversed numeric bounds",
+      call: { call: "numeric", args: { value: 3, min: 4, max: 2 } },
+      functions: ["numeric"],
+      message: /min not to exceed max/,
+    },
+  ];
+
+  await Promise.all(
+    cases.map((fixture) =>
+      t.test(fixture.name, () => {
+        const surface = createSurface([
+          {
+            id: "root",
+            component: "Button",
+            child: "label",
+            checks: [{ condition: fixture.call }],
+            action: { event: { name: "submit" } },
+          },
+          { id: "label", component: "Text", text: "Submit" },
+        ]);
+        assert.throws(
+          () =>
+            createA2uiV1NativeRenderPlan(
+              surface,
+              nativePolicy({
+                allowedEventNames: ["submit"],
+                allowedFunctionNames: fixture.functions,
+              }),
+            ),
+          (error) => error instanceof A2uiParseError && fixture.message.test(error.message),
+        );
+      }),
+    ),
+  );
+
+  const nonBoolean = createSurface(
+    [
+      {
+        id: "root",
+        component: "TextField",
+        label: "Name",
+        checks: [{ condition: { path: "/ready" } }],
+      },
+    ],
+    { ready: "yes" },
+  );
+  assert.throws(
+    () => createA2uiV1NativeRenderPlan(nonBoolean, nativePolicy()),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /Expected a boolean.*checks\[0\]\.condition/.test(error.message),
+  );
+
+  const longRegexInput = createSurface(
+    [
+      {
+        id: "root",
+        component: "TextField",
+        label: "Code",
+        checks: [
+          {
+            condition: {
+              call: "regex",
+              args: { value: { path: "/code" }, pattern: "^[a-z]+$" },
+            },
+            message: "Code is too long.",
+          },
+        ],
+      },
+    ],
+    { code: "a".repeat(4_097) },
+  );
+  assert.equal(
+    createA2uiV1NativeRenderPlan(longRegexInput, nativePolicy({ allowedFunctionNames: ["regex"] }))
+      .props.invalid,
+    true,
+  );
+
+  const repeatedChecks = Array.from({ length: 10 }, () => ({
+    condition: { call: "required", args: { value: { path: "name" } } },
+  }));
+  const excessiveChecks = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      {
+        id: "item",
+        component: "TextField",
+        label: "Name",
+        value: { path: "name" },
+        checks: repeatedChecks,
+      },
+    ],
+    { items: Array.from({ length: 1_001 }, () => ({ name: "Ada" })) },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        excessiveChecks,
+        nativePolicy({ allowedFunctionNames: ["required"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError && /maximum of 10000 renderer checks/.test(error.message),
+  );
+});
+
+test("expanded validation output remains bounded before accessibility strings are built", () => {
+  const oversizedHint = createSurface(
+    [
+      {
+        id: "root",
+        component: "TextField",
+        label: "Name",
+        accessibility: { description: "x".repeat(32_768) },
+        checks: [
+          {
+            condition: { call: "required", args: { value: "" } },
+            message: "y".repeat(32_768),
+          },
+        ],
+      },
+    ],
+    {},
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        oversizedHint,
+        nativePolicy({ allowedFunctionNames: ["required"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /validation output.*exceeds maximum length of 65536/.test(error.message),
+  );
+
+  const amplifiedOutput = createSurface(
+    [
+      {
+        id: "root",
+        component: "List",
+        children: { path: "/items", componentId: "item" },
+      },
+      {
+        id: "item",
+        component: "TextField",
+        label: "Name",
+        value: { path: "name" },
+        checks: [
+          {
+            condition: { call: "required", args: { value: { path: "name" } } },
+            message: "x".repeat(2_048),
+          },
+        ],
+      },
+    ],
+    { items: Array.from({ length: 513 }, () => ({ name: "" })) },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        amplifiedOutput,
+        nativePolicy({ allowedFunctionNames: ["required"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /maximum validation-output length of 1048576/.test(error.message),
+  );
+});
+
 test("template instance keys remain unique for component IDs containing key delimiters", () => {
   const surface = createSurface(
     [
@@ -1613,7 +2010,7 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
       message: /Expected an array.*root\.children path "\/items"/,
     },
     {
-      name: "renderer function",
+      name: "validation result in string property",
       surface: createSurface([
         {
           id: "root",
@@ -1622,22 +2019,7 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
         },
       ]),
       policy: nativePolicy({ allowedFunctionNames: ["required"] }),
-      message: /does not execute function "required"/,
-    },
-    {
-      name: "unsupported nested renderer function",
-      surface: createSurface([
-        {
-          id: "root",
-          component: "Text",
-          text: {
-            call: "formatString",
-            args: { value: "Value: ${required(value:'ready')}" },
-          },
-        },
-      ]),
-      policy: nativePolicy({ allowedFunctionNames: ["formatString", "required"] }),
-      message: /does not execute function "required"/,
+      message: /Expected a string.*root\.text/,
     },
     {
       name: "unsupported main-axis stretch",
@@ -1695,56 +2077,6 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
       ]),
       policy: nativePolicy({ allowedFunctionNames: ["openUrl"] }),
       message: /does not support local function actions/,
-    },
-    {
-      name: "text field renderer checks",
-      surface: createSurface(
-        [
-          {
-            id: "root",
-            component: "TextField",
-            label: "Name",
-            value: { path: "/name" },
-            checks: [
-              {
-                condition: {
-                  call: "required",
-                  args: { value: { path: "/name" } },
-                },
-                message: "Name is required",
-              },
-            ],
-          },
-        ],
-        { name: "Ada" },
-      ),
-      policy: nativePolicy({ allowedFunctionNames: ["required"] }),
-      message: /does not yet support renderer-side checks.*root\.checks/,
-    },
-    {
-      name: "button renderer checks",
-      surface: createSurface([
-        {
-          id: "root",
-          component: "Button",
-          child: "label",
-          checks: [
-            {
-              condition: {
-                call: "required",
-                args: { value: "ready" },
-              },
-            },
-          ],
-          action: { event: { name: "submit" } },
-        },
-        { id: "label", component: "Text", text: "Submit" },
-      ]),
-      policy: nativePolicy({
-        allowedEventNames: ["submit"],
-        allowedFunctionNames: ["required"],
-      }),
-      message: /does not yet support renderer-side checks.*root\.checks/,
     },
   ];
 

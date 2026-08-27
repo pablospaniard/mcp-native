@@ -10,11 +10,17 @@ their minor release line.
 
 - Bounded, host-localized A2UI v1 `formatDate` execution for strict calendar dates, RFC 3339
   timestamps, Unix epochs, nested interpolation, and dispatch-time values.
+- A2UI v1 `required`, `regex`, `length`, `numeric`, and `email` validation functions plus
+  renderer-side checks for supported text fields and buttons. Failed field checks expose their
+  messages to host components, while failed button checks disable dispatch.
 
 ### Security
 
 - Reject invalid date values, ambiguous 12-hour patterns, unsupported Unicode pattern tokens,
   malformed quoted literals, out-of-range epochs, and patterns exceeding the renderer work limit.
+- Bound expanded renderer checks, validation accessibility output, and agent-supplied regular
+  expressions; reject potentially expensive regex constructs, invalid ranges, and non-boolean
+  check results.
 
 ## 0.3.0 - 2026-08-26
 

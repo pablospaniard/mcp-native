@@ -141,6 +141,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Bounded dynamic `List` template expansion with relative bindings, local edits, and `@index`
 - Bounded `formatString` interpolation over validated bindings, JSON values, and nested supported functions
 - Host-localized `formatNumber` and `formatCurrency` execution with bounded, validated options
+- Bounded `required`, `regex`, `length`, `numeric`, and `email` validation with renderer-side field and button checks
 - Host-localized CLDR plural selection and strict `and`, `or`, and `not` evaluation
 - A mounted v1 native surface with renderer-local string bindings, dispatch-time event resolution, and schema-validated renderer-to-agent action envelopes
 - Typed `tools/call` action routing with a fail-closed host policy
@@ -155,7 +156,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, date, and plural formatting, pure boolean functions, `@index`, and action events returned to a host callback; remaining catalog functions, renderer-side checks, action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks for supported text fields and buttons, pure boolean functions, `@index`, and action events returned to a host callback; policy-gated `openUrl`, action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
 
 ## A2UI v1 Candidate host flow
 
@@ -270,7 +271,7 @@ This legacy resolver requires exactly one `application/a2ui+json` resource link,
 
 MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
 
-Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, mounts the supported subset with bounded dynamic lists, local bindings, supported string, number, currency, date, plural, and boolean functions, and constructs official action envelopes. Transport placement and enforcement of the A2UI capability objects, remaining renderer functions and checks, inline catalogs, the remaining renderer-to-agent lifecycle, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
+Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, mounts the supported subset with bounded dynamic lists, local bindings, supported string, number, currency, date, plural, boolean, and validation functions and checks, and constructs official action envelopes. Transport placement and enforcement of the A2UI capability objects, policy-gated `openUrl`, inline catalogs, the remaining renderer-to-agent lifecycle, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 
@@ -364,7 +365,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Execute host-localized A2UI `formatNumber` and `formatCurrency`
 - [x] Execute bounded host-localized A2UI `formatDate` with the pinned token subset
 - [x] Execute host-localized A2UI `pluralize` and pure `and`, `or`, and `not`
-- [ ] Implement remaining renderer functions, checks, and renderer-to-agent lifecycle messages
+- [ ] Implement policy-gated `openUrl` and remaining renderer-to-agent lifecycle messages
 - [ ] Complete real-platform accessibility behavior and testing
 - [ ] Establish native performance budgets, parser/renderer fuzzing, and a supported iOS/Android CI matrix
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility
