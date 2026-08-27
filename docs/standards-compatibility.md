@@ -144,7 +144,7 @@ The implementation order is maintained in [the project roadmap](roadmap.md). The
 4. **Partial:** validate the pinned catalog, explicit host component/event/function allowlists, rooted graph references and cycles, binding syntax and template context, selected placement rules, and bounded nested expressions in literal `formatString` sources against reconstructed pinned-catalog calls; bounded formatting, plural, boolean, validation, and HTTP(S) `openUrl` execution plus supported renderer checks are implemented while complete platform accessibility behavior remains deferred.
 5. **Partial:** adapt and mount `Row`, `Column`, static and dynamic `List`, `Card`, `Text`, `Button`, and `TextField`; absolute and template-relative string bindings update renderer-local state, supported formatting, boolean, and validation functions plus template-scoped `@index` resolve with expansion limits and a host-owned locale, failed field checks expose declared messages, invalid buttons are undispatchable, supported accessibility fields are selected explicitly, closed text/button roles and disabled state plus text scaling are derived by the renderer, closed host-owned component variants preserve the implemented structural and style hints without forwarding server style objects, template-instance events resolve against current state before envelope emission, and `openUrl` re-resolves a bounded canonical HTTP(S) URL during the originating press before a synchronous host policy may invoke the host opener. Unsupported components, functions, URL schemes, and behavior fail closed. Real-platform accessibility verification remains outstanding under the [native accessibility test plan](native-accessibility-testing.md).
 6. **Partial:** closed agent/renderer capability parsing requires the protocol's normative catalog lists, rejects permissive-schema ambiguity, negotiates exact catalog overlap, and leaves inline catalogs disabled; transport-specific placement remains host-owned.
-7. **Partial:** official examples, schema fixtures, malformed-message cases, and lifecycle tests for parse/store; broader interoperability remains deferred.
+7. **Partial:** official protocol examples used as test fixtures, schema fixtures, malformed-message cases, and lifecycle tests for parse/store; broader interoperability remains deferred.
 
 The pinned Candidate is internally inconsistent about check results: `CheckRule` prose calls the
 result a `ValidationResult` object, while the `Checkable` contract and pinned reference
@@ -157,7 +157,7 @@ non-boolean check conditions.
 2. Resolve `ui://` resources with exact `text/html;profile=mcp-app` handling and enforce their CSP, origin, navigation, and permission policies.
 3. Prefer the official AppBridge implementation where it supports the React Native host boundary; otherwise implement the documented JSON-RPC protocol with equivalent validation.
 4. Isolate the WebView, expose only explicit host capabilities, and validate every bridge message in both directions.
-5. Add interoperability tests against official examples and record differences between browser iframe guarantees and platform WebView guarantees.
+5. Add interoperability tests against official protocol examples as external test fixtures, without committing another example application, and record differences between browser iframe guarantees and platform WebView guarantees.
 
 The native A2UI renderer and the HTML MCP Apps host are separate compatibility paths. Neither should silently fall back to the other when validation fails.
 

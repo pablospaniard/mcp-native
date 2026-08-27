@@ -103,8 +103,9 @@ MCP extension support is determined only from validated, explicit client and ser
 
 ## Initial proof milestone
 
-Status: complete through package and integration tests for the custom `0.1` proof path. A runnable
-mobile host remains a separate roadmap milestone.
+Status: complete through package and integration tests for the custom `0.1` proof path. A minimal,
+tested React Native integration PoC remains a separate roadmap milestone; it will not vendor a
+generated standalone mobile project into this repository.
 
 The proof demonstrates:
 

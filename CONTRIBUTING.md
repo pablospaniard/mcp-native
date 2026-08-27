@@ -111,6 +111,21 @@ New behavior requires tests. Bug fixes should include a regression test that fai
 
 CI runs the same type and test checks on every pull request. A pull request cannot merge while the required `verify` check is failing.
 
+### Integration examples
+
+Each distinct integration may have at most one small, focused proof of concept under `examples/`.
+Extend that PoC when the integration grows instead of adding another example application for the
+same integration.
+
+Keep examples to hand-authored integration code and the documentation needed to understand it. Do
+not commit a generated standalone application, duplicated dependency lockfile, vendored dependency
+tree, platform build output, or generic Android/iOS project scaffold merely to host an example.
+
+Examples do not replace tests. Cover their behavior through package tests, integration tests, or a
+lightweight smoke script. When a native host build is necessary to prove platform-specific
+behavior, generate it in a temporary test workspace and run only the platform checks relevant to
+the change.
+
 ## Commits
 
 Write concise, imperative commit subjects. Conventional Commit-style prefixes are encouraged:

@@ -157,7 +157,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks for supported text fields and buttons, pure boolean functions, `@index`, action events returned to a host callback, and press-time host-policy-gated HTTP(S) `openUrl`; action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks for supported text fields and buttons, pure boolean functions, `@index`, action events returned to a host callback, and press-time host-policy-gated HTTP(S) `openUrl`; action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a minimal tested mobile integration PoC remain future milestones.
 
 ## A2UI v1 Candidate host flow
 
@@ -347,7 +347,7 @@ mcp-native/
 ├── .github/                   # CI, ownership, and collaboration templates
 ├── docs/                      # Architecture decisions and design notes
 ├── examples/
-│   └── react-native-demo/     # Target home of the end-to-end mobile demo
+│   └── react-native-demo/     # Minimal React Native integration PoC; no generated host project
 ├── packages/
 │   ├── core/
 │   ├── mcp/
@@ -357,6 +357,11 @@ mcp-native/
 │   └── mcp-native/
 └── tests/                     # Cross-package proof-of-concept tests
 ```
+
+Each integration may have at most one focused PoC under `examples/`. Examples contain only the
+hand-authored integration flow and supporting documentation, not a generated standalone project or
+duplicated dependency tree. Repository tests and lightweight smoke checks prove the flow; examples
+are explanatory entry points, not separate applications or substitutes for test coverage.
 
 ## Roadmap
 
@@ -391,7 +396,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility
 - [ ] Add MCP HTTP authorization, consent, and host permission controls
 - [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
-- [ ] Ship one simple end-to-end React Native integration example
+- [ ] Ship one small, tested React Native integration PoC without a committed host-app scaffold
 - [ ] Expand protocol coverage through reviewed RFCs and tests
 
 ## Contributing
