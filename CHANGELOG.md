@@ -33,6 +33,12 @@ their minor release line.
   rapid ordered updates, and retained heap, with a documented reproducible measurement method.
 - Deterministic generated-input coverage for both A2UI envelope directions, lifecycle state,
   dynamic-list plans, and hostile graph, component, binding, and function-policy mutations.
+- A temporary official React Native host generator pinned to `0.87.1` and `0.86.3`, with primitive,
+  typed-adapter, and closed-variant accessibility catalog paths plus Android/iOS Metro and native
+  build preflight workflows.
+- A bounded native evidence format, WCAG 2.2 applicability assessment, negative validator tests,
+  and strict release gate that prevents publication while any required real-platform row is
+  missing, pending, failing, or lacks reviewable evidence.
 
 ### Deprecated
 

@@ -16,3 +16,8 @@ second application project.
 
 Future React Native integration scenarios should extend this PoC instead of adding another React
 Native example.
+
+The release accessibility screen lives as hand-authored test input in `tests/native-host/App.tsx`.
+`npm run native:host:prepare` copies it into a pinned official React Native host under an explicit
+temporary directory. That generated host is test infrastructure and does not create another
+committed integration PoC.

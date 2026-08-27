@@ -1,8 +1,9 @@
 # Native accessibility test plan
 
-Status: target matrix and automated fixture defined; real-platform runs not yet executed. This
-document defines evidence required for the Milestone 4 real-platform accessibility gate; it does
-not claim VoiceOver, TalkBack, WCAG, or device coverage.
+Status: target matrix, generated host, CI preflight, WCAG assessment, and strict evidence gate
+defined; real-platform runs not yet executed. This document defines evidence required for the
+Milestone 4 real-platform accessibility gate; it does not claim VoiceOver, TalkBack, WCAG, or
+device coverage.
 
 ## Scope and fixture
 
@@ -43,14 +44,14 @@ Run the complete fixture in every required row below. Minimum-OS rows protect th
 current-OS rows cover current platform behavior. A host may test more versions, form factors, and
 design systems, but those results do not replace a required row.
 
-| Required row             | React Native    | Environment                              | OS target                          | Assistive technology   | Purpose                                 |
-| ------------------------ | --------------- | ---------------------------------------- | ---------------------------------- | ---------------------- | --------------------------------------- |
-| iOS minimum              | latest `0.87.x` | physical device                          | iOS 15.1                           | VoiceOver              | React Native deployment floor           |
-| iOS current              | latest `0.87.x` | physical device                          | iOS 26.6.1                         | VoiceOver              | current stable iOS behavior             |
-| Android minimum          | latest `0.87.x` | physical device                          | Android 7 / API 24                 | TalkBack               | React Native deployment floor           |
-| Android current device   | latest `0.87.x` | physical device                          | Android 17 / API 37                | TalkBack               | current stable Android behavior         |
-| Android current emulator | latest `0.87.x` | Google Play image                        | Android 17 / API 37                | TalkBack               | reproducible automation/preflight lane  |
-| Previous React Native    | latest `0.86.x` | one current physical device per platform | iOS 26.6.1 and Android 17 / API 37 | VoiceOver and TalkBack | immediate maintained-line compatibility |
+| Required row             | React Native | Environment                              | OS target                          | Assistive technology   | Purpose                                 |
+| ------------------------ | ------------ | ---------------------------------------- | ---------------------------------- | ---------------------- | --------------------------------------- |
+| iOS minimum              | `0.87.1`     | physical device                          | iOS 15.1                           | VoiceOver              | React Native deployment floor           |
+| iOS current              | `0.87.1`     | physical device                          | iOS 26.6.1                         | VoiceOver              | current stable iOS behavior             |
+| Android minimum          | `0.87.1`     | physical device                          | Android 7 / API 24                 | TalkBack               | React Native deployment floor           |
+| Android current device   | `0.87.1`     | physical device                          | Android 17 / API 37                | TalkBack               | current stable Android behavior         |
+| Android current emulator | `0.87.1`     | Google Play image                        | Android 17 / API 37                | TalkBack               | reproducible automation/preflight lane  |
+| Previous React Native    | `0.86.3`     | one current physical device per platform | iOS 26.6.1 and Android 17 / API 37 | VoiceOver and TalkBack | immediate maintained-line compatibility |
 
 At the 2026-08-27 matrix snapshot, Apple's [release
 feed](https://developer.apple.com/news/releases/) lists iOS 26.6.1 and the Android Developers
@@ -72,8 +73,9 @@ do not expand MCP Native's native component or capability catalog.
    every visible actionable control is reachable, and hidden content is neither focused nor read.
 2. Confirm text, buttons, field labels, values, hints, validation messages, live-region updates, and
    button disabled state are announced accurately without duplicate or stale announcements.
-3. Activate every enabled button using the screen reader. Each activation dispatches exactly once;
-   disabled buttons and failed renderer checks dispatch nothing.
+3. Reset the host callback count before activating each enabled button with the screen reader. One
+   activation must produce a count of exactly one; disabled buttons and failed renderer checks must
+   leave the count at zero.
 4. Edit every input type. Labels remain available while values change, secure values are not spoken
    as plain text, local updates do not create network actions, and submission uses current state.
 5. Test the normal size and each supported larger system text size. Text and inputs scale without
@@ -95,7 +97,7 @@ Use `tests/fixtures/a2ui-v1/accessibility-surface.json` for every matrix row. It
 hidden text, polite and assertive live regions, enabled and renderer-disabled buttons, valid and
 invalid fields, all four text-input variants, every closed view/text/button variant, and a dynamic
 list. The repository test suite mounts the same payload through the primitive catalog and verifies
-the trusted props, local edits, current-state validation, and exactly-once action dispatch.
+the trusted props, local edits, current-state validation, and observable action callback counts.
 
 For adapter and variant runs, map the fixture through the host's real locally bundled catalog. Do
 not edit the protocol fixture to compensate for a host adapter that drops accessibility props. Add
@@ -103,20 +105,43 @@ enough host-owned padding/content for scrolling and touch-target inspection; vis
 focus treatment, and scroll containers remain host responsibilities rather than server-controlled
 wire properties.
 
+`tests/native-host/App.tsx` is the hand-authored host screen. It provides selectable primitive,
+typed-adapter, and closed-variant catalog paths, bounded local styling, a scroll container, and a
+live status plus a resettable callback count that distinguishes renderer-local edits, one dispatch,
+and duplicate dispatches. It is copied
+into an official temporary host; no Android/iOS scaffold or independent lockfile is committed.
+
+Use Node.js 22.14 or newer and generate one pinned host outside the repository:
+
+```sh
+npm run native:host:prepare -- --react-native 0.87.1 --output /absolute/temporary/host
+```
+
+Repeat with `0.86.3`. Preparation builds and packs the local packages, invokes the pinned official
+React Native Community CLI, installs the tarballs, and runs the host's strict TypeScript check. The
+regular CI matrix also creates Android and iOS production Metro bundles for both versions. The
+manually dispatched `Native platform preflight` workflow builds installable Android debug APKs and
+iOS simulator applications for both versions; those artifacts are preflight inputs, not physical
+device evidence.
+
+The generator refuses an output inside the repository and refuses to replace an existing path.
+This preserves the one-PoC policy and prevents a cleanup or regeneration command from deleting an
+unrelated host.
+
 ## Evidence record
 
-Create one row per environment and attach logs, screenshots or recordings, and issue links. Do not
-mark the roadmap platform-accessibility item complete while any required row is missing or failing.
+Record every environment in `docs/evidence/native-accessibility-0.4.0.json` and attach logs,
+screenshots or recordings, and issue links. `npm run native:evidence:check` validates the pending
+record during ordinary development. `npm run native:evidence:verify` is strict: every required case
+and row must pass with a full commit SHA, environment metadata, tester/date, and at least one safe
+repository-relative artifact or HTTPS evidence link.
 
-| Revision         | Platform/device               | OS and RN              | Assistive technology | Catalog path                   | Date/tester | Result  | Evidence/issues |
-| ---------------- | ----------------------------- | ---------------------- | -------------------- | ------------------------------ | ----------- | ------- | --------------- |
-| Not yet recorded | iOS physical, minimum         | iOS 15.1 / RN 0.87.x   | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | iOS physical, current         | iOS 26.6.1 / RN 0.87.x | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | Android physical, minimum     | API 24 / RN 0.87.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | Android physical, current     | API 37 / RN 0.87.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | Android emulator, current     | API 37 / RN 0.87.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | iOS physical, previous RN     | iOS 26.6.1 / RN 0.86.x | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | Android physical, previous RN | API 37 / RN 0.86.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
+The strict evidence command is part of `npm run release:verify`, so a tag cannot pass release
+verification while a row is missing, pending, failing, malformed, or unsupported by reviewable
+evidence. Do not mark the roadmap platform-accessibility item complete before that command passes.
+
+The applicable [WCAG 2.2 native assessment](wcag-2.2-native-assessment.md) records fixture scope,
+manual checks, not-applicable criteria, and the trusted-host exception for input-purpose metadata.
 
 ## Exit criteria
 

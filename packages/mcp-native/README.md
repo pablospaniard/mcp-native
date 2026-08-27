@@ -29,7 +29,7 @@ Add `react-native` when mounting native surfaces. The package is ESM-only and in
 
 ## A2UI v1 Candidate path
 
-Version `0.3.0` re-exports the APIs needed to negotiate the project-owned binding, resolve official
+Version `0.4.0` re-exports the APIs needed to negotiate the project-owned binding, resolve official
 v1 JSONL lifecycle envelopes, maintain bounded ordered surface state, apply explicit host
 component/event/function policies, and mount the supported native subset through
 `A2uiV1NativeSurface`. The mounted surface keeps string edits renderer-local and returns validated
