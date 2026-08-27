@@ -180,6 +180,7 @@ jobs:
     needs: codex-review
     if: >-
       always() &&
+      needs.codex-review.result != 'skipped' &&
       github.event.pull_request.draft == false &&
       (github.event_name == 'pull_request_target' || github.event.pull_request.number == 47)
     runs-on: ubuntu-latest
@@ -225,8 +226,20 @@ jobs:
               return;
             }
 
+            if (
+              !review ||
+              typeof review !== 'object' ||
+              !['pass', 'fail'].includes(review.verdict) ||
+              !Array.isArray(review.findings)
+            ) {
+              await setStatus('failure', 'Codex returned an invalid review');
+              core.setFailed('Codex review did not match the required result shape');
+              return;
+            }
+
             const marker = '<!-- codex-review-gate -->';
-            const findings = review.findings.length
+            const hasFindings = review.findings.length > 0;
+            const findings = hasFindings
               ? review.findings.flatMap((finding) => [
                   `- **${finding.severity.toUpperCase()} — ${finding.title}** (${finding.path}:${finding.line})`,
                   `  ${finding.body}`,
@@ -278,8 +291,7 @@ jobs:
               });
             }
 
-            const passed =
-              review.verdict === 'pass' && review.findings.length === 0;
+            const passed = review.verdict === 'pass' && !hasFindings;
             await setStatus(
               passed ? 'success' : 'failure',
               passed ? 'Codex review passed' : 'Codex reported findings',
