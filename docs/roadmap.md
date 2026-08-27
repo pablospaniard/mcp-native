@@ -70,10 +70,10 @@ Exit criterion: UI protocols can determine mutual support without guessing from 
 
 ## Milestone 3: A2UI v1.0 Candidate adapter
 
-Status: partial — schemas, lifecycle store, capability negotiation, bounded semantic validation, and native-plan adaptation with dynamic lists plus string, number, currency, date, plural, boolean, validation, and policy-gated URL functions.
+Status: complete for the documented feature-scoped Candidate profile.
 
 - [x] Verify a pinned official JSON Schema bundle.
-- [x] Parse official `v1.0` agent-to-renderer lifecycle envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`); renderer-to-agent parsing remains deferred.
+- [x] Parse official `v1.0` agent-to-renderer lifecycle envelopes (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`) and every pinned renderer-to-agent message kind.
 - [x] Implement ordered create, component update, data-model update, and delete behavior.
 - [x] Validate the pinned catalog identity, host component/event/function allowlists, reachable graph references and cycles, JSON Pointer syntax, template-relative bindings, and beyond-schema placement rules before rendering.
 - [x] Parse and validate literal `formatString` sources, including nested bindings and named function calls, against the pinned catalog, template context, host allowlist, and explicit complexity limits; reject runtime-provided format sources.
@@ -86,7 +86,9 @@ Status: partial — schemas, lifecycle store, capability negotiation, bounded se
 - [x] Execute `required`, bounded `regex`, `length`, `numeric`, and `email`; evaluate renderer checks for supported `TextField` and `Button` components, expose field messages to host components, and make invalid buttons undispatchable.
 - [x] Execute bounded HTTP(S) `openUrl` through a synchronous host policy and host opener only from the originating Button press.
 - [x] Adapt the supported component subset, container alignment, absolute data bindings, dynamic lists, supported formatting and validation functions, supported renderer checks, and `openUrl` into the existing trusted native render plan.
-- [x] Add official protocol fixtures, negative fixtures, and lifecycle tests for the implemented parse/store path; broader interoperability remains deferred.
+- [x] Add official protocol fixtures, schema-derived bidirectional fixtures, negative fixtures, and lifecycle tests for the implemented profile.
+- [x] Publish the exact [feature-scoped conformance profile](a2ui-v1-conformance.md), exclusions, Candidate interpretations, and interoperability evidence.
+- [x] Deprecate and freeze the custom `0.1` parser, resolver, types, and React Native renderer with an explicit v1 migration path.
 
 Exit criterion: conformance is reported per implemented A2UI feature against the pinned Candidate revision; the custom `0.1` input is deprecated or made explicitly internal.
 

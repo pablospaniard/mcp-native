@@ -83,6 +83,7 @@ await runtime.dispatch({
 | `createAllowlistActionPolicy`, `McpNativeToolAllowlistEntry`                                 | Fail-closed helper that authorizes tools by name and exact or predicated arguments.         |
 | `McpNativeActionDeniedError`                                                                 | Fail-closed error for actions not explicitly allowed by the host.                           |
 | `parseMcpNativeAction`, `parseJsonObject`, `parseJsonValue`                                  | Strict validators that return safely reconstructed untrusted data.                          |
+| `JsonValidationOptions`                                                                      | Optional cumulative string/key budget for one reconstructed JSON graph.                     |
 | `JSON_MAX_DEPTH`, `JSON_MAX_VALUES`, `JSON_MAX_STRING_LENGTH`                                | Fixed complexity limits applied by the public JSON validators.                              |
 | `JsonValidationError`                                                                        | Error for non-JSON, circular, non-plain, or non-finite input.                               |
 | `JsonPrimitive`, `JsonValue`, `JsonObject`                                                   | JSON-safe value types for untrusted protocol data.                                          |

@@ -77,10 +77,13 @@ export interface NativeElement {
   readonly children?: readonly NativeElement[];
 }
 
+/** @deprecated Use `A2uiV1NativeSurface` and its official action envelope handler. */
 export type NativeActionHandler = (action: McpNativeAction) => void;
 
+/** @deprecated Use `A2uiV1NativeSurface` renderer-local data-model handling. */
 export type NativeBindingChangeHandler = (binding: string, value: string) => void;
 
+/** @deprecated Use `A2uiV1NativeSurfaceProps`. */
 export interface McpNativeSurfaceProps {
   readonly surface: A2uiSurface;
   readonly components: NativeComponentCatalog;
@@ -127,11 +130,12 @@ export interface McpNativeActionDispatcherOptions {
   readonly onResult?: (result: McpToolCallResult) => void;
 }
 
+/** @deprecated Use `createA2uiV1NativeRenderPlan`. */
 export function createNativeRenderPlan(surface: A2uiSurface): NativeElement {
   return renderNode(surface.root);
 }
 
-/** Memoizes the trusted render plan for a validated surface identity. */
+/** @deprecated Use `A2uiV1NativeSurface`. */
 export function useNativeRenderPlan(surface: A2uiSurface): NativeElement {
   return useMemo(() => createNativeRenderPlan(surface), [surface]);
 }
@@ -160,7 +164,7 @@ export function useMcpNativeActionDispatcher(
   );
 }
 
-/** Renders a validated surface with the host's locally bundled components. */
+/** @deprecated Use `A2uiV1NativeSurface`. */
 export function McpNativeSurface({
   surface,
   components,

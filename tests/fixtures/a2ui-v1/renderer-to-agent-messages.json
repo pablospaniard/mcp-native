@@ -1,0 +1,39 @@
+[
+  {
+    "version": "v1.0",
+    "action": {
+      "name": "save_profile",
+      "surfaceId": "profile",
+      "sourceComponentId": "save",
+      "timestamp": "2026-08-26T16:00:00.000Z",
+      "context": { "name": "Grace" }
+    }
+  },
+  {
+    "version": "v1.0",
+    "callAgentFunction": {
+      "surfaceId": "profile",
+      "functionCallId": "agent-call-1",
+      "callFunction": {
+        "call": "formatString",
+        "args": { "value": "Hello" }
+      }
+    }
+  },
+  {
+    "version": "v1.0",
+    "rendererFunctionResponse": {
+      "functionCallId": "renderer-call-1",
+      "value": { "accepted": true }
+    }
+  },
+  {
+    "version": "v1.0",
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "surfaceId": "profile",
+      "path": "/components/0/text",
+      "message": "The text value is invalid."
+    }
+  }
+]

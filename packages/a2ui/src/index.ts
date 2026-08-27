@@ -41,6 +41,7 @@ export {
   parseA2uiV1Envelope,
   parseA2uiV1Jsonl,
   parseA2uiV1RendererCapabilities,
+  parseA2uiV1RendererToAgentEnvelope,
   resolveA2uiV1JsonlFromToolResult,
   validateA2uiV1SurfaceState,
 } from "./v1/index.js";
@@ -50,54 +51,70 @@ export type {
   A2uiV1ActionEnvelopeInput,
   A2uiV1AgentCapabilities,
   A2uiV1BasicCatalogPolicyOptions,
+  A2uiV1CallAgentFunctionEnvelope,
   A2uiV1CapabilityNegotiation,
   A2uiV1Component,
   A2uiV1CreateSurfaceEnvelope,
   A2uiV1DeleteSurfaceEnvelope,
+  A2uiV1ErrorEnvelope,
   A2uiV1Envelope,
   A2uiV1EnvelopeKind,
   A2uiV1FormatStringExpressionBudgetConsumer,
   A2uiV1FormatStringExpressionResolver,
+  A2uiV1FunctionCall,
+  A2uiV1GenericRendererError,
   A2uiV1RendererCapabilities,
   A2uiV1RendererCapabilitiesOptions,
+  A2uiV1RendererError,
+  A2uiV1RendererFunctionResponse,
+  A2uiV1RendererFunctionResponseEnvelope,
+  A2uiV1RendererToAgentEnvelope,
+  A2uiV1RendererToAgentEnvelopeKind,
   A2uiV1SurfaceState,
   A2uiV1SurfaceValidationPolicy,
   A2uiV1UpdateComponentsEnvelope,
   A2uiV1UpdateDataModelEnvelope,
+  A2uiV1ValidationErrorCode,
+  A2uiV1ValidationRendererError,
   ResolvedA2uiV1JsonlResource,
 } from "./v1/index.js";
 
+/** @deprecated Use the pinned A2UI v1 Candidate APIs exported from this package. */
 export const A2UI_VERSION = "0.1" as const;
 
-/** Maximum nesting depth for container trees (root is depth 0). */
+/** @deprecated Applies only to the frozen custom 0.1 surface model. */
 export const A2UI_MAX_DEPTH = 32;
-/** Maximum number of nodes allowed in a single surface. */
+/** @deprecated Applies only to the frozen custom 0.1 surface model. */
 export const A2UI_MAX_NODES = 256;
-/** Maximum UTF-16 code units accepted in a serialized surface. */
+/** @deprecated Applies only to the frozen custom 0.1 surface model. */
 export const A2UI_MAX_SOURCE_LENGTH = 1_048_576;
-/** Maximum UTF-16 code units accepted in one surface string field. */
+/** @deprecated Applies only to the frozen custom 0.1 surface model. */
 export const A2UI_MAX_STRING_LENGTH = 65_536;
 
 interface A2uiNodeBase {
   readonly id: string;
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export interface A2uiContainerNode extends A2uiNodeBase {
   readonly type: "container";
   readonly children: readonly A2uiNode[];
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export interface A2uiTextNode extends A2uiNodeBase {
   readonly type: "text";
   readonly text: string;
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export interface A2uiButtonNode extends A2uiNodeBase {
   readonly type: "button";
   readonly label: string;
   readonly action: ToolAction;
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export interface A2uiTextInputNode extends A2uiNodeBase {
   readonly type: "text-input";
   readonly label: string;
@@ -105,13 +122,16 @@ export interface A2uiTextInputNode extends A2uiNodeBase {
   readonly binding?: string;
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export type A2uiNode = A2uiButtonNode | A2uiContainerNode | A2uiTextInputNode | A2uiTextNode;
 
+/** @deprecated Use `A2uiV1SurfaceState` from the pinned Candidate adapter. */
 export interface A2uiSurface {
   readonly version: typeof A2UI_VERSION;
   readonly root: A2uiNode;
 }
 
+/** @deprecated Use `ResolvedA2uiV1JsonlResource`. */
 export interface ResolvedA2uiResource {
   readonly uri: string;
   readonly mimeType: typeof A2UI_MIME_TYPE;
@@ -121,6 +141,7 @@ export interface ResolvedA2uiResource {
 /**
  * Resolves the single explicitly typed A2UI resource link in a successful
  * tool result, reads it through the host client, and validates its surface.
+ * @deprecated Use `resolveA2uiV1JsonlFromToolResult` with an exact negotiated binding grant.
  */
 export async function resolveA2uiResourceFromToolResult(
   reader: A2uiResourceReader,
@@ -166,6 +187,7 @@ export async function resolveA2uiResourceFromToolResult(
   };
 }
 
+/** @deprecated Use `parseA2uiV1Jsonl` or `parseA2uiV1Envelope`. */
 export function parseA2uiSurface(input: string | unknown): A2uiSurface {
   let value: unknown = input;
 

@@ -73,7 +73,7 @@ This package is the validation boundary between SDK results and the runtime. It 
 
 Owns resource-link resolution, parsing, validation, and conversion boundaries for both the custom proof surface and the official Candidate adapter. It also owns the exact settings and negotiation helper for the project-defined A2UI-over-MCP binding. Unsupported MIME types, ambiguous links or contents, binary surfaces, versions, catalogs, components, bindings, functions, and actions fail closed at their applicable boundary.
 
-The custom resolver recognizes the prototype's `application/a2ui+json` resource convention. Its deliberately small `0.1` input contains four nested node types and remains isolated from the separately negotiated A2UI v1.0 Candidate path. The v1 adapter parses schema-validated lifecycle envelopes into bounded ordered state and requires a complete policy-gated snapshot before the React Native package adapts the supported subset, including bounded dynamic lists, into a trusted plan. It also constructs the pinned renderer-to-agent `action` envelope from resolved host input. Arbitrary renderer functions and the remaining renderer-to-agent message kinds remain deferred; the custom wire format is not extended to imitate them.
+The custom resolver recognizes the prototype's `application/a2ui+json` resource convention. Its deliberately small `0.1` input contains four nested node types, is deprecated and frozen, and remains isolated from the separately negotiated A2UI v1.0 Candidate path. The v1 adapter parses schema-validated lifecycle envelopes into bounded ordered state and requires a complete policy-gated snapshot before the React Native package adapts the supported subset, including bounded dynamic lists, into a trusted plan. It constructs pinned renderer-to-agent `action` envelopes and parses every renderer-to-agent message kind as owned data. Parsing never authorizes function execution, transport, or device access; agent-initiated renderer-function execution remains excluded from the [feature-scoped conformance profile](a2ui-v1-conformance.md).
 
 ### `@mcp-native/react-native`
 
@@ -174,7 +174,7 @@ return { content: [{ type: "text", text: "Saved" }] };
 
 ## Deferred work
 
-- Remaining A2UI renderer-to-agent function/response/error envelopes and broader interoperability tests
+- A2UI agent-initiated renderer-function execution and interoperability beyond the declared profile
 - Extension-specific operations and additional official extension conformance scenarios
 - Platform accessibility testing and renderer capability transport integration
 - Authentication and production transport configuration

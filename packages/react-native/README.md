@@ -16,7 +16,7 @@
 
 `@mcp-native/react-native` converts a surface already validated by `@mcp-native/a2ui` into a trusted render plan and mounts it with components supplied by the host application. Servers provide data and declared actions—not JavaScript modules, component implementations, or arbitrary component names.
 
-The renderer is an internal platform layer, not proof of complete A2UI v1.0 conformance. The custom `0.1` surface remains supported, and the separate v1.0 adapter converts a strict component subset, including bounded dynamic lists, into the same host-owned `NativeElement` boundary.
+The renderer is an internal platform layer, not proof of complete A2UI v1.0 conformance. The custom `0.1` surface remains available only through deprecated migration APIs, while the v1.0 adapter converts the documented component subset, including bounded dynamic lists, into the same host-owned `NativeElement` boundary. See the [feature-scoped conformance profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
 
 ## Install
 
@@ -79,7 +79,7 @@ The renderer uses only the currently allowed component names:
 type NativeComponentName = "Button" | "Text" | "TextInput" | "View";
 ```
 
-The application host decides how each name maps to a locally bundled component and how declared custom `0.1` button actions reach `McpNativeRuntime`. `onBindingChange` reports a validated binding name and the next text value for that legacy proof surface.
+This example uses deprecated custom `0.1` APIs. The application host decides how each name maps to a locally bundled component and how declared button actions reach `McpNativeRuntime`. `onBindingChange` reports a validated binding name and the next text value for that legacy proof surface. New hosts should use `A2uiV1NativeSurface`.
 
 ## A2UI v1 render-plan adapter
 

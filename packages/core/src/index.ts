@@ -21,19 +21,32 @@ export class JsonValidationError extends TypeError {
   }
 }
 
+export interface JsonValidationOptions {
+  /** Maximum cumulative UTF-16 code units across all string values and object keys. */
+  readonly maxTotalStringCodeUnits?: number;
+}
+
 /**
  * Validates and safely reconstructs an untrusted JSON object.
  *
  * The returned object keeps keys such as `__proto__` as ordinary own data
  * properties instead of invoking legacy prototype setters.
  */
-export function parseJsonObject(value: unknown, path = "value"): JsonObject {
-  return parseJsonObjectWithState(value, path, createJsonValidationState(), 0);
+export function parseJsonObject(
+  value: unknown,
+  path = "value",
+  options: JsonValidationOptions = {},
+): JsonObject {
+  return parseJsonObjectWithState(value, path, createJsonValidationState(options), 0);
 }
 
 /** Validates and safely reconstructs an untrusted JSON value. */
-export function parseJsonValue(value: unknown, path = "value"): JsonValue {
-  return parseJsonValueWithState(value, path, createJsonValidationState(), 0);
+export function parseJsonValue(
+  value: unknown,
+  path = "value",
+  options: JsonValidationOptions = {},
+): JsonValue {
+  return parseJsonValueWithState(value, path, createJsonValidationState(options), 0);
 }
 
 export type McpRole = "assistant" | "user";
@@ -509,11 +522,27 @@ function expectPlainObject(value: unknown, path: string): Record<string, unknown
 
 interface JsonValidationState {
   readonly ancestors: Set<object>;
+  readonly maxTotalStringCodeUnits: number | undefined;
+  totalStringCodeUnits: number;
   values: number;
 }
 
-function createJsonValidationState(): JsonValidationState {
-  return { ancestors: new Set(), values: 0 };
+function createJsonValidationState(options: JsonValidationOptions): JsonValidationState {
+  const maxTotalStringCodeUnits = options.maxTotalStringCodeUnits;
+  if (
+    maxTotalStringCodeUnits !== undefined &&
+    (!Number.isSafeInteger(maxTotalStringCodeUnits) || maxTotalStringCodeUnits < 0)
+  ) {
+    throw new JsonValidationError(
+      "Expected maxTotalStringCodeUnits to be a non-negative safe integer",
+    );
+  }
+  return {
+    ancestors: new Set(),
+    maxTotalStringCodeUnits,
+    totalStringCodeUnits: 0,
+    values: 0,
+  };
 }
 
 function parseJsonObjectWithState(
@@ -536,6 +565,7 @@ function parseJsonObjectWithState(
         `JSON object key at ${path} exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
       );
     }
+    consumeJsonStringBudget(state, key.length, `${path} object key`);
     defineJsonProperty(
       result,
       key,
@@ -566,6 +596,7 @@ function parseJsonValueWithState(
         `String at ${path} exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
       );
     }
+    consumeJsonStringBudget(state, value.length, path);
     return value;
   }
   if (typeof value === "number") {
@@ -601,6 +632,22 @@ function consumeJsonBudget(state: JsonValidationState, path: string, depth: numb
   state.values += 1;
   if (state.values > JSON_MAX_VALUES) {
     throw new JsonValidationError(`JSON value exceeds maximum of ${JSON_MAX_VALUES} values`);
+  }
+}
+
+function consumeJsonStringBudget(
+  state: JsonValidationState,
+  codeUnits: number,
+  path: string,
+): void {
+  state.totalStringCodeUnits += codeUnits;
+  if (
+    state.maxTotalStringCodeUnits !== undefined &&
+    state.totalStringCodeUnits > state.maxTotalStringCodeUnits
+  ) {
+    throw new JsonValidationError(
+      `JSON value exceeds maximum cumulative string/key length of ${state.maxTotalStringCodeUnits} at ${path}`,
+    );
   }
 }
 
