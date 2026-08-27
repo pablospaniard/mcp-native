@@ -8,6 +8,11 @@ their minor release line.
 
 ### Added
 
+- Complete pinned renderer-to-agent envelope parsing for `action`, `callAgentFunction`,
+  `rendererFunctionResponse`, and `error`, with schema-derived interoperability fixtures and exact
+  public envelope types.
+- A feature-scoped A2UI v1 Candidate conformance profile covering the supported subset, explicit
+  exclusions, Candidate interpretations, interoperability evidence, and custom `0.1` migration.
 - Bounded, host-localized A2UI v1 `formatDate` execution for strict calendar dates, RFC 3339
   timestamps, Unix epochs, nested interpolation, and dispatch-time values.
 - A2UI v1 `required`, `regex`, `length`, `numeric`, and `email` validation functions plus
@@ -25,8 +30,18 @@ their minor release line.
 - A pinned native accessibility fixture and initial React Native, iOS, and Android target test matrix
   for consistent primitive, adapter, variant, dynamic-list, validation, and screen-reader runs.
 
+### Deprecated
+
+- The custom `A2UI_VERSION = "0.1"` parser, resolver, surface types, limits, `McpNativeSurface`, and
+  legacy render-plan helpers. They remain available for migration and receive only security and
+  correctness fixes; new integrations should use the pinned v1 Candidate APIs.
+
 ### Security
 
+- Treat parsed renderer function calls, responses, and errors as bounded inert data: successful
+  validation never grants execution, transport, tool, URL, device, or permission authority.
+- Reject unknown or ambiguous renderer message kinds, unsupported versions and functions, malformed
+  validation-error JSON Pointers, conflicting targets/results, and non-JSON input.
 - Reject invalid date values, ambiguous 12-hour patterns, unsupported Unicode pattern tokens,
   malformed quoted literals, out-of-range epochs, and patterns exceeding the renderer work limit.
 - Bound expanded renderer checks, validation accessibility output, and agent-supplied regular

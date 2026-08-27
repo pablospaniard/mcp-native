@@ -20,6 +20,7 @@ import {
   parseA2uiV1Envelope,
   parseA2uiV1Jsonl,
   parseA2uiV1RendererCapabilities,
+  parseA2uiV1RendererToAgentEnvelope,
   resolveA2uiV1JsonlFromToolResult,
 } from "../packages/a2ui/dist/index.js";
 
@@ -164,6 +165,196 @@ test("renderer actions are reconstructed as exact official v1 envelopes", () => 
   assert.equal(Object.getPrototypeOf(envelope.action.context), Object.prototype);
   assert.equal(Object.hasOwn(envelope.action.context, "__proto__"), true);
   assert.equal(envelope.action.context.polluted, undefined);
+});
+
+test("schema-derived renderer-to-agent fixtures cover every pinned message kind", () => {
+  const messages = JSON.parse(
+    readFileSync(join(fixturesDir, "renderer-to-agent-messages.json"), "utf8"),
+  );
+  const parsed = messages.map((message, index) =>
+    parseA2uiV1RendererToAgentEnvelope(index === 0 ? JSON.stringify(message) : message),
+  );
+
+  assert.equal(parsed.length, 4);
+  assert.deepEqual(
+    parsed.map((message) => Object.keys(message).find((key) => key !== "version")),
+    ["action", "callAgentFunction", "rendererFunctionResponse", "error"],
+  );
+
+  messages[0].action.context.name = "mutated";
+  assert.equal(parsed[0].action.context.name, "Grace");
+});
+
+test("renderer-to-agent parsing preserves bounded generic error data without granting behavior", () => {
+  const envelope = parseA2uiV1RendererToAgentEnvelope({
+    version: "v1.0",
+    error: {
+      code: "RENDER_FAILED",
+      surfaceId: "profile",
+      message: "The renderer could not mount the surface.",
+      diagnostic: { retryable: false },
+    },
+  });
+
+  assert.deepEqual(envelope.error.diagnostic, { retryable: false });
+});
+
+test("renderer-to-agent parsing fails closed beyond the permissive pinned schema", async (t) => {
+  const cases = [
+    {
+      name: "malformed JSON",
+      input: "{not-json}",
+      message: /Invalid renderer-to-agent JSON/,
+    },
+    {
+      name: "unknown version",
+      input: {
+        version: "v0.9",
+        error: { code: "FAILED", surfaceId: "surface", message: "no" },
+      },
+      message: /Unsupported A2UI renderer-to-agent protocol version/,
+    },
+    {
+      name: "multiple message kinds",
+      input: {
+        version: "v1.0",
+        error: { code: "FAILED", surfaceId: "surface", message: "no" },
+        action: {
+          name: "save",
+          surfaceId: "surface",
+          sourceComponentId: "button",
+          timestamp: "2026-08-26T16:00:00.000Z",
+          context: {},
+        },
+      },
+      message: /Expected exactly one of/,
+    },
+    {
+      name: "unknown root field",
+      input: { version: "v1.0", executable: {} },
+      message: /Expected exactly one of/,
+    },
+    {
+      name: "unknown action field",
+      input: {
+        version: "v1.0",
+        action: {
+          name: "save",
+          surfaceId: "surface",
+          sourceComponentId: "button",
+          timestamp: "2026-08-26T16:00:00.000Z",
+          context: {},
+          executable: true,
+        },
+      },
+      message: /Unexpected field "executable"/,
+    },
+    {
+      name: "empty call identifier",
+      input: {
+        version: "v1.0",
+        callAgentFunction: {
+          surfaceId: "surface",
+          functionCallId: "",
+          callFunction: { call: "formatString", args: { value: "Hi" } },
+        },
+      },
+      message: /Expected a non-empty string.*functionCallId/,
+    },
+    {
+      name: "unknown function",
+      input: {
+        version: "v1.0",
+        callAgentFunction: {
+          surfaceId: "surface",
+          functionCallId: "call-1",
+          callFunction: { call: "executeJavaScript", args: {} },
+        },
+      },
+      message: /schema validation failed/,
+    },
+    {
+      name: "response has both result forms",
+      input: {
+        version: "v1.0",
+        rendererFunctionResponse: {
+          functionCallId: "call-1",
+          value: true,
+          error: { code: "FAILED", message: "no" },
+        },
+      },
+      message: /schema validation failed/,
+    },
+    {
+      name: "invalid validation-error pointer",
+      input: {
+        version: "v1.0",
+        error: {
+          code: "VALIDATION_FAILED",
+          surfaceId: "surface",
+          path: "/invalid~2escape",
+          message: "no",
+        },
+      },
+      message: /Invalid JSON Pointer escape/,
+    },
+    {
+      name: "generic error has conflicting targets",
+      input: {
+        version: "v1.0",
+        error: {
+          code: "FAILED",
+          surfaceId: "surface",
+          functionCallId: "call-1",
+          message: "no",
+        },
+      },
+      message: /schema validation failed/,
+    },
+    {
+      name: "non-JSON value",
+      input: {
+        version: "v1.0",
+        error: {
+          code: "FAILED",
+          surfaceId: "surface",
+          message: "no",
+          diagnostic: Number.NaN,
+        },
+      },
+      message: /renderer-to-agent envelope\.error\.diagnostic/,
+    },
+  ];
+
+  await Promise.all(
+    cases.map((fixture) =>
+      t.test(fixture.name, () => {
+        assert.throws(
+          () => parseA2uiV1RendererToAgentEnvelope(fixture.input),
+          (error) => error instanceof A2uiParseError && fixture.message.test(error.message),
+        );
+      }),
+    ),
+  );
+
+  assert.doesNotThrow(() =>
+    parseA2uiV1RendererToAgentEnvelope({
+      version: "v1.0",
+      error: {
+        code: "VALIDATION_FAILED",
+        surfaceId: "surface",
+        path: "",
+        message: "The root is invalid.",
+      },
+    }),
+  );
+});
+
+test("renderer-to-agent parsing bounds serialized input", () => {
+  assert.throws(
+    () => parseA2uiV1RendererToAgentEnvelope(" ".repeat(1_048_576 + 1)),
+    (error) => error instanceof A2uiParseError && /exceeds maximum length/.test(error.message),
+  );
 });
 
 test("renderer action construction fails closed for malformed host input", async (t) => {

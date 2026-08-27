@@ -102,6 +102,80 @@ export interface A2uiV1ActionEnvelopeInput {
   readonly timestamp?: string;
 }
 
+export interface A2uiV1FunctionCall extends JsonObject {
+  readonly call: string;
+  readonly catalogId?: string;
+  readonly args?: JsonObject;
+}
+
+export interface A2uiV1CallAgentFunctionEnvelope {
+  readonly version: typeof A2UI_V1_PROTOCOL_VERSION;
+  readonly callAgentFunction: {
+    readonly surfaceId: string;
+    readonly functionCallId: string;
+    readonly callFunction: A2uiV1FunctionCall;
+  };
+}
+
+export type A2uiV1RendererFunctionResponse =
+  | {
+      readonly functionCallId: string;
+      readonly value: JsonValue;
+    }
+  | {
+      readonly functionCallId: string;
+      readonly error: {
+        readonly code: string;
+        readonly message: string;
+      };
+    };
+
+export interface A2uiV1RendererFunctionResponseEnvelope {
+  readonly version: typeof A2UI_V1_PROTOCOL_VERSION;
+  readonly rendererFunctionResponse: A2uiV1RendererFunctionResponse;
+}
+
+export type A2uiV1ValidationErrorCode =
+  | "VALIDATION_FAILED"
+  | "UNALLOWED_CHILD"
+  | "UNALLOWED_PARENT";
+
+export interface A2uiV1ValidationRendererError {
+  readonly code: A2uiV1ValidationErrorCode;
+  readonly surfaceId: string;
+  readonly path: string;
+  readonly message: string;
+}
+
+/**
+ * The pinned Candidate schema explicitly permits additional JSON fields on generic errors.
+ * They are preserved as inert data and never grant host behavior.
+ */
+export type A2uiV1GenericRendererError = JsonObject & {
+  readonly code: string;
+  readonly message: string;
+} & ({ readonly surfaceId: string } | { readonly functionCallId: string });
+
+export type A2uiV1RendererError = A2uiV1GenericRendererError | A2uiV1ValidationRendererError;
+
+export interface A2uiV1ErrorEnvelope {
+  readonly version: typeof A2UI_V1_PROTOCOL_VERSION;
+  readonly error: A2uiV1RendererError;
+}
+
+/** All renderer-to-agent message kinds in the pinned Candidate schema. */
+export type A2uiV1RendererToAgentEnvelope =
+  | A2uiV1ActionEnvelope
+  | A2uiV1CallAgentFunctionEnvelope
+  | A2uiV1ErrorEnvelope
+  | A2uiV1RendererFunctionResponseEnvelope;
+
+export type A2uiV1RendererToAgentEnvelopeKind =
+  | "action"
+  | "callAgentFunction"
+  | "error"
+  | "rendererFunctionResponse";
+
 export interface A2uiV1AgentCapabilities {
   readonly "v1.0": {
     readonly supportedCatalogIds: readonly string[];

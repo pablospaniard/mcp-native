@@ -15,9 +15,9 @@
 
 > **Experimental:** MCP Native is a proof of concept, not a production-ready MCP or React Native runtime. APIs may change before `1.0.0`.
 
-> **Compatibility:** the initial tool/resource boundary preserves MCP `2026-07-28` fields, but complete MCP conformance is still in progress. The package retains a custom internal `0.1` proof surface and separately exposes the partial A2UI v1.0 Candidate path documented below; neither is a complete A2UI renderer. The WebView primitives are not a complete MCP Apps host. See the [standards compatibility matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+> **Compatibility:** the initial tool/resource boundary preserves MCP `2026-07-28` fields, but complete MCP conformance is still in progress. The package exposes the feature-scoped A2UI v1.0 Candidate profile and retains custom `0.1` APIs only as deprecated migration support; this is not an unqualified A2UI renderer claim. The WebView primitives are not a complete MCP Apps host. See the [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md) and [standards matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
-`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, custom surface parser, partial A2UI v1 lifecycle/capability APIs, trusted native renderer and hooks, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
+`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, A2UI v1 lifecycle/capability/renderer-message APIs, trusted native renderer and hooks, deprecated custom surface migration APIs, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
 
 ## Install
 
@@ -37,7 +37,7 @@ official action envelopes to a host callback; it never selects a return transpor
 [complete v1 host-flow example](https://github.com/pablospaniard/mcp-native#a2ui-v1-candidate-host-flow)
 and the [`@mcp-native/react-native` adapter documentation](https://github.com/pablospaniard/mcp-native/tree/main/packages/react-native#a2ui-v1-render-plan-adapter).
 
-## Legacy `0.1` proof-model preview
+## Deprecated `0.1` proof-model preview
 
 ```tsx
 import {
@@ -104,7 +104,7 @@ The host supplies the locally bundled native components and explicitly allows th
 | Package                                                                              | What it provides                                                                  |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | MCP client contracts, runtime delegation, JSON types, and declared tool actions.  |
-| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Internal `0.1` parsing plus the partial official v1 lifecycle and policy APIs.    |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Feature-scoped v1 Candidate adapter plus deprecated `0.1` migration APIs.         |
 | [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | Trusted plans, local v1 state/actions, hooks, and a host-owned component catalog. |
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | HTML policy primitives for the planned MCP Apps compatibility path.               |
 

@@ -10,6 +10,7 @@ export type {
   A2uiV1ActionEnvelope,
   A2uiV1ActionEnvelopeInput,
   A2uiV1AgentCapabilities,
+  A2uiV1CallAgentFunctionEnvelope,
   A2uiV1CapabilityNegotiation,
   A2uiV1Component,
   A2uiV1CreateSurfaceEnvelope,
@@ -18,11 +19,21 @@ export type {
   A2uiV1EnvelopeKind,
   A2uiV1RendererCapabilities,
   A2uiV1RendererCapabilitiesOptions,
+  A2uiV1ErrorEnvelope,
+  A2uiV1FunctionCall,
+  A2uiV1GenericRendererError,
+  A2uiV1RendererError,
+  A2uiV1RendererFunctionResponse,
+  A2uiV1RendererFunctionResponseEnvelope,
+  A2uiV1RendererToAgentEnvelope,
+  A2uiV1RendererToAgentEnvelopeKind,
   A2uiV1SurfaceState,
   A2uiV1UpdateComponentsEnvelope,
   A2uiV1UpdateDataModelEnvelope,
+  A2uiV1ValidationErrorCode,
+  A2uiV1ValidationRendererError,
 } from "./types.js";
-export { createA2uiV1ActionEnvelope } from "./action.js";
+export { createA2uiV1ActionEnvelope, parseA2uiV1RendererToAgentEnvelope } from "./action.js";
 export { evaluateA2uiV1FormatString } from "./format-string.js";
 export type {
   A2uiV1FormatStringExpressionBudgetConsumer,

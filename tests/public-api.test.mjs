@@ -43,6 +43,7 @@ import {
   parseA2uiV1AgentCapabilities,
   parseA2uiV1Jsonl,
   parseA2uiV1RendererCapabilities,
+  parseA2uiV1RendererToAgentEnvelope,
   parseJsonObject,
   parseJsonValue,
   parseMcpExtensionSettings,
@@ -97,6 +98,7 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof parseA2uiV1AgentCapabilities, "function");
   assert.equal(typeof parseA2uiV1Jsonl, "function");
   assert.equal(typeof parseA2uiV1RendererCapabilities, "function");
+  assert.equal(typeof parseA2uiV1RendererToAgentEnvelope, "function");
   assert.equal(typeof A2uiSurfaceStore, "function");
   assert.equal(typeof resolveA2uiV1JsonlFromToolResult, "function");
   assert.equal(typeof resolveA2uiV1NativeEvent, "function");

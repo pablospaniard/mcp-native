@@ -22,7 +22,7 @@ Render trusted, declarative MCP interfaces with host-owned native components—s
 > MCP Native is an experimental proof of concept, not a production-ready runtime. The npm packages contain working foundational APIs, but those APIs may change before the first stable release.
 
 > [!CAUTION]
-> The custom `@mcp-native/a2ui` `0.1` surface remains an internal proof-of-concept model. The packages now also implement a partial, separately negotiated A2UI v1.0 Candidate path with schema-validated lifecycle state, capability and host-policy validation, bounded dynamic lists and catalog functions, renderer-local string state, and official action envelopes returned to a host callback. It is not yet a complete A2UI renderer, and the host still owns action transport. The WebView package contains policy primitives, not a complete MCP Apps host. See [Standards and compatibility](docs/standards-compatibility.md).
+> The custom `@mcp-native/a2ui` `0.1` surface is deprecated and frozen for migration. The packages implement a separately negotiated, feature-scoped A2UI v1.0 Candidate profile with schema-validated lifecycle and renderer messages, capability and host-policy validation, bounded dynamic lists and catalog functions, renderer-local state, and official action envelopes returned to a host callback. This is not an unqualified A2UI compatibility claim, and the host still owns action transport. The WebView package contains policy primitives, not a complete MCP Apps host. See the [A2UI conformance profile](docs/a2ui-v1-conformance.md) and [standards status](docs/standards-compatibility.md).
 
 ## The idea
 
@@ -88,14 +88,14 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 
 ## Packages
 
-| Package                                                                              | Source                                           | Responsibility                                                             |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------------------------- |
-| [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing   |
-| [`@mcp-native/mcp`](https://www.npmjs.com/package/@mcp-native/mcp)                   | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client               |
-| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Strict custom `0.1` parsing plus the partial official v1 lifecycle adapter |
-| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans, React hooks, and a host-owned component renderer     |
-| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | HTML policy primitives for the planned MCP Apps compatibility path         |
-| [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                    |
+| Package                                                                              | Source                                           | Responsibility                                                                |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------------------------------- |
+| [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing      |
+| [`@mcp-native/mcp`](https://www.npmjs.com/package/@mcp-native/mcp)                   | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client                  |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Feature-scoped A2UI v1 Candidate adapter plus deprecated `0.1` migration APIs |
+| [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans, React hooks, and a host-owned component renderer        |
+| [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | HTML policy primitives for the planned MCP Apps compatibility path            |
+| [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                       |
 
 The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. Release `0.3.0` expands the standards-pinned A2UI v1 Candidate path with capability negotiation, native interactions, dynamic lists, and bounded catalog-function execution. Its package version is independent of the internal A2UI proof-of-concept surface value `"0.1"`.
 
@@ -136,6 +136,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Checksum-verified A2UI v1.0 Candidate schemas pinned to an exact upstream revision
 - Strict v1 agent/renderer capability metadata with exact shared-catalog negotiation and inline catalogs disabled
 - Schema-validated v1 lifecycle JSONL with atomic, ordered create/update/delete surface state
+- Fail-closed parsing for every pinned renderer-to-agent message kind without implicit execution
 - A pre-render v1 validation boundary with explicit host component, event, and function allowlists plus bounded validation of literal `formatString` sources
 - A fail-closed adapter from the supported A2UI v1 subset into the trusted native render plan
 - Bounded dynamic `List` template expansion with relative bindings, local edits, and `@index`
@@ -281,13 +282,13 @@ const toolResult = await runtime.callTool("open_surface");
 const { surface } = await resolveA2uiResourceFromToolResult(runtime, toolResult);
 ```
 
-This legacy resolver requires exactly one `application/a2ui+json` resource link, reads the matching text resource, and passes it through the same strict parser. The `parseA2uiSurface` parser remains MCP Native's deliberately small `0.1` proof-of-concept model. It is separate from the JSONL v1 Candidate flow above and is not wire-compatible with that protocol.
+This deprecated resolver requires exactly one `application/a2ui+json` resource link, reads the matching text resource, and passes it through the same strict parser. The `parseA2uiSurface` parser is MCP Native's frozen `0.1` proof-of-concept model. It is separate from the JSONL v1 Candidate flow above and is not wire-compatible with that protocol. New hosts should follow the [v1 migration guide](docs/a2ui-v1-conformance.md#custom-01-migration).
 
 ## Standards status
 
 MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
 
-Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, mounts the supported subset with bounded dynamic lists, local bindings, supported string, number, currency, date, plural, boolean, and validation functions and checks, executes HTTP(S) `openUrl` only through a press-time host policy, and constructs official action envelopes. Transport placement and enforcement of the A2UI capability objects, inline catalogs, the remaining renderer-to-agent lifecycle, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
+Those principles do not yet amount to complete protocol conformance. The [feature-scoped A2UI v1.0 Candidate profile](docs/a2ui-v1-conformance.md) verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses the supported lifecycle plus every renderer-to-agent message kind, maintains ordered surface/data-model state, validates rooted catalog graphs, and mounts the documented subset with bounded behavior. Renderer-to-agent transport, agent-initiated renderer-function execution, inline catalogs, and complete platform quality remain excluded. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 
@@ -390,7 +391,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Add typed adapters for host-owned React Native component libraries
 - [x] Add closed host-owned component variants for supported A2UI structure and style hints
 - [x] Derive closed native text/button semantics and preserve text scaling at the host boundary
-- [ ] Implement remaining renderer-to-agent lifecycle messages
+- [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [ ] Complete real-platform accessibility behavior and testing
 - [ ] Establish native performance budgets, parser/renderer fuzzing, and a supported iOS/Android CI matrix
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility
