@@ -85,7 +85,8 @@ Status: partial — renderer-local string bindings and action-envelope emission.
 - [x] Add renderer-local data-model updates without network calls on each keystroke.
 - [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
 - [x] Add typed host adapters that map the trusted `View`, `Text`, `Button`, and `TextInput` primitive props into locally bundled third-party component APIs without expanding the wire catalog.
-- [ ] Add richer host-owned components and styling without unchecked prop spreading.
+- [x] Add richer host-owned components and styling through closed semantic/style variant slots,
+      primitive fallbacks, and explicit prop selection without unchecked prop spreading.
 - [x] Mount explicit label, description, live-region, and hidden accessibility attributes for the supported subset, with inferred button and input labels.
 - [ ] Test VoiceOver and Android accessibility behavior, dynamic type, focus, reduced motion, contrast, touch targets, orientation, and screen-reader actions.
 - [ ] Define the supported iOS and Android version matrix and exercise real host applications in simulator, emulator, and device CI where available.
