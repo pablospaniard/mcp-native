@@ -74,7 +74,7 @@ Status: partial — schemas, lifecycle store, capability negotiation, bounded se
 - [x] Execute `required`, bounded `regex`, `length`, `numeric`, and `email`; evaluate renderer checks for supported `TextField` and `Button` components, expose field messages to host components, and make invalid buttons undispatchable.
 - [x] Execute bounded HTTP(S) `openUrl` through a synchronous host policy and host opener only from the originating Button press.
 - [x] Adapt the supported component subset, container alignment, absolute data bindings, dynamic lists, supported formatting and validation functions, supported renderer checks, and `openUrl` into the existing trusted native render plan.
-- [x] Add official examples, negative fixtures, and lifecycle tests for the implemented parse/store path; broader interoperability remains deferred.
+- [x] Add official protocol fixtures, negative fixtures, and lifecycle tests for the implemented parse/store path; broader interoperability remains deferred.
 
 Exit criterion: conformance is reported per implemented A2UI feature against the pinned Candidate revision; the custom `0.1` input is deprecated or made explicitly internal.
 
@@ -105,7 +105,7 @@ Exit criterion: supported iOS and Android hosts render and interact with the sup
 - Integrate official AppBridge where feasible, or implement the same schema-validated JSON-RPC lifecycle.
 - Build a platform WebView sandbox with explicit origin, navigation, storage, external-link, download, and device-permission policy.
 - Record where native WebView isolation differs from browser iframe guarantees.
-- Add official example and hostile-bridge interoperability tests.
+- Add hostile-bridge interoperability tests against official protocol fixtures.
 
 Exit criterion: `@mcp-native/webview` satisfies the stable Apps profile for documented platforms and fails closed elsewhere.
 
@@ -120,7 +120,7 @@ Exit criterion: `@mcp-native/webview` satisfies the stable Apps profile for docu
 - Provide actionable loading, empty, denied, disconnected, retryable, and terminal error states for host applications.
 - Publish a host-integration checklist covering component catalogs, action policies, permissions, binding state ownership, error handling, transport configuration, and lifecycle cleanup.
 - Continue npm trusted publishing with OIDC, provenance, protected release environments, and exact version verification.
-- Ship an end-to-end React Native example and document its supported protocol matrix.
+- Ship one simple end-to-end React Native integration example and document its supported protocol matrix.
 
 Exit criterion: a release candidate passes protocol, security, accessibility, performance, reliability, operability, package, real-platform, and end-to-end interoperability gates.
 

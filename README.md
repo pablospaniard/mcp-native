@@ -391,7 +391,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility
 - [ ] Add MCP HTTP authorization, consent, and host permission controls
 - [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
-- [ ] Ship an end-to-end React Native example
+- [ ] Ship one simple end-to-end React Native integration example
 - [ ] Expand protocol coverage through reviewed RFCs and tests
 
 ## Contributing

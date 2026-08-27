@@ -13,7 +13,7 @@ Thank you for helping build MCP Native. The project is early enough that careful
 
 ## Before you start
 
-Small documentation fixes and narrowly scoped test improvements can go directly to a pull request. For protocol changes, new components, public API changes, transport integrations, or security-policy changes, open an issue first so the design can be discussed before implementation.
+Changes can go directly to a pull request. For protocol changes, new components, public API changes, transport integrations, or security-policy changes, include the design context in the pull request so it can be discussed during review.
 
 When proposing a larger change, describe:
 
