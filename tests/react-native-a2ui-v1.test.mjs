@@ -1152,6 +1152,29 @@ test("formatDate applies offsets, fractional timestamps, and the documented epoc
   assert.notEqual(render(10_000_000_000), render(10_000_000_001));
 });
 
+test("formatDate preserves host calendar locale extensions", () => {
+  const surface = createSurface([
+    {
+      id: "root",
+      component: "Text",
+      text: {
+        call: "formatDate",
+        args: { value: "2026-01-16", format: "yyyy" },
+      },
+    },
+  ]);
+  const policy = nativePolicy({ allowedFunctionNames: ["formatDate"] });
+  const date = localDate(2026, 1, 16);
+
+  for (const locale of ["en-US-u-ca-buddhist", "th-TH-u-ca-gregory"]) {
+    const plan = createA2uiV1NativeRenderPlan(surface, policy, { locale });
+    assert.equal(
+      plan.props.children,
+      normalizedIntlDateNumber(locale, date, { year: "numeric" }, "year", 4),
+    );
+  }
+});
+
 test("formatDate fails closed for invalid values, patterns, and excessive work", async (t) => {
   const cases = [
     {
@@ -1178,6 +1201,18 @@ test("formatDate fails closed for invalid values, patterns, and excessive work",
       pattern: "YYYY-MM-dd",
       message: /Unsupported Unicode date pattern token/,
     },
+    ...[
+      ["month", "MMMMM"],
+      ["day", "ddd"],
+      ["weekday", "EEE"],
+      ["hour", "HHH"],
+      ["day period", "aa"],
+    ].map(([field, pattern]) => ({
+      name: `unsupported repeated ${field} field`,
+      value: "2026-01-16",
+      pattern,
+      message: /Unsupported Unicode date pattern token/,
+    })),
     {
       name: "unterminated quoted literal",
       value: "2026-01-16",
@@ -1193,7 +1228,7 @@ test("formatDate fails closed for invalid values, patterns, and excessive work",
     {
       name: "excessive pattern tokens",
       value: "2026-01-16",
-      pattern: "yyyy".repeat(129),
+      pattern: "yyyy-".repeat(129),
       message: /exceeds maximum of 128 tokens/,
     },
     {

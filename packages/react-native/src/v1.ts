@@ -234,10 +234,14 @@ function parseLocale(value: unknown, path: string): string {
     throw new A2uiParseError(`Expected a non-empty BCP 47 locale at ${path}`);
   }
   try {
-    if (Intl.NumberFormat.supportedLocalesOf(value, { localeMatcher: "lookup" }).length === 0) {
+    const canonicalLocale = Intl.getCanonicalLocales(value)[0]!;
+    if (
+      Intl.NumberFormat.supportedLocalesOf(canonicalLocale, { localeMatcher: "lookup" }).length ===
+      0
+    ) {
       throw new A2uiParseError(`Unsupported BCP 47 locale ${JSON.stringify(value)} at ${path}`);
     }
-    return new Intl.NumberFormat(value).resolvedOptions().locale;
+    return canonicalLocale;
   } catch (cause) {
     if (cause instanceof A2uiParseError) {
       throw cause;
@@ -789,6 +793,7 @@ const DATE_PATTERN_TOKENS = Object.freeze([
   "H",
   "a",
 ] as const);
+const DATE_PATTERN_TOKEN_SET: ReadonlySet<string> = new Set(DATE_PATTERN_TOKENS);
 
 type DatePatternToken = (typeof DATE_PATTERN_TOKENS)[number];
 type DatePatternPart =
@@ -926,23 +931,27 @@ function parseDatePattern(pattern: string, path: string): readonly DatePatternPa
       index = literal.end;
       continue;
     }
-    const token = DATE_PATTERN_TOKENS.find((candidate) => pattern.startsWith(candidate, index));
-    if (token !== undefined) {
+    const character = pattern[index]!;
+    if (/[A-Za-z]/.test(character)) {
+      let end = index + 1;
+      while (pattern[end] === character) {
+        end += 1;
+      }
+      const field = pattern.slice(index, end);
+      if (!DATE_PATTERN_TOKEN_SET.has(field)) {
+        throw new A2uiParseError(
+          `Unsupported Unicode date pattern token ${JSON.stringify(field)} at ${path}.args.format`,
+        );
+      }
       tokenCount += 1;
       if (tokenCount > A2UI_V1_MAX_DATE_PATTERN_TOKENS) {
         throw new A2uiParseError(
           `A2UI date pattern at ${path}.args.format exceeds maximum of ${A2UI_V1_MAX_DATE_PATTERN_TOKENS} tokens`,
         );
       }
-      parts.push({ kind: "token", value: token });
-      index += token.length;
+      parts.push({ kind: "token", value: field as DatePatternToken });
+      index = end;
       continue;
-    }
-    const character = pattern[index]!;
-    if (/[A-Za-z]/.test(character)) {
-      throw new A2uiParseError(
-        `Unsupported Unicode date pattern token near ${JSON.stringify(pattern.slice(index, index + 4))} at ${path}.args.format`,
-      );
     }
     const previous = parts.at(-1);
     if (previous?.kind === "literal") {
