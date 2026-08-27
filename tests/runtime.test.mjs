@@ -155,6 +155,32 @@ test("the public JSON validators enforce depth, value-count, and string limits",
     (error) =>
       error instanceof JsonValidationError && /object key.*maximum length/.test(error.message),
   );
+  assert.deepEqual(parseJsonValue({ a: "1234" }, "bounded", { maxTotalStringCodeUnits: 5 }), {
+    a: "1234",
+  });
+  assert.throws(
+    () =>
+      parseJsonValue({ a: "1234", b: "5" }, "bounded", {
+        maxTotalStringCodeUnits: 6,
+      }),
+    (error) =>
+      error instanceof JsonValidationError &&
+      /maximum cumulative string\/key length of 6/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      parseJsonValue({ abcd: null, efgh: null }, "bounded", {
+        maxTotalStringCodeUnits: 7,
+      }),
+    (error) =>
+      error instanceof JsonValidationError &&
+      /maximum cumulative string\/key length of 7/.test(error.message),
+  );
+  assert.throws(
+    () => parseJsonValue({}, "bounded", { maxTotalStringCodeUnits: -1 }),
+    (error) =>
+      error instanceof JsonValidationError && /non-negative safe integer/.test(error.message),
+  );
 });
 
 test("native actions reject undeclared fields instead of discarding their semantics", () => {

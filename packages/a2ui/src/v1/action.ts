@@ -129,7 +129,9 @@ function parseRendererInput(input: string | unknown): JsonValue {
     }
   }
   try {
-    return parseJsonValue(value, "renderer-to-agent envelope");
+    return parseJsonValue(value, "renderer-to-agent envelope", {
+      maxTotalStringCodeUnits: A2UI_V1_MAX_SOURCE_LENGTH,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid renderer-to-agent envelope";
     throw new A2uiParseError(message, { cause: error });

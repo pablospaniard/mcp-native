@@ -357,6 +357,28 @@ test("renderer-to-agent parsing bounds serialized input", () => {
   );
 });
 
+test("renderer-to-agent parsing bounds cumulative decoded string data before cloning", () => {
+  const diagnostic = Object.fromEntries(
+    Array.from({ length: 17 }, (_, index) => [`chunk${index}`, "x".repeat(65_536)]),
+  );
+
+  assert.throws(
+    () =>
+      parseA2uiV1RendererToAgentEnvelope({
+        version: "v1.0",
+        error: {
+          code: "RENDER_FAILED",
+          surfaceId: "surface",
+          message: "The renderer failed.",
+          diagnostic,
+        },
+      }),
+    (error) =>
+      error instanceof A2uiParseError &&
+      /maximum cumulative string\/key length of 1048576/.test(error.message),
+  );
+});
+
 test("renderer action construction fails closed for malformed host input", async (t) => {
   const cases = [
     {

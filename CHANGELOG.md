@@ -41,7 +41,8 @@ their minor release line.
 - Treat parsed renderer function calls, responses, and errors as bounded inert data: successful
   validation never grants execution, transport, tool, URL, device, or permission authority.
 - Reject unknown or ambiguous renderer message kinds, unsupported versions and functions, malformed
-  validation-error JSON Pointers, conflicting targets/results, and non-JSON input.
+  validation-error JSON Pointers, conflicting targets/results, non-JSON input, and decoded object
+  graphs whose cumulative string and key data exceeds the serialized-envelope limit.
 - Reject invalid date values, ambiguous 12-hour patterns, unsupported Unicode pattern tokens,
   malformed quoted literals, out-of-range epochs, and patterns exceeding the renderer work limit.
 - Bound expanded renderer checks, validation accessibility output, and agent-supplied regular
