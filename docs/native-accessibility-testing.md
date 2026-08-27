@@ -1,7 +1,8 @@
 # Native accessibility test plan
 
-Status: planned, not yet executed. This document defines evidence required for the Milestone 4
-real-platform accessibility gate; it does not claim VoiceOver, TalkBack, WCAG, or device coverage.
+Status: target matrix and automated fixture defined; real-platform runs not yet executed. This
+document defines evidence required for the Milestone 4 real-platform accessibility gate; it does
+not claim VoiceOver, TalkBack, WCAG, or device coverage.
 
 ## Scope and fixture
 
@@ -29,8 +30,41 @@ adapter mappings preserve the renderer-selected semantics.
 - Record the exact application revision, React Native version, host catalog, device or emulator,
   operating-system version, assistive-technology version, locale, text-size setting, and tester.
 
-The supported iOS and Android version matrix is intentionally not defined by this plan. That
-separate roadmap item must be resolved before the platform gate can pass.
+## Target platform matrix
+
+The first gate targets the current stable React Native line and its immediate actively maintained
+predecessor. As of 2026-08-27, the official [React Native release
+overview](https://reactnative.dev/releases/) identifies those lines as `0.87.x` and `0.86.x`; use
+the newest patch in each line. React Native's release policy maintains the latest three minor
+series, but MCP Native does not infer platform support from that upstream maintenance window or
+from its wider package peer range.
+
+Run the complete fixture in every required row below. Minimum-OS rows protect the deployment floor;
+current-OS rows cover current platform behavior. A host may test more versions, form factors, and
+design systems, but those results do not replace a required row.
+
+| Required row             | React Native    | Environment                              | OS target                          | Assistive technology   | Purpose                                 |
+| ------------------------ | --------------- | ---------------------------------------- | ---------------------------------- | ---------------------- | --------------------------------------- |
+| iOS minimum              | latest `0.87.x` | physical device                          | iOS 15.1                           | VoiceOver              | React Native deployment floor           |
+| iOS current              | latest `0.87.x` | physical device                          | iOS 26.6.1                         | VoiceOver              | current stable iOS behavior             |
+| Android minimum          | latest `0.87.x` | physical device                          | Android 7 / API 24                 | TalkBack               | React Native deployment floor           |
+| Android current device   | latest `0.87.x` | physical device                          | Android 17 / API 37                | TalkBack               | current stable Android behavior         |
+| Android current emulator | latest `0.87.x` | Google Play image                        | Android 17 / API 37                | TalkBack               | reproducible automation/preflight lane  |
+| Previous React Native    | latest `0.86.x` | one current physical device per platform | iOS 26.6.1 and Android 17 / API 37 | VoiceOver and TalkBack | immediate maintained-line compatibility |
+
+At the 2026-08-27 matrix snapshot, Apple's [release
+feed](https://developer.apple.com/news/releases/) lists iOS 26.6.1 and the Android Developers
+[platform overview](https://developer.android.com/about/versions/17) identifies Android 17 / API 37.
+An iOS 26.6.1 simulator Accessibility Inspector run is recommended preflight evidence, but it cannot
+replace either physical iOS row. Record newer stable OS patches in place of the named current patch
+when the matrix is executed, and update this document rather than silently widening a result.
+
+The package's current `react-native >=0.76.0 <1` peer range is an install-compatibility boundary,
+not a tested platform claim. Narrow or widen a published support claim only after evidence exists
+for the corresponding rows. React Native `0.87` itself targets iOS 15.1 and Android 7 / API 24 or
+newer; its [release notes](https://reactnative.dev/blog/2026/08/11/react-native-0.87) also set a
+minimum compile SDK of 34 and compile SDK 37. Those build settings belong to the temporary host and
+do not expand MCP Native's native component or capability catalog.
 
 ## Test cases
 
@@ -55,14 +89,34 @@ separate roadmap item must be resolved before the platform gate can pass.
 8. Repeat the relevant cases for base primitives, adapters, and variants. A host mapping that drops
    a selected semantic is a failed integration even when the underlying component renders.
 
+## Automated fixture
+
+Use `tests/fixtures/a2ui-v1/accessibility-surface.json` for every matrix row. It covers visible and
+hidden text, polite and assertive live regions, enabled and renderer-disabled buttons, valid and
+invalid fields, all four text-input variants, every closed view/text/button variant, and a dynamic
+list. The repository test suite mounts the same payload through the primitive catalog and verifies
+the trusted props, local edits, current-state validation, and exactly-once action dispatch.
+
+For adapter and variant runs, map the fixture through the host's real locally bundled catalog. Do
+not edit the protocol fixture to compensate for a host adapter that drops accessibility props. Add
+enough host-owned padding/content for scrolling and touch-target inspection; visual layout, colors,
+focus treatment, and scroll containers remain host responsibilities rather than server-controlled
+wire properties.
+
 ## Evidence record
 
 Create one row per environment and attach logs, screenshots or recordings, and issue links. Do not
 mark the roadmap platform-accessibility item complete while any required row is missing or failing.
 
-| Revision         | Platform/device | OS and RN | Assistive technology | Catalog path | Date/tester | Result  | Evidence/issues |
-| ---------------- | --------------- | --------- | -------------------- | ------------ | ----------- | ------- | --------------- |
-| Not yet recorded | —               | —         | —                    | —            | —           | Not run | —               |
+| Revision         | Platform/device               | OS and RN              | Assistive technology | Catalog path                   | Date/tester | Result  | Evidence/issues |
+| ---------------- | ----------------------------- | ---------------------- | -------------------- | ------------------------------ | ----------- | ------- | --------------- |
+| Not yet recorded | iOS physical, minimum         | iOS 15.1 / RN 0.87.x   | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | iOS physical, current         | iOS 26.6.1 / RN 0.87.x | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | Android physical, minimum     | API 24 / RN 0.87.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | Android physical, current     | API 37 / RN 0.87.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | Android emulator, current     | API 37 / RN 0.87.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | iOS physical, previous RN     | iOS 26.6.1 / RN 0.86.x | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | Android physical, previous RN | API 37 / RN 0.86.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
 
 ## Exit criteria
 
