@@ -39,6 +39,8 @@ their minor release line.
 - A bounded native evidence format, WCAG 2.2 applicability assessment, negative validator tests,
   and strict release gate that prevents publication while any required real-platform row is
   missing, pending, failing, or lacks reviewable evidence.
+- Reproducible Android 17 native preflight using the exact API 37 SDK package, plus a safe-area-aware
+  accessibility fixture that avoids status-bar overlap and an extra root screen-reader focus target.
 
 ### Deprecated
 

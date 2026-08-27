@@ -1,9 +1,10 @@
 # Native accessibility test plan
 
 Status: target matrix, generated host, CI preflight, WCAG assessment, and strict evidence gate
-defined; real-platform runs not yet executed. This document defines evidence required for the
-Milestone 4 real-platform accessibility gate; it does not claim VoiceOver, TalkBack, WCAG, or
-device coverage.
+defined; the Android 17 Google Play emulator row passes with reviewable TalkBack evidence, while
+the six required physical-device rows remain unexecuted. This document defines evidence required
+for the Milestone 4 real-platform accessibility gate; it does not claim unexecuted VoiceOver,
+TalkBack, WCAG, or device coverage.
 
 ## Scope and fixture
 

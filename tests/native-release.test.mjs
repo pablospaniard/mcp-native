@@ -91,7 +91,7 @@ test("native fixture respects platform safe areas without an extra root focus ta
 test("pending native evidence is structurally valid but cannot pass the release gate", () => {
   assert.deepEqual(validateNativeAccessibilityEvidence(pendingEvidence), {
     complete: false,
-    passedRows: 0,
+    passedRows: 1,
     requiredRows: 7,
   });
   assert.throws(
