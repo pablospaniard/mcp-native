@@ -216,12 +216,23 @@ test("mounted openUrl actions require a press and current-state host authorizati
 
   assert.deepEqual(policyCalls, []);
   assert.deepEqual(opened, []);
-  const input = root.container.queryAll((element) => element.type === "TextInput")[0];
-  await act(async () => input.props.onChangeText("https://example.com/current"));
+  let input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  await act(async () => input.props.onChangeText("https:"));
+  let button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(button.props.disabled, true);
+  button.props.onPress();
   assert.deepEqual(policyCalls, []);
   assert.deepEqual(opened, []);
+  assert.throws(
+    () => resolveA2uiV1NativeOpenUrl(surface, policy, "open", { url: "https:" }),
+    (error) => error instanceof A2uiParseError && /absolute HTTP\(S\) URL/.test(error.message),
+  );
 
-  root.container.queryAll((element) => element.type === "Button")[0].props.onPress();
+  input = root.container.queryAll((element) => element.type === "TextInput")[0];
+  await act(async () => input.props.onChangeText("https://example.com/current"));
+  button = root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(button.props.disabled, undefined);
+  button.props.onPress();
   assert.deepEqual(policyCalls, [
     {
       url: "https://example.com/current",
@@ -231,7 +242,37 @@ test("mounted openUrl actions require a press and current-state host authorizati
     },
   ]);
   assert.deepEqual(opened, policyCalls);
-  await act(async () => root.unmount());
+
+  const invalidUpdatedSurface = createSurface(
+    [
+      { id: "root", component: "Column", children: ["field", "open"] },
+      { id: "field", component: "TextField", label: "URL", value: { path: "/url" } },
+      {
+        id: "open",
+        component: "Button",
+        child: "open-label",
+        action: {
+          functionCall: { call: "openUrl", args: { url: "https://user@example.com" } },
+        },
+      },
+      { id: "open-label", component: "Text", text: "Open" },
+    ],
+    { url: "https://example.com/old" },
+  );
+  await assert.rejects(async () => {
+    await act(async () => {
+      root.render(
+        createElement(A2uiV1NativeSurface, {
+          surface: invalidUpdatedSurface,
+          policy,
+          components: nativeComponents,
+          onAction() {},
+          openUrlPolicy: () => true,
+          onOpenUrl() {},
+        }),
+      );
+    });
+  }, /does not allow URL credentials/);
 });
 
 test("openUrl fails closed when host policy denies or capability handlers are incomplete", async () => {
@@ -278,6 +319,36 @@ test("openUrl fails closed when host policy denies or capability handlers are in
       );
     });
   }, /Missing A2UI v1 openUrl policy or handler/);
+
+  const invalidInitialSurface = createSurface(
+    [
+      {
+        id: "root",
+        component: "Button",
+        child: "label",
+        action: {
+          functionCall: { call: "openUrl", args: { url: { path: "/url" } } },
+        },
+      },
+      { id: "label", component: "Text", text: "Open" },
+    ],
+    { url: "https:" },
+  );
+  const invalidRoot = createRoot();
+  await assert.rejects(async () => {
+    await act(async () => {
+      invalidRoot.render(
+        createElement(A2uiV1NativeSurface, {
+          surface: invalidInitialSurface,
+          policy,
+          components: nativeComponents,
+          onAction() {},
+          openUrlPolicy: () => true,
+          onOpenUrl() {},
+        }),
+      );
+    });
+  }, /absolute HTTP\(S\) URL/);
 });
 
 test("mounted formatString values follow renderer-local state through dispatch", async () => {

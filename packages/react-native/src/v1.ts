@@ -92,6 +92,7 @@ interface AdapterContext {
   readonly numberFormats: Map<string, Intl.NumberFormat>;
   readonly pluralRules: Map<string, Intl.PluralRules>;
   readonly visiting: Set<string>;
+  readonly tolerateInvalidLocalOpenUrls: boolean;
   formatStringExpressionCount: number;
   formattedStringLength: number;
   openUrlLength: number;
@@ -109,12 +110,31 @@ export function createA2uiV1NativeRenderPlan(
   policy: A2uiV1SurfaceValidationPolicy,
   options: A2uiV1NativeRenderPlanOptions = {},
 ): NativeElement {
+  return createNativeRenderPlan(surface, policy, options, false);
+}
+
+/** Internal mounted-surface path that keeps temporary renderer-local URL edits non-dispatchable. */
+export function createA2uiV1NativeRenderPlanForLocalEdits(
+  surface: A2uiV1SurfaceState,
+  policy: A2uiV1SurfaceValidationPolicy,
+  options: A2uiV1NativeRenderPlanOptions = {},
+): NativeElement {
+  return createNativeRenderPlan(surface, policy, options, true);
+}
+
+function createNativeRenderPlan(
+  surface: A2uiV1SurfaceState,
+  policy: A2uiV1SurfaceValidationPolicy,
+  options: A2uiV1NativeRenderPlanOptions,
+  tolerateInvalidLocalOpenUrls: boolean,
+): NativeElement {
   const parsedOptions = parseRenderPlanOptions(options);
   const context = createAdapterContext(
     surface,
     policy,
     parsedOptions.dataModel,
     parsedOptions.locale,
+    tolerateInvalidLocalOpenUrls,
   );
   return adaptComponent("root", "root", context, undefined);
 }
@@ -244,6 +264,7 @@ function createAdapterContext(
   policy: A2uiV1SurfaceValidationPolicy,
   dataModel: JsonObject | undefined,
   locale: string | undefined,
+  tolerateInvalidLocalOpenUrls = false,
 ): AdapterContext {
   const localDataModel =
     dataModel === undefined
@@ -261,6 +282,7 @@ function createAdapterContext(
     numberFormats: new Map<string, Intl.NumberFormat>(),
     pluralRules: new Map<string, Intl.PluralRules>(),
     visiting: new Set<string>(),
+    tolerateInvalidLocalOpenUrls,
     formatStringExpressionCount: 0,
     formattedStringLength: 0,
     openUrlLength: 0,
@@ -854,7 +876,15 @@ function resolveButtonAction(
   scope: BindingScope | undefined,
 ):
   | { readonly event: A2uiV1NativeEventDescriptor }
-  | { readonly openUrl: A2uiV1NativeOpenUrlDescriptor } {
+  | { readonly openUrl: A2uiV1NativeOpenUrlDescriptor }
+  | {
+      readonly disabled: true;
+      readonly invalidLocalOpenUrl: {
+        readonly surfaceId: string;
+        readonly sourceComponentId: string;
+        readonly instanceKey: string;
+      };
+    } {
   const action = expectObject(component.action, `components.${component.id}.action`);
   if (Object.hasOwn(action, "functionCall")) {
     const call = expectObject(
@@ -869,11 +899,24 @@ function resolveButtonAction(
     }
     const args = expectObject(call.args, `components.${component.id}.action.functionCall.args`);
     const path = `components.${component.id}.action.functionCall.args.url`;
-    const url = recordOpenUrl(
-      normalizeOpenUrl(resolveDynamicString(args.url, path, context, scope), path),
-      path,
-      context,
-    );
+    const resolvedUrl = resolveDynamicString(args.url, path, context, scope);
+    let normalizedUrl: string;
+    try {
+      normalizedUrl = normalizeOpenUrl(resolvedUrl, path);
+    } catch (error) {
+      if (!context.tolerateInvalidLocalOpenUrls || !(error instanceof A2uiParseError)) {
+        throw error;
+      }
+      return {
+        disabled: true,
+        invalidLocalOpenUrl: {
+          surfaceId: context.surface.surfaceId,
+          sourceComponentId: component.id,
+          instanceKey: key,
+        },
+      };
+    }
+    const url = recordOpenUrl(normalizedUrl, path, context);
     return {
       openUrl: {
         url,

@@ -14,7 +14,7 @@ their minor release line.
   renderer-side checks for supported text fields and buttons. Failed field checks expose their
   messages to host components, while failed button checks disable dispatch.
 - Policy-gated A2UI v1 `openUrl` Button actions with press-time data resolution, canonical HTTP(S)
-  descriptors, and host-owned platform execution.
+  descriptors, host-owned platform execution, and non-dispatchable temporary invalid local edits.
 
 ### Security
 

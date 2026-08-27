@@ -22,6 +22,7 @@ import {
 
 import {
   createA2uiV1NativeRenderPlan,
+  createA2uiV1NativeRenderPlanForLocalEdits,
   parseA2uiV1NativeOpenUrlDescriptor,
   resolveA2uiV1NativeEvent,
   resolveA2uiV1NativeOpenUrl,
@@ -219,12 +220,18 @@ export function A2uiV1NativeSurface({
   );
   const sourceDataModel = validatedSurface.dataModel;
   const sourceDataModelKey = createDataModelSourceKey(validatedSurface);
+  const sourceComponentsKey = createComponentSourceKey(validatedSurface);
   const [localState, setLocalState] = useState(() => ({
     sourceDataModelKey,
+    sourceComponentsKey,
     dataModel: sourceDataModel,
+    hasLocalEdits: false,
   }));
-  const dataModel =
-    localState.sourceDataModelKey === sourceDataModelKey ? localState.dataModel : sourceDataModel;
+  const hasCurrentLocalState = localState.sourceDataModelKey === sourceDataModelKey;
+  const dataModel = hasCurrentLocalState ? localState.dataModel : sourceDataModel;
+  const hasLocalEdits = hasCurrentLocalState && localState.hasLocalEdits;
+  const tolerateInvalidLocalOpenUrls =
+    hasLocalEdits && localState.sourceComponentsKey === sourceComponentsKey;
   const dataModelRef = useRef(dataModel);
   dataModelRef.current = dataModel;
 
@@ -233,26 +240,38 @@ export function A2uiV1NativeSurface({
       if (current.sourceDataModelKey === sourceDataModelKey) {
         return current;
       }
-      return { sourceDataModelKey, dataModel: sourceDataModel };
+      return {
+        sourceDataModelKey,
+        sourceComponentsKey,
+        dataModel: sourceDataModel,
+        hasLocalEdits: false,
+      };
     });
-  }, [sourceDataModel, sourceDataModelKey]);
+  }, [sourceComponentsKey, sourceDataModel, sourceDataModelKey]);
 
   const plan = useMemo(
     () =>
-      createA2uiV1NativeRenderPlan(validatedSurface, policy, {
+      (tolerateInvalidLocalOpenUrls
+        ? createA2uiV1NativeRenderPlanForLocalEdits
+        : createA2uiV1NativeRenderPlan)(validatedSurface, policy, {
         dataModel,
         ...(locale === undefined ? {} : { locale }),
       }),
-    [dataModel, locale, policy, validatedSurface],
+    [dataModel, locale, policy, tolerateInvalidLocalOpenUrls, validatedSurface],
   );
   const handleBindingChange = useCallback(
     (binding: string, value: string) => {
       const next = updateDataModelBinding(dataModelRef.current, binding, value);
       dataModelRef.current = next;
-      setLocalState({ sourceDataModelKey, dataModel: next });
+      setLocalState({
+        sourceDataModelKey,
+        sourceComponentsKey,
+        dataModel: next,
+        hasLocalEdits: true,
+      });
       onDataModelChange?.(parseJsonObject(next, "renderer data model"));
     },
-    [onDataModelChange, sourceDataModelKey],
+    [onDataModelChange, sourceComponentsKey, sourceDataModelKey],
   );
   const handleEvent = useCallback(
     (event: A2uiV1NativeEventDescriptor) => {
@@ -318,6 +337,14 @@ function createDataModelSourceKey(surface: A2uiV1SurfaceState): string {
     surface.dataModelRevision ?? null,
     surface.dataModel,
   ]);
+}
+
+function createComponentSourceKey(surface: A2uiV1SurfaceState): string {
+  return canonicalizeJson(
+    [...surface.components.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([id, component]) => [id, component]),
+  );
 }
 
 function canonicalizeJson(value: JsonValue): string {
@@ -564,9 +591,13 @@ function createButtonPressHandler(
   const hasAction = Object.hasOwn(element.props, "action");
   const hasEvent = Object.hasOwn(element.props, "event");
   const hasOpenUrl = Object.hasOwn(element.props, "openUrl");
-  if (Number(hasAction) + Number(hasEvent) + Number(hasOpenUrl) !== 1) {
+  const hasInvalidLocalOpenUrl = Object.hasOwn(element.props, "invalidLocalOpenUrl");
+  if (
+    Number(hasAction) + Number(hasEvent) + Number(hasOpenUrl) + Number(hasInvalidLocalOpenUrl) !==
+    1
+  ) {
     throw new TypeError(
-      `Expected exactly one action, event, or openUrl at native element ${element.key}`,
+      `Expected exactly one action, event, openUrl, or invalid local openUrl at native element ${element.key}`,
     );
   }
   if (hasAction) {
@@ -583,11 +614,18 @@ function createButtonPressHandler(
     }
     return disabled ? () => undefined : () => handlers.onV1Event?.(event);
   }
-  const request = expectV1OpenUrlProp(element);
-  if (handlers.onV1OpenUrl === undefined) {
-    throw new TypeError(`Missing A2UI v1 openUrl policy or handler for element ${element.key}`);
+  if (hasOpenUrl) {
+    const request = expectV1OpenUrlProp(element);
+    if (handlers.onV1OpenUrl === undefined) {
+      throw new TypeError(`Missing A2UI v1 openUrl policy or handler for element ${element.key}`);
+    }
+    return disabled ? () => undefined : () => handlers.onV1OpenUrl?.(request);
   }
-  return disabled ? () => undefined : () => handlers.onV1OpenUrl?.(request);
+  expectV1InvalidLocalOpenUrlProp(element);
+  if (!disabled) {
+    throw new TypeError(`Expected invalid local openUrl element ${element.key} to be disabled`);
+  }
+  return () => undefined;
 }
 
 function selectAccessibilityProps(element: NativeElement): NativeAccessibilityProps {
@@ -714,6 +752,15 @@ function expectV1OpenUrlProp(element: NativeElement): A2uiV1NativeOpenUrlDescrip
     const message = error instanceof Error ? error.message : `Expected an openUrl at ${path}`;
     throw new TypeError(message, { cause: error });
   }
+}
+
+function expectV1InvalidLocalOpenUrlProp(element: NativeElement): void {
+  const path = `native element ${element.key}.invalidLocalOpenUrl`;
+  const marker = parseJsonObject(element.props.invalidLocalOpenUrl, path);
+  rejectObjectKeys(marker, ["instanceKey", "sourceComponentId", "surfaceId"], path);
+  expectObjectString(marker, "instanceKey", path);
+  expectObjectString(marker, "sourceComponentId", path);
+  expectObjectString(marker, "surfaceId", path);
 }
 
 function expectObjectString(value: JsonObject, name: string, path: string): string {
