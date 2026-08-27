@@ -51,6 +51,10 @@ test("external contributions require codex-review-approved before the gate runs"
   assert.match(authorizeScript, /author_association/);
   assert.match(authorizeScript, /context: 'codex-review'/);
   assert.match(authorizeScript, /Maintainer must add codex-review-approved/);
+  assert.match(authorizeScript, /PR_EVENT_ACTION === 'synchronize'/);
+  assert.match(authorizeScript, /removeLabel/);
+  assert.match(authorizeScript, /External approval invalidated by new push/);
+  assert.match(authorizeScript, /invalidated the external-contributor review approval/);
 });
 
 test("the gate reacts to connector review events and scheduled retries", () => {

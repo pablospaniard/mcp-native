@@ -169,7 +169,7 @@ Repository setup for maintainers:
 3. Prefer disabling separate **Automatic reviews on every PR** in Codex Cloud so the workflow remains the single review trigger and duplicate connector runs stay rare.
 4. Add `codex-review` as a required status check after the workflow exists on the default branch.
 
-For external contributions, a maintainer must add the `codex-review-approved` label before the gate requests a review. The gate re-evaluates on new commits and passes only when the latest connector review for the current head has no unresolved P0/P1 findings. Automated review supplements human maintainer judgment; it does not transfer ownership of a change or its merge decision.
+For external contributions, a maintainer must add the `codex-review-approved` label before the gate requests a review. A new push removes that label and requires maintainer re-approval before Codex runs again. The gate re-evaluates on new commits and passes only when the latest connector review for the current head has no unresolved P0/P1 findings. Automated review supplements human maintainer judgment; it does not transfer ownership of a change or its merge decision.
 
 ## Releases
 

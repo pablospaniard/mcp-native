@@ -79,6 +79,7 @@ jobs:
         env:
           PR_NUMBER: >-
             ${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pull_request || '' }}
+          PR_EVENT_ACTION: ${{ github.event.action || '' }}
         with:
           github-token: ${{ github.token }}
           script: |
@@ -112,11 +113,34 @@ jobs:
             const approved = pullRequest.labels.some(
               (label) => label.name === approvalLabel,
             );
+            const statusUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            if (process.env.PR_EVENT_ACTION === 'synchronize' && approved) {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: approvalLabel,
+              });
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: pullRequest.head.sha,
+                state: 'failure',
+                context: 'codex-review',
+                description: 'External approval invalidated by new push',
+                target_url: statusUrl,
+              });
+              core.setFailed(
+                'A new push invalidated the external-contributor review approval.',
+              );
+              return;
+            }
+
             if (approved) {
               return;
             }
 
-            const statusUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
