@@ -19,6 +19,9 @@ their minor release line.
   props into locally bundled third-party component APIs.
 - Closed React Native component variants for host-owned `Row`, `Column`, `List`, and `Card`
   presentation plus pinned text, button, and text-field style hints, with primitive fallbacks.
+- Closed React Native accessibility semantics for rendered text and buttons, explicit disabled state,
+  enabled text scaling, and a real-platform verification plan that records evidence without claiming
+  unexecuted device coverage.
 
 ### Security
 
@@ -36,6 +39,8 @@ their minor release line.
   objects and arbitrary native props still never cross the renderer boundary.
 - Scope component-variant selection to the A2UI v1 renderer so sharing a catalog cannot change
   legacy `0.1` component selection.
+- Derive native accessibility role, disabled state, focus eligibility, and text-scaling props inside
+  the trusted renderer; servers cannot choose these values or inject arbitrary native semantics.
 
 ## 0.3.0 - 2026-08-26
 

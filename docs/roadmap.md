@@ -88,6 +88,7 @@ Status: partial — renderer-local string bindings and action-envelope emission.
 - [x] Add richer host-owned components and styling through closed semantic/style variant slots,
       primitive fallbacks, and explicit prop selection without unchecked prop spreading.
 - [x] Mount explicit label, description, live-region, and hidden accessibility attributes for the supported subset, with inferred button and input labels.
+- [x] Derive closed text and button roles, button disabled state, hidden-element focus exclusion, and explicit Text/TextInput font scaling at the host boundary; add regression coverage and a real-platform test plan.
 - [ ] Test VoiceOver and Android accessibility behavior, dynamic type, focus, reduced motion, contrast, touch targets, orientation, and screen-reader actions.
 - [ ] Define the supported iOS and Android version matrix and exercise real host applications in simulator, emulator, and device CI where available.
 - [ ] Establish parse, update, render-latency, and memory budgets for supported surface sizes, with large-surface and rapid-update stress tests.

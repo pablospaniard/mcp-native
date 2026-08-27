@@ -30,6 +30,13 @@ const npmEnvironment = {
 };
 
 try {
+  const reactNativeDeclarations = readFileSync("packages/react-native/dist/index.d.ts", "utf8");
+  for (const typeName of ["NativeAccessibilityRole", "NativeAccessibilityState"]) {
+    if (!reactNativeDeclarations.includes(typeName)) {
+      throw new Error(`@mcp-native/react-native declarations are missing ${typeName}`);
+    }
+  }
+
   const tarballs = packages.map((packageName) => {
     const output = execFileSync(
       "npm",

@@ -74,9 +74,15 @@ test("McpNativeSurface mounts every node through the host-owned catalog", async 
   assert.equal(views.length, 1);
   assert.equal(texts.length, 1);
   assert.deepEqual(texts[0]?.children, ["Profile"]);
+  assert.equal(texts[0]?.props.accessible, true);
+  assert.equal(texts[0]?.props.accessibilityRole, "text");
+  assert.equal(texts[0]?.props.allowFontScaling, true);
   assert.equal(buttons.length, 1);
   assert.equal(buttons[0]?.props.title, "Save");
   assert.equal(buttons[0]?.props.accessibilityLabel, "Save");
+  assert.equal(buttons[0]?.props.accessible, true);
+  assert.equal(buttons[0]?.props.accessibilityRole, "button");
+  assert.deepEqual(buttons[0]?.props.accessibilityState, { disabled: false });
   assert.equal("action" in buttons[0].props, false);
 
   buttons[0].props.onPress();
@@ -87,11 +93,19 @@ test("McpNativeSurface mounts every node through the host-owned catalog", async 
   assert.equal(inputs.length, 2);
   assert.deepEqual(
     {
+      accessible: inputs[0]?.props.accessible,
       accessibilityLabel: inputs[0]?.props.accessibilityLabel,
+      allowFontScaling: inputs[0]?.props.allowFontScaling,
       placeholder: inputs[0]?.props.placeholder,
       value: inputs[0]?.props.value,
     },
-    { accessibilityLabel: "Display name", placeholder: "Display name", value: "Ada" },
+    {
+      accessible: true,
+      accessibilityLabel: "Display name",
+      allowFontScaling: true,
+      placeholder: "Display name",
+      value: "Ada",
+    },
   );
   assert.equal("binding" in inputs[0].props, false);
   assert.equal("label" in inputs[0].props, false);
