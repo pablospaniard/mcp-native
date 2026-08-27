@@ -16,6 +16,18 @@ The standards review does not require starting over. Keep and evolve:
 
 The custom `@mcp-native/a2ui` `0.1` object remains useful as a proof and test fixture, but it must not grow into a competing public protocol. Only security and correctness fixes should land on that wire shape while the conforming adapter is built.
 
+## Integration PoC policy
+
+Each supported integration may have at most one small, valuable PoC. A PoC demonstrates the
+end-to-end integration-specific flow with hand-authored code; it is not a committed generated
+application project. Extend the existing PoC instead of adding parallel examples for the same
+integration.
+
+Every PoC requires automated package, integration, or smoke coverage. Use temporary generated hosts
+only when a platform build is necessary to prove behavior, and run the narrowest relevant platform
+checks. Protocol examples and hostile inputs used by automated tests are fixtures, not additional
+example applications.
+
 ## Milestone 0: proof-of-concept architecture
 
 Status: complete.
@@ -120,7 +132,7 @@ Exit criterion: `@mcp-native/webview` satisfies the stable Apps profile for docu
 - Provide actionable loading, empty, denied, disconnected, retryable, and terminal error states for host applications.
 - Publish a host-integration checklist covering component catalogs, action policies, permissions, binding state ownership, error handling, transport configuration, and lifecycle cleanup.
 - Continue npm trusted publishing with OIDC, provenance, protected release environments, and exact version verification.
-- Ship one simple end-to-end React Native integration example and document its supported protocol matrix.
+- Ship one small, tested React Native integration PoC without a committed host-app scaffold, and document its supported protocol matrix.
 
 Exit criterion: a release candidate passes protocol, security, accessibility, performance, reliability, operability, package, real-platform, and end-to-end interoperability gates.
 

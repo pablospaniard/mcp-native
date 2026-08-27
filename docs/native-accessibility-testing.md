@@ -10,6 +10,10 @@ closed component variant. The fixture must include normal and hidden text, polit
 regions, enabled and disabled buttons, valid and invalid text fields, multiline, numeric, and secure
 inputs, dynamic-list content, and enough content to scroll in both orientations.
 
+This host is test infrastructure, not another repository example application. Generate it in a
+temporary test workspace or exercise it through the supported external host matrix; do not commit a
+second native project scaffold under `examples/`.
+
 The server remains unable to choose native roles, accessibility state, font-scaling policy,
 accessibility actions, component implementations, or arbitrary props. Tests must confirm that host
 adapter mappings preserve the renderer-selected semantics.
