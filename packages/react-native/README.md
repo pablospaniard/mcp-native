@@ -107,6 +107,9 @@ These mappings have automated host-boundary coverage but are not a claim of Voic
 device, or WCAG conformance. The [native accessibility test
 plan](../../docs/native-accessibility-testing.md) defines the target platform matrix, shared fixture,
 required physical-device runs, and evidence needed before making a narrower platform claim.
+The [automated robustness gates](../../docs/a2ui-v1-performance.md) separately define repeatable
+Node.js render-plan budgets and fixed-seed generated-input coverage; they do not measure native
+frame time or device memory.
 
 ### Host component adapters
 

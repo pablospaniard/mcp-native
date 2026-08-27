@@ -155,6 +155,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - React hooks for memoized render plans and safely observed asynchronous action dispatch
 - Accessibility labels and controlled text-input binding events selected at the renderer boundary
 - Fail-closed behavior for unknown nodes, actions, protocol versions, and WebView MIME types
+- Fixed A2UI parser/state/render-plan budgets and deterministic generated hostile-input coverage
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
@@ -324,20 +325,21 @@ npm test
 
 Useful commands:
 
-| Command                  | Purpose                                                         |
-| ------------------------ | --------------------------------------------------------------- |
-| `npm run build`          | Build every workspace with TypeScript project references        |
-| `npm run check`          | Run formatting, linting, types, schemas, tests, and conformance |
-| `npm run format:check`   | Check formatting without changing files                         |
-| `npm run format:fix`     | Format supported project files with Oxfmt                       |
-| `npm run lint`           | Check source files with Oxlint                                  |
-| `npm run lint:fix`       | Apply safe Oxlint fixes, then report any remaining diagnostics  |
-| `npm run typecheck`      | Type-check all TypeScript project references                    |
-| `npm test`               | Build and run the Node test suite                               |
-| `npm run test:coverage`  | Run tests and enforce coverage thresholds                       |
-| `npm run schemas:verify` | Verify the pinned A2UI schema bundle and runtime copies         |
-| `npm run package:smoke`  | Build, pack, and install all publishable packages offline       |
-| `npm run clean`          | Remove TypeScript project build outputs                         |
+| Command                    | Purpose                                                         |
+| -------------------------- | --------------------------------------------------------------- |
+| `npm run build`            | Build every workspace with TypeScript project references        |
+| `npm run check`            | Run formatting, linting, types, schemas, tests, and conformance |
+| `npm run format:check`     | Check formatting without changing files                         |
+| `npm run format:fix`       | Format supported project files with Oxfmt                       |
+| `npm run lint`             | Check source files with Oxlint                                  |
+| `npm run lint:fix`         | Apply safe Oxlint fixes, then report any remaining diagnostics  |
+| `npm run typecheck`        | Type-check all TypeScript project references                    |
+| `npm test`                 | Build and run the Node test suite                               |
+| `npm run test:coverage`    | Run tests and enforce coverage thresholds                       |
+| `npm run test:performance` | Enforce documented A2UI performance regression budgets          |
+| `npm run schemas:verify`   | Verify the pinned A2UI schema bundle and runtime copies         |
+| `npm run package:smoke`    | Build, pack, and install all publishable packages offline       |
+| `npm run clean`            | Remove TypeScript project build outputs                         |
 
 Maintainers should follow the tokenless [release and package-onboarding process](docs/releasing.md).
 
@@ -392,8 +394,9 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Add closed host-owned component variants for supported A2UI structure and style hints
 - [x] Derive closed native text/button semantics and preserve text scaling at the host boundary
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
+- [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
 - [ ] Complete real-platform accessibility behavior and testing
-- [ ] Establish native performance budgets, parser/renderer fuzzing, and a supported iOS/Android CI matrix
+- [ ] Execute the supported iOS/Android fixture and accessibility matrix in real host applications
 - [ ] Implement stable MCP Apps `2026-01-26` discovery, sandboxing, and AppBridge compatibility
 - [ ] Add MCP HTTP authorization, consent, and host permission controls
 - [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
