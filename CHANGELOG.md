@@ -29,6 +29,10 @@ their minor release line.
   unexecuted device coverage.
 - A pinned native accessibility fixture and initial React Native, iOS, and Android target test matrix
   for consistent primitive, adapter, variant, dynamic-list, validation, and screen-reader runs.
+- A fixed A2UI performance regression gate for maximum-size parsing and render-plan construction,
+  rapid ordered updates, and retained heap, with a documented reproducible measurement method.
+- Deterministic generated-input coverage for both A2UI envelope directions, lifecycle state,
+  dynamic-list plans, and hostile graph, component, binding, and function-policy mutations.
 
 ### Deprecated
 
@@ -59,6 +63,8 @@ their minor release line.
   legacy `0.1` component selection.
 - Derive native accessibility role, disabled state, focus eligibility, and text-scaling props inside
   the trusted renderer; servers cannot choose these values or inject arbitrary native semantics.
+- Require generated hostile inputs to fail through controlled parser errors without exposing
+  executable components, malformed graphs, unsupported bindings, or policy-bypassing functions.
 
 ## 0.3.0 - 2026-08-26
 

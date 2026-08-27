@@ -61,8 +61,9 @@ basic-catalog components, functions, placements, bindings, or behaviors fail clo
 catalogs are disabled. The component subset is therefore not a claim that the renderer implements
 the complete basic catalog.
 
-Real-platform accessibility verification, performance budgets, fuzzing, and broader platform
-quality gates belong to Milestone 4; they do not expand this protocol profile.
+The [automated robustness gates](a2ui-v1-performance.md) cover bounded Node.js performance and
+generated-input behavior. Real-platform accessibility, native performance, and the broader iOS and
+Android quality matrix remain Milestone 4 work; none of these gates expand this protocol profile.
 
 ## Candidate interpretations
 
@@ -83,6 +84,10 @@ quality gates belong to Milestone 4; they do not expand this protocol profile.
   message kind.
 - Negative tests cover unknown versions and kinds, ambiguous envelopes, unsupported functions,
   malformed JSON Pointers, conflicting response/error forms, non-JSON input, and complexity limits.
+- Fixed-seed generated tests cover both envelope directions, ordered lifecycle state, bounded dynamic
+  lists, and hostile graph/component/binding/function mutations.
+- `npm run test:performance` enforces documented parse, update, render-plan, and retained-heap
+  regression ceilings for the maximum supported component count.
 - `npm run check` is the repository conformance gate; `npm run package:smoke` verifies published
   exports and declarations.
 
