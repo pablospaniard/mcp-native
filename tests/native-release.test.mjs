@@ -77,6 +77,17 @@ test("generated host manifests install local tarballs and expose reproducible ch
   assert.equal(packageJson.scripts["mcp-native:typecheck"], "tsc --noEmit");
 });
 
+test("native fixture respects platform safe areas without an extra root focus target", () => {
+  const source = readFileSync("tests/native-host/App.tsx", "utf8");
+  assert.match(
+    source,
+    /import \{ SafeAreaProvider, SafeAreaView \} from "react-native-safe-area-context"/,
+  );
+  assert.match(source, /<SafeAreaProvider>/);
+  assert.match(source, /<SafeAreaView edges=\{\["top", "right", "bottom", "left"\]\}/);
+  assert.doesNotMatch(source, /<ScrollView\s+accessibilityLabel=/);
+});
+
 test("pending native evidence is structurally valid but cannot pass the release gate", () => {
   assert.deepEqual(validateNativeAccessibilityEvidence(pendingEvidence), {
     complete: false,
