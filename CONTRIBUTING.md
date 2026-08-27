@@ -160,7 +160,7 @@ Reviews focus on, in order:
 5. maintainability and documentation;
 6. style.
 
-The `codex-review` required check runs once when a pull request is opened (or when a draft becomes ready for review). It does not re-run on later pushes. Automated review supplements human maintainer judgment; it does not transfer ownership of a change or its merge decision.
+The `codex-review` required check runs once when a pull request is opened, when a draft becomes ready for review, or when a maintainer adds the `codex-review-approved` label to an external contribution. Later pushes do not re-run Codex; they mirror the initial pass/fail status onto the new head commit. Automated review supplements human maintainer judgment; it does not transfer ownership of a change or its merge decision.
 
 ## Releases
 

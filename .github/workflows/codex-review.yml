@@ -2,7 +2,7 @@ name: Codex Review Gate
 
 on:
   pull_request_target:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, synchronize, labeled]
 
 concurrency:
   group: codex-review-${{ github.event.pull_request.number }}
@@ -14,7 +14,13 @@ permissions:
 jobs:
   codex-review:
     name: codex-review-run
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.action != 'synchronize' &&
+      (
+        github.event.action != 'labeled' ||
+        github.event.label.name == 'codex-review-approved'
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -240,13 +246,81 @@ jobs:
           allow-users: "*"
           codex-args: '["--ephemeral"]'
 
+  propagate-status:
+    name: propagate-codex-review-status
+    if: >-
+      github.event.action == 'synchronize' &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+      statuses: write
+    steps:
+      - name: Mirror prior Codex review status on the new head
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          REVIEWED_COMMIT: ${{ github.event.pull_request.head.sha }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const marker = '<!-- codex-review-gate -->';
+            const verdictMarker = /<!-- codex-review-verdict:(pass|fail) -->/;
+            const statusUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const setStatus = (state, description) =>
+              github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: process.env.REVIEWED_COMMIT,
+                state,
+                context: 'codex-review',
+                description,
+                target_url: statusUrl,
+              });
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const reviewComment = comments.find(
+              (comment) =>
+                comment.user?.login === 'github-actions[bot]' &&
+                comment.body?.includes(marker),
+            );
+
+            if (!reviewComment) {
+              await setStatus(
+                'failure',
+                'Codex review required before merge',
+              );
+              return;
+            }
+
+            const verdictMatch = reviewComment.body.match(verdictMarker);
+            let passed;
+            if (verdictMatch) {
+              passed = verdictMatch[1] === 'pass';
+            } else {
+              passed = reviewComment.body.includes('No actionable findings.');
+            }
+
+            await setStatus(
+              passed ? 'success' : 'failure',
+              passed
+                ? 'Codex review passed (mirrored from initial review)'
+                : 'Codex reported findings (mirrored from initial review)',
+            );
+
   finalize-review:
     name: finalize-codex-review
     needs: codex-review
     if: >-
       always() &&
       needs.codex-review.result != 'skipped' &&
-      github.event.pull_request.draft == false
+      github.event.pull_request.draft == false &&
+      github.event.action != 'synchronize'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -308,6 +382,8 @@ jobs:
 
             const marker = '<!-- codex-review-gate -->';
             const hasFindings = review.findings.length > 0;
+            const passed = review.verdict === 'pass' && !hasFindings;
+            const verdictMarker = `<!-- codex-review-verdict:${passed ? 'pass' : 'fail'} -->`;
             const findings = hasFindings
               ? review.findings.flatMap((finding) => [
                   `- **${finding.severity.toUpperCase()} — ${finding.title}** (${finding.path}:${finding.line})`,
@@ -316,6 +392,7 @@ jobs:
               : ['No actionable findings.'];
             const body = [
               marker,
+              verdictMarker,
               '## Codex review',
               '',
               review.summary,
@@ -360,7 +437,6 @@ jobs:
               });
             }
 
-            const passed = review.verdict === 'pass' && !hasFindings;
             await setStatus(
               passed ? 'success' : 'failure',
               passed ? 'Codex review passed' : 'Codex reported findings',
