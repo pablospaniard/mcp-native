@@ -29,6 +29,10 @@ import {
   createA2uiV1RendererCapabilities,
   createA2uiV1NativeRenderPlan,
   createNativeRenderPlan,
+  createNativeButtonAdapter,
+  createNativeTextAdapter,
+  createNativeTextInputAdapter,
+  createNativeViewAdapter,
   createWebViewDocument,
   evaluateA2uiV1FormatString,
   isA2uiMcpBindingGrant,
@@ -72,6 +76,10 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof JsonValidationError, "function");
   assert.equal(typeof McpNativeSurface, "function");
   assert.equal(typeof createNativeRenderPlan, "function");
+  assert.equal(typeof createNativeButtonAdapter, "function");
+  assert.equal(typeof createNativeTextAdapter, "function");
+  assert.equal(typeof createNativeTextInputAdapter, "function");
+  assert.equal(typeof createNativeViewAdapter, "function");
   assert.equal(typeof createAllowlistActionPolicy, "function");
   assert.equal(typeof createA2uiV1BasicCatalogPolicy, "function");
   assert.equal(typeof createA2uiV1ActionEnvelope, "function");

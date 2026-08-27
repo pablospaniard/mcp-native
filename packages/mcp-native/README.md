@@ -129,6 +129,7 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - press-time, host-policy-gated A2UI v1 HTTP(S) `openUrl` actions;
 - trusted render plans for `View`, `Text`, `Button`, and `TextInput`;
 - mounting through host-provided components with action and text-binding event translation;
+- typed adapters from trusted native primitives into locally bundled design-system components;
 - memoized render-plan and safely observed asynchronous action-dispatch hooks;
 - policy-gated inline and remote HTML document descriptions;
 - MCP `2026-07-28` tool/resource field preservation through the official SDK adapter;

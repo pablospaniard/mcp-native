@@ -16,6 +16,10 @@ import {
   A2UI_V1_NATIVE_MAX_RENDER_NODES,
   A2uiV1NativeSurface,
   createA2uiV1NativeRenderPlan,
+  createNativeButtonAdapter,
+  createNativeTextAdapter,
+  createNativeTextInputAdapter,
+  createNativeViewAdapter,
   resolveA2uiV1NativeEvent,
   resolveA2uiV1NativeOpenUrl,
 } from "../packages/react-native/dist/index.js";
@@ -571,6 +575,112 @@ test("mounted v1 surfaces apply container layout and TextField variants", async 
   for (const input of inputs) {
     assert.equal("variant" in input.props, false);
   }
+  await act(async () => root.unmount());
+});
+
+test("host adapters map trusted primitives into a third-party component API", async () => {
+  const DesignStack = hostComponent("DesignStack");
+  const DesignLabel = hostComponent("DesignLabel");
+  const DesignButton = hostComponent("DesignButton");
+  const DesignInput = hostComponent("DesignInput");
+  const designSystemComponents = {
+    View: createNativeViewAdapter(DesignStack, ({ children, style, accessibilityLabel }) => ({
+      children,
+      direction: style?.flexDirection,
+      grow: style?.flexGrow,
+      justify: style?.justifyContent,
+      assistiveLabel: accessibilityLabel,
+    })),
+    Text: createNativeTextAdapter(DesignLabel, ({ children, accessibilityLabel }) => ({
+      content: children,
+      assistiveLabel: accessibilityLabel,
+    })),
+    Button: createNativeButtonAdapter(
+      DesignButton,
+      ({ title, onPress, disabled, accessibilityLabel, validationMessages }) => ({
+        label: title,
+        onActivate: onPress,
+        inactive: disabled,
+        assistiveLabel: accessibilityLabel,
+        errors: validationMessages,
+      }),
+    ),
+    TextInput: createNativeTextInputAdapter(
+      DesignInput,
+      ({ value, placeholder, onChangeText, keyboardType, invalid, accessibilityLabel }) => ({
+        currentValue: value,
+        hint: placeholder,
+        onValueChange: onChangeText,
+        inputMode: keyboardType,
+        hasError: invalid,
+        assistiveLabel: accessibilityLabel,
+      }),
+    ),
+  };
+  assert.equal(designSystemComponents.View.displayName, "McpNativeViewAdapter(HostComponent)");
+  assert.equal(
+    designSystemComponents.TextInput.displayName,
+    "McpNativeTextInputAdapter(HostComponent)",
+  );
+  const surface = createSurface(
+    [
+      {
+        id: "root",
+        component: "Row",
+        children: ["preview", "amount", "save"],
+        justify: "spaceBetween",
+      },
+      { id: "preview", component: "Text", text: { path: "/amount" } },
+      {
+        id: "amount",
+        component: "TextField",
+        label: "Amount",
+        value: { path: "/amount" },
+        variant: "number",
+        weight: 2,
+      },
+      {
+        id: "save",
+        component: "Button",
+        child: "save-label",
+        action: { event: { name: "save", context: { amount: { path: "/amount" } } } },
+      },
+      { id: "save-label", component: "Text", text: "Save" },
+    ],
+    { amount: "42" },
+  );
+  const actions = [];
+  const root = createRoot();
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy: nativePolicy({ allowedEventNames: ["save"] }),
+        components: designSystemComponents,
+        onAction: (action) => actions.push(action),
+        now: () => "2026-08-27T13:00:00.000Z",
+      }),
+    );
+  });
+
+  const stacks = root.container.queryAll((element) => element.type === "DesignStack");
+  assert.equal(stacks[0].props.direction, "row");
+  assert.equal(stacks[0].props.justify, "space-between");
+  assert.equal(stacks[1].props.grow, 2);
+  const label = root.container.queryAll((element) => element.type === "DesignLabel")[0];
+  assert.equal(label.props.content, "42");
+  let input = root.container.queryAll((element) => element.type === "DesignInput")[0];
+  assert.equal(input.props.currentValue, "42");
+  assert.equal(input.props.inputMode, "numeric");
+  await act(async () => input.props.onValueChange("84"));
+  input = root.container.queryAll((element) => element.type === "DesignInput")[0];
+  assert.equal(input.props.currentValue, "84");
+  const button = root.container.queryAll((element) => element.type === "DesignButton")[0];
+  assert.equal(button.props.label, "Save");
+  assert.equal("title" in button.props, false);
+  button.props.onActivate();
+  assert.equal(actions[0].action.context.amount, "84");
   await act(async () => root.unmount());
 });
 
