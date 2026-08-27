@@ -34,6 +34,8 @@ their minor release line.
   modules, register component names, choose prop mappers, or spread unchecked props.
 - Select richer host components only through pinned A2UI variant enums; server-provided style
   objects and arbitrary native props still never cross the renderer boundary.
+- Scope component-variant selection to the A2UI v1 renderer so sharing a catalog cannot change
+  legacy `0.1` component selection.
 
 ## 0.3.0 - 2026-08-26
 

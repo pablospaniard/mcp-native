@@ -297,6 +297,7 @@ export function A2uiV1NativeSurface({
   );
 
   return renderElement(plan, components, {
+    useComponentVariants: true,
     onBindingChange: handleBindingChange,
     onV1Event: handleEvent,
     ...(openUrlPolicy === undefined || onOpenUrl === undefined
@@ -377,6 +378,8 @@ function renderNode(node: A2uiNode): NativeElement {
 }
 
 interface NativeRenderHandlers {
+  /** A2UI v1-only selection of pinned semantic/style variants. */
+  readonly useComponentVariants?: boolean;
   readonly onAction?: NativeActionHandler;
   readonly onBindingChange?: NativeBindingChangeHandler;
   readonly onV1Event?: (event: A2uiV1NativeEventDescriptor) => void;
@@ -393,7 +396,7 @@ function renderElement(
     case "View": {
       const style = selectViewStyle(element);
       return createElement(
-        selectViewComponent(element, components),
+        selectViewComponent(element, components, handlers.useComponentVariants === true),
         {
           key: element.key,
           ...accessibilityProps,
@@ -403,25 +406,31 @@ function renderElement(
       );
     }
     case "Text":
-      return createElement(selectTextComponent(element, components), {
-        key: element.key,
-        children: expectStringProp(element, "children"),
-        ...accessibilityProps,
-      });
+      return createElement(
+        selectTextComponent(element, components, handlers.useComponentVariants === true),
+        {
+          key: element.key,
+          children: expectStringProp(element, "children"),
+          ...accessibilityProps,
+        },
+      );
     case "Button": {
       const title = expectStringProp(element, "title");
       const disabled = optionalBooleanProp(element, "disabled");
       const validationMessages = optionalStringArrayProp(element, "validationMessages");
       const onPress = createButtonPressHandler(element, handlers);
-      return createElement(selectButtonComponent(element, components), {
-        key: element.key,
-        title,
-        accessibilityLabel: accessibilityProps.accessibilityLabel ?? title,
-        ...accessibilityProps,
-        ...(disabled === undefined ? {} : { disabled }),
-        ...(validationMessages === undefined ? {} : { validationMessages }),
-        onPress,
-      });
+      return createElement(
+        selectButtonComponent(element, components, handlers.useComponentVariants === true),
+        {
+          key: element.key,
+          title,
+          accessibilityLabel: accessibilityProps.accessibilityLabel ?? title,
+          ...accessibilityProps,
+          ...(disabled === undefined ? {} : { disabled }),
+          ...(validationMessages === undefined ? {} : { validationMessages }),
+          onPress,
+        },
+      );
     }
     case "TextInput": {
       const label =
@@ -432,21 +441,24 @@ function renderElement(
       const invalid = optionalBooleanProp(element, "invalid");
       const validationMessages = optionalStringArrayProp(element, "validationMessages");
       const behaviorProps = selectTextInputBehaviorProps(element);
-      return createElement(selectTextInputComponent(element, components), {
-        key: element.key,
-        accessibilityLabel: accessibilityProps.accessibilityLabel ?? label,
-        ...accessibilityProps,
-        ...behaviorProps,
-        placeholder,
-        ...(invalid === undefined ? {} : { invalid }),
-        ...(validationMessages === undefined ? {} : { validationMessages }),
-        ...(value === undefined ? {} : { value }),
-        ...(binding === undefined || handlers.onBindingChange === undefined
-          ? {}
-          : {
-              onChangeText: (nextValue: string) => handlers.onBindingChange?.(binding, nextValue),
-            }),
-      });
+      return createElement(
+        selectTextInputComponent(element, components, handlers.useComponentVariants === true),
+        {
+          key: element.key,
+          accessibilityLabel: accessibilityProps.accessibilityLabel ?? label,
+          ...accessibilityProps,
+          ...behaviorProps,
+          placeholder,
+          ...(invalid === undefined ? {} : { invalid }),
+          ...(validationMessages === undefined ? {} : { validationMessages }),
+          ...(value === undefined ? {} : { value }),
+          ...(binding === undefined || handlers.onBindingChange === undefined
+            ? {}
+            : {
+                onChangeText: (nextValue: string) => handlers.onBindingChange?.(binding, nextValue),
+              }),
+        },
+      );
     }
   }
 }
@@ -474,7 +486,11 @@ function renderChildElement(
 function selectViewComponent(
   element: NativeElement,
   components: NativeComponentCatalog,
+  useComponentVariants: boolean,
 ): ComponentType<NativeViewComponentProps> {
+  if (!useComponentVariants) {
+    return components.View;
+  }
   const layout = optionalStringProp(element, "layout");
   const variant = optionalStringProp(element, "variant");
   let selected: NativeViewVariant | undefined;
@@ -495,7 +511,11 @@ function selectViewComponent(
 function selectTextComponent(
   element: NativeElement,
   components: NativeComponentCatalog,
+  useComponentVariants: boolean,
 ): ComponentType<NativeTextComponentProps> {
+  if (!useComponentVariants) {
+    return components.Text;
+  }
   const variant = selectClosedVariant(
     element,
     "variant",
@@ -509,7 +529,11 @@ function selectTextComponent(
 function selectButtonComponent(
   element: NativeElement,
   components: NativeComponentCatalog,
+  useComponentVariants: boolean,
 ): ComponentType<NativeButtonComponentProps> {
+  if (!useComponentVariants) {
+    return components.Button;
+  }
   const variant = selectClosedVariant(
     element,
     "variant",
@@ -523,7 +547,11 @@ function selectButtonComponent(
 function selectTextInputComponent(
   element: NativeElement,
   components: NativeComponentCatalog,
+  useComponentVariants: boolean,
 ): ComponentType<NativeTextInputComponentProps> {
+  if (!useComponentVariants) {
+    return components.TextInput;
+  }
   const variant = selectClosedVariant(
     element,
     "variant",

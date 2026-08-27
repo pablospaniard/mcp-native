@@ -158,7 +158,8 @@ entries fall back to `View`, `Text`, `Button`, or `TextInput`; omitted A2UI hint
 defaults (`body`, `default`, and `shortText`). The renderer consumes structural and style hints while
 choosing a local component and never forwards `variant`, a server-provided style object, or an
 arbitrary native prop. Hosts can combine variant slots with the typed adapter helpers when a design
-system uses a different prop API.
+system uses a different prop API. Variant slots apply only to `A2uiV1NativeSurface`; the custom `0.1`
+`McpNativeSurface` always uses the four base primitives, even when the same host catalog is reused.
 
 Create adapter components and the catalog at module scope, as above, or memoize them with stable dependencies. Each factory call intentionally creates a new React component type; calling one during every host render would remount that catalog entry and discard its component-local state. Generated adapters include descriptive React DevTools display names.
 
