@@ -160,7 +160,7 @@ Reviews focus on, in order:
 5. maintainability and documentation;
 6. style.
 
-Codex Code Review can be requested in a pull request comment with `@codex review` when it is enabled for the repository. Automated review supplements human maintainer judgment; it does not transfer ownership of a change or its merge decision.
+The `codex-review` required check runs once when a pull request is opened (or when a draft becomes ready for review). It does not re-run on later pushes. Automated review supplements human maintainer judgment; it does not transfer ownership of a change or its merge decision.
 
 ## Releases
 
