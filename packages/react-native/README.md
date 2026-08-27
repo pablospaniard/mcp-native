@@ -101,7 +101,7 @@ const surface = store.get("profile");
 const plan = surface && createA2uiV1NativeRenderPlan(surface, policy);
 ```
 
-The adapter maps `Row`, `Column`, static or dynamic `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. Dynamic lists expand one validated template component per bound array item and remain inside the 1,024-node plan limit. The adapter resolves absolute and item-relative JSON Pointer values, translates relative `TextField` bindings into absolute renderer-local pointers, evaluates bounded literal `formatString`, host-localized `formatNumber`, `formatCurrency`, `formatDate`, and `pluralize`, pure `and`, `or`, and `not`, `required`, bounded `regex`, `length`, `numeric`, and `email`, and `@index` with optional offsets, maps supported container direction and alignment to owned React Native flex styles, applies component weight through a host-owned `View` wrapper with `flexGrow`, maps `TextField` variants to explicit native input behavior (including `secureTextEntry` for `obscured`), and preserves event context and explicit accessibility fields. Supported `TextField` checks set explicit `invalid` and `validationMessages` props on the host component and append declared failures to its accessibility hint; supported `Button` checks set `disabled`, expose declared messages, and cannot resolve or dispatch the event or local URL action until current renderer-local state passes. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
+The adapter maps `Row`, `Column`, static or dynamic `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. Dynamic lists expand one validated template component per bound array item and remain inside the 1,024-node plan limit. The adapter resolves absolute and item-relative JSON Pointer values, translates relative `TextField` bindings into absolute renderer-local pointers, evaluates bounded literal `formatString`, host-localized `formatNumber`, `formatCurrency`, `formatDate`, and `pluralize`, pure `and`, `or`, and `not`, `required`, bounded `regex`, `length`, `numeric`, and `email`, and `@index` with optional offsets, maps supported container direction and alignment to owned React Native flex styles, applies component weight through a host-owned `View` wrapper with `flexGrow`, maps `TextField` variants to explicit native input behavior (including `secureTextEntry` for `obscured`), and preserves event context and explicit accessibility fields. At the mounted boundary, text and buttons receive closed native roles, button accessibility state mirrors the derived disabled state, hidden text and controls are not accessibility elements, and text plus text inputs explicitly allow font scaling. Supported `TextField` checks set explicit `invalid` and `validationMessages` props on the host component and append declared failures to its accessibility hint; supported `Button` checks set `disabled`, expose declared messages, and cannot resolve or dispatch the event or local URL action until current renderer-local state passes. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
 
 ### Host component adapters
 
@@ -118,11 +118,23 @@ const components: NativeComponentCatalog = {
   TextInput,
   Button: createNativeButtonAdapter(
     DesignButton,
-    ({ title, onPress, disabled, accessibilityLabel, validationMessages }) => ({
+    ({
+      title,
+      onPress,
+      disabled,
+      accessibilityLabel,
+      accessibilityRole,
+      accessibilityState,
+      accessible,
+      validationMessages,
+    }) => ({
       label: title,
       onActivate: onPress,
       inactive: disabled === true,
       assistiveLabel: accessibilityLabel,
+      assistiveElement: accessible,
+      assistiveRole: accessibilityRole,
+      assistiveState: accessibilityState,
       ...(validationMessages === undefined ? {} : { errors: validationMessages }),
     }),
   ),
@@ -220,6 +232,8 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 | `NativeComponentCatalog`                | Base primitives plus optional closed host-owned component variants.                                      |
 | `NativeComponentVariants`               | Optional overrides for supported structure and pinned style hints, with primitive fallbacks.             |
 | `Native*Variant` types                  | Closed view, text, button, and text-input variant keys.                                                  |
+| `NativeAccessibilityRole`               | Renderer-derived closed role union for supported text and button primitives.                             |
+| `NativeAccessibilityState`              | Renderer-derived state currently exposing only the supported button disabled flag.                       |
 | `createNative*Adapter` helpers          | Typed mappings from trusted primitive props into locally bundled component-library APIs.                 |
 | `NativeComponentPropMapper`             | Generic mapper type used by the four host component adapter helpers.                                     |
 | `NativeActionHandler`                   | Synchronous handler for a validated declared action.                                                     |
@@ -229,12 +243,12 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 
 ## Current mappings
 
-| Surface node | Native component | Host props and event behavior                                                              |
-| ------------ | ---------------- | ------------------------------------------------------------------------------------------ |
-| `container`  | `View`           | Nested trusted children                                                                    |
-| `text`       | `Text`           | Validated text as `children`                                                               |
-| `button`     | `Button`         | `title`, matching `accessibilityLabel`, and an `onPress` callback for its validated action |
-| `text-input` | `TextInput`      | Label as placeholder/accessibility label, optional value, and binding-aware `onChangeText` |
+| Surface node | Native component | Host props and event behavior                                                             |
+| ------------ | ---------------- | ----------------------------------------------------------------------------------------- |
+| `container`  | `View`           | Nested trusted children                                                                   |
+| `text`       | `Text`           | Validated `children`, closed `text` role, and enabled font scaling                        |
+| `button`     | `Button`         | `title`, label, closed `button` role/state, and `onPress` for its validated action        |
+| `text-input` | `TextInput`      | Label/placeholder, enabled font scaling, optional value, and binding-aware `onChangeText` |
 
 ## Trust boundary
 
@@ -246,6 +260,7 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 - Unsupported v1 components and arbitrary executable functions fail closed.
 - Declared actions and their complete JSON arguments are validated again immediately before emission.
 - Rendered component props are selected explicitly; unchecked server props are never spread into host components.
+- Accessibility roles, native state, focus eligibility, and font scaling are renderer-derived; server data cannot replace them.
 - The host must explicitly map components, enforce permissions, and choose the renderer-to-agent transport; emitting an envelope does not grant network or device access.
 - Asynchronous action failures cannot become unhandled rejections because `useMcpNativeActionDispatcher` requires an error callback.
 - Styling variants preserve pinned allowlists and never spread unchecked server props; future component expansion must retain the same boundary.

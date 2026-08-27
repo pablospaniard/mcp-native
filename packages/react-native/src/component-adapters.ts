@@ -1,6 +1,13 @@
 import { createElement, type ComponentType, type ReactNode } from "react";
 
+export type NativeAccessibilityRole = "button" | "text";
+
+export interface NativeAccessibilityState {
+  readonly disabled: boolean;
+}
+
 export interface NativeAccessibilityProps {
+  readonly accessible?: boolean;
   readonly accessibilityElementsHidden?: boolean;
   readonly accessibilityHint?: string;
   readonly accessibilityLabel?: string;
@@ -27,11 +34,17 @@ export interface NativeViewComponentProps extends NativeAccessibilityProps {
 }
 
 export interface NativeTextComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly accessibilityRole: "text";
+  readonly allowFontScaling: true;
   readonly children: string;
 }
 
 export interface NativeButtonComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
   readonly accessibilityLabel: string;
+  readonly accessibilityRole: "button";
+  readonly accessibilityState: NativeAccessibilityState;
   readonly disabled?: boolean;
   readonly onPress: () => void;
   readonly title: string;
@@ -39,7 +52,9 @@ export interface NativeButtonComponentProps extends NativeAccessibilityProps {
 }
 
 export interface NativeTextInputComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
   readonly accessibilityLabel: string;
+  readonly allowFontScaling: true;
   readonly invalid?: boolean;
   readonly keyboardType?: "numeric";
   readonly multiline?: boolean;

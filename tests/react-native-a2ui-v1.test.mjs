@@ -89,7 +89,11 @@ function normalizedIntlDateNumber(locale, date, options, type, width) {
 test("mounted v1 surfaces keep input local and resolve actions at dispatch time", async () => {
   const surface = createSurface(
     [
-      { id: "root", component: "Column", children: ["preview", "field", "save"] },
+      {
+        id: "root",
+        component: "Column",
+        children: ["preview", "hidden-note", "field", "hidden-field", "save"],
+      },
       {
         id: "preview",
         component: "Text",
@@ -97,11 +101,23 @@ test("mounted v1 surfaces keep input local and resolve actions at dispatch time"
         accessibility: { live: "polite" },
       },
       {
+        id: "hidden-note",
+        component: "Text",
+        text: "Private note",
+        accessibility: { hidden: true },
+      },
+      {
         id: "field",
         component: "TextField",
         label: "Name",
         value: { path: "/profile/name" },
         accessibility: { description: "Public display name", hidden: false },
+      },
+      {
+        id: "hidden-field",
+        component: "TextField",
+        label: "Internal identifier",
+        accessibility: { hidden: true },
       },
       {
         id: "save",
@@ -146,7 +162,19 @@ test("mounted v1 surfaces keep input local and resolve actions at dispatch time"
   assert.equal(inputs[0]?.props.accessibilityHint, "Public display name");
   assert.equal(inputs[0]?.props.accessibilityElementsHidden, false);
   assert.equal(inputs[0]?.props.importantForAccessibility, "auto");
+  assert.equal(inputs[0]?.props.accessible, true);
+  assert.equal(inputs[0]?.props.allowFontScaling, true);
+  assert.equal(inputs[1]?.props.accessibilityElementsHidden, true);
+  assert.equal(inputs[1]?.props.importantForAccessibility, "no-hide-descendants");
+  assert.equal(inputs[1]?.props.accessible, false);
+  assert.equal(inputs[1]?.props.allowFontScaling, true);
   assert.equal(texts[0]?.props.accessibilityLiveRegion, "polite");
+  assert.equal(texts[0]?.props.accessible, true);
+  assert.equal(texts[0]?.props.accessibilityRole, "text");
+  assert.equal(texts[0]?.props.allowFontScaling, true);
+  assert.equal(texts[1]?.props.accessibilityElementsHidden, true);
+  assert.equal(texts[1]?.props.importantForAccessibility, "no-hide-descendants");
+  assert.equal(texts[1]?.props.accessible, false);
 
   await act(async () => inputs[0].props.onChangeText("Grace"));
   assert.equal(actions.length, 0);
@@ -158,6 +186,9 @@ test("mounted v1 surfaces keep input local and resolve actions at dispatch time"
   assert.equal(inputs[0]?.props.value, "Grace");
 
   const buttons = root.container.queryAll((element) => element.type === "Button");
+  assert.equal(buttons[0].props.accessible, true);
+  assert.equal(buttons[0].props.accessibilityRole, "button");
+  assert.deepEqual(buttons[0].props.accessibilityState, { disabled: false });
   buttons[0].props.onPress();
   assert.deepEqual(actions, [
     {
@@ -591,29 +622,58 @@ test("host adapters map trusted primitives into a third-party component API", as
       justify: style?.justifyContent,
       assistiveLabel: accessibilityLabel,
     })),
-    Text: createNativeTextAdapter(DesignLabel, ({ children, accessibilityLabel }) => ({
-      content: children,
-      assistiveLabel: accessibilityLabel,
-    })),
+    Text: createNativeTextAdapter(
+      DesignLabel,
+      ({ children, accessibilityLabel, accessible, accessibilityRole, allowFontScaling }) => ({
+        content: children,
+        assistiveLabel: accessibilityLabel,
+        assistiveElement: accessible,
+        assistiveRole: accessibilityRole,
+        scalesText: allowFontScaling,
+      }),
+    ),
     Button: createNativeButtonAdapter(
       DesignButton,
-      ({ title, onPress, disabled, accessibilityLabel, validationMessages }) => ({
+      ({
+        title,
+        onPress,
+        disabled,
+        accessibilityLabel,
+        accessibilityRole,
+        accessibilityState,
+        accessible,
+        validationMessages,
+      }) => ({
         label: title,
         onActivate: onPress,
         inactive: disabled,
         assistiveLabel: accessibilityLabel,
+        assistiveElement: accessible,
+        assistiveRole: accessibilityRole,
+        assistiveState: accessibilityState,
         errors: validationMessages,
       }),
     ),
     TextInput: createNativeTextInputAdapter(
       DesignInput,
-      ({ value, placeholder, onChangeText, keyboardType, invalid, accessibilityLabel }) => ({
+      ({
+        value,
+        placeholder,
+        onChangeText,
+        keyboardType,
+        invalid,
+        accessibilityLabel,
+        accessible,
+        allowFontScaling,
+      }) => ({
         currentValue: value,
         hint: placeholder,
         onValueChange: onChangeText,
         inputMode: keyboardType,
         hasError: invalid,
         assistiveLabel: accessibilityLabel,
+        assistiveElement: accessible,
+        scalesText: allowFontScaling,
       }),
     ),
   };
@@ -670,14 +730,22 @@ test("host adapters map trusted primitives into a third-party component API", as
   assert.equal(stacks[1].props.grow, 2);
   const label = root.container.queryAll((element) => element.type === "DesignLabel")[0];
   assert.equal(label.props.content, "42");
+  assert.equal(label.props.assistiveElement, true);
+  assert.equal(label.props.assistiveRole, "text");
+  assert.equal(label.props.scalesText, true);
   let input = root.container.queryAll((element) => element.type === "DesignInput")[0];
   assert.equal(input.props.currentValue, "42");
   assert.equal(input.props.inputMode, "numeric");
+  assert.equal(input.props.assistiveElement, true);
+  assert.equal(input.props.scalesText, true);
   await act(async () => input.props.onValueChange("84"));
   input = root.container.queryAll((element) => element.type === "DesignInput")[0];
   assert.equal(input.props.currentValue, "84");
   const button = root.container.queryAll((element) => element.type === "DesignButton")[0];
   assert.equal(button.props.label, "Save");
+  assert.equal(button.props.assistiveElement, true);
+  assert.equal(button.props.assistiveRole, "button");
+  assert.deepEqual(button.props.assistiveState, { disabled: false });
   assert.equal("title" in button.props, false);
   button.props.onActivate();
   assert.equal(actions[0].action.context.amount, "84");
@@ -2220,6 +2288,7 @@ test("renderer checks expose field errors and prevent invalid button dispatch", 
   assert.equal(input.props.invalid, true);
   assert.deepEqual(input.props.validationMessages, ["Email is required.", "Enter a valid email."]);
   assert.equal(button.props.disabled, true);
+  assert.deepEqual(button.props.accessibilityState, { disabled: true });
   button.props.onPress();
   assert.equal(actions.length, 0);
 
@@ -2230,6 +2299,7 @@ test("renderer checks expose field errors and prevent invalid button dispatch", 
   assert.equal(input.props.validationMessages, undefined);
   assert.equal(input.props.accessibilityHint, "Account email.");
   assert.equal(button.props.disabled, undefined);
+  assert.deepEqual(button.props.accessibilityState, { disabled: false });
   button.props.onPress();
   assert.equal(actions.length, 1);
   assert.deepEqual(actions[0].action.context, { email: "ada@example.com" });

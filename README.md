@@ -384,6 +384,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Implement bounded policy-gated HTTP(S) `openUrl` with explicit user activation
 - [x] Add typed adapters for host-owned React Native component libraries
 - [x] Add closed host-owned component variants for supported A2UI structure and style hints
+- [x] Derive closed native text/button semantics and preserve text scaling at the host boundary
 - [ ] Implement remaining renderer-to-agent lifecycle messages
 - [ ] Complete real-platform accessibility behavior and testing
 - [ ] Establish native performance budgets, parser/renderer fuzzing, and a supported iOS/Android CI matrix

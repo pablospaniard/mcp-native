@@ -49,6 +49,8 @@ export {
 export type { NativeComponentPropMapper } from "./component-adapters.js";
 export type {
   NativeAccessibilityProps,
+  NativeAccessibilityRole,
+  NativeAccessibilityState,
   NativeButtonComponentProps,
   NativeButtonVariant,
   NativeComponentCatalog,
@@ -412,6 +414,9 @@ function renderElement(
           key: element.key,
           children: expectStringProp(element, "children"),
           ...accessibilityProps,
+          accessible: accessibilityProps.accessibilityElementsHidden !== true,
+          accessibilityRole: "text",
+          allowFontScaling: true,
         },
       );
     case "Button": {
@@ -426,6 +431,9 @@ function renderElement(
           title,
           accessibilityLabel: accessibilityProps.accessibilityLabel ?? title,
           ...accessibilityProps,
+          accessible: accessibilityProps.accessibilityElementsHidden !== true,
+          accessibilityRole: "button",
+          accessibilityState: { disabled: disabled === true },
           ...(disabled === undefined ? {} : { disabled }),
           ...(validationMessages === undefined ? {} : { validationMessages }),
           onPress,
@@ -447,6 +455,8 @@ function renderElement(
           key: element.key,
           accessibilityLabel: accessibilityProps.accessibilityLabel ?? label,
           ...accessibilityProps,
+          accessible: accessibilityProps.accessibilityElementsHidden !== true,
+          allowFontScaling: true,
           ...behaviorProps,
           placeholder,
           ...(invalid === undefined ? {} : { invalid }),
