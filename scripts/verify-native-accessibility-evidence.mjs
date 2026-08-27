@@ -211,7 +211,7 @@ function expectReleaseEvidenceFields(row, path) {
 
 function validateEvidenceReference(value, path, evidenceRoot) {
   const reference = expectNonEmptyString(value, path);
-  if (/^https:\/\//.test(reference)) {
+  if (reference.startsWith("https://")) {
     let url;
     try {
       url = new URL(reference);
