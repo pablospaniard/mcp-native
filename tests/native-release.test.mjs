@@ -170,6 +170,10 @@ test("CI pins both maintained React Native host lines and release evidence", () 
   ]);
   assert.deepEqual(platform.jobs.android.strategy.matrix["react-native"], ["0.87.1", "0.86.3"]);
   assert.deepEqual(platform.jobs.ios.strategy.matrix["react-native"], ["0.87.1", "0.86.3"]);
+  const androidSdkStep = platform.jobs.android.steps.find(
+    (step) => step.name === "Install Android 37 SDK",
+  );
+  assert.match(androidSdkStep.run, /ANDROID_HOME.*cmdline-tools\/latest\/bin\/sdkmanager/);
 
   const rootPackage = JSON.parse(readFileSync("package.json", "utf8"));
   assert.match(rootPackage.scripts["release:verify"], /native:evidence:verify/);

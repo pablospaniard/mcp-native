@@ -25,7 +25,10 @@ jobs:
           distribution: temurin
           java-version: "17"
       - name: Install Android 37 SDK
-        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"
+        run: >-
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          "platforms;android-37"
+          "build-tools;37.0.0"
       - run: npm ci
       - name: Generate temporary host
         run: >-
