@@ -15,14 +15,19 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentType,
   type ReactElement,
 } from "react";
 
 import type {
   NativeAccessibilityProps,
+  NativeButtonComponentProps,
   NativeComponentCatalog,
+  NativeTextComponentProps,
   NativeTextInputComponentProps,
+  NativeViewComponentProps,
   NativeViewStyle,
+  NativeViewVariant,
 } from "./component-adapters.js";
 
 import {
@@ -45,11 +50,16 @@ export type { NativeComponentPropMapper } from "./component-adapters.js";
 export type {
   NativeAccessibilityProps,
   NativeButtonComponentProps,
+  NativeButtonVariant,
   NativeComponentCatalog,
+  NativeComponentVariants,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
+  NativeTextInputVariant,
+  NativeTextVariant,
   NativeViewComponentProps,
   NativeViewStyle,
+  NativeViewVariant,
 } from "./component-adapters.js";
 
 export type NativeComponentName = "Button" | "Text" | "TextInput" | "View";
@@ -287,6 +297,7 @@ export function A2uiV1NativeSurface({
   );
 
   return renderElement(plan, components, {
+    useComponentVariants: true,
     onBindingChange: handleBindingChange,
     onV1Event: handleEvent,
     ...(openUrlPolicy === undefined || onOpenUrl === undefined
@@ -367,6 +378,8 @@ function renderNode(node: A2uiNode): NativeElement {
 }
 
 interface NativeRenderHandlers {
+  /** A2UI v1-only selection of pinned semantic/style variants. */
+  readonly useComponentVariants?: boolean;
   readonly onAction?: NativeActionHandler;
   readonly onBindingChange?: NativeBindingChangeHandler;
   readonly onV1Event?: (event: A2uiV1NativeEventDescriptor) => void;
@@ -383,7 +396,7 @@ function renderElement(
     case "View": {
       const style = selectViewStyle(element);
       return createElement(
-        components.View,
+        selectViewComponent(element, components, handlers.useComponentVariants === true),
         {
           key: element.key,
           ...accessibilityProps,
@@ -393,25 +406,31 @@ function renderElement(
       );
     }
     case "Text":
-      return createElement(components.Text, {
-        key: element.key,
-        children: expectStringProp(element, "children"),
-        ...accessibilityProps,
-      });
+      return createElement(
+        selectTextComponent(element, components, handlers.useComponentVariants === true),
+        {
+          key: element.key,
+          children: expectStringProp(element, "children"),
+          ...accessibilityProps,
+        },
+      );
     case "Button": {
       const title = expectStringProp(element, "title");
       const disabled = optionalBooleanProp(element, "disabled");
       const validationMessages = optionalStringArrayProp(element, "validationMessages");
       const onPress = createButtonPressHandler(element, handlers);
-      return createElement(components.Button, {
-        key: element.key,
-        title,
-        accessibilityLabel: accessibilityProps.accessibilityLabel ?? title,
-        ...accessibilityProps,
-        ...(disabled === undefined ? {} : { disabled }),
-        ...(validationMessages === undefined ? {} : { validationMessages }),
-        onPress,
-      });
+      return createElement(
+        selectButtonComponent(element, components, handlers.useComponentVariants === true),
+        {
+          key: element.key,
+          title,
+          accessibilityLabel: accessibilityProps.accessibilityLabel ?? title,
+          ...accessibilityProps,
+          ...(disabled === undefined ? {} : { disabled }),
+          ...(validationMessages === undefined ? {} : { validationMessages }),
+          onPress,
+        },
+      );
     }
     case "TextInput": {
       const label =
@@ -422,21 +441,24 @@ function renderElement(
       const invalid = optionalBooleanProp(element, "invalid");
       const validationMessages = optionalStringArrayProp(element, "validationMessages");
       const behaviorProps = selectTextInputBehaviorProps(element);
-      return createElement(components.TextInput, {
-        key: element.key,
-        accessibilityLabel: accessibilityProps.accessibilityLabel ?? label,
-        ...accessibilityProps,
-        ...behaviorProps,
-        placeholder,
-        ...(invalid === undefined ? {} : { invalid }),
-        ...(validationMessages === undefined ? {} : { validationMessages }),
-        ...(value === undefined ? {} : { value }),
-        ...(binding === undefined || handlers.onBindingChange === undefined
-          ? {}
-          : {
-              onChangeText: (nextValue: string) => handlers.onBindingChange?.(binding, nextValue),
-            }),
-      });
+      return createElement(
+        selectTextInputComponent(element, components, handlers.useComponentVariants === true),
+        {
+          key: element.key,
+          accessibilityLabel: accessibilityProps.accessibilityLabel ?? label,
+          ...accessibilityProps,
+          ...behaviorProps,
+          placeholder,
+          ...(invalid === undefined ? {} : { invalid }),
+          ...(validationMessages === undefined ? {} : { validationMessages }),
+          ...(value === undefined ? {} : { value }),
+          ...(binding === undefined || handlers.onBindingChange === undefined
+            ? {}
+            : {
+                onChangeText: (nextValue: string) => handlers.onBindingChange?.(binding, nextValue),
+              }),
+        },
+      );
     }
   }
 }
@@ -458,6 +480,104 @@ function renderChildElement(
     components.View,
     { key: element.key, style: { flexGrow: weight } satisfies NativeViewStyle },
     rendered,
+  );
+}
+
+function selectViewComponent(
+  element: NativeElement,
+  components: NativeComponentCatalog,
+  useComponentVariants: boolean,
+): ComponentType<NativeViewComponentProps> {
+  if (!useComponentVariants) {
+    return components.View;
+  }
+  const layout = optionalStringProp(element, "layout");
+  const variant = optionalStringProp(element, "variant");
+  let selected: NativeViewVariant | undefined;
+  if (variant === "card" || variant === "list") {
+    selected = variant;
+  } else if (variant !== undefined) {
+    throw new TypeError(
+      `Unsupported view variant ${JSON.stringify(variant)} at native element ${element.key}`,
+    );
+  } else if (layout === "column" || layout === "row") {
+    selected = layout;
+  }
+  return (
+    (selected === undefined ? undefined : components.variants?.View?.[selected]) ?? components.View
+  );
+}
+
+function selectTextComponent(
+  element: NativeElement,
+  components: NativeComponentCatalog,
+  useComponentVariants: boolean,
+): ComponentType<NativeTextComponentProps> {
+  if (!useComponentVariants) {
+    return components.Text;
+  }
+  const variant = selectClosedVariant(
+    element,
+    "variant",
+    ["body", "caption"] as const,
+    "body",
+    "text",
+  );
+  return components.variants?.Text?.[variant] ?? components.Text;
+}
+
+function selectButtonComponent(
+  element: NativeElement,
+  components: NativeComponentCatalog,
+  useComponentVariants: boolean,
+): ComponentType<NativeButtonComponentProps> {
+  if (!useComponentVariants) {
+    return components.Button;
+  }
+  const variant = selectClosedVariant(
+    element,
+    "variant",
+    ["borderless", "default", "primary"] as const,
+    "default",
+    "button",
+  );
+  return components.variants?.Button?.[variant] ?? components.Button;
+}
+
+function selectTextInputComponent(
+  element: NativeElement,
+  components: NativeComponentCatalog,
+  useComponentVariants: boolean,
+): ComponentType<NativeTextInputComponentProps> {
+  if (!useComponentVariants) {
+    return components.TextInput;
+  }
+  const variant = selectClosedVariant(
+    element,
+    "variant",
+    ["longText", "number", "obscured", "shortText"] as const,
+    "shortText",
+    "text input",
+  );
+  return components.variants?.TextInput?.[variant] ?? components.TextInput;
+}
+
+function selectClosedVariant<const Variant extends string>(
+  element: NativeElement,
+  property: string,
+  allowed: readonly Variant[],
+  fallback: Variant,
+  label: string,
+): Variant {
+  const value = optionalStringProp(element, property);
+  if (value === undefined) {
+    return fallback;
+  }
+  if ((allowed as readonly string[]).includes(value)) {
+    return value as Variant;
+  }
+  throw new TypeError(
+    `Unsupported ${label} variant ${JSON.stringify(value)} at native element ${element.key}`,
   );
 }
 

@@ -50,12 +50,35 @@ export interface NativeTextInputComponentProps extends NativeAccessibilityProps 
   readonly value?: string;
 }
 
+export type NativeViewVariant = "card" | "column" | "list" | "row";
+
+export type NativeTextVariant = "body" | "caption";
+
+export type NativeButtonVariant = "borderless" | "default" | "primary";
+
+export type NativeTextInputVariant = "longText" | "number" | "obscured" | "shortText";
+
+/**
+ * Optional locally bundled component overrides for the pinned A2UI style hints.
+ * The renderer selects only these closed keys and still supplies primitive props.
+ */
+export interface NativeComponentVariants {
+  readonly View?: Partial<Record<NativeViewVariant, ComponentType<NativeViewComponentProps>>>;
+  readonly Text?: Partial<Record<NativeTextVariant, ComponentType<NativeTextComponentProps>>>;
+  readonly Button?: Partial<Record<NativeButtonVariant, ComponentType<NativeButtonComponentProps>>>;
+  readonly TextInput?: Partial<
+    Record<NativeTextInputVariant, ComponentType<NativeTextInputComponentProps>>
+  >;
+}
+
 /** Locally bundled components chosen by the host application. */
 export interface NativeComponentCatalog {
   readonly View: ComponentType<NativeViewComponentProps>;
   readonly Text: ComponentType<NativeTextComponentProps>;
   readonly Button: ComponentType<NativeButtonComponentProps>;
   readonly TextInput: ComponentType<NativeTextInputComponentProps>;
+  /** Optional semantic/style variants; omitted entries fall back to the base primitive. */
+  readonly variants?: NativeComponentVariants;
 }
 
 /** Maps renderer-selected primitive props into one locally bundled host component. */

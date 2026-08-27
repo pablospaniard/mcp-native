@@ -127,7 +127,8 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - host-localized A2UI v1 plural selection and pure boolean functions;
 - bounded A2UI v1 validation functions and renderer-side field and button checks;
 - press-time, host-policy-gated A2UI v1 HTTP(S) `openUrl` actions;
-- trusted render plans for `View`, `Text`, `Button`, and `TextInput`;
+- trusted render plans for `View`, `Text`, `Button`, and `TextInput`, with closed host-owned
+  variants for supported A2UI structure and style hints;
 - mounting through host-provided components with action and text-binding event translation;
 - typed adapters from trusted native primitives into locally bundled design-system components;
 - memoized render-plan and safely observed asynchronous action-dispatch hooks;

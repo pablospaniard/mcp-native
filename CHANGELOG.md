@@ -17,6 +17,8 @@ their minor release line.
   descriptors, host-owned platform execution, and non-dispatchable temporary invalid local edits.
 - Typed React Native host adapters for mapping trusted `View`, `Text`, `Button`, and `TextInput`
   props into locally bundled third-party component APIs.
+- Closed React Native component variants for host-owned `Row`, `Column`, `List`, and `Card`
+  presentation plus pinned text, button, and text-field style hints, with primitive fallbacks.
 
 ### Security
 
@@ -30,6 +32,10 @@ their minor release line.
   Unicode format characters, oversized URLs, and cumulative dynamic-list amplification.
 - Keep host component adapters behind the existing closed primitive catalog: servers cannot select
   modules, register component names, choose prop mappers, or spread unchecked props.
+- Select richer host components only through pinned A2UI variant enums; server-provided style
+  objects and arbitrary native props still never cross the renderer boundary.
+- Scope component-variant selection to the A2UI v1 renderer so sharing a catalog cannot change
+  legacy `0.1` component selection.
 
 ## 0.3.0 - 2026-08-26
 

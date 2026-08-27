@@ -684,6 +684,174 @@ test("host adapters map trusted primitives into a third-party component API", as
   await act(async () => root.unmount());
 });
 
+test("closed host variants select richer local components without forwarding style hints", async () => {
+  const BaseView = hostComponent("BaseView");
+  const BaseText = hostComponent("BaseText");
+  const BaseButton = hostComponent("BaseButton");
+  const BaseInput = hostComponent("BaseInput");
+  const components = {
+    View: BaseView,
+    Text: BaseText,
+    Button: BaseButton,
+    TextInput: BaseInput,
+    variants: {
+      View: {
+        card: hostComponent("CardView"),
+        column: hostComponent("ColumnView"),
+        list: hostComponent("ListView"),
+        row: hostComponent("RowView"),
+      },
+      Text: {
+        body: hostComponent("BodyText"),
+        caption: hostComponent("CaptionText"),
+      },
+      Button: {
+        default: hostComponent("DefaultButton"),
+        primary: hostComponent("PrimaryButton"),
+        borderless: hostComponent("BorderlessButton"),
+      },
+      TextInput: {
+        shortText: hostComponent("ShortInput"),
+        longText: hostComponent("LongInput"),
+        number: hostComponent("NumberInput"),
+        obscured: hostComponent("ObscuredInput"),
+      },
+    },
+  };
+  const surface = createSurface([
+    { id: "root", component: "Card", child: "column" },
+    {
+      id: "column",
+      component: "Column",
+      children: [
+        "row",
+        "list",
+        "body",
+        "caption",
+        "default-button",
+        "primary-button",
+        "borderless-button",
+        "short-input",
+        "long-input",
+        "number-input",
+        "obscured-input",
+      ],
+    },
+    { id: "row", component: "Row", children: [] },
+    { id: "list", component: "List", children: [] },
+    { id: "body", component: "Text", text: "Body" },
+    { id: "caption", component: "Text", text: "Caption", variant: "caption" },
+    {
+      id: "default-button",
+      component: "Button",
+      child: "default-label",
+      action: { event: { name: "activate" } },
+    },
+    { id: "default-label", component: "Text", text: "Default" },
+    {
+      id: "primary-button",
+      component: "Button",
+      child: "primary-label",
+      variant: "primary",
+      action: { event: { name: "activate" } },
+    },
+    { id: "primary-label", component: "Text", text: "Primary" },
+    {
+      id: "borderless-button",
+      component: "Button",
+      child: "borderless-label",
+      variant: "borderless",
+      action: { event: { name: "activate" } },
+    },
+    { id: "borderless-label", component: "Text", text: "Borderless" },
+    { id: "short-input", component: "TextField", label: "Short" },
+    { id: "long-input", component: "TextField", label: "Long", variant: "longText" },
+    { id: "number-input", component: "TextField", label: "Number", variant: "number" },
+    { id: "obscured-input", component: "TextField", label: "Secret", variant: "obscured" },
+  ]);
+  const root = createRoot();
+
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface,
+        policy: nativePolicy({ allowedEventNames: ["activate"] }),
+        components,
+        onAction() {},
+      }),
+    );
+  });
+
+  for (const type of [
+    "CardView",
+    "ColumnView",
+    "RowView",
+    "ListView",
+    "BodyText",
+    "CaptionText",
+    "DefaultButton",
+    "PrimaryButton",
+    "BorderlessButton",
+    "ShortInput",
+    "LongInput",
+    "NumberInput",
+    "ObscuredInput",
+  ]) {
+    assert.equal(root.container.queryAll((element) => element.type === type).length, 1, type);
+  }
+  for (const type of ["BaseView", "BaseText", "BaseButton", "BaseInput"]) {
+    assert.equal(root.container.queryAll((element) => element.type === type).length, 0, type);
+  }
+  const card = root.container.queryAll((element) => element.type === "CardView")[0];
+  assert.deepEqual(card.props.style, { flexDirection: "column" });
+  assert.equal("variant" in card.props, false);
+  const primary = root.container.queryAll((element) => element.type === "PrimaryButton")[0];
+  assert.equal(primary.props.title, "Primary");
+  assert.equal("variant" in primary.props, false);
+  const caption = root.container.queryAll((element) => element.type === "CaptionText")[0];
+  assert.equal(caption.props.children, "Caption");
+  assert.equal("variant" in caption.props, false);
+  const longInput = root.container.queryAll((element) => element.type === "LongInput")[0];
+  const numberInput = root.container.queryAll((element) => element.type === "NumberInput")[0];
+  const obscuredInput = root.container.queryAll((element) => element.type === "ObscuredInput")[0];
+  assert.equal(longInput.props.multiline, true);
+  assert.equal(numberInput.props.keyboardType, "numeric");
+  assert.equal(obscuredInput.props.secureTextEntry, true);
+  assert.equal("variant" in obscuredInput.props, false);
+  await act(async () => root.unmount());
+});
+
+test("server-provided native style hints remain closed to pinned catalog variants", async (t) => {
+  const cases = [
+    { component: "Text", text: "Hello", variant: "headline" },
+    {
+      component: "Button",
+      child: "label",
+      action: { event: { name: "activate" } },
+      variant: "danger",
+    },
+    { component: "TextField", label: "Name", variant: "search" },
+  ];
+
+  await Promise.all(
+    cases.map((component) =>
+      t.test(`${component.component} rejects ${component.variant}`, () => {
+        assert.throws(
+          () =>
+            createSurface([
+              { id: "root", ...component },
+              ...(component.component === "Button"
+                ? [{ id: "label", component: "Text", text: "Activate" }]
+                : []),
+            ]),
+          (error) =>
+            error instanceof A2uiParseError && /schema validation failed/.test(error.message),
+        );
+      }),
+    ),
+  );
+});
+
 test("mounted v1 interactions reject malformed local values and timestamps", async () => {
   const surface = createSurface(
     [

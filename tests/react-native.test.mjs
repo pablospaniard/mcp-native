@@ -106,6 +106,66 @@ test("McpNativeSurface mounts every node through the host-owned catalog", async 
   await act(async () => root.unmount());
 });
 
+test("legacy surfaces ignore A2UI v1 component variants", async () => {
+  const variantComponents = {
+    ...components,
+    variants: {
+      View: {
+        card: hostComponent("CardView"),
+        column: hostComponent("ColumnView"),
+        list: hostComponent("ListView"),
+        row: hostComponent("RowView"),
+      },
+      Text: { body: hostComponent("BodyText"), caption: hostComponent("CaptionText") },
+      Button: {
+        borderless: hostComponent("BorderlessButton"),
+        default: hostComponent("DefaultButton"),
+        primary: hostComponent("PrimaryButton"),
+      },
+      TextInput: {
+        longText: hostComponent("LongInput"),
+        number: hostComponent("NumberInput"),
+        obscured: hostComponent("ObscuredInput"),
+        shortText: hostComponent("ShortInput"),
+      },
+    },
+  };
+  const root = createRoot({ textComponentTypes: ["Text"] });
+
+  await act(async () => {
+    root.render(
+      createElement(McpNativeSurface, {
+        surface,
+        components: variantComponents,
+        onAction() {},
+      }),
+    );
+  });
+
+  assert.equal(root.container.queryAll((element) => element.type === "View").length, 1);
+  assert.equal(root.container.queryAll((element) => element.type === "Text").length, 1);
+  assert.equal(root.container.queryAll((element) => element.type === "Button").length, 1);
+  assert.equal(root.container.queryAll((element) => element.type === "TextInput").length, 2);
+  for (const type of [
+    "CardView",
+    "ColumnView",
+    "ListView",
+    "RowView",
+    "BodyText",
+    "CaptionText",
+    "BorderlessButton",
+    "DefaultButton",
+    "PrimaryButton",
+    "LongInput",
+    "NumberInput",
+    "ObscuredInput",
+    "ShortInput",
+  ]) {
+    assert.equal(root.container.queryAll((element) => element.type === type).length, 0, type);
+  }
+  await act(async () => root.unmount());
+});
+
 test("McpNativeSurface does not create binding handlers without a host callback", async () => {
   const root = createRoot({ textComponentTypes: ["Text"] });
   await act(async () => {

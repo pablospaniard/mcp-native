@@ -131,6 +131,36 @@ const components: NativeComponentCatalog = {
 
 `createNativeViewAdapter`, `createNativeTextAdapter`, and `createNativeTextInputAdapter` provide the same typed boundary for the other primitives. This supports wrappers around libraries such as Expo UI or Gluestack without coupling MCP Native to them. These helpers do not create new wire-level components: the supported semantic names remain the closed `View`, `Text`, `Button`, and `TextInput` render-plan catalog, and the A2UI adapter continues to reject components outside its explicit host allowlist. Mapper functions and target components are trusted application code; server input never selects an import, mapper, or unchecked target prop.
 
+For richer local presentation, provide optional closed variant slots alongside the base primitives:
+
+```tsx
+const components: NativeComponentCatalog = {
+  View,
+  Text,
+  Button,
+  TextInput,
+  variants: {
+    View: { row: HorizontalStack, column: VerticalStack, card: SurfaceCard, list: ItemList },
+    Text: { body: BodyText, caption: CaptionText },
+    Button: { default: DefaultButton, primary: PrimaryButton, borderless: LinkButton },
+    TextInput: {
+      shortText: ShortInput,
+      longText: MultilineInput,
+      number: NumericInput,
+      obscured: PasswordInput,
+    },
+  },
+};
+```
+
+Each override receives the same explicitly selected primitive props as its base component. Missing
+entries fall back to `View`, `Text`, `Button`, or `TextInput`; omitted A2UI hints select their pinned
+defaults (`body`, `default`, and `shortText`). The renderer consumes structural and style hints while
+choosing a local component and never forwards `variant`, a server-provided style object, or an
+arbitrary native prop. Hosts can combine variant slots with the typed adapter helpers when a design
+system uses a different prop API. Variant slots apply only to `A2uiV1NativeSurface`; the custom `0.1`
+`McpNativeSurface` always uses the four base primitives, even when the same host catalog is reused.
+
 Create adapter components and the catalog at module scope, as above, or memoize them with stable dependencies. Each factory call intentionally creates a new React component type; calling one during every host render would remount that catalog entry and discard its component-local state. Generated adapters include descriptive React DevTools display names.
 
 Use `A2uiV1NativeSurface` to mount that subset with renderer-local string state and official action envelopes:
@@ -187,7 +217,9 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 | `A2uiV1NativeActionHandler`             | Host callback receiving the validated action envelope and, when opted in, the local data model.          |
 | `A2uiV1NativeOpenUrlPolicy`             | Synchronous host predicate authorizing one canonical URL during its Button press.                        |
 | `A2uiV1NativeOpenUrlHandler`            | Host-owned callback that opens an authorized URL through a platform API.                                 |
-| `NativeComponentCatalog`                | Contract for locally bundled `View`, `Text`, `Button`, and `TextInput` implementations.                  |
+| `NativeComponentCatalog`                | Base primitives plus optional closed host-owned component variants.                                      |
+| `NativeComponentVariants`               | Optional overrides for supported structure and pinned style hints, with primitive fallbacks.             |
+| `Native*Variant` types                  | Closed view, text, button, and text-input variant keys.                                                  |
 | `createNative*Adapter` helpers          | Typed mappings from trusted primitive props into locally bundled component-library APIs.                 |
 | `NativeComponentPropMapper`             | Generic mapper type used by the four host component adapter helpers.                                     |
 | `NativeActionHandler`                   | Synchronous handler for a validated declared action.                                                     |
@@ -216,7 +248,7 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 - Rendered component props are selected explicitly; unchecked server props are never spread into host components.
 - The host must explicitly map components, enforce permissions, and choose the renderer-to-agent transport; emitting an envelope does not grant network or device access.
 - Asynchronous action failures cannot become unhandled rejections because `useMcpNativeActionDispatcher` requires an error callback.
-- Future styling and component expansion must preserve allowlists rather than spreading unchecked server props.
+- Styling variants preserve pinned allowlists and never spread unchecked server props; future component expansion must retain the same boundary.
 
 See [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui) for parsing and [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core) for action dispatch. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
 
