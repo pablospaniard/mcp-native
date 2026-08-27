@@ -7,6 +7,11 @@ import { parse } from "yaml";
 const workflow = parse(readFileSync(".github/workflows/codex-review.yml", "utf8"));
 const reviewJob = workflow.jobs["codex-review"];
 const finalizeJob = workflow.jobs["finalize-review"];
+const checkoutStep = reviewJob.steps.find(({ name }) => name === "Check out trusted base revision");
+const fetchHeadStep = reviewJob.steps.find(
+  ({ name }) => name === "Fetch pull request head for review",
+);
+const runCodexStep = reviewJob.steps.find(({ name }) => name === "Run Codex review");
 const publishScript = finalizeJob.steps.find(
   ({ name }) => name === "Publish review and final status",
 ).with.script;
@@ -24,4 +29,12 @@ test("the final status requires a pass verdict with no findings", () => {
   assert.match(publishScript, /const hasFindings = review\.findings\.length > 0/);
   assert.match(publishScript, /const passed = review\.verdict === 'pass' && !hasFindings/);
   assert.match(publishScript, /!Array\.isArray\(review\.findings\)/);
+});
+
+test("Codex runs from the trusted base checkout, not the PR merge commit", () => {
+  assert.equal(checkoutStep.with.ref, "${{ github.event.pull_request.base.sha }}");
+  assert.equal(checkoutStep.with["persist-credentials"], false);
+  assert.match(fetchHeadStep.run, /refs\/pull\/\$\{PR_NUMBER\}\/head/);
+  assert.match(runCodexStep.with.prompt, /working tree is the trusted base revision/);
+  assert.doesNotMatch(JSON.stringify(reviewJob.steps), /merge_commit_sha/);
 });
