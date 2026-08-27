@@ -43,16 +43,19 @@ Run the complete fixture in every required row below. Minimum-OS rows protect th
 current-OS rows cover current platform behavior. A host may test more versions, form factors, and
 design systems, but those results do not replace a required row.
 
-| Required row             | React Native    | Environment                              | OS target                        | Assistive technology   | Purpose                                 |
-| ------------------------ | --------------- | ---------------------------------------- | -------------------------------- | ---------------------- | --------------------------------------- |
-| iOS minimum              | latest `0.87.x` | physical device                          | iOS 15.1                         | VoiceOver              | React Native deployment floor           |
-| iOS current              | latest `0.87.x` | physical device                          | iOS 26.5                         | VoiceOver              | current stable iOS behavior             |
-| Android minimum          | latest `0.87.x` | physical device                          | Android 7 / API 24               | TalkBack               | React Native deployment floor           |
-| Android current device   | latest `0.87.x` | physical device                          | Android 16 / API 36              | TalkBack               | current stable Android behavior         |
-| Android current emulator | latest `0.87.x` | Google Play image                        | Android 16 / API 36              | TalkBack               | reproducible automation/preflight lane  |
-| Previous React Native    | latest `0.86.x` | one current physical device per platform | iOS 26.5 and Android 16 / API 36 | VoiceOver and TalkBack | immediate maintained-line compatibility |
+| Required row             | React Native    | Environment                              | OS target                          | Assistive technology   | Purpose                                 |
+| ------------------------ | --------------- | ---------------------------------------- | ---------------------------------- | ---------------------- | --------------------------------------- |
+| iOS minimum              | latest `0.87.x` | physical device                          | iOS 15.1                           | VoiceOver              | React Native deployment floor           |
+| iOS current              | latest `0.87.x` | physical device                          | iOS 26.6.1                         | VoiceOver              | current stable iOS behavior             |
+| Android minimum          | latest `0.87.x` | physical device                          | Android 7 / API 24                 | TalkBack               | React Native deployment floor           |
+| Android current device   | latest `0.87.x` | physical device                          | Android 17 / API 37                | TalkBack               | current stable Android behavior         |
+| Android current emulator | latest `0.87.x` | Google Play image                        | Android 17 / API 37                | TalkBack               | reproducible automation/preflight lane  |
+| Previous React Native    | latest `0.86.x` | one current physical device per platform | iOS 26.6.1 and Android 17 / API 37 | VoiceOver and TalkBack | immediate maintained-line compatibility |
 
-An iOS 26.5 simulator Accessibility Inspector run is recommended preflight evidence, but it cannot
+At the 2026-08-27 matrix snapshot, Apple's [release
+feed](https://developer.apple.com/news/releases/) lists iOS 26.6.1 and the Android Developers
+[platform overview](https://developer.android.com/about/versions/17) identifies Android 17 / API 37.
+An iOS 26.6.1 simulator Accessibility Inspector run is recommended preflight evidence, but it cannot
 replace either physical iOS row. Record newer stable OS patches in place of the named current patch
 when the matrix is executed, and update this document rather than silently widening a result.
 
@@ -105,15 +108,15 @@ wire properties.
 Create one row per environment and attach logs, screenshots or recordings, and issue links. Do not
 mark the roadmap platform-accessibility item complete while any required row is missing or failing.
 
-| Revision         | Platform/device               | OS and RN            | Assistive technology | Catalog path                   | Date/tester | Result  | Evidence/issues |
-| ---------------- | ----------------------------- | -------------------- | -------------------- | ------------------------------ | ----------- | ------- | --------------- |
-| Not yet recorded | iOS physical, minimum         | iOS 15.1 / RN 0.87.x | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | iOS physical, current         | iOS 26.5 / RN 0.87.x | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | Android physical, minimum     | API 24 / RN 0.87.x   | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | Android physical, current     | API 36 / RN 0.87.x   | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | Android emulator, current     | API 36 / RN 0.87.x   | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | iOS physical, previous RN     | iOS 26.5 / RN 0.86.x | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
-| Not yet recorded | Android physical, previous RN | API 36 / RN 0.86.x   | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
+| Revision         | Platform/device               | OS and RN              | Assistive technology | Catalog path                   | Date/tester | Result  | Evidence/issues |
+| ---------------- | ----------------------------- | ---------------------- | -------------------- | ------------------------------ | ----------- | ------- | --------------- |
+| Not yet recorded | iOS physical, minimum         | iOS 15.1 / RN 0.87.x   | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | iOS physical, current         | iOS 26.6.1 / RN 0.87.x | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | Android physical, minimum     | API 24 / RN 0.87.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | Android physical, current     | API 37 / RN 0.87.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | Android emulator, current     | API 37 / RN 0.87.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | iOS physical, previous RN     | iOS 26.6.1 / RN 0.86.x | VoiceOver            | primitives, adapters, variants | —           | Not run | —               |
+| Not yet recorded | Android physical, previous RN | API 37 / RN 0.86.x     | TalkBack             | primitives, adapters, variants | —           | Not run | —               |
 
 ## Exit criteria
 
