@@ -1,13 +1,11 @@
 name: Codex Review Gate
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
 concurrency:
-  group: codex-review-${{ github.event_name }}-${{ github.event.pull_request.number }}
+  group: codex-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
@@ -16,9 +14,7 @@ permissions:
 jobs:
   codex-review:
     name: codex-review-run
-    if: >-
-      github.event.pull_request.draft == false &&
-      (github.event_name == 'pull_request_target' || github.event.pull_request.number == 47)
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -31,7 +27,6 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           REVIEWED_COMMIT: ${{ github.event.pull_request.head.sha }}
-          STATUS_CONTEXT: ${{ github.event_name == 'pull_request' && 'codex-review-bootstrap' || 'codex-review' }}
         with:
           github-token: ${{ github.token }}
           script: |
@@ -40,7 +35,7 @@ jobs:
               repo: context.repo.repo,
               sha: process.env.REVIEWED_COMMIT,
               state: 'pending',
-              context: process.env.STATUS_CONTEXT,
+              context: 'codex-review',
               description: 'Codex review is running',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
             });
@@ -201,8 +196,7 @@ jobs:
     if: >-
       always() &&
       needs.codex-review.result != 'skipped' &&
-      github.event.pull_request.draft == false &&
-      (github.event_name == 'pull_request_target' || github.event.pull_request.number == 47)
+      github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -216,7 +210,6 @@ jobs:
           REVIEW_JOB_RESULT: ${{ needs.codex-review.result }}
           REVIEWED_COMMIT: ${{ github.event.pull_request.head.sha }}
           REVIEWED_MERGE_COMMIT: ${{ github.event.pull_request.merge_commit_sha }}
-          STATUS_CONTEXT: ${{ github.event_name == 'pull_request' && 'codex-review-bootstrap' || 'codex-review' }}
         with:
           github-token: ${{ github.token }}
           script: |
@@ -227,7 +220,7 @@ jobs:
                 repo: context.repo.repo,
                 sha: process.env.REVIEWED_COMMIT,
                 state,
-                context: process.env.STATUS_CONTEXT,
+                context: 'codex-review',
                 description,
                 target_url: statusUrl,
               });
