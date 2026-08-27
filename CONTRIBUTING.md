@@ -160,7 +160,16 @@ Reviews focus on, in order:
 5. maintainability and documentation;
 6. style.
 
-The `codex-review` required check runs once when a pull request is opened, when a draft becomes ready for review, or when a maintainer adds the `codex-review-approved` label to an external contribution. Later pushes do not re-run Codex; they mirror the initial pass/fail status onto the new head commit. Automated review supplements human maintainer judgment; it does not transfer ownership of a change or its merge decision.
+The required `codex-review` check uses the [ChatGPT Codex Connector](https://developers.openai.com/codex/integrations/github) through the repository workflow. The gate posts a controlled `@codex review` request, waits for `chatgpt-codex-connector[bot]` output on the current pull request head, and writes the `codex-review` commit status. Reviews bill to the linked Codex / ChatGPT workspace rather than an `OPENAI_API_KEY` secret.
+
+Repository setup for maintainers:
+
+1. Install the **ChatGPT Codex Connector** GitHub App on this repository.
+2. Enable **Code review** for the repository in [Codex settings](https://chatgpt.com/codex/cloud/settings/code-review).
+3. Prefer disabling separate **Automatic reviews on every PR** in Codex Cloud so the workflow remains the single review trigger and duplicate connector runs stay rare.
+4. Add `codex-review` as a required status check after the workflow exists on the default branch.
+
+For external contributions, a maintainer must add the `codex-review-approved` label before the gate requests a review. The gate re-evaluates on new commits and passes only when the latest connector review for the current head has no unresolved P0/P1 findings. Automated review supplements human maintainer judgment; it does not transfer ownership of a change or its merge decision.
 
 ## Releases
 
