@@ -43,7 +43,15 @@ test("the gate coordinates ChatGPT Codex Connector output without API tokens", (
   assert.equal(runGateStep.with["status-context"], "codex-review");
   assert.equal(runGateStep.with["event-mode"], "full");
   assert.match(runGateStep.with["codex-bot-logins"], /chatgpt-codex-connector/);
-  assert.equal(runGateStep.if, "steps.authorize.outcome == 'success'");
+  assert.match(runGateStep.if, /skip-gate != 'true'/);
+});
+
+test("draft pull requests skip the connector gate without treating authorization as approval", () => {
+  assert.match(gateJob.if, /pull_request_review_comment/);
+  assert.match(gateJob.if, /github\.event\.pull_request\.draft == false/);
+  assert.match(authorizeScript, /skip-gate/);
+  assert.match(authorizeScript, /Draft pull request; skipping Codex review gate/);
+  assert.match(authorizeScript, /core\.setOutput\('skip-gate', 'true'\)/);
 });
 
 test("external contributions require codex-review-approved before the gate runs", () => {

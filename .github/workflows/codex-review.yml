@@ -41,6 +41,10 @@ jobs:
         (github.event_name != 'issue_comment' ||
           github.event.issue.user.login != 'dependabot[bot]') &&
         (github.event_name != 'pull_request_review' ||
+          github.event.pull_request.draft == false) &&
+        (github.event_name != 'pull_request_review_comment' ||
+          github.event.pull_request.draft == false) &&
+        (github.event_name != 'pull_request_review' ||
           github.event.pull_request.user.login != 'dependabot[bot]') &&
         (github.event_name != 'pull_request_review_comment' ||
           github.event.pull_request.user.login != 'dependabot[bot]') &&
@@ -86,6 +90,7 @@ jobs:
             const prNumber = Number(process.env.PR_NUMBER);
             if (!prNumber) {
               core.info('No pull request in event payload; skipping authorization.');
+              core.setOutput('skip-gate', 'false');
               return;
             }
 
@@ -96,7 +101,8 @@ jobs:
             });
 
             if (pullRequest.draft) {
-              core.info('Draft pull request; skipping authorization.');
+              core.info('Draft pull request; skipping Codex review gate.');
+              core.setOutput('skip-gate', 'true');
               return;
             }
 
@@ -106,6 +112,7 @@ jobs:
               'COLLABORATOR',
             ]);
             if (trustedAssociations.has(pullRequest.author_association)) {
+              core.setOutput('skip-gate', 'false');
               return;
             }
 
@@ -138,6 +145,7 @@ jobs:
             }
 
             if (approved) {
+              core.setOutput('skip-gate', 'false');
               return;
             }
 
@@ -155,7 +163,9 @@ jobs:
             );
 
       - name: Run Codex connector review gate
-        if: steps.authorize.outcome == 'success'
+        if: >-
+          steps.authorize.outcome == 'success' &&
+          steps.authorize.outputs.skip-gate != 'true'
         uses: JoeyTeng/codex-review-gate-action@9e9f2377342805156afcb0724f501509ef4e444c # v1
         with:
           github-token: ${{ github.token }}
