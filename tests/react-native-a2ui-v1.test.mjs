@@ -49,6 +49,37 @@ function nativePolicy(options = {}) {
   });
 }
 
+function localDate(year, month, day, hour = 0, minute = 0, second = 0) {
+  const date = new Date(0);
+  date.setFullYear(year, month - 1, day);
+  date.setHours(hour, minute, second, 0);
+  return date;
+}
+
+function intlDatePart(locale, date, options, type) {
+  const part = new Intl.DateTimeFormat(locale, options)
+    .formatToParts(date)
+    .find((candidate) => candidate.type === type);
+  assert.ok(part, `Expected ${type} from Intl.DateTimeFormat`);
+  return part.value;
+}
+
+function normalizedIntlDateNumber(locale, date, options, type, width) {
+  const value = intlDatePart(locale, date, options, type);
+  const zero = new Intl.NumberFormat(locale, { useGrouping: false })
+    .formatToParts(0)
+    .find((part) => part.type === "integer")?.value;
+  assert.ok(zero, "Expected a localized zero from Intl.NumberFormat");
+  if (width === 1) {
+    let normalized = value;
+    while (Array.from(normalized).length > 1 && normalized.startsWith(zero)) {
+      normalized = normalized.slice(zero.length);
+    }
+    return normalized;
+  }
+  return `${zero.repeat(Math.max(0, width - Array.from(value).length))}${value}`;
+}
+
 test("mounted v1 surfaces keep input local and resolve actions at dispatch time", async () => {
   const surface = createSurface(
     [
@@ -896,6 +927,368 @@ test("localized number formatting fails closed for invalid dynamic and host opti
   );
 });
 
+test("formatDate uses pinned Unicode tokens for localized render and event values", () => {
+  const surface = createSurface(
+    [
+      {
+        id: "root",
+        component: "Column",
+        children: ["date", "tokens", "nested", "submit"],
+      },
+      {
+        id: "date",
+        component: "Text",
+        text: {
+          call: "formatDate",
+          args: { value: { path: "/date" }, format: { path: "/pattern" } },
+        },
+      },
+      {
+        id: "tokens",
+        component: "Text",
+        text: {
+          call: "formatDate",
+          args: {
+            value: "2026-01-06",
+            format: "yy|M|MM|MMM|MMMM|d|dd|E|EEEE|h|hh|H|HH|mm|ss|a|'o''clock'",
+          },
+        },
+      },
+      {
+        id: "nested",
+        component: "Text",
+        text: {
+          call: "formatString",
+          args: {
+            value: "When: ${formatDate(value:${/date}, format:'MMM dd, yyyy')}",
+          },
+        },
+      },
+      {
+        id: "submit",
+        component: "Button",
+        child: "submit-label",
+        action: {
+          event: {
+            name: "submit",
+            context: {
+              seconds: {
+                call: "formatDate",
+                args: { value: 1768573800, format: "yyyy-MM-dd 'at' HH:mm" },
+              },
+              milliseconds: {
+                call: "formatDate",
+                args: { value: 1768573800000, format: "yyyy-MM-dd 'at' HH:mm" },
+              },
+              numericString: {
+                call: "formatDate",
+                args: { value: "1768573800000", format: "yyyy-MM-dd 'at' HH:mm" },
+              },
+              currentDate: {
+                call: "formatDate",
+                args: { value: { path: "/date" }, format: "yyyy-MM-dd" },
+              },
+              paddedYear: {
+                call: "formatDate",
+                args: { value: "0001-01-01", format: "yyyy" },
+              },
+            },
+          },
+        },
+      },
+      { id: "submit-label", component: "Text", text: "Submit" },
+    ],
+    { date: "2026-01-16", pattern: "EEEE, MMMM d, yyyy" },
+  );
+  const policy = nativePolicy({
+    allowedEventNames: ["submit"],
+    allowedFunctionNames: ["formatDate", "formatString"],
+  });
+
+  const date = localDate(2026, 1, 16);
+  const tokenDate = localDate(2026, 1, 6);
+  const englishPlan = createA2uiV1NativeRenderPlan(surface, policy, { locale: "en-US" });
+  assert.equal(
+    englishPlan.children?.[0]?.props.children,
+    `${intlDatePart("en-US", date, { weekday: "long" }, "weekday")}, ${intlDatePart(
+      "en-US",
+      date,
+      { month: "long", day: "numeric" },
+      "month",
+    )} ${intlDatePart("en-US", date, { day: "numeric" }, "day")}, ${intlDatePart(
+      "en-US",
+      date,
+      { year: "numeric" },
+      "year",
+    )}`,
+  );
+  assert.equal(
+    englishPlan.children?.[1]?.props.children,
+    [
+      intlDatePart("en-US", tokenDate, { year: "2-digit" }, "year"),
+      normalizedIntlDateNumber(
+        "en-US",
+        tokenDate,
+        { month: "numeric", day: "numeric" },
+        "month",
+        1,
+      ),
+      normalizedIntlDateNumber(
+        "en-US",
+        tokenDate,
+        { month: "2-digit", day: "numeric" },
+        "month",
+        2,
+      ),
+      intlDatePart("en-US", tokenDate, { month: "short", day: "numeric" }, "month"),
+      intlDatePart("en-US", tokenDate, { month: "long", day: "numeric" }, "month"),
+      normalizedIntlDateNumber("en-US", tokenDate, { day: "numeric" }, "day", 1),
+      normalizedIntlDateNumber("en-US", tokenDate, { day: "2-digit" }, "day", 2),
+      intlDatePart("en-US", tokenDate, { weekday: "short" }, "weekday"),
+      intlDatePart("en-US", tokenDate, { weekday: "long" }, "weekday"),
+      normalizedIntlDateNumber(
+        "en-US",
+        tokenDate,
+        { hour: "numeric", hourCycle: "h12" },
+        "hour",
+        1,
+      ),
+      normalizedIntlDateNumber(
+        "en-US",
+        tokenDate,
+        { hour: "2-digit", hourCycle: "h12" },
+        "hour",
+        2,
+      ),
+      normalizedIntlDateNumber(
+        "en-US",
+        tokenDate,
+        { hour: "numeric", hourCycle: "h23" },
+        "hour",
+        1,
+      ),
+      normalizedIntlDateNumber(
+        "en-US",
+        tokenDate,
+        { hour: "2-digit", hourCycle: "h23" },
+        "hour",
+        2,
+      ),
+      normalizedIntlDateNumber("en-US", tokenDate, { minute: "2-digit" }, "minute", 2),
+      normalizedIntlDateNumber("en-US", tokenDate, { second: "2-digit" }, "second", 2),
+      intlDatePart("en-US", tokenDate, { hour: "numeric", hourCycle: "h12" }, "dayPeriod"),
+      "o'clock",
+    ].join("|"),
+  );
+  assert.equal(
+    englishPlan.children?.[2]?.props.children,
+    `When: ${intlDatePart("en-US", date, { month: "short", day: "numeric" }, "month")} ${intlDatePart("en-US", date, { day: "2-digit" }, "day")}, ${intlDatePart("en-US", date, { year: "numeric" }, "year")}`,
+  );
+  const frenchPlan = createA2uiV1NativeRenderPlan(surface, policy, { locale: "fr-FR" });
+  assert.equal(
+    frenchPlan.children?.[0]?.props.children,
+    `${intlDatePart("fr-FR", date, { weekday: "long" }, "weekday")}, ${intlDatePart(
+      "fr-FR",
+      date,
+      { month: "long", day: "numeric" },
+      "month",
+    )} ${intlDatePart("fr-FR", date, { day: "numeric" }, "day")}, ${intlDatePart(
+      "fr-FR",
+      date,
+      { year: "numeric" },
+      "year",
+    )}`,
+  );
+  const russianPlan = createA2uiV1NativeRenderPlan(surface, policy, {
+    dataModel: { ...surface.dataModel, pattern: "d MMMM yyyy" },
+    locale: "ru-RU",
+  });
+  assert.equal(
+    russianPlan.children?.[0]?.props.children,
+    `${intlDatePart("ru-RU", date, { day: "numeric" }, "day")} ${intlDatePart(
+      "ru-RU",
+      date,
+      { month: "long", day: "numeric" },
+      "month",
+    )} ${intlDatePart("ru-RU", date, { year: "numeric" }, "year")}`,
+  );
+
+  const context = resolveA2uiV1NativeEvent(
+    surface,
+    policy,
+    "submit",
+    { ...surface.dataModel, date: "2027-02-03" },
+    { locale: "en-US" },
+  ).context;
+  assert.equal(context.seconds, context.milliseconds);
+  assert.equal(context.seconds, context.numericString);
+  assert.equal(context.currentDate, "2027-02-03");
+  assert.equal(context.paddedYear, "0001");
+  assert.match(context.seconds, /^\d{4}-\d{2}-\d{2} at \d{2}:\d{2}$/);
+});
+
+test("formatDate applies offsets, fractional timestamps, and the documented epoch heuristic", () => {
+  const policy = nativePolicy({ allowedFunctionNames: ["formatDate"] });
+  const render = (value) =>
+    createA2uiV1NativeRenderPlan(
+      createSurface([
+        {
+          id: "root",
+          component: "Text",
+          text: {
+            call: "formatDate",
+            args: { value, format: "yyyy-MM-dd HH:mm:ss" },
+          },
+        },
+      ]),
+      policy,
+      { locale: "en-US" },
+    ).props.children;
+
+  assert.equal(render("2026-01-16T14:30:45.123Z"), render("2026-01-16T15:30:45.123+01:00"));
+  assert.equal(render(-1), render("-1"));
+  assert.equal(render(-10_000_000_001), render("-10000000001"));
+  assert.equal(render(1_000_000_000_000), render("1e12"));
+  assert.notEqual(render(10_000_000_000), render(10_000_000_001));
+});
+
+test("formatDate preserves host calendar locale extensions", () => {
+  const surface = createSurface([
+    {
+      id: "root",
+      component: "Text",
+      text: {
+        call: "formatDate",
+        args: { value: "2026-01-16", format: "yyyy" },
+      },
+    },
+  ]);
+  const policy = nativePolicy({ allowedFunctionNames: ["formatDate"] });
+  const date = localDate(2026, 1, 16);
+
+  for (const locale of ["en-US-u-ca-buddhist", "th-TH-u-ca-gregory"]) {
+    const plan = createA2uiV1NativeRenderPlan(surface, policy, { locale });
+    assert.equal(
+      plan.props.children,
+      normalizedIntlDateNumber(locale, date, { year: "numeric" }, "year", 4),
+    );
+  }
+});
+
+test("formatDate fails closed for invalid values, patterns, and excessive work", async (t) => {
+  const cases = [
+    {
+      name: "impossible calendar date",
+      value: "2026-02-30",
+      pattern: "yyyy-MM-dd",
+      message: /Invalid calendar date/,
+    },
+    {
+      name: "invalid RFC 3339 time",
+      value: "2026-01-16T25:00:00Z",
+      pattern: "HH:mm",
+      message: /Invalid RFC 3339 time/,
+    },
+    {
+      name: "unsupported date value",
+      value: { year: 2026 },
+      pattern: "yyyy",
+      message: /date string or finite epoch number/,
+    },
+    {
+      name: "unsupported pattern token",
+      value: "2026-01-16",
+      pattern: "YYYY-MM-dd",
+      message: /Unsupported Unicode date pattern token/,
+    },
+    ...[
+      ["month", "MMMMM"],
+      ["day", "ddd"],
+      ["weekday", "EEE"],
+      ["hour", "HHH"],
+      ["day period", "aa"],
+    ].map(([field, pattern]) => ({
+      name: `unsupported repeated ${field} field`,
+      value: "2026-01-16",
+      pattern,
+      message: /Unsupported Unicode date pattern token/,
+    })),
+    {
+      name: "unterminated quoted literal",
+      value: "2026-01-16",
+      pattern: "yyyy 'year",
+      message: /Unterminated quoted literal/,
+    },
+    {
+      name: "ambiguous 12-hour pattern",
+      value: "2026-01-16T14:30:00Z",
+      pattern: "h:mm",
+      message: /requires token "a"/,
+    },
+    {
+      name: "excessive pattern tokens",
+      value: "2026-01-16",
+      pattern: "yyyy-".repeat(129),
+      message: /exceeds maximum of 128 tokens/,
+    },
+    {
+      name: "epoch outside Date range",
+      value: 9_000_000_000_000_000,
+      pattern: "yyyy",
+      message: /outside the supported date range/,
+    },
+  ];
+
+  await Promise.all(
+    cases.map((fixture) =>
+      t.test(fixture.name, () => {
+        const surface = createSurface([
+          {
+            id: "root",
+            component: "Text",
+            text: {
+              call: "formatDate",
+              args: { value: fixture.value, format: fixture.pattern },
+            },
+          },
+        ]);
+        assert.throws(
+          () =>
+            createA2uiV1NativeRenderPlan(
+              surface,
+              nativePolicy({ allowedFunctionNames: ["formatDate"] }),
+              { locale: "en-US" },
+            ),
+          (error) => error instanceof A2uiParseError && fixture.message.test(error.message),
+        );
+      }),
+    ),
+  );
+
+  const dynamicPattern = createSurface(
+    [
+      {
+        id: "root",
+        component: "Text",
+        text: {
+          call: "formatDate",
+          args: { value: "2026-01-16", format: { path: "/pattern" } },
+        },
+      },
+    ],
+    { pattern: 2026 },
+  );
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(
+        dynamicPattern,
+        nativePolicy({ allowedFunctionNames: ["formatDate"] }),
+      ),
+    (error) =>
+      error instanceof A2uiParseError && /Expected a string.*args\.format/.test(error.message),
+  );
+});
+
 test("pluralize and boolean functions use host locale and current dispatch state", async () => {
   const surface = createSurface(
     [
@@ -1225,11 +1618,11 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
         {
           id: "root",
           component: "Text",
-          text: { call: "formatDate", args: { value: "2026-08-26", format: "yyyy" } },
+          text: { call: "required", args: { value: "ready" } },
         },
       ]),
-      policy: nativePolicy({ allowedFunctionNames: ["formatDate"] }),
-      message: /does not execute function "formatDate"/,
+      policy: nativePolicy({ allowedFunctionNames: ["required"] }),
+      message: /does not execute function "required"/,
     },
     {
       name: "unsupported nested renderer function",
@@ -1239,12 +1632,12 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
           component: "Text",
           text: {
             call: "formatString",
-            args: { value: "Value: ${formatDate(value:'2026-08-26', format:'yyyy')}" },
+            args: { value: "Value: ${required(value:'ready')}" },
           },
         },
       ]),
-      policy: nativePolicy({ allowedFunctionNames: ["formatString", "formatDate"] }),
-      message: /does not execute function "formatDate"/,
+      policy: nativePolicy({ allowedFunctionNames: ["formatString", "required"] }),
+      message: /does not execute function "required"/,
     },
     {
       name: "unsupported main-axis stretch",

@@ -118,7 +118,7 @@ export interface A2uiV1NativeSurfaceProps {
   /** Observes renderer-local state changes without turning keystrokes into network calls. */
   readonly onDataModelChange?: (dataModel: JsonObject) => void;
   readonly actionMetadata?: JsonObject;
-  /** Host-selected BCP 47 locale for renderer-side number and currency formatting. */
+  /** Host-selected BCP 47 locale for renderer-side number, currency, date, and plural formatting. */
   readonly locale?: string;
   /** Injectable RFC 3339 timestamp source for host clocks and deterministic tests. */
   readonly now?: () => string;

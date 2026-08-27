@@ -69,6 +69,7 @@ interface AdapterContext {
   readonly surface: A2uiV1SurfaceState;
   readonly dataModel: JsonObject;
   readonly locale: string | undefined;
+  readonly dateFormats: Map<string, Intl.DateTimeFormat>;
   readonly numberFormats: Map<string, Intl.NumberFormat>;
   readonly pluralRules: Map<string, Intl.PluralRules>;
   readonly visiting: Set<string>;
@@ -164,6 +165,7 @@ function createAdapterContext(
     surface: validated,
     dataModel: parseJsonObject(validated.dataModel, "surface.dataModel"),
     locale,
+    dateFormats: new Map<string, Intl.DateTimeFormat>(),
     numberFormats: new Map<string, Intl.NumberFormat>(),
     pluralRules: new Map<string, Intl.PluralRules>(),
     visiting: new Set<string>(),
@@ -232,10 +234,14 @@ function parseLocale(value: unknown, path: string): string {
     throw new A2uiParseError(`Expected a non-empty BCP 47 locale at ${path}`);
   }
   try {
-    if (Intl.NumberFormat.supportedLocalesOf(value, { localeMatcher: "lookup" }).length === 0) {
+    const canonicalLocale = Intl.getCanonicalLocales(value)[0]!;
+    if (
+      Intl.NumberFormat.supportedLocalesOf(canonicalLocale, { localeMatcher: "lookup" }).length ===
+      0
+    ) {
       throw new A2uiParseError(`Unsupported BCP 47 locale ${JSON.stringify(value)} at ${path}`);
     }
-    return new Intl.NumberFormat(value).resolvedOptions().locale;
+    return canonicalLocale;
   } catch (cause) {
     if (cause instanceof A2uiParseError) {
       throw cause;
@@ -659,6 +665,9 @@ function resolveDynamicValue(
     if (value.call === "formatNumber" || value.call === "formatCurrency") {
       return resolveNumberFormat(value, path, context, scope);
     }
+    if (value.call === "formatDate") {
+      return resolveDateFormat(value, path, context, scope);
+    }
     if (value.call === "pluralize") {
       return resolvePluralize(value, path, context, scope);
     }
@@ -757,6 +766,375 @@ function resolveNumberFormat(
       { cause },
     );
   }
+}
+
+const DATE_NUMBER = /^[+-]?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/;
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const RFC_3339_TIMESTAMP =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|([+-])(\d{2}):(\d{2}))$/;
+const A2UI_V1_MAX_DATE_PATTERN_TOKENS = 128;
+
+const DATE_PATTERN_TOKENS = Object.freeze([
+  "MMMM",
+  "EEEE",
+  "yyyy",
+  "MMM",
+  "MM",
+  "dd",
+  "hh",
+  "HH",
+  "mm",
+  "ss",
+  "yy",
+  "M",
+  "d",
+  "E",
+  "h",
+  "H",
+  "a",
+] as const);
+const DATE_PATTERN_TOKEN_SET: ReadonlySet<string> = new Set(DATE_PATTERN_TOKENS);
+
+type DatePatternToken = (typeof DATE_PATTERN_TOKENS)[number];
+type DatePatternPart =
+  | { readonly kind: "literal"; readonly value: string }
+  | { readonly kind: "token"; readonly value: DatePatternToken };
+
+function resolveDateFormat(
+  call: JsonObject,
+  path: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): string {
+  const args = expectObject(call.args, `${path}.args`);
+  const value = resolveDynamicValue(args.value, `${path}.args.value`, context, scope);
+  const pattern = resolveDynamicString(args.format, `${path}.args.format`, context, scope);
+  const date = parseDateValue(value, `${path}.args.value`);
+  const result = formatDatePattern(date, pattern, path, context);
+  return recordFormattedString(result, path, context);
+}
+
+function parseDateValue(value: JsonValue, path: string): Date {
+  if (typeof value === "number") {
+    return dateFromEpoch(value, path);
+  }
+  if (typeof value !== "string") {
+    throw new A2uiParseError(`Expected a date string or finite epoch number at ${path}`);
+  }
+  if (DATE_NUMBER.test(value)) {
+    return dateFromEpoch(Number(value), path);
+  }
+
+  const dateOnly = DATE_ONLY.exec(value);
+  if (dateOnly !== null) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]);
+    const day = Number(dateOnly[3]);
+    validateCalendarDate(year, month, day, path);
+    const date = new Date(0);
+    date.setFullYear(year, month - 1, day);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
+  const timestamp = RFC_3339_TIMESTAMP.exec(value);
+  if (timestamp === null) {
+    throw new A2uiParseError(
+      `Expected an RFC 3339 timestamp, yyyy-MM-dd date, or finite epoch number at ${path}`,
+    );
+  }
+  const year = Number(timestamp[1]);
+  const month = Number(timestamp[2]);
+  const day = Number(timestamp[3]);
+  const hour = Number(timestamp[4]);
+  const minute = Number(timestamp[5]);
+  const second = Number(timestamp[6]);
+  validateCalendarDate(year, month, day, path);
+  if (hour > 23 || minute > 59 || second > 59) {
+    throw new A2uiParseError(`Invalid RFC 3339 time at ${path}`);
+  }
+  const fraction = timestamp[7] ?? "";
+  const millisecond = Number(fraction.slice(0, 3).padEnd(3, "0"));
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  date.setUTCHours(hour, minute, second, millisecond);
+  if (timestamp[8] !== "Z") {
+    const offsetHour = Number(timestamp[10]);
+    const offsetMinute = Number(timestamp[11]);
+    if (offsetHour > 23 || offsetMinute > 59) {
+      throw new A2uiParseError(`Invalid RFC 3339 offset at ${path}`);
+    }
+    const direction = timestamp[9] === "+" ? 1 : -1;
+    date.setTime(date.getTime() - direction * (offsetHour * 60 + offsetMinute) * 60_000);
+  }
+  if (!Number.isFinite(date.getTime())) {
+    throw new A2uiParseError(`Date value is outside the supported range at ${path}`);
+  }
+  return date;
+}
+
+function dateFromEpoch(value: number, path: string): Date {
+  if (!Number.isFinite(value)) {
+    throw new A2uiParseError(`Expected a date string or finite epoch number at ${path}`);
+  }
+  const milliseconds = Math.abs(value) > 10_000_000_000 ? value : value * 1_000;
+  const date = new Date(milliseconds);
+  if (!Number.isFinite(date.getTime())) {
+    throw new A2uiParseError(`Epoch value is outside the supported date range at ${path}`);
+  }
+  return date;
+}
+
+function validateCalendarDate(year: number, month: number, day: number, path: string): void {
+  const candidate = new Date(0);
+  candidate.setUTCFullYear(year, month - 1, day);
+  candidate.setUTCHours(0, 0, 0, 0);
+  if (
+    year < 1 ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    candidate.getUTCFullYear() !== year ||
+    candidate.getUTCMonth() !== month - 1 ||
+    candidate.getUTCDate() !== day
+  ) {
+    throw new A2uiParseError(`Invalid calendar date at ${path}`);
+  }
+}
+
+function formatDatePattern(
+  date: Date,
+  pattern: string,
+  path: string,
+  context: AdapterContext,
+): string {
+  const parts = parseDatePattern(pattern, path);
+  const hasDay = parts.some(
+    (part) => part.kind === "token" && (part.value === "d" || part.value === "dd"),
+  );
+  return parts
+    .map((part) =>
+      part.kind === "literal"
+        ? part.value
+        : formatDateToken(date, part.value, hasDay, path, context),
+    )
+    .join("");
+}
+
+function parseDatePattern(pattern: string, path: string): readonly DatePatternPart[] {
+  const parts: DatePatternPart[] = [];
+  let tokenCount = 0;
+  for (let index = 0; index < pattern.length;) {
+    if (pattern[index] === "'") {
+      const literal = readQuotedDateLiteral(pattern, index, path);
+      parts.push({ kind: "literal", value: literal.value });
+      index = literal.end;
+      continue;
+    }
+    const character = pattern[index]!;
+    if (/[A-Za-z]/.test(character)) {
+      let end = index + 1;
+      while (pattern[end] === character) {
+        end += 1;
+      }
+      const field = pattern.slice(index, end);
+      if (!DATE_PATTERN_TOKEN_SET.has(field)) {
+        throw new A2uiParseError(
+          `Unsupported Unicode date pattern token ${JSON.stringify(field)} at ${path}.args.format`,
+        );
+      }
+      tokenCount += 1;
+      if (tokenCount > A2UI_V1_MAX_DATE_PATTERN_TOKENS) {
+        throw new A2uiParseError(
+          `A2UI date pattern at ${path}.args.format exceeds maximum of ${A2UI_V1_MAX_DATE_PATTERN_TOKENS} tokens`,
+        );
+      }
+      parts.push({ kind: "token", value: field as DatePatternToken });
+      index = end;
+      continue;
+    }
+    const previous = parts.at(-1);
+    if (previous?.kind === "literal") {
+      parts[parts.length - 1] = { kind: "literal", value: previous.value + character };
+    } else {
+      parts.push({ kind: "literal", value: character });
+    }
+    index += 1;
+  }
+  if (
+    parts.some((part) => part.kind === "token" && (part.value === "h" || part.value === "hh")) &&
+    !parts.some((part) => part.kind === "token" && part.value === "a")
+  ) {
+    throw new A2uiParseError(
+      `A2UI date pattern at ${path}.args.format requires token "a" when using "h" or "hh"`,
+    );
+  }
+  return parts;
+}
+
+function readQuotedDateLiteral(
+  pattern: string,
+  start: number,
+  path: string,
+): { readonly end: number; readonly value: string } {
+  if (pattern[start + 1] === "'") {
+    return { end: start + 2, value: "'" };
+  }
+  let value = "";
+  for (let index = start + 1; index < pattern.length; index += 1) {
+    if (pattern[index] !== "'") {
+      value += pattern[index];
+      continue;
+    }
+    if (pattern[index + 1] === "'") {
+      value += "'";
+      index += 1;
+      continue;
+    }
+    return { end: index + 1, value };
+  }
+  throw new A2uiParseError(`Unterminated quoted literal at ${path}.args.format`);
+}
+
+function formatDateToken(
+  date: Date,
+  token: DatePatternToken,
+  hasDay: boolean,
+  path: string,
+  context: AdapterContext,
+): string {
+  const cacheKey = `${token}:${hasDay ? "day" : "standalone"}`;
+  const cached = context.dateFormats.get(cacheKey);
+  const formatter = cached ?? createDateTokenFormatter(token, hasDay, path, context.locale);
+  context.dateFormats.set(cacheKey, formatter);
+  const partType = datePartType(token);
+  const part = formatter.formatToParts(date).find((candidate) => candidate.type === partType);
+  if (part === undefined) {
+    throw new A2uiParseError(`A2UI native adapter could not format token ${token} at ${path}`);
+  }
+  if (token === "yyyy") {
+    return normalizeLocalizedDateNumber(part.value, 4, path, context);
+  }
+  if (
+    token === "MM" ||
+    token === "dd" ||
+    token === "hh" ||
+    token === "HH" ||
+    token === "mm" ||
+    token === "ss"
+  ) {
+    return normalizeLocalizedDateNumber(part.value, 2, path, context);
+  }
+  if (token === "M" || token === "d" || token === "h" || token === "H") {
+    return normalizeLocalizedDateNumber(part.value, 1, path, context);
+  }
+  return part.value;
+}
+
+function normalizeLocalizedDateNumber(
+  value: string,
+  width: number,
+  path: string,
+  context: AdapterContext,
+): string {
+  const length = Array.from(value).length;
+  if ((width === 1 && length === 1) || (width > 1 && length >= width)) {
+    return value;
+  }
+  const key = JSON.stringify([context.locale ?? null, "date-zero"]);
+  let formatter = context.numberFormats.get(key);
+  if (formatter === undefined) {
+    try {
+      formatter = new Intl.NumberFormat(context.locale, { useGrouping: false });
+      context.numberFormats.set(key, formatter);
+    } catch (cause) {
+      throw new A2uiParseError(`Invalid year-format options at ${path}`, { cause });
+    }
+  }
+  const zero = formatter.formatToParts(0).find((part) => part.type === "integer")?.value;
+  if (zero === undefined) {
+    throw new A2uiParseError(`A2UI native adapter could not localize a padded year at ${path}`);
+  }
+  if (width === 1) {
+    let normalized = value;
+    while (Array.from(normalized).length > 1 && normalized.startsWith(zero)) {
+      normalized = normalized.slice(zero.length);
+    }
+    return normalized;
+  }
+  return `${zero.repeat(width - length)}${value}`;
+}
+
+function createDateTokenFormatter(
+  token: DatePatternToken,
+  hasDay: boolean,
+  path: string,
+  locale: string | undefined,
+): Intl.DateTimeFormat {
+  const options: Intl.DateTimeFormatOptions =
+    token === "yy"
+      ? { year: "2-digit" }
+      : token === "yyyy"
+        ? { year: "numeric" }
+        : token === "M"
+          ? { month: "numeric", ...(hasDay ? { day: "numeric" } : {}) }
+          : token === "MM"
+            ? { month: "2-digit", ...(hasDay ? { day: "numeric" } : {}) }
+            : token === "MMM"
+              ? { month: "short", ...(hasDay ? { day: "numeric" } : {}) }
+              : token === "MMMM"
+                ? { month: "long", ...(hasDay ? { day: "numeric" } : {}) }
+                : token === "d"
+                  ? { day: "numeric" }
+                  : token === "dd"
+                    ? { day: "2-digit" }
+                    : token === "E"
+                      ? { weekday: "short" }
+                      : token === "EEEE"
+                        ? { weekday: "long" }
+                        : token === "h" || token === "hh" || token === "a"
+                          ? {
+                              hour: token === "hh" ? "2-digit" : "numeric",
+                              hourCycle: "h12",
+                            }
+                          : token === "H" || token === "HH"
+                            ? {
+                                hour: token === "HH" ? "2-digit" : "numeric",
+                                hourCycle: "h23",
+                              }
+                            : token === "mm"
+                              ? { minute: "2-digit" }
+                              : { second: "2-digit" };
+  try {
+    return new Intl.DateTimeFormat(locale, options);
+  } catch (cause) {
+    throw new A2uiParseError(`Invalid date-format options at ${path}`, { cause });
+  }
+}
+
+function datePartType(token: DatePatternToken): Intl.DateTimeFormatPartTypes {
+  if (token === "yy" || token === "yyyy") {
+    return "year";
+  }
+  if (token === "M" || token === "MM" || token === "MMM" || token === "MMMM") {
+    return "month";
+  }
+  if (token === "d" || token === "dd") {
+    return "day";
+  }
+  if (token === "E" || token === "EEEE") {
+    return "weekday";
+  }
+  if (token === "h" || token === "hh" || token === "H" || token === "HH") {
+    return "hour";
+  }
+  if (token === "mm") {
+    return "minute";
+  }
+  if (token === "ss") {
+    return "second";
+  }
+  return "dayPeriod";
 }
 
 const PLURAL_CATEGORIES = Object.freeze(["zero", "one", "two", "few", "many", "other"] as const);

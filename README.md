@@ -155,7 +155,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A WebView policy that denies remote documents unless the host explicitly allows them
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, and plural formatting, pure boolean functions, `@index`, and action events returned to a host callback; remaining catalog functions, renderer-side checks, action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, date, and plural formatting, pure boolean functions, `@index`, and action events returned to a host callback; remaining catalog functions, renderer-side checks, action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a runnable mobile demo remain future milestones.
 
 ## A2UI v1 Candidate host flow
 
@@ -270,7 +270,7 @@ This legacy resolver requires exactly one `application/a2ui+json` resource link,
 
 MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
 
-Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, mounts the supported subset with bounded dynamic lists, local bindings, supported formatting and boolean functions, and constructs official action envelopes. Transport placement and enforcement of the A2UI capability objects, remaining renderer functions and checks, inline catalogs, the remaining renderer-to-agent lifecycle, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
+Those principles do not yet amount to complete protocol conformance. The partial A2UI v1.0 Candidate adapter verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses lifecycle envelopes, maintains ordered surface/data-model state, validates rooted catalog graphs, mounts the supported subset with bounded dynamic lists, local bindings, supported string, number, currency, date, plural, and boolean functions, and constructs official action envelopes. Transport placement and enforcement of the A2UI capability objects, remaining renderer functions and checks, inline catalogs, the remaining renderer-to-agent lifecycle, and broader interoperability remain incomplete. MCP Apps still requires `_meta.ui.resourceUri`, `ui://` resources, CSP and permission metadata, sandboxing, and the Apps JSON-RPC bridge. The tracked gaps and conformance plan live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 
@@ -362,6 +362,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Add renderer-local string state, dispatch-time action context, and official action envelopes
 - [x] Execute bounded A2UI `formatString` interpolation and `@index` offsets
 - [x] Execute host-localized A2UI `formatNumber` and `formatCurrency`
+- [x] Execute bounded host-localized A2UI `formatDate` with the pinned token subset
 - [x] Execute host-localized A2UI `pluralize` and pure `and`, `or`, and `not`
 - [ ] Implement remaining renderer functions, checks, and renderer-to-agent lifecycle messages
 - [ ] Complete real-platform accessibility behavior and testing
