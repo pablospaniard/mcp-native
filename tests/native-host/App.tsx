@@ -8,6 +8,7 @@ import {
   TextInput as ReactNativeTextInput,
   View as ReactNativeView,
 } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { A2uiSurfaceStore, createA2uiV1BasicCatalogPolicy } from "@mcp-native/a2ui";
 import {
@@ -419,60 +420,69 @@ export default function App() {
   };
 
   return (
-    <ScrollView
-      accessibilityLabel="MCP Native accessibility fixture host"
-      contentContainerStyle={styles.screen}
-      keyboardShouldPersistTaps="handled"
-    >
-      <ReactNativeText accessibilityRole="header" allowFontScaling style={styles.heading}>
-        MCP Native 0.4.0 platform fixture
-      </ReactNativeText>
-      <ReactNativeText allowFontScaling style={styles.instructions}>
-        Run every catalog path with screen-reader navigation, larger text, both orientations,
-        reduced motion, and platform contrast settings.
-      </ReactNativeText>
-      <ReactNativeView accessibilityLabel="Catalog path" style={styles.modeSelector}>
-        {(["primitives", "adapters", "variants"] as const).map((candidate) => (
-          <Pressable
-            accessibilityLabel={`Use ${candidate} catalog`}
-            accessibilityRole="button"
-            accessibilityState={{ selected: mode === candidate }}
-            key={candidate}
-            onPress={() => setMode(candidate)}
-            style={[styles.modeButton, mode === candidate && styles.selectedModeButton]}
-          >
-            <ReactNativeText allowFontScaling style={styles.modeButtonLabel}>
-              {candidate}
-            </ReactNativeText>
-          </Pressable>
-        ))}
-      </ReactNativeView>
-      <ReactNativeView accessibilityLabel="Action callback observation" style={styles.counterPanel}>
-        <ReactNativeText accessibilityLiveRegion="polite" allowFontScaling style={styles.status}>
-          {`Callbacks since reset: ${actionCallbackCount}. ${status}`}
-        </ReactNativeText>
-        <Pressable
-          accessibilityHint="Use before each test activation so duplicate callbacks are visible"
-          accessibilityLabel="Reset action callback count"
-          accessibilityRole="button"
-          onPress={resetActionCallbackCount}
-          style={({ pressed }) => [styles.counterButton, pressed && styles.buttonPressed]}
-        >
-          <ReactNativeText allowFontScaling style={styles.counterButtonLabel}>
-            Reset callback count
+    <SafeAreaProvider>
+      <SafeAreaView edges={["top", "right", "bottom", "left"]} style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+          <ReactNativeText accessibilityRole="header" allowFontScaling style={styles.heading}>
+            MCP Native 0.4.0 platform fixture
           </ReactNativeText>
-        </Pressable>
-      </ReactNativeView>
-      <A2uiV1NativeSurface
-        components={catalog}
-        key={mode}
-        now={() => new Date().toISOString()}
-        onAction={(envelope) => recordActionCallback(envelope.action.name)}
-        onDataModelChange={() => setStatus("Renderer-local data changed without an agent action")}
-        policy={policy}
-        surface={fixtureSurface}
-      />
-    </ScrollView>
+          <ReactNativeText allowFontScaling style={styles.instructions}>
+            Run every catalog path with screen-reader navigation, larger text, both orientations,
+            reduced motion, and platform contrast settings.
+          </ReactNativeText>
+          <ReactNativeView accessibilityLabel="Catalog path" style={styles.modeSelector}>
+            {(["primitives", "adapters", "variants"] as const).map((candidate) => (
+              <Pressable
+                accessibilityLabel={`Use ${candidate} catalog`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: mode === candidate }}
+                key={candidate}
+                onPress={() => setMode(candidate)}
+                style={[styles.modeButton, mode === candidate && styles.selectedModeButton]}
+              >
+                <ReactNativeText allowFontScaling style={styles.modeButtonLabel}>
+                  {candidate}
+                </ReactNativeText>
+              </Pressable>
+            ))}
+          </ReactNativeView>
+          <ReactNativeView
+            accessibilityLabel="Action callback observation"
+            style={styles.counterPanel}
+          >
+            <ReactNativeText
+              accessibilityLiveRegion="polite"
+              allowFontScaling
+              style={styles.status}
+            >
+              {`Callbacks since reset: ${actionCallbackCount}. ${status}`}
+            </ReactNativeText>
+            <Pressable
+              accessibilityHint="Use before each test activation so duplicate callbacks are visible"
+              accessibilityLabel="Reset action callback count"
+              accessibilityRole="button"
+              onPress={resetActionCallbackCount}
+              style={({ pressed }) => [styles.counterButton, pressed && styles.buttonPressed]}
+            >
+              <ReactNativeText allowFontScaling style={styles.counterButtonLabel}>
+                Reset callback count
+              </ReactNativeText>
+            </Pressable>
+          </ReactNativeView>
+          <A2uiV1NativeSurface
+            components={catalog}
+            key={mode}
+            now={() => new Date().toISOString()}
+            onAction={(envelope) => recordActionCallback(envelope.action.name)}
+            onDataModelChange={() =>
+              setStatus("Renderer-local data changed without an agent action")
+            }
+            policy={policy}
+            surface={fixtureSurface}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
@@ -565,6 +575,7 @@ const styles = StyleSheet.create({
   primaryButton: { backgroundColor: "#174EA6", borderColor: "#174EA6" },
   primaryButtonLabel: { color: "#FFFFFF" },
   row: { flexDirection: "row", gap: 12 },
+  safeArea: { backgroundColor: "#F5F7FA", flex: 1 },
   screen: { backgroundColor: "#F5F7FA", gap: 16, padding: 20 },
   selectedModeButton: { backgroundColor: "#D9EAFD", borderWidth: 2 },
   status: { color: "#243B53", fontSize: 16, fontWeight: "600" },

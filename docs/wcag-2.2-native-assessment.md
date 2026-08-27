@@ -1,6 +1,7 @@
 # WCAG 2.2 native assessment for the 0.4.0 fixture
 
-Status: assessment scope defined; real-platform results pending.
+Status: assessment scope defined; the Android 17 Google Play emulator row passes, while criterion
+results remain pending until the six required physical-device rows are complete.
 
 This assessment targets applicable WCAG 2.2 Level A and AA outcomes for the supported A2UI native
 fixture. WCAG is a web-content standard, and W3C's WCAG2Mobile document is informative guidance for

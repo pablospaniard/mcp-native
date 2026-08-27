@@ -77,10 +77,21 @@ test("generated host manifests install local tarballs and expose reproducible ch
   assert.equal(packageJson.scripts["mcp-native:typecheck"], "tsc --noEmit");
 });
 
+test("native fixture respects platform safe areas without an extra root focus target", () => {
+  const source = readFileSync("tests/native-host/App.tsx", "utf8");
+  assert.match(
+    source,
+    /import \{ SafeAreaProvider, SafeAreaView \} from "react-native-safe-area-context"/,
+  );
+  assert.match(source, /<SafeAreaProvider>/);
+  assert.match(source, /<SafeAreaView edges=\{\["top", "right", "bottom", "left"\]\}/);
+  assert.doesNotMatch(source, /<ScrollView\s+accessibilityLabel=/);
+});
+
 test("pending native evidence is structurally valid but cannot pass the release gate", () => {
   assert.deepEqual(validateNativeAccessibilityEvidence(pendingEvidence), {
     complete: false,
-    passedRows: 0,
+    passedRows: 1,
     requiredRows: 7,
   });
   assert.throws(
@@ -170,6 +181,12 @@ test("CI pins both maintained React Native host lines and release evidence", () 
   ]);
   assert.deepEqual(platform.jobs.android.strategy.matrix["react-native"], ["0.87.1", "0.86.3"]);
   assert.deepEqual(platform.jobs.ios.strategy.matrix["react-native"], ["0.87.1", "0.86.3"]);
+  const androidSdkStep = platform.jobs.android.steps.find(
+    (step) => step.name === "Install Android 37 SDK",
+  );
+  assert.match(androidSdkStep.run, /ANDROID_HOME.*cmdline-tools\/latest\/bin\/sdkmanager/);
+  assert.match(androidSdkStep.run, /platforms;android-37\.0/);
+  assert.match(androidSdkStep.run, /build-tools;37\.0\.0/);
 
   const rootPackage = JSON.parse(readFileSync("package.json", "utf8"));
   assert.match(rootPackage.scripts["release:verify"], /native:evidence:verify/);

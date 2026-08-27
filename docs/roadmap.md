@@ -96,7 +96,8 @@ Exit criterion: conformance is reported per implemented A2UI feature against the
 
 Status: partial — renderer-local state, action-envelope emission, closed accessibility semantics,
 a generated platform fixture with build/evidence gates, a WCAG assessment, and CI performance/fuzz
-gates. Physical-device matrix execution remains outstanding.
+gates. The Android 17 Google Play emulator row passes; all six physical-device rows remain
+outstanding.
 
 - [x] Add renderer-local data-model updates without network calls on each keystroke.
 - [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
