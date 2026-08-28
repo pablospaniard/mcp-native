@@ -69,7 +69,16 @@ The `2026-07-28` lane verifies explicit extension exchange. Metadata, MIME types
 never substitute for mutual declarations; fallback results preserve ordinary MCP text or structured
 data, and invalid declarations fail closed.
 
-The only project-defined binding currently registered on this substrate is the experimental [`io.github.pablospaniard/mcp-native-a2ui` binding](a2ui-mcp-binding.md). The package implements a documented [feature-scoped A2UI v1.0 Candidate profile](a2ui-v1-conformance.md)—lifecycle and renderer-message parsing, bounded ordered state, and policy-gated surface validation—but the binding's presence alone does not grant that path or claim complete A2UI conformance.
+The project-defined experimental [`io.github.pablospaniard/mcp-native-a2ui`
+binding](a2ui-mcp-binding.md) implements a documented [feature-scoped A2UI v1.0 Candidate
+profile](a2ui-v1-conformance.md)—lifecycle and renderer-message parsing, bounded ordered state, and
+policy-gated surface validation—but the binding's presence alone does not grant that path or claim
+complete A2UI conformance.
+
+The official `io.modelcontextprotocol/ui` identifier is implemented separately through the [stable
+MCP Apps `2026-01-26` native host-adapter profile](mcp-apps-compatibility.md). Both peers must include
+the exact stable HTML MIME type in their extension settings before `_meta.ui` discovery or `ui://`
+resource resolution is enabled. Apps metadata and MIME types never substitute for that mutual grant.
 
 ## Compatibility guarantees
 

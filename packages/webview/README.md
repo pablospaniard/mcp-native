@@ -2,7 +2,7 @@
 
 # @mcp-native/webview
 
-### Deny-by-default HTML policy primitives for a future MCP Apps host
+### Stable MCP Apps discovery, native sandbox, and JSON-RPC bridge
 
 [![npm](https://img.shields.io/npm/v/@mcp-native/webview)](https://www.npmjs.com/package/@mcp-native/webview)
 [![downloads](https://img.shields.io/npm/dm/@mcp-native/webview)](https://www.npmjs.com/package/@mcp-native/webview)
@@ -12,11 +12,79 @@
 
 </div>
 
-> **Experimental:** this package defines document validation and one policy decision. It does not mount or sandbox a platform WebView and is not a complete MCP Apps host.
+> **Experimental:** this package implements the documented stable MCP Apps `2026-01-26` native
+> host-adapter profile. A shipping host must map the closed descriptor into its audited platform
+> WebView and lifecycle; native isolation is not equivalent to a browser's cross-origin iframe.
 
-`@mcp-native/webview` handles the compatibility path for MCP resources that contain HTML. It recognizes supported MIME types and rejects both inline and remote documents unless the host explicitly grants them through policy. Inline base URLs are limited to non-network `ui:` / `mcp:` schemes. Remote loads require an exact origin allowlist, accept only credential-free `http:` / `https:` URIs, and use a dedicated `{ uri, mimeType }` input rather than an MCP blob/text body.
+`@mcp-native/webview` handles the compatibility path for MCP resources that contain HTML. The stable
+path negotiates `io.modelcontextprotocol/ui`, discovers strict `_meta.ui` tool metadata, reads one
+exact `ui://` resource with `text/html;profile=mcp-app`, preserves closed CSP and permission
+metadata, builds a CSP-first native sandbox, and runs the bounded Apps JSON-RPC lifecycle. The
+legacy generic helpers still recognize older HTML MIME types and reject both inline and remote
+documents unless the host explicitly grants them through policy.
 
-Current support does not include tool `_meta.ui.resourceUri` discovery, `ui://` preloading, resource CSP or permission metadata, `ui/initialize`, AppBridge, the Apps JSON-RPC protocol, or a postMessage bridge. Those are required before this package can claim [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) host compatibility.
+The exact protocol pin, message set, bounds, exclusions, native/browser differences, and official
+schema evidence are documented in the [MCP Apps compatibility
+profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md).
+
+## Stable MCP Apps host flow
+
+```ts
+import {
+  MCP_APPS_EXTENSION_CAPABILITIES,
+  McpAppsBridge,
+  createMcpAppsNativeDeliveryScript,
+  createMcpAppsNativeSandbox,
+  createMcpAppsReactNativeWebViewProps,
+  loadMcpAppsResource,
+  negotiateMcpApps,
+} from "@mcp-native/webview";
+
+const grant = negotiateMcpApps(
+  adapter.getClientExtensionSettings(),
+  adapter.getServerExtensionSettings(),
+);
+if (grant.kind !== "negotiated") {
+  // Render the tool's ordinary MCP text/structured fallback.
+  throw new Error(grant.reason);
+}
+
+const resource = await loadMcpAppsResource(tool, runtime, grant);
+const sandbox = createMcpAppsNativeSandbox(resource); // no sensitive permissions by default
+
+let webViewRef;
+const bridge = new McpAppsBridge({
+  resource,
+  sandbox,
+  hostInfo: { name: "my-native-host", version: "1.0.0" },
+  tools,
+  postMessage(serialized) {
+    webViewRef.injectJavaScript(createMcpAppsNativeDeliveryScript(serialized));
+  },
+  handlers: {
+    callTool: (name, arguments_) => runtime.callTool(name, arguments_),
+    readResource: (uri) => runtime.readResource(uri),
+    openLink: async (url) => {
+      if (!hostPolicyAllows(url)) return false;
+      await openExternalUrl(url);
+      return true;
+    },
+  },
+});
+
+const webViewProps = createMcpAppsReactNativeWebViewProps(sandbox, {
+  onMessage: (message) => bridge.receive(message),
+  onExternalLink: openExternalUrl,
+  onError: reportMcpAppsHostError,
+});
+```
+
+Advertise `MCP_APPS_EXTENSION_CAPABILITIES` through `createMcpNativeClientOptions()` and pass the
+same snapshot into the SDK adapter. Capabilities are not inferred from the tool or resource MIME
+type. The bridge advertises View-facing host features only when the matching host callback exists.
+The native adapter requires `onError` so rejected message and external-link callbacks remain inside
+the host's controlled error boundary. Bridge work is capped at 128 concurrent inbound messages, and
+exactly-once tool lifecycle sends are serialized across asynchronous transports.
 
 ## Install
 
@@ -73,27 +141,32 @@ Remote inputs are `{ uri, mimeType }` references (not MCP text/blob resource bod
 
 ## Public API
 
-| Export                  | Purpose                                                                                   |
-| ----------------------- | ----------------------------------------------------------------------------------------- |
-| `isHtmlResource`        | Returns whether a resource declares a supported HTML MIME type.                           |
-| `createWebViewDocument` | Validates a text or remote HTML input and returns a policy-approved document descriptor.  |
-| `WebViewDocumentInput`  | `McpTextResourceContents` or `{ uri, mimeType }` remote reference (never blob resources). |
-| `WebViewRemoteResource` | Remote HTML reference without a resource body.                                            |
-| `WebViewPolicy`         | Host policy for inline opt-in, remote opt-in, and remote origin allowlists.               |
-| `WebViewDocument`       | Discriminated union for inline and remote documents.                                      |
-| `WebViewPolicyError`    | Error thrown for unsupported MIME types, schemes, credentials, or denied documents.       |
+| Export                                                       | Purpose                                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `MCP_APPS_EXTENSION_CAPABILITIES`                            | Exact stable extension settings for SDK advertisement and negotiation.          |
+| `negotiateMcpApps` / `isMcpAppsGrant`                        | Require explicit mutual support before the stable resource path.                |
+| `parseMcpAppsToolMeta` / `filterMcpAppsModelTools`           | Validate discovery and enforce model/app visibility.                            |
+| `loadMcpAppsResource` / `resolveMcpAppsResource`             | Read and validate one exact stable text/blob resource and metadata.             |
+| `createMcpAppsNativeSandbox`                                 | Build the closed CSP, navigation, storage, permission, and document descriptor. |
+| `createMcpAppsReactNativeWebViewProps`                       | Select an explicit safe subset for a locally bundled React Native WebView.      |
+| `createMcpAppsNativeDeliveryScript`                          | Deliver JSON data through the fixed local native bridge shim.                   |
+| `McpAppsBridge`                                              | Run the bounded stable View/host JSON-RPC lifecycle.                            |
+| `isHtmlResource` / `createWebViewDocument`                   | Legacy generic HTML detection and deny-by-default document policy.              |
+| `McpAppsError` / `McpAppsBridgeError` / `WebViewPolicyError` | Controlled validation and policy failures.                                      |
 
-Supported MIME types are `text/html` and `text/html+skybridge`.
+The stable Apps path accepts only `text/html;profile=mcp-app`. The separate generic helpers support
+`text/html` and `text/html+skybridge`; those MIME types never negotiate or resolve a stable App.
 
 ## Host responsibilities
 
-Returning a `WebViewDocument` is not permission to render it without further controls. A production host must still define:
+Returning a `WebViewDocument` or sandbox descriptor is not permission to weaken platform controls.
+A production host must still verify:
 
 - allowed origins and navigation rules;
-- bridge message schemas and directionality;
-- storage, cookie, download, and external-link policy;
-- camera, microphone, location, clipboard, and filesystem permissions;
-- process isolation and platform-specific WebView hardening.
+- ephemeral website data and cookie/process-pool isolation on each supported OS version;
+- native download, permission, safe-browsing, custom-scheme, and teardown delegates;
+- that every descriptor field maps to the intended locally bundled WebView implementation; and
+- user approval before any sensitive device capability or external effect.
 
 See the repository's [security policy](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md) before expanding this boundary. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
 

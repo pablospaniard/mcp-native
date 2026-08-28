@@ -3,13 +3,15 @@
 - Status: Accepted for initial proof of concept
 - Protocol conformance: None claimed
 - Date: 2026-08-25
-- Last updated: 2026-08-26
+- Last updated: 2026-08-28
 
 ## Summary
 
 MCP Native turns MCP resources and actions into host-controlled native UI. The initial implementation uses a small internal surface model inspired by A2UI. The intended production architecture will parse a supported declarative protocol into an internal trusted render plan, map that plan to a local component catalog, and route declared user actions back through its protocol binding.
 
-HTML MCP Apps are planned through a separately policy-gated WebView path. The current WebView package does not implement the MCP Apps bridge or sandbox.
+HTML MCP Apps use a separately policy-gated WebView path. The WebView package implements the
+documented stable `2026-01-26` native host-adapter profile without weakening the declarative native
+boundary.
 
 RFC-0001 defines the proof-of-concept architecture, not A2UI v1.0 or MCP Apps conformance. See [Standards and compatibility](standards-compatibility.md) for the normative baselines and tracked gaps.
 
@@ -85,7 +87,11 @@ The renderer accepts a catalog of locally bundled components instead of importin
 
 ### `@mcp-native/webview`
 
-Owns the planned compatibility path for HTML MCP Apps. The current implementation only validates HTML resource MIME types and applies a minimal remote-document policy. Complete support still requires tool `_meta.ui.resourceUri` discovery, `ui://` loading, CSP and permission metadata, an isolated platform WebView, and the Apps JSON-RPC/AppBridge protocol.
+Owns the compatibility path for HTML MCP Apps. It validates stable extension negotiation, tool
+discovery and visibility, exact `ui://` resources, CSP and permission metadata, a closed native
+WebView sandbox descriptor, a React Native WebView safe-prop adapter, and a bounded JSON-RPC
+lifecycle. The older generic HTML document policy is a separate fallback and does not grant Apps
+support. See the [exact native host profile](mcp-apps-compatibility.md).
 
 ### `mcp-native`
 
@@ -142,7 +148,10 @@ The MCP `2026-07-28` foundation is complete for RFC-0001's initial client bounda
 
 The extension and capability substrate is also complete. Core validates prefixed extension maps and requires mutual declarations; the SDK adapter exchanges settings on the modern HTTP path; metadata alone never grants support; and the project-owned A2UI binding pins an exact Candidate revision and ordered resource transport with text/data fallback. The A2UI package parses lifecycle envelopes, retains bounded ordered state, validates complete snapshots against the pinned basic catalog plus explicit host allowlists, including nested expressions in literal `formatString` sources reconstructed as catalog calls, and constructs the supported official renderer action envelope. The React Native package adapts and mounts the supported v1 subset with bounded dynamic lists, renderer-local absolute and relative string bindings, bounded string/number/currency/date/plural formatting, pure boolean and validation evaluation, supported field and button checks, dispatch-time template event resolution, and press-time policy-gated HTTP(S) `openUrl` while rejecting unsupported components and functions. See the [standards-first roadmap](roadmap.md).
 
-MCP Apps compatibility remains a separate track. A malformed or unsupported native surface must fail closed rather than silently becoming executable HTML, and an invalid Apps resource must not be interpreted as native UI.
+MCP Apps compatibility remains a separate track. A malformed or unsupported native surface fails
+closed rather than silently becoming executable HTML, and an invalid Apps resource is never
+interpreted as native UI. The stable Apps grant, resource resolver, sandbox, and bridge are all
+explicit boundaries.
 
 ## Compatibility note
 
@@ -180,5 +189,6 @@ return { content: [{ type: "text", text: "Saved" }] };
 - Authentication and production transport configuration
 - Richer React Native catalog components, styling, and platform-specific accessibility behavior
 - Sensitive-device capability policies, consent, and permissions
-- MCP Apps discovery metadata, AppBridge compatibility, WebView sandboxing, and origin isolation
+- MCP Apps browser-host double-iframe support and optional stable methods outside the documented
+  native host-adapter profile
 - SwiftUI, Jetpack Compose, or other native renderers

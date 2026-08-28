@@ -36,6 +36,18 @@ try {
       throw new Error(`@mcp-native/react-native declarations are missing ${typeName}`);
     }
   }
+  const webviewDeclarations = ["index", "apps", "bridge", "sandbox"]
+    .map((moduleName) => readFileSync(`packages/webview/dist/${moduleName}.d.ts`, "utf8"))
+    .join("\n");
+  for (const typeName of [
+    "McpAppsBridge",
+    "McpAppsNativeSandboxConfiguration",
+    "McpAppsReactNativeWebViewProps",
+  ]) {
+    if (!webviewDeclarations.includes(typeName)) {
+      throw new Error(`@mcp-native/webview declarations are missing ${typeName}`);
+    }
+  }
 
   const tarballs = packages.map((packageName) => {
     const output = execFileSync(

@@ -20,6 +20,13 @@ import {
   JSON_MAX_STRING_LENGTH,
   JSON_MAX_VALUES,
   JsonValidationError,
+  MCP_APPS_EXTENSION_CAPABILITIES,
+  MCP_APPS_EXTENSION_ID,
+  MCP_APPS_MIME_TYPE,
+  MCP_APPS_PROTOCOL_VERSION,
+  McpAppsBridge,
+  McpAppsBridgeError,
+  McpAppsError,
   McpNativeActionDeniedError,
   McpNativeSurface,
   McpNativeRuntime,
@@ -33,9 +40,14 @@ import {
   createNativeTextAdapter,
   createNativeTextInputAdapter,
   createNativeViewAdapter,
+  createMcpAppsNativeSandbox,
+  createMcpAppsReactNativeWebViewProps,
   createWebViewDocument,
   evaluateA2uiV1FormatString,
   isA2uiMcpBindingGrant,
+  isMcpAppsGrant,
+  loadMcpAppsResource,
+  negotiateMcpApps,
   negotiateA2uiMcpBinding,
   negotiateA2uiV1Capabilities,
   negotiateMcpExtension,
@@ -72,15 +84,24 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(JSON_MAX_DEPTH, 64);
   assert.equal(JSON_MAX_VALUES, 10_000);
   assert.equal(JSON_MAX_STRING_LENGTH, 65_536);
+  assert.equal(MCP_APPS_EXTENSION_ID, "io.modelcontextprotocol/ui");
+  assert.equal(MCP_APPS_PROTOCOL_VERSION, "2026-01-26");
+  assert.equal(MCP_APPS_MIME_TYPE, "text/html;profile=mcp-app");
+  assert.equal(Object.isFrozen(MCP_APPS_EXTENSION_CAPABILITIES), true);
   assert.equal(typeof McpNativeRuntime, "function");
   assert.equal(typeof McpNativeActionDeniedError, "function");
   assert.equal(typeof JsonValidationError, "function");
+  assert.equal(typeof McpAppsBridge, "function");
+  assert.equal(typeof McpAppsBridgeError, "function");
+  assert.equal(typeof McpAppsError, "function");
   assert.equal(typeof McpNativeSurface, "function");
   assert.equal(typeof createNativeRenderPlan, "function");
   assert.equal(typeof createNativeButtonAdapter, "function");
   assert.equal(typeof createNativeTextAdapter, "function");
   assert.equal(typeof createNativeTextInputAdapter, "function");
   assert.equal(typeof createNativeViewAdapter, "function");
+  assert.equal(typeof createMcpAppsNativeSandbox, "function");
+  assert.equal(typeof createMcpAppsReactNativeWebViewProps, "function");
   assert.equal(typeof createAllowlistActionPolicy, "function");
   assert.equal(typeof createA2uiV1BasicCatalogPolicy, "function");
   assert.equal(typeof createA2uiV1ActionEnvelope, "function");
@@ -91,6 +112,9 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof validateA2uiV1SurfaceState, "function");
   assert.equal(typeof createWebViewDocument, "function");
   assert.equal(typeof isA2uiMcpBindingGrant, "function");
+  assert.equal(typeof isMcpAppsGrant, "function");
+  assert.equal(typeof loadMcpAppsResource, "function");
+  assert.equal(typeof negotiateMcpApps, "function");
   assert.equal(typeof negotiateA2uiMcpBinding, "function");
   assert.equal(typeof negotiateA2uiV1Capabilities, "function");
   assert.equal(typeof negotiateMcpExtension, "function");
