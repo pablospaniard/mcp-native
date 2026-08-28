@@ -97,7 +97,12 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | Stable MCP Apps discovery, sandbox, native adapter, and JSON-RPC bridge       |
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                       |
 
-The packages are intentionally separated so the core runtime does not depend on the official SDK, React Native, or any single declarative UI protocol. Release `0.4.0` completes the feature-scoped A2UI v1 Candidate adapter, adds closed native component variants and accessibility semantics, and introduces automated robustness plus real-platform release gates. Its package version is independent of the internal A2UI proof-of-concept surface value `"0.1"`.
+The packages are intentionally separated so the core runtime does not depend on the official SDK,
+React Native, or any single declarative UI protocol. Release `0.5.0` adds the stable MCP Apps
+`2026-01-26` native host-adapter profile with strict discovery, bounded bridge handling, and a
+closed WebView sandbox contract. Release `0.4.0` completed the feature-scoped A2UI v1 Candidate
+adapter and its real-platform accessibility gates. Package versions are independent of the internal
+A2UI proof-of-concept surface value `"0.1"`.
 
 ## Installation
 

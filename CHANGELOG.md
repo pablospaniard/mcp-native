@@ -6,6 +6,11 @@ their minor release line.
 
 ## Unreleased
 
+## 0.5.0 - 2026-08-28
+
+Adds the stable MCP Apps native host-adapter profile with strict capability negotiation, bounded
+resource and bridge handling, and a closed native WebView sandbox contract.
+
 ### Added
 
 - A stable MCP Apps `2026-01-26` native host-adapter profile with exact
@@ -17,6 +22,25 @@ their minor release line.
 - A bounded stable Apps JSON-RPC bridge covering initialization, tool data, host context, supported
   View requests/notifications, same-server app-visible tool calls, and graceful teardown, verified
   against exact official `@modelcontextprotocol/ext-apps@1.7.5` schemas.
+
+### Security
+
+- Reject unnegotiated Apps resources, non-`ui://` discovery, legacy or ambiguous HTML media types,
+  malformed/oversized HTML and base64, unknown security metadata, unsafe CSP sources, executable
+  content before CSP, unsupported dedicated origins, and permission grants the standard native
+  adapter cannot enforce.
+- Reject malformed, premature, unknown, oversized, visibility-bypassing, non-JSON, out-of-order, and
+  excessively concurrent bridge traffic before another host callback runs; advertise bridge
+  capabilities only when their corresponding explicit host callback exists. Contain rejected native
+  callbacks through a required host error boundary and serialize exactly-once tool lifecycle sends
+  across asynchronous transports.
+
+## 0.4.0 - 2026-08-28
+
+Completes the feature-scoped A2UI v1 Candidate adapter with bounded renderer functions, native
+component variants, accessibility semantics, robustness gates, and real-platform release evidence.
+
+### Added
 
 - Complete pinned renderer-to-agent envelope parsing for `action`, `callAgentFunction`,
   `rendererFunctionResponse`, and `error`, with schema-derived interoperability fixtures and exact
@@ -61,16 +85,6 @@ their minor release line.
   correctness fixes; new integrations should use the pinned v1 Candidate APIs.
 
 ### Security
-
-- Reject unnegotiated Apps resources, non-`ui://` discovery, legacy or ambiguous HTML media types,
-  malformed/oversized HTML and base64, unknown security metadata, unsafe CSP sources, executable
-  content before CSP, unsupported dedicated origins, and permission grants the standard native
-  adapter cannot enforce.
-- Reject malformed, premature, unknown, oversized, visibility-bypassing, non-JSON, out-of-order, and
-  excessively concurrent bridge traffic before another host callback runs; advertise bridge
-  capabilities only when their corresponding explicit host callback exists. Contain rejected native
-  callbacks through a required host error boundary and serialize exactly-once tool lifecycle sends
-  across asynchronous transports.
 
 - Treat parsed renderer function calls, responses, and errors as bounded inert data: successful
   validation never grants execution, transport, tool, URL, device, or permission authority.

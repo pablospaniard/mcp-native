@@ -1,6 +1,6 @@
 {
   "name": "mcp-native",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Convenience package for the MCP Native runtime.",
   "keywords": [
     "a2ui",
@@ -37,10 +37,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@mcp-native/a2ui": "^0.4.0",
-    "@mcp-native/core": "^0.4.0",
-    "@mcp-native/react-native": "^0.4.0",
-    "@mcp-native/webview": "^0.4.0"
+    "@mcp-native/a2ui": "^0.5.0",
+    "@mcp-native/core": "^0.5.0",
+    "@mcp-native/react-native": "^0.5.0",
+    "@mcp-native/webview": "^0.5.0"
   },
   "peerDependencies": {
     "react": ">=18.3.1 <20",
