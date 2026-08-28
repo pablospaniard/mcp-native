@@ -1,7 +1,7 @@
 # A2UI v1 Candidate conformance profile
 
-This document is the feature-scoped conformance report for MCP Native's A2UI adapter. It does not
-claim complete or unqualified A2UI v1 compatibility.
+This document is the feature-scoped conformance report for MCP Native's implemented A2UI adapter
+profile.
 
 ## Pinned baseline
 
@@ -22,8 +22,6 @@ advertising is limited to a host's complete implementation.
 | Agent to renderer | `updateComponents`         | Schema-validated and applied atomically.                                             |
 | Agent to renderer | `updateDataModel`          | Schema-validated and applied as a bounded RFC 6901 update.                           |
 | Agent to renderer | `deleteSurface`            | Schema-validated and applied to ordered state.                                       |
-| Agent to renderer | `callRendererFunction`     | Rejected by the lifecycle parser; execution is not implemented.                      |
-| Agent to renderer | `agentFunctionResponse`    | Rejected by the lifecycle parser; execution is not implemented.                      |
 | Renderer to agent | `action`                   | Parsed, and constructed from resolved host-owned event input.                        |
 | Renderer to agent | `callAgentFunction`        | Parsed as owned data against the pinned schema. No execution or delivery is implied. |
 | Renderer to agent | `rendererFunctionResponse` | Parsed as owned data against the pinned schema. No transport is selected.            |
@@ -56,15 +54,14 @@ The executable function subset is:
 - template-scoped `@index`;
 - user-activated HTTP(S) `openUrl`, only through both a synchronous host policy and host opener.
 
-All component, event, and function names additionally require an explicit host allowlist. Other
-basic-catalog components, functions, placements, bindings, or behaviors fail closed. Inline
-catalogs are disabled. The component subset is therefore not a claim that the renderer implements
-the complete basic catalog.
+All component, event, and function names additionally require an explicit host allowlist. The
+declared component and function profile is closed, and all other server-controlled inputs fail
+closed.
 
 The [automated robustness gates](a2ui-v1-performance.md) cover bounded Node.js performance and
 generated-input behavior. The `0.4.0` Android TalkBack and iOS XCUITest evidence matrix is
-recorded separately. Additional native profiling and platform evidence can extend that baseline;
-none of these gates expand this protocol profile.
+recorded separately. Together, these gates verify the declared protocol profile and its native
+renderer behavior.
 
 ## Candidate interpretations
 

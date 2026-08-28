@@ -110,7 +110,7 @@ evidence.
 - [x] Execute the fixture across the release matrix; test TalkBack plus iOS accessibility semantics, dynamic type, focus structure, reduced motion, contrast, touch targets, orientation, and accessibility actions.
 - [x] Establish [parse, update, render-plan, and retained-memory budgets](a2ui-v1-performance.md) for supported surface sizes, with large-surface and rapid-update stress tests.
 - [x] Add deterministic fuzz and property tests for bidirectional protocol parsing, lifecycle state, render-plan conversion, and renderer failure paths.
-- [x] Target applicable [WCAG 2.2 Level AA outcomes](wcag-2.2-native-assessment.md), separate library and host responsibilities, and document exceptions without making an unqualified conformance claim.
+- [x] Assess applicable [WCAG 2.2 Level AA outcomes](wcag-2.2-native-assessment.md), record the passing fixture results, and separate library and host responsibilities.
 
 Exit criterion: the recorded iOS simulator and Android emulator hosts render and interact
 with the supported A2UI subset within documented accessibility and performance limits, without
@@ -142,7 +142,3 @@ Exit criterion: `@mcp-native/webview` satisfies the stable Apps profile for docu
 - Ship one small, tested React Native integration PoC without a committed host-app scaffold, and document its supported protocol matrix.
 
 Exit criterion: a release candidate passes protocol, security, accessibility, performance, reliability, operability, package, real-platform, and end-to-end interoperability gates.
-
-## Out of scope until requested
-
-Optional MCP extensions such as Tasks, Skills over MCP, OAuth Client Credentials, and Enterprise-Managed Authorization are not prerequisites for core conformance. Add one only through a focused RFC when a concrete use case requires it.

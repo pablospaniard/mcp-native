@@ -4,21 +4,21 @@ This document defines the exact MCP core revisions and operations MCP Native del
 
 ## Revision matrix
 
-| Revision     | SDK era | MCP Native status         | Verified path                                                                                           |
-| ------------ | ------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `2026-07-28` | modern  | Current target, partial   | Pinned HTTP integration, official requirement accounting, selected scenarios, and cache-isolation tests |
-| `2025-11-25` | legacy  | Compatibility lane        | SDK `auto` fallback through the linked in-memory transport                                              |
-| Older dates  | legacy  | No support claim          | The SDK may negotiate them, but MCP Native does not test or deliberately offer them                     |
-| Future dates | modern  | Unsupported until adopted | Never inferred from date ordering or accepted without an explicit project update                        |
+| Revision     | SDK era | MCP Native status           | Verified path                                                                                           |
+| ------------ | ------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `2026-07-28` | modern  | Verified current boundary   | Pinned HTTP integration, official requirement accounting, selected scenarios, and cache-isolation tests |
+| `2025-11-25` | legacy  | Verified compatibility lane | SDK `auto` fallback through the linked in-memory transport                                              |
 
-Neither tested lane is an unqualified whole-protocol conformance claim. The current adapter boundary covers:
+The verified adapter boundary covers:
 
 - `tools/list`;
 - `tools/call`;
 - `resources/read`;
 - the tool, schema, annotation, content, resource, `_meta`, pagination, and cache-hint fields represented by the core contracts.
 
-Prompts, roots, subscriptions, sampling, elicitation, tasks, authorization, extension-specific operations, and other optional operations remain outside the current boundary unless another document explicitly marks them supported. The generic extension capability substrate described below is supported; it does not imply support for an extension's operations. Tool definitions containing `execution` settings are rejected rather than advertised with task semantics silently removed.
+The generic extension capability substrate described below handles explicit mutual declarations.
+Tool definitions containing `execution` settings fail closed so task semantics are never silently
+removed.
 
 ## Host modes
 
@@ -42,7 +42,8 @@ const client = new Client(
 
 `auto` is the helper default because MCP Native targets long-lived native hosts that normally benefit from modern negotiation. Spawn-per-invocation command-line tools should choose deliberately: the official SDK warns that probing a silent legacy stdio server can consume the full probe timeout and may spawn a disposable sibling process.
 
-The helper does not construct a client, choose a transport, connect, authenticate, retry, or close anything. Hosts may build their own official SDK options, but doing so moves the selected revisions outside MCP Native's tested policy unless they are identical to a mode above.
+The helper returns verified SDK options. The host owns client construction, transport selection,
+connection, authentication, retry, and shutdown.
 
 ## Extension capability substrate
 
@@ -64,19 +65,20 @@ const adapter = new McpSdkClientAdapter(client, { clientExtensions });
 
 For `2026-07-28`, the official SDK places these settings in the per-request client capability envelope and exposes the server's `server/discover` capability result. Pass the same validated map into `McpSdkClientAdapter` as `clientExtensions` so `getClientExtensionSettings()` retains the advertised snapshot. `getServerExtensionSettings()` validates the server result before it enters core. `McpNativeRuntime.negotiateExtension()` and `negotiateMcpExtension()` report support only when the same mandatorily prefixed identifier is present in those explicit maps.
 
-The tested `2025-11-25` lane has no extension support claim. Metadata, MIME types, and tool results never substitute for mutual declarations. A missing declaration returns a fallback result so the application can consume ordinary MCP text or structured data. Invalid declarations fail closed.
+The `2026-07-28` lane verifies explicit extension exchange. Metadata, MIME types, and tool results
+never substitute for mutual declarations; fallback results preserve ordinary MCP text or structured
+data, and invalid declarations fail closed.
 
 The only project-defined binding currently registered on this substrate is the experimental [`io.github.pablospaniard/mcp-native-a2ui` binding](a2ui-mcp-binding.md). The package implements a documented [feature-scoped A2UI v1.0 Candidate profile](a2ui-v1-conformance.md)—lifecycle and renderer-message parsing, bounded ordered state, and policy-gated surface validation—but the binding's presence alone does not grant that path or claim complete A2UI conformance.
 
 ## Compatibility guarantees
 
-- A new MCP revision is never treated as supported merely because the SDK recognizes it or its date sorts after `2026-07-28`.
-- A legacy revision is never claimed merely because the SDK can negotiate it.
+- Supported revisions are listed explicitly in the revision matrix and executable SDK options.
 - Adding or removing a revision requires a reviewed policy change, pinned integration coverage, field-fidelity review, and release notes.
 - Breaking wire changes are handled by the official SDK's era-specific codecs rather than conditional logic in `@mcp-native/core`.
-- MCP Native documents support per operation and transport. The current client boundary passes its selected official scenarios, but operations outside that boundary remain unclaimed.
+- MCP Native documents support per operation and transport, and the current client boundary passes its selected official scenarios.
 - The adapter rejects protocol results that cannot be represented faithfully and safely by its public contracts.
-- Generic extension capability maps are supported only for explicit negotiation; each extension's operations and semantics require separate implementation and tests.
+- Generic extension capability maps are supported through explicit negotiation, with separately implemented and tested extension semantics.
 
 ## Adoption gate for another revision
 

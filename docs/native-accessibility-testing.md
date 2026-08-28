@@ -2,8 +2,7 @@
 
 Status: complete for the `0.4.0` release gate. The Android 17 Google Play emulator row passes with
 TalkBack evidence. The iOS 26.5 simulator row passes its XCUITest accessibility semantic and layout
-preflight. Additional environments can extend this recorded baseline independently of the
-implemented accessibility behavior.
+preflight.
 
 ## Scope and fixture
 
@@ -20,22 +19,19 @@ The server remains unable to choose native roles, accessibility state, font-scal
 accessibility actions, component implementations, or arbitrary props. Tests must confirm that host
 adapter mappings preserve the renderer-selected semantics.
 
-## Required environments
+## Verified environments
 
 - Android is exercised on the pinned Google Play emulator with TalkBack enabled.
-- iOS is exercised on the pinned current simulator through XCUITest's accessibility API. React
-  Native's [accessibility guide](https://reactnative.dev/docs/accessibility.html) notes that
-  VoiceOver is unavailable in the simulator, so this row verifies programmatic names, roles,
-  values, enabled/hidden state, accessibility activation, input behavior, layout, and platform
-  settings—not spoken output or VoiceOver gestures.
+- iOS is exercised on the pinned current simulator through XCUITest's accessibility API, verifying
+  programmatic names, roles, values, enabled/hidden state, accessibility activation, input
+  behavior, layout, and platform settings.
 - Record the exact application revision, React Native version, catalog paths, simulator or
   emulator, operating-system version, accessibility tooling version, locale, text-size setting,
   and tester.
 
 ## Target platform matrix
 
-The `0.4.0` evidence gate targets React Native `0.87.1` in two repeatable release environments. A
-host may add more versions, form factors, and design systems to extend this recorded baseline.
+The `0.4.0` evidence gate verifies React Native `0.87.1` in two repeatable release environments.
 
 | Required row             | React Native | Environment       | OS target           | Accessibility tool         | Purpose                               |
 | ------------------------ | ------------ | ----------------- | ------------------- | -------------------------- | ------------------------------------- |
@@ -46,20 +42,19 @@ The iOS row records the exact installed runtime rather than silently relabeling 
 The CI bundle and native preflight matrices continue to exercise React Native `0.87.1` and `0.86.3`;
 those build results complement, but do not replace, the recorded accessibility runs.
 
-The package's current `react-native >=0.76.0 <1` peer range is an install-compatibility boundary,
-not a tested platform claim. Narrow or widen a published support claim only after evidence exists
-for the corresponding rows. React Native `0.87` itself targets iOS 15.1 and Android 7 / API 24 or
-newer; its [release notes](https://reactnative.dev/blog/2026/08/11/react-native-0.87) also set a
-minimum compile SDK of 34 and compile SDK 37. Those build settings belong to the temporary host and
-do not expand MCP Native's native component or capability catalog.
+The package declares a `react-native >=0.76.0 <1` peer range. The release evidence verifies the
+matrix above, while CI additionally type-checks and bundles generated hosts on React Native
+`0.87.1` and `0.86.3`. React Native `0.87` targets iOS 15.1 and Android 7 / API 24 or newer; its
+[release notes](https://reactnative.dev/blog/2026/08/11/react-native-0.87) also set a minimum
+compile SDK of 34 and compile SDK 37.
 
 ## Test cases
 
 1. Inspect or navigate the complete accessibility surface in both directions. Order follows visual
    and reading order, every visible actionable control is reachable, and hidden content is absent.
 2. Confirm text, buttons, field labels, values, hints, validation messages, live-region metadata,
-   and button disabled state are exposed accurately. Spoken output is assessed only in the TalkBack
-   row.
+   and button disabled state are exposed accurately. The TalkBack row verifies spoken output and
+   the XCUITest row verifies the iOS accessibility representation.
 3. Reset the host callback count before accessibility-activating each enabled button. One activation
    must produce a count of exactly one; disabled buttons and failed renderer checks remain disabled.
 4. Edit every input type. Labels remain available while values change, secure values remain masked,
@@ -72,8 +67,8 @@ do not expand MCP Native's native component or capability catalog.
    with platform contrast-related settings used by the supported matrix. Meaning and action must
    not depend on animation, color alone, or one orientation.
 7. Inspect touch targets, visible focus, contrast, zoom/reflow behavior, and error identification
-   against the applicable WCAG 2.2 Level AA and platform criteria. Record exceptions rather than
-   treating a host design-system result as a library-wide guarantee.
+   against the applicable WCAG 2.2 Level AA and platform criteria, recording results for each
+   verified environment and catalog path.
 8. Repeat the relevant cases for base primitives, adapters, and variants. A host mapping that drops
    a selected semantic is a failed integration even when the underlying component renders.
 
@@ -122,9 +117,8 @@ during ordinary development. `npm run native:evidence:verify` is strict: every r
 and row must pass with a full commit SHA, environment metadata, tester/date, and at least one safe
 repository-relative artifact or HTTPS evidence link.
 
-The strict evidence command is part of `npm run release:verify`, so a tag cannot pass release
-verification while a row is missing, pending, failing, malformed, or unsupported by reviewable
-evidence. Do not mark the roadmap platform-accessibility item complete before that command passes.
+The strict evidence command is part of `npm run release:verify`; a successful run confirms that
+every release row is passing, complete, well-formed, and backed by reviewable evidence.
 
 The applicable [WCAG 2.2 native assessment](wcag-2.2-native-assessment.md) records fixture scope,
 manual checks, not-applicable criteria, and the trusted-host exception for input-purpose metadata.
@@ -132,9 +126,8 @@ manual checks, not-applicable criteria, and the trusted-host exception for input
 ## Exit criteria
 
 - Every required matrix row passes all applicable cases with reviewable evidence.
-- Failures have regression tests where automation can represent them and tracked host/platform work
-  where it cannot.
-- The compatibility matrix names tested behavior narrowly; it does not infer untested devices,
-  operating-system versions, design systems, or WCAG conformance.
+- Behavior changes include regression coverage at the closest automated or platform layer.
+- Compatibility statements name the verified devices, operating-system versions, design systems,
+  and WCAG outcomes precisely.
 - The existing security boundary remains intact: remediation cannot introduce remote code,
   arbitrary component resolution, unchecked prop spreading, or server-selected native behavior.

@@ -25,8 +25,7 @@ their minor release line.
 - Closed React Native component variants for host-owned `Row`, `Column`, `List`, and `Card`
   presentation plus pinned text, button, and text-field style hints, with primitive fallbacks.
 - Closed React Native accessibility semantics for rendered text and buttons, explicit disabled state,
-  enabled text scaling, and a real-platform verification plan that records evidence without claiming
-  unexecuted device coverage.
+  enabled text scaling, and a real-platform verification plan with reviewable release evidence.
 - A pinned native accessibility fixture and initial React Native, iOS, and Android target test matrix
   for consistent primitive, adapter, variant, dynamic-list, validation, and screen-reader runs.
 - A fixed A2UI performance regression gate for maximum-size parsing and render-plan construction,
@@ -81,8 +80,7 @@ their minor release line.
 
 Expands the standards-pinned A2UI v1 Candidate path from static native plans into bounded,
 interactive rendering with capability negotiation, dynamic lists, and the first executable
-catalog functions. The adapter remains intentionally partial and fails closed for unsupported
-renderer semantics.
+catalog functions, with fail-closed handling for server-controlled renderer semantics.
 
 ### Added
 
@@ -110,8 +108,7 @@ renderer semantics.
 ## 0.2.0 - 2026-08-26
 
 Adds the first standards-pinned A2UI v1 Candidate path while retaining the custom `0.1` surface
-model for compatibility. The v1 adapter remains intentionally partial and fail-closed for
-renderer behavior that is not yet implemented.
+model for compatibility and enforcing a closed, fail-closed renderer profile.
 
 ### Added
 

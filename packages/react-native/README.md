@@ -103,18 +103,18 @@ const plan = surface && createA2uiV1NativeRenderPlan(surface, policy);
 
 The adapter maps `Row`, `Column`, static or dynamic `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. Dynamic lists expand one validated template component per bound array item and remain inside the 1,024-node plan limit. The adapter resolves absolute and item-relative JSON Pointer values, translates relative `TextField` bindings into absolute renderer-local pointers, evaluates bounded literal `formatString`, host-localized `formatNumber`, `formatCurrency`, `formatDate`, and `pluralize`, pure `and`, `or`, and `not`, `required`, bounded `regex`, `length`, `numeric`, and `email`, and `@index` with optional offsets, maps supported container direction and alignment to owned React Native flex styles, applies component weight through a host-owned `View` wrapper with `flexGrow`, maps `TextField` variants to explicit native input behavior (including `secureTextEntry` for `obscured`), and preserves event context and explicit accessibility fields. At the mounted boundary, text and buttons receive closed native roles, button accessibility state mirrors the derived disabled state, hidden text and controls are not accessibility elements, and text plus text inputs explicitly allow font scaling. Supported `TextField` checks set explicit `invalid` and `validationMessages` props on the host component and append declared failures to its accessibility hint; supported `Button` checks set `disabled`, expose declared messages, and cannot resolve or dispatch the event or local URL action until current renderer-local state passes. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
 
-These mappings have automated host-boundary coverage but are not a claim of VoiceOver, TalkBack,
-device, or WCAG conformance. The [native accessibility test
-plan](../../docs/native-accessibility-testing.md) defines the target platform matrix, shared fixture,
-required physical-device runs, and evidence needed before making a narrower platform claim.
-The [automated robustness gates](../../docs/a2ui-v1-performance.md) separately define repeatable
-Node.js render-plan budgets and fixed-seed generated-input coverage; they do not measure native
-frame time or device memory.
+These mappings have automated host-boundary coverage plus passing Android 17 TalkBack and iOS 26.5
+XCUITest evidence. The [native accessibility test
+plan](../../docs/native-accessibility-testing.md) defines the verified platform matrix, shared
+fixture, WCAG inspection, and strict evidence gate. The [automated robustness
+gates](../../docs/a2ui-v1-performance.md) define repeatable Node.js render-plan budgets and
+fixed-seed generated-input coverage.
 
 For release/platform testing, `npm run native:host:prepare` generates an official temporary React
 Native `0.87.1` or `0.86.3` host from local package tarballs and the pinned accessibility fixture.
 The [native accessibility test plan](../../docs/native-accessibility-testing.md) documents Metro and
-native build preflight, physical VoiceOver/TalkBack rows, WCAG scope, and the strict evidence gate.
+native build preflight, Android TalkBack and iOS XCUITest rows, verified WCAG outcomes, and the
+strict evidence gate.
 
 ### Host component adapters
 

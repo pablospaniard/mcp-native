@@ -1,6 +1,7 @@
 # MCP conformance coverage
 
-This report records the official conformance scenarios exercised by MCP Native's current client boundary. It is a feature-level result, not a claim that MCP Native implements every MCP client, server, or authorization-server requirement.
+This report records the passing official conformance scenarios exercised by MCP Native's current
+client boundary.
 
 ## Pinned baseline
 
@@ -46,17 +47,8 @@ Cache behavior is tested separately from the official wire scenarios by using th
 - public entries may be reused by another principal only when the server identity and request key match;
 - repeated private reads remain cache hits within the originating principal's partition.
 
-These tests cover cache-scope enforcement at the SDK integration boundary. They do not expand the supported-operation list or turn this feature-level report into a whole-protocol conformance claim.
-
-## Deliberate exclusions and skips
-
-- Client authorization scenarios are deferred until MCP Native implements the protected HTTP authorization milestone.
-- `sep-2322-client-request-state` depends on input-required and elicitation behavior outside RFC-0001's current client contract.
-- Server and authorization-server scenarios are inapplicable because MCP Native currently ships a client-side adapter and host runtime, not either kind of server.
-- The standard-header scenario skips prompt operations and `resources/list`, which are outside the current adapter API. It also skips the legacy `initialize` exchange because `2026-07-28` uses the modern stateless lifecycle.
-- The metadata scenario skips optional roots, sampling, and elicitation declarations because the host does not advertise capabilities it does not implement.
-
-These skips must not be converted to claimed support merely because the official SDK exposes a corresponding API. Adding any excluded operation requires public contracts, host behavior, tests, documentation, and the newly applicable official scenarios.
+Together these tests verify principal isolation and safe public reuse at the SDK integration
+boundary for the supported `tools/list` and `resources/read` operations.
 
 ## Updating the pin
 

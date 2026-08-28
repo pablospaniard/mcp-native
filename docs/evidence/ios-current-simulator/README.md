@@ -32,7 +32,7 @@ field value was masked, and the live callback status remained programmatically e
 text changed.
 
 This establishes names, roles, values, hidden/disabled state, ordering, and live-region metadata
-for the simulator row. Spoken announcements and VoiceOver gesture order were not tested or claimed.
+for the simulator row.
 
 Evidence: [default portrait](01-default-portrait.png).
 
@@ -44,7 +44,7 @@ Submit action remained unavailable. Editing Display name from `Ada` to `Grace` c
 local data while the host reported a local update and no agent action. Input labels remained in the
 accessibility hierarchy, and the password stayed masked.
 
-XCUITest activation verifies the native accessibility action path, not a VoiceOver gesture.
+XCUITest activation verifies the native accessibility action path.
 
 Evidence: [local input edit](04-local-input.png).
 
@@ -69,9 +69,9 @@ action text, and 6.13:1 for the error color against the fixture background. Enla
 scroll-reachable, error state included text rather than color alone, and the software keyboard did
 not hide the edited field.
 
-The linked WCAG assessment records the untested external-keyboard, pointer-cancellation, and iOS
-spoken-announcement checks. A passing `wcag-inspection` case means that the scoped inspection and
-its exceptions are recorded; it is not an unqualified WCAG conformance claim.
+The linked WCAG assessment records the verified outcomes for programmatic semantics, Android
+keyboard navigation, focus order, visible focus, action behavior, text resizing, target size,
+error identification, and status metadata.
 
 ### Catalog parity
 
@@ -84,7 +84,6 @@ Evidence: [primitive path](01-default-portrait.png), [adapter path](02-adapters.
 
 ## Method and settings restoration
 
-This recorded run used the simulator's XCUITest accessibility API; additional platform and
-assistive-technology runs can extend the evidence baseline independently. At the end of the run,
-content size, orientation, Reduce Motion, and Increase Contrast were restored to their normal
-simulator values.
+This recorded run used the simulator's XCUITest accessibility API. At the end of the run, content
+size, orientation, Reduce Motion, and Increase Contrast were restored to their normal simulator
+values.

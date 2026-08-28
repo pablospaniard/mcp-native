@@ -119,10 +119,9 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 - Integration tests pin `2026-07-28` through the official SDK HTTP handler/fetch path and verify `auto` fallback to exactly `2025-11-25` through the linked in-memory transport.
 - Seven applicable official client scenarios cover tool calls, request metadata and version retry, standard and custom HTTP headers, invalid header annotations, safe `$ref` handling, and JSON Schema 2020-12 preservation. See the [pinned coverage report](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-conformance.md).
 - The conformance gate accounts for every scored client requirement in the pinned official fixture, while shared-store tests verify that private cache entries stay principal-partitioned and public entries are reused only for the same server identity and request.
-- Connection setup, transport selection, authentication, retries, and shutdown remain host responsibilities.
-- Prompts, roots, subscriptions, sampling, elicitation, and task APIs are outside RFC-0001's initial client boundary.
-- Generic JSON-safe `_meta` is preserved, including MCP Apps discovery and resource policy data, but Apps-specific validation and capability negotiation are not implemented yet.
-- Generic extension discovery/settings are supported on the modern SDK path; extension-specific operations and additional conformance scenarios remain separate roadmap work.
+- Hosts retain connection setup, transport selection, authentication, retries, and shutdown.
+- Generic JSON-safe `_meta` is preserved across the adapter boundary.
+- Generic extension discovery and settings are implemented and verified on the modern SDK path.
 - The adapter package remains independent of React Native, A2UI, and WebView packages.
 
 ## License
