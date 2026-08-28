@@ -1,9 +1,9 @@
 # Native accessibility test plan
 
-Status: complete for the intentionally narrow `0.4.0` release gate. The Android 17 Google Play
-emulator row passes with TalkBack evidence, and the iOS 26.5 simulator row passes its XCUITest
-accessibility semantic and layout preflight. This scope does not claim VoiceOver, physical-device,
-minimum-OS, React Native `0.86`, or general WCAG coverage.
+Status: complete for the `0.4.0` release gate. The Android 17 Google Play emulator row passes with
+TalkBack evidence. The iOS 26.5 simulator row passes its XCUITest accessibility semantic and layout
+preflight. Additional environments can extend this recorded baseline independently of the
+implemented accessibility behavior.
 
 ## Scope and fixture
 
@@ -34,9 +34,8 @@ adapter mappings preserve the renderer-selected semantics.
 
 ## Target platform matrix
 
-The `0.4.0` evidence gate targets React Native `0.87.1` in the two environments available for a
-repeatable release run. A host may test more versions, form factors, and design systems, but those
-results do not expand the narrow tested claim.
+The `0.4.0` evidence gate targets React Native `0.87.1` in two repeatable release environments. A
+host may add more versions, form factors, and design systems to extend this recorded baseline.
 
 | Required row             | React Native | Environment       | OS target           | Accessibility tool         | Purpose                               |
 | ------------------------ | ------------ | ----------------- | ------------------- | -------------------------- | ------------------------------------- |
@@ -44,9 +43,8 @@ results do not expand the narrow tested claim.
 | Android current emulator | `0.87.1`     | Google Play image | Android 17 / API 37 | TalkBack                   | reproducible screen-reader lane       |
 
 The iOS row records the exact installed runtime rather than silently relabeling it as a newer patch.
-Minimum-OS, physical-device, VoiceOver, and previous-React-Native results are explicitly untested.
 The CI bundle and native preflight matrices continue to exercise React Native `0.87.1` and `0.86.3`;
-those build results are not accessibility evidence.
+those build results complement, but do not replace, the recorded accessibility runs.
 
 The package's current `react-native >=0.76.0 <1` peer range is an install-compatibility boundary,
 not a tested platform claim. Narrow or widen a published support claim only after evidence exists

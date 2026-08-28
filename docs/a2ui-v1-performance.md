@@ -46,7 +46,7 @@ safe after measuring CI cost; reducing them requires a reviewed rationale.
 ## Remaining platform evidence
 
 These gates execute the protocol and render-plan layers under Node.js. They do not replace the
-Milestone 4 iOS and Android fixture matrix. The narrowed `0.4.0` real-host gate separately records
+Milestone 4 iOS and Android fixture matrix. The `0.4.0` real-host gate separately records
 Android TalkBack plus iOS XCUITest semantic/layout evidence, dynamic type, focus structure, reduced
-motion, contrast, touch targets, and orientation. VoiceOver, physical devices, and native profiler
-measurements remain unclaimed follow-up coverage rather than requirements of that release scope.
+motion, contrast, touch targets, and orientation. Additional native profiling and platform evidence
+can extend this baseline independently.

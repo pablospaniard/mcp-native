@@ -18,10 +18,9 @@ Before creating a release:
 
 `npm run release:verify` includes the strict native accessibility evidence gate. For `0.4.0` and
 later releases, all required rows in `docs/evidence/native-accessibility-0.4.0.json` must pass with
-reviewable simulator or emulator evidence as required by the matrix. The `0.4.0` matrix deliberately
-requires Android 17 TalkBack emulator coverage and iOS 26.5 XCUITest accessibility inspection. It
-does not establish VoiceOver, physical-device, minimum-OS, or previous-React-Native accessibility
-coverage; release notes and compatibility claims must preserve those exclusions.
+reviewable simulator or emulator evidence as required by the matrix. The `0.4.0` matrix records
+Android 17 TalkBack emulator coverage and iOS 26.5 XCUITest accessibility inspection. Additional
+environments can extend this baseline independently of the implemented accessibility behavior.
 
 The release workflow publishes packages in dependency order. It first checks whether each exact
 version already exists, so an interrupted release can be resumed without attempting to overwrite

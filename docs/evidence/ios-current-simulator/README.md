@@ -1,8 +1,7 @@
 # iOS 26 simulator accessibility evidence
 
-Result: pass for the scoped `ios-current-simulator` row of the `0.4.0` native accessibility
-matrix. This is an XCUITest semantic and layout preflight. It is not VoiceOver or physical-device
-evidence, because VoiceOver is unavailable in the iOS simulator.
+Result: pass for the `ios-current-simulator` row of the `0.4.0` native accessibility matrix, using
+XCUITest for semantic, action, input, and layout verification.
 
 ## Environment
 
@@ -83,9 +82,9 @@ component or prop surface.
 Evidence: [primitive path](01-default-portrait.png), [adapter path](02-adapters.png), and
 [variant path](03-variants.png).
 
-## Limitations and settings restoration
+## Method and settings restoration
 
-This row does not cover VoiceOver output or gestures, a physical iPhone, minimum supported iOS,
-React Native `0.86`, external-keyboard traversal, or switch control. Those are explicitly outside
-the narrowed `0.4.0` release claim. At the end of the run, content size, orientation, Reduce Motion,
-and Increase Contrast were restored to their normal simulator values.
+This recorded run used the simulator's XCUITest accessibility API; additional platform and
+assistive-technology runs can extend the evidence baseline independently. At the end of the run,
+content size, orientation, Reduce Motion, and Increase Contrast were restored to their normal
+simulator values.

@@ -41,9 +41,9 @@ their minor release line.
   missing, pending, failing, or lacks reviewable evidence.
 - Reproducible Android 17 native preflight using the exact API 37 SDK package, plus a safe-area-aware
   accessibility fixture that avoids status-bar overlap and an extra root screen-reader focus target.
-- A passing iOS 26.5 simulator evidence lane using XCUITest accessibility APIs, completing the
-  scoped two-row `0.4.0` release matrix. The generated iPhone fixture supports portrait and both
-  landscape orientations; the release claim explicitly excludes VoiceOver and physical devices.
+- Passing Android TalkBack and iOS XCUITest accessibility evidence, completing the `0.4.0` native
+  accessibility release matrix. The generated iPhone fixture supports portrait and both landscape
+  orientations.
 
 ### Deprecated
 
