@@ -48,4 +48,8 @@ The foundational rule is documented in [RFC-0001](docs/RFC-0001-architecture.md)
 
 Surface-driven `dispatch()` invocations are validated and denied unless an explicit host policy resolves to `true`. Prefer argument-aware allowlists over tool-name checks; async allowlist predicates are awaited and only an explicit boolean `true` authorizes. Direct `callTool()` remains a trusted-host path with JSON validation only. Protocol-facing JSON rejects circular, non-plain, and non-finite values, and reconstructs prototype-named keys as ordinary own properties. WebView helpers deny inline and remote HTML by default, allowlist non-network inline base-URL schemes (`ui:` / `mcp:`), reject non-string URIs and embedded credentials, require exact remote origin allowlists, and never treat binary MCP blobs as documents. These protections do not authorize a tool, replace application permissions, or make the current WebView primitives a browser sandbox.
 
-Security-oriented architecture does not by itself establish protocol conformance. The current A2UI parser is an internal proof of concept, and the WebView package is not yet an MCP Apps sandbox or bridge. See [Standards and compatibility](docs/standards-compatibility.md) for the exact boundaries.
+Security-oriented architecture does not by itself establish unqualified protocol conformance. The
+custom A2UI `0.1` parser remains a deprecated proof shape, while the WebView package implements only
+the documented stable MCP Apps native host-adapter profile. Native WebView isolation differs from a
+browser's cross-origin double iframe, and sensitive permission grants require an audited platform
+adapter. See [Standards and compatibility](docs/standards-compatibility.md) for the exact boundaries.

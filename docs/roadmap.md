@@ -118,15 +118,22 @@ weakening the component or capability boundary or generalizing beyond recorded e
 
 ## Milestone 5: stable MCP Apps compatibility
 
-- Implement `io.modelcontextprotocol/ui` capability negotiation.
-- Preserve `_meta.ui.resourceUri`, visibility, CSP, permissions, and related UI metadata.
-- Require `ui://` resources and `text/html;profile=mcp-app` for the stable Apps profile.
-- Integrate official AppBridge where feasible, or implement the same schema-validated JSON-RPC lifecycle.
-- Build a platform WebView sandbox with explicit origin, navigation, storage, external-link, download, and device-permission policy.
-- Record where native WebView isolation differs from browser iframe guarantees.
-- Add hostile-bridge interoperability tests against official protocol fixtures.
+Status: complete for the documented native host-adapter profile pinned to MCP Apps `2026-01-26` and
+official SDK `1.7.5` schemas.
 
-Exit criterion: `@mcp-native/webview` satisfies the stable Apps profile for documented platforms and fails closed elsewhere.
+- [x] Implement `io.modelcontextprotocol/ui` capability negotiation.
+- [x] Preserve `_meta.ui.resourceUri`, visibility, CSP, permissions, and related UI metadata.
+- [x] Require `ui://` resources and `text/html;profile=mcp-app` for the stable Apps profile.
+- [x] Implement the same pinned, schema-shaped JSON-RPC lifecycle because official AppBridge targets
+      the v1 MCP SDK and browser window transport rather than this repository's v2/native boundary.
+- [x] Build a platform WebView sandbox descriptor and closed React Native WebView prop adapter with
+      explicit origin, navigation, storage, external-link, download, and device-permission policy.
+- [x] Record where native WebView isolation differs from browser iframe guarantees.
+- [x] Add hostile-bridge interoperability tests against official protocol schemas and fixtures.
+
+Exit criterion: complete. `@mcp-native/webview` satisfies the documented stable native host-adapter
+profile and fails closed for unsupported methods, resource shapes, capabilities, permission grants,
+and platform controls. See [the exact compatibility profile](mcp-apps-compatibility.md).
 
 ## Milestone 6: remote authorization and release readiness
 

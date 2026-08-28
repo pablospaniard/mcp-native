@@ -8,6 +8,16 @@ their minor release line.
 
 ### Added
 
+- A stable MCP Apps `2026-01-26` native host-adapter profile with exact
+  `io.modelcontextprotocol/ui` MIME negotiation, `_meta.ui` discovery and visibility, bounded
+  `ui://` text/blob resource loading, and closed CSP/permission metadata.
+- A CSP-first native WebView sandbox descriptor, explicit React Native WebView safe-prop adapter,
+  fixed data-only message shim, and deny-by-default navigation, storage, cookie, download,
+  external-link, dedicated-domain, and sensitive-permission policy.
+- A bounded stable Apps JSON-RPC bridge covering initialization, tool data, host context, supported
+  View requests/notifications, same-server app-visible tool calls, and graceful teardown, verified
+  against exact official `@modelcontextprotocol/ext-apps@1.7.5` schemas.
+
 - Complete pinned renderer-to-agent envelope parsing for `action`, `callAgentFunction`,
   `rendererFunctionResponse`, and `error`, with schema-derived interoperability fixtures and exact
   public envelope types.
@@ -51,6 +61,14 @@ their minor release line.
   correctness fixes; new integrations should use the pinned v1 Candidate APIs.
 
 ### Security
+
+- Reject unnegotiated Apps resources, non-`ui://` discovery, legacy or ambiguous HTML media types,
+  malformed/oversized HTML and base64, unknown security metadata, unsafe CSP sources, executable
+  content before CSP, unsupported dedicated origins, and permission grants the standard native
+  adapter cannot enforce.
+- Reject malformed, premature, unknown, oversized, visibility-bypassing, non-JSON, and
+  out-of-order bridge traffic before a host callback runs; advertise bridge capabilities only when
+  their corresponding explicit host callback exists.
 
 - Treat parsed renderer function calls, responses, and errors as bounded inert data: successful
   validation never grants execution, transport, tool, URL, device, or permission authority.
