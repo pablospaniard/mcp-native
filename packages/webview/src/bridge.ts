@@ -112,6 +112,8 @@ export class McpAppsBridge {
   #appDisplayModes: readonly McpAppsDisplayMode[] = [];
   #toolInputSent = false;
   #toolTerminalSent = false;
+  #toolLifecycleTail: Promise<void> = Promise.resolve();
+  #pendingInboundMessages = 0;
   #teardownId: string | undefined;
   #nextRequestId = 1;
 
@@ -156,78 +158,107 @@ export class McpAppsBridge {
       return;
     }
 
-    if (message.id === undefined) {
+    if (this.#pendingInboundMessages >= MCP_APPS_MAX_PENDING_REQUESTS) {
+      const bridgeError = new McpAppsBridgeError(
+        `MCP Apps bridge exceeds ${MCP_APPS_MAX_PENDING_REQUESTS} concurrent inbound messages`,
+        -32000,
+      );
+      this.#onProtocolError?.(bridgeError);
+      throw bridgeError;
+    }
+    this.#pendingInboundMessages += 1;
+    try {
+      if (message.id === undefined) {
+        try {
+          await this.#handleNotification(message.method, message.params);
+        } catch (error) {
+          const bridgeError = asBridgeError(error);
+          this.#onProtocolError?.(bridgeError);
+          throw bridgeError;
+        }
+        return;
+      }
+
       try {
-        await this.#handleNotification(message.method, message.params);
+        const result = await this.#handleRequest(message.method, message.params);
+        await this.#send({ jsonrpc: "2.0", id: message.id, result });
       } catch (error) {
         const bridgeError = asBridgeError(error);
         this.#onProtocolError?.(bridgeError);
-        throw bridgeError;
+        await this.#send({
+          jsonrpc: "2.0",
+          id: message.id,
+          error: { code: bridgeError.code, message: bridgeError.message },
+        });
       }
-      return;
-    }
-
-    try {
-      const result = await this.#handleRequest(message.method, message.params);
-      await this.#send({ jsonrpc: "2.0", id: message.id, result });
-    } catch (error) {
-      const bridgeError = asBridgeError(error);
-      this.#onProtocolError?.(bridgeError);
-      await this.#send({
-        jsonrpc: "2.0",
-        id: message.id,
-        error: { code: bridgeError.code, message: bridgeError.message },
-      });
+    } finally {
+      this.#pendingInboundMessages -= 1;
     }
   }
 
   async sendToolInput(arguments_: unknown = {}): Promise<void> {
-    this.#assertReady("ui/notifications/tool-input");
-    if (this.#toolInputSent || this.#toolTerminalSent) {
-      throw new McpAppsBridgeError("Complete tool input may be sent exactly once", -32002);
-    }
     const argumentsObject = parseBoundedObject(arguments_, "tool input arguments");
-    await this.#sendNotification("ui/notifications/tool-input", { arguments: argumentsObject });
-    this.#toolInputSent = true;
+    await this.#enqueueToolLifecycle(async () => {
+      this.#assertReady("ui/notifications/tool-input");
+      if (this.#toolInputSent || this.#toolTerminalSent) {
+        throw new McpAppsBridgeError("Complete tool input may be sent exactly once", -32002);
+      }
+      // Delivery failure is ambiguous, so reserve exactly-once state before transport and never retry.
+      this.#toolInputSent = true;
+      await this.#sendNotification("ui/notifications/tool-input", { arguments: argumentsObject });
+    });
   }
 
   async sendPartialToolInput(arguments_: unknown = {}): Promise<void> {
-    this.#assertReady("ui/notifications/tool-input-partial");
-    if (this.#toolInputSent || this.#toolTerminalSent) {
-      throw new McpAppsBridgeError("Partial tool input is closed after complete input", -32002);
-    }
     const argumentsObject = parseBoundedObject(arguments_, "partial tool input arguments");
-    await this.#sendNotification("ui/notifications/tool-input-partial", {
-      arguments: argumentsObject,
+    await this.#enqueueToolLifecycle(async () => {
+      this.#assertReady("ui/notifications/tool-input-partial");
+      if (this.#toolInputSent || this.#toolTerminalSent) {
+        throw new McpAppsBridgeError("Partial tool input is closed after complete input", -32002);
+      }
+      await this.#sendNotification("ui/notifications/tool-input-partial", {
+        arguments: argumentsObject,
+      });
     });
   }
 
   async sendToolResult(result: McpToolCallResult): Promise<void> {
-    this.#assertReady("ui/notifications/tool-result");
-    if (!this.#toolInputSent || this.#toolTerminalSent) {
-      throw new McpAppsBridgeError(
-        "Tool result requires complete input and may be sent exactly once",
-        -32002,
-      );
-    }
-    await this.#sendNotification(
-      "ui/notifications/tool-result",
-      parseBoundedObject(result, "tool result"),
-    );
-    this.#toolTerminalSent = true;
+    const parsedResult = parseBoundedObject(result, "tool result");
+    await this.#enqueueToolLifecycle(async () => {
+      this.#assertReady("ui/notifications/tool-result");
+      if (!this.#toolInputSent || this.#toolTerminalSent) {
+        throw new McpAppsBridgeError(
+          "Tool result requires complete input and may be sent exactly once",
+          -32002,
+        );
+      }
+      // A rejected transport may have delivered; retain terminal state to prevent duplication.
+      this.#toolTerminalSent = true;
+      await this.#sendNotification("ui/notifications/tool-result", parsedResult);
+    });
   }
 
   async sendToolCancelled(reason?: string): Promise<void> {
-    this.#assertReady("ui/notifications/tool-cancelled");
-    if (this.#toolTerminalSent) {
-      throw new McpAppsBridgeError("Tool terminal notification may be sent exactly once", -32002);
-    }
     const parsedReason =
       reason === undefined ? undefined : expectBoundedString(reason, "tool cancellation reason");
-    await this.#sendNotification("ui/notifications/tool-cancelled", {
-      ...(parsedReason === undefined ? {} : { reason: parsedReason }),
+    await this.#enqueueToolLifecycle(async () => {
+      this.#assertReady("ui/notifications/tool-cancelled");
+      if (this.#toolTerminalSent) {
+        throw new McpAppsBridgeError("Tool terminal notification may be sent exactly once", -32002);
+      }
+      this.#toolTerminalSent = true;
+      await this.#sendNotification("ui/notifications/tool-cancelled", {
+        ...(parsedReason === undefined ? {} : { reason: parsedReason }),
+      });
     });
-    this.#toolTerminalSent = true;
+  }
+
+  async #enqueueToolLifecycle(operation: () => Promise<void>): Promise<void> {
+    const result = this.#toolLifecycleTail.then(operation);
+    this.#toolLifecycleTail = result.catch(() => {
+      // Keep the queue usable while returning the original rejection to its caller.
+    });
+    await result;
   }
 
   async sendHostContextChanged(context: unknown): Promise<void> {

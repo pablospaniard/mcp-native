@@ -75,12 +75,16 @@ const bridge = new McpAppsBridge({
 const webViewProps = createMcpAppsReactNativeWebViewProps(sandbox, {
   onMessage: (message) => bridge.receive(message),
   onExternalLink: openExternalUrl,
+  onError: reportMcpAppsHostError,
 });
 ```
 
 Advertise `MCP_APPS_EXTENSION_CAPABILITIES` through `createMcpNativeClientOptions()` and pass the
 same snapshot into the SDK adapter. Capabilities are not inferred from the tool or resource MIME
 type. The bridge advertises View-facing host features only when the matching host callback exists.
+The native adapter requires `onError` so rejected message and external-link callbacks remain inside
+the host's controlled error boundary. Bridge work is capped at 128 concurrent inbound messages, and
+exactly-once tool lifecycle sends are serialized across asynchronous transports.
 
 ## Install
 

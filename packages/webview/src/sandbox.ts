@@ -55,6 +55,8 @@ export interface McpAppsNativeSandboxConfiguration {
 export interface McpAppsReactNativeWebViewCallbacks {
   readonly onMessage: (serializedMessage: string) => void | Promise<void>;
   readonly onExternalLink?: (uri: string) => void | Promise<void>;
+  /** Required host error boundary for rejected or thrown native callback work. */
+  readonly onError: (error: unknown) => void | Promise<void>;
 }
 
 export interface McpAppsReactNativeNavigationRequest {
@@ -176,6 +178,9 @@ export function createMcpAppsReactNativeWebViewProps(
   if (typeof callbacks.onMessage !== "function") {
     throw new McpAppsError("React Native WebView adapter requires an onMessage callback");
   }
+  if (typeof callbacks.onError !== "function") {
+    throw new McpAppsError("React Native WebView adapter requires an onError callback");
+  }
   if (sandbox.grantedPermissions.length !== 0) {
     throw new McpAppsError(
       "The standard React Native WebView prop adapter cannot enforce sensitive permission grants; use an audited platform adapter",
@@ -199,23 +204,62 @@ export function createMcpAppsReactNativeWebViewProps(
     mediaCapturePermissionGrantType: "deny",
     injectedJavaScriptBeforeContentLoaded: sandbox.injectedJavaScriptBeforeContentLoaded,
     onShouldStartLoadWithRequest(request) {
-      const decision = sandbox.decideNavigation(request.url, request.isTopFrame !== false);
-      if (
-        decision === "open-externally" &&
-        request.navigationType === "click" &&
-        callbacks.onExternalLink !== undefined
-      ) {
-        void callbacks.onExternalLink(request.url);
+      try {
+        const decision = sandbox.decideNavigation(request.url, request.isTopFrame !== false);
+        if (
+          decision === "open-externally" &&
+          request.navigationType === "click" &&
+          callbacks.onExternalLink !== undefined
+        ) {
+          runMcpAppsNativeCallback(
+            () => callbacks.onExternalLink?.(request.url),
+            callbacks.onError,
+          );
+        }
+        return decision === "allow-in-document";
+      } catch (error) {
+        reportMcpAppsNativeCallbackError(callbacks.onError, error);
+        return false;
       }
-      return decision === "allow-in-document";
     },
     onMessage(event) {
-      if (typeof event.nativeEvent.data !== "string") {
-        throw new McpAppsError("Native WebView bridge messages must be strings");
+      const message = event.nativeEvent.data;
+      if (typeof message !== "string") {
+        reportMcpAppsNativeCallbackError(
+          callbacks.onError,
+          new McpAppsError("Native WebView bridge messages must be strings"),
+        );
+        return;
       }
-      void callbacks.onMessage(event.nativeEvent.data);
+      runMcpAppsNativeCallback(() => callbacks.onMessage(message), callbacks.onError);
     },
   };
+}
+
+function runMcpAppsNativeCallback(
+  callback: () => void | Promise<void> | undefined,
+  onError: (error: unknown) => void | Promise<void>,
+): void {
+  try {
+    void Promise.resolve(callback()).catch((error: unknown) => {
+      reportMcpAppsNativeCallbackError(onError, error);
+    });
+  } catch (error) {
+    reportMcpAppsNativeCallbackError(onError, error);
+  }
+}
+
+function reportMcpAppsNativeCallbackError(
+  onError: (error: unknown) => void | Promise<void>,
+  error: unknown,
+): void {
+  try {
+    void Promise.resolve(onError(error)).catch(() => {
+      // A rejected host error boundary is contained for the same reason as a thrown one.
+    });
+  } catch {
+    // A broken host error boundary must not create another unhandled View-controlled failure.
+  }
 }
 
 /**

@@ -26,17 +26,17 @@ document plus the changelog to change in the same pull request.
 
 ## Implemented stable profile
 
-| Area               | Implemented behavior                                                                                                                                                                                                         |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Negotiation        | Mutual `io.modelcontextprotocol/ui` declaration with `mimeTypes` containing the exact stable HTML profile; metadata and MIME recognition alone grant nothing                                                                 |
-| Discovery          | Strict `_meta.ui.resourceUri` and `visibility`; app-only tools can be filtered from the model list and model-only tools are rejected from View calls                                                                         |
-| Resources          | One exact predeclared `ui://` resource fetched through `resources/read`; text and canonical base64 UTF-8 bodies; exact stable MIME type                                                                                      |
-| Resource metadata  | Closed `csp`, `permissions`, `domain`, and `prefersBorder` parsing with cumulative domain and HTML limits                                                                                                                    |
-| View lifecycle     | `ui/initialize`, `ui/notifications/initialized`, host tool-input partial/complete/result/cancelled notifications, host-context changes, and graceful `ui/resource-teardown`                                                  |
-| View requests      | `ping`, `tools/call`, `resources/read`, `ui/open-link`, `ui/download-file`, `ui/message`, `ui/update-model-context`, and `ui/request-display-mode`                                                                           |
-| View notifications | `notifications/message`, `ui/notifications/size-changed`, and `ui/notifications/request-teardown`                                                                                                                            |
-| Host policy        | Capabilities are advertised only when a corresponding host callback exists; external links require an explicit positive callback result; tool calls are limited to the same supplied tool snapshot and stable app visibility |
-| Bounds             | One MiB serialized bridge messages, core JSON graph limits, 1,024 bridge tools, 2 MiB decoded HTML, 64 cumulative CSP domains, bounded content and download blocks, and one pending teardown request                         |
+| Area               | Implemented behavior                                                                                                                                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Negotiation        | Mutual `io.modelcontextprotocol/ui` declaration with `mimeTypes` containing the exact stable HTML profile; metadata and MIME recognition alone grant nothing                                                                                         |
+| Discovery          | Strict `_meta.ui.resourceUri` and `visibility`; app-only tools can be filtered from the model list and model-only tools are rejected from View calls                                                                                                 |
+| Resources          | One exact predeclared `ui://` resource fetched through `resources/read`; text and canonical base64 UTF-8 bodies; exact stable MIME type                                                                                                              |
+| Resource metadata  | Closed `csp`, `permissions`, `domain`, and `prefersBorder` parsing with cumulative domain and HTML limits                                                                                                                                            |
+| View lifecycle     | `ui/initialize`, `ui/notifications/initialized`, host tool-input partial/complete/result/cancelled notifications, host-context changes, and graceful `ui/resource-teardown`                                                                          |
+| View requests      | `ping`, `tools/call`, `resources/read`, `ui/open-link`, `ui/download-file`, `ui/message`, `ui/update-model-context`, and `ui/request-display-mode`                                                                                                   |
+| View notifications | `notifications/message`, `ui/notifications/size-changed`, and `ui/notifications/request-teardown`                                                                                                                                                    |
+| Host policy        | Capabilities are advertised only when a corresponding host callback exists; external links require an explicit positive callback result; tool calls are limited to the same supplied tool snapshot and stable app visibility                         |
+| Bounds             | One MiB serialized bridge messages, at most 128 concurrent inbound method handlers, core JSON graph limits, 1,024 bridge tools, 2 MiB decoded HTML, 64 cumulative CSP domains, bounded content and download blocks, and one pending teardown request |
 
 The bridge does not proxy arbitrary method names. Sampling, prompts, resource/tool listing, app-owned
 tools, experimental methods, and sandbox-proxy-reserved messages fail closed in this profile. They
@@ -65,6 +65,13 @@ capture and geolocation, and never spreads resource metadata. Because the standa
 props cannot prove enforcement of individual camera, microphone, geolocation, or clipboard grants,
 this adapter rejects any non-empty grant. A host that supports a sensitive permission must provide
 an audited platform adapter and user-approval boundary before advertising it.
+
+The React Native adapter requires an explicit `onError` boundary. It contains both synchronous
+throws and asynchronous rejections from message and external-link callbacks so hostile View input
+cannot create unhandled host-runtime rejections. The bridge rejects inbound work above its
+concurrency limit before another host callback runs. Exactly-once tool lifecycle notifications are
+serialized and reserve their state before transport; an ambiguous transport failure is never
+retried because the View may already have received it.
 
 The optional resource `domain` field is host-specific. It is rejected unless the host supplies a
 synchronous approval callback and its platform adapter can actually provide that dedicated origin.
@@ -96,6 +103,7 @@ the descriptor.
 `tests/mcp-apps.test.mjs` covers official-schema interoperability for initialization and host
 notifications, exact discovery and visibility behavior, text/blob resources, CSP and permission
 metadata, native prop selection, data-only bridge delivery, lifecycle ordering, tool visibility,
-link policy, display modes, bounded input, unknown methods and fields, malformed JSON, premature
-messages, and graceful teardown. `npm run check` runs this file through the coverage gate, and
+link policy, display modes, bounded and concurrently amplified input, contained callback failures,
+async lifecycle races, unknown methods and fields, malformed JSON, premature messages, and graceful
+teardown. `npm run check` runs this file through the coverage gate, and
 `npm run package:smoke` verifies the public declarations and installable package output.

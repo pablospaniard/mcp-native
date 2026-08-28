@@ -66,9 +66,11 @@ their minor release line.
   malformed/oversized HTML and base64, unknown security metadata, unsafe CSP sources, executable
   content before CSP, unsupported dedicated origins, and permission grants the standard native
   adapter cannot enforce.
-- Reject malformed, premature, unknown, oversized, visibility-bypassing, non-JSON, and
-  out-of-order bridge traffic before a host callback runs; advertise bridge capabilities only when
-  their corresponding explicit host callback exists.
+- Reject malformed, premature, unknown, oversized, visibility-bypassing, non-JSON, out-of-order, and
+  excessively concurrent bridge traffic before another host callback runs; advertise bridge
+  capabilities only when their corresponding explicit host callback exists. Contain rejected native
+  callbacks through a required host error boundary and serialize exactly-once tool lifecycle sends
+  across asynchronous transports.
 
 - Treat parsed renderer function calls, responses, and errors as bounded inert data: successful
   validation never grants execution, transport, tool, URL, device, or permission authority.

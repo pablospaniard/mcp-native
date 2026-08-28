@@ -52,4 +52,6 @@ Security-oriented architecture does not by itself establish unqualified protocol
 custom A2UI `0.1` parser remains a deprecated proof shape, while the WebView package implements only
 the documented stable MCP Apps native host-adapter profile. Native WebView isolation differs from a
 browser's cross-origin double iframe, and sensitive permission grants require an audited platform
-adapter. See [Standards and compatibility](docs/standards-compatibility.md) for the exact boundaries.
+adapter. The stable bridge caps concurrent inbound work, serializes exactly-once lifecycle sends,
+and requires a host error boundary for native callback failures. See
+[Standards and compatibility](docs/standards-compatibility.md) for the exact boundaries.

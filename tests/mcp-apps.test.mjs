@@ -14,6 +14,7 @@ import {
 import {
   MCP_APPS_EXTENSION_CAPABILITIES,
   MCP_APPS_EXTENSION_ID,
+  MCP_APPS_MAX_PENDING_REQUESTS,
   MCP_APPS_MIME_TYPE,
   MCP_APPS_PROTOCOL_VERSION,
   McpAppsBridge,
@@ -400,18 +401,23 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
     () =>
       createMcpAppsReactNativeWebViewProps(sandbox, {
         onMessage() {},
+        onError() {},
       }),
     /cannot enforce sensitive permission grants/,
   );
   const deniedPermissionSandbox = createMcpAppsNativeSandbox(resource);
   const nativeMessages = [];
   const externalLinks = [];
+  const callbackErrors = [];
   const props = createMcpAppsReactNativeWebViewProps(deniedPermissionSandbox, {
     onMessage(message) {
       nativeMessages.push(message);
     },
     onExternalLink(uri) {
       externalLinks.push(uri);
+    },
+    onError(error) {
+      callbackErrors.push(error);
     },
   });
   assert.equal(props.incognito, true);
@@ -426,6 +432,7 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
     false,
   );
   assert.deepEqual(externalLinks, []);
+  assert.deepEqual(callbackErrors, []);
 
   const defaults = createMcpAppsContentSecurityPolicy();
   assert.match(defaults, /connect-src 'none'/);
@@ -495,10 +502,14 @@ test("native sandbox covers explicit origins, permissions, and adapter failure p
     allowedExternalOrigins: ["https://docs.example.com"],
   });
   const opened = [];
+  const callbackErrors = [];
   const props = createMcpAppsReactNativeWebViewProps(noPermissionSandbox, {
     onMessage() {},
     onExternalLink(uri) {
       opened.push(uri);
+    },
+    onError(error) {
+      callbackErrors.push(error);
     },
   });
   assert.equal(
@@ -509,10 +520,58 @@ test("native sandbox covers explicit origins, permissions, and adapter failure p
     false,
   );
   assert.deepEqual(opened, ["https://docs.example.com/help"]);
+  props.onMessage({ nativeEvent: { data: { jsonrpc: "2.0" } } });
+  assert.match(callbackErrors.at(-1).message, /messages must be strings/);
   assert.throws(
-    () => props.onMessage({ nativeEvent: { data: { jsonrpc: "2.0" } } }),
-    /messages must be strings/,
+    () =>
+      createMcpAppsReactNativeWebViewProps(noPermissionSandbox, {
+        onMessage() {},
+      }),
+    /onError callback/,
   );
+});
+
+test("native WebView adapter contains synchronous and asynchronous callback failures", async () => {
+  const sandbox = createMcpAppsNativeSandbox(createResolvedResource(), {
+    allowedExternalOrigins: ["https://docs.example.com"],
+  });
+  const callbackErrors = [];
+  const props = createMcpAppsReactNativeWebViewProps(sandbox, {
+    async onMessage() {
+      throw new Error("message rejected");
+    },
+    onExternalLink() {
+      throw new Error("link rejected");
+    },
+    onError(error) {
+      callbackErrors.push(error);
+    },
+  });
+
+  props.onMessage({ nativeEvent: { data: "{}" } });
+  assert.equal(
+    props.onShouldStartLoadWithRequest({
+      url: "https://docs.example.com/help",
+      navigationType: "click",
+    }),
+    false,
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(callbackErrors.map((error) => error.message).sort(), [
+    "link rejected",
+    "message rejected",
+  ]);
+
+  const brokenBoundary = createMcpAppsReactNativeWebViewProps(sandbox, {
+    onMessage() {
+      throw new Error("contained callback failure");
+    },
+    async onError() {
+      throw new Error("contained boundary failure");
+    },
+  });
+  assert.doesNotThrow(() => brokenBoundary.onMessage({ nativeEvent: { data: "{}" } }));
+  await new Promise((resolve) => setImmediate(resolve));
 });
 
 function createBridgeFixture(overrides = {}) {
@@ -522,7 +581,9 @@ function createBridgeFixture(overrides = {}) {
   const sandbox = createMcpAppsNativeSandbox(resource, { grantedPermissions: ["camera"] });
   const bridge = new McpAppsBridge({
     postMessage(message) {
-      sent.push(JSON.parse(message));
+      const parsed = JSON.parse(message);
+      sent.push(parsed);
+      return overrides.afterPostMessage?.(parsed);
     },
     hostInfo: { name: "mcp-native-test", version: "0.5.0" },
     hostContext: {
@@ -570,6 +631,16 @@ function createBridgeFixture(overrides = {}) {
   return { bridge, calls, sent };
 }
 
+function createDeferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
+}
+
 async function initializeBridge(fixture) {
   await fixture.bridge.receive(
     JSON.stringify({
@@ -615,6 +686,119 @@ test("bridge implements the official initialization and tool-data lifecycle", as
   });
   assert.equal(McpUiToolResultNotificationSchema.safeParse(fixture.sent.at(-1)).success, true);
   await assert.rejects(() => fixture.bridge.sendToolResult({ content: [] }), /exactly once/);
+});
+
+test("bridge bounds concurrent inbound work before invoking more host callbacks", async () => {
+  const gate = createDeferred();
+  const protocolErrors = [];
+  let handlerCalls = 0;
+  const fixture = createBridgeFixture({
+    handlers: {
+      callTool() {
+        handlerCalls += 1;
+        return gate.promise;
+      },
+    },
+    options: {
+      onProtocolError(error) {
+        protocolErrors.push(error.code);
+      },
+    },
+  });
+  await initializeBridge(fixture);
+
+  const pending = Array.from({ length: MCP_APPS_MAX_PENDING_REQUESTS }, (_, index) =>
+    fixture.bridge.receive({
+      jsonrpc: "2.0",
+      id: index + 100,
+      method: "tools/call",
+      params: { name: "refresh", arguments: {} },
+    }),
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(handlerCalls, MCP_APPS_MAX_PENDING_REQUESTS);
+
+  await assert.rejects(
+    () =>
+      fixture.bridge.receive({
+        jsonrpc: "2.0",
+        id: 999,
+        method: "tools/call",
+        params: { name: "refresh", arguments: {} },
+      }),
+    (error) => error instanceof McpAppsBridgeError && error.code === -32000,
+  );
+  assert.equal(handlerCalls, MCP_APPS_MAX_PENDING_REQUESTS);
+  assert.deepEqual(protocolErrors, [-32000]);
+
+  gate.resolve({ content: [{ type: "text", text: "bounded" }] });
+  await Promise.all(pending);
+  await fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 1000,
+    method: "tools/call",
+    params: { name: "refresh", arguments: {} },
+  });
+  assert.equal(handlerCalls, MCP_APPS_MAX_PENDING_REQUESTS + 1);
+});
+
+test("bridge serializes and reserves exactly-once tool lifecycle sends", async () => {
+  let deferLifecycle = false;
+  const transportGates = [];
+  const fixture = createBridgeFixture({
+    afterPostMessage(message) {
+      if (deferLifecycle && message.method?.startsWith("ui/notifications/tool-")) {
+        const gate = createDeferred();
+        transportGates.push(gate);
+        return gate.promise;
+      }
+    },
+  });
+  await initializeBridge(fixture);
+  deferLifecycle = true;
+
+  const firstInput = fixture.bridge.sendToolInput({ location: "Madrid" });
+  const duplicateInput = assert.rejects(
+    fixture.bridge.sendToolInput({ location: "Barcelona" }),
+    /exactly once/,
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(
+    fixture.sent.filter((message) => message.method === "ui/notifications/tool-input").length,
+    1,
+  );
+  transportGates[0].resolve();
+  await firstInput;
+  await duplicateInput;
+
+  const result = fixture.bridge.sendToolResult({
+    content: [{ type: "text", text: "Sunny" }],
+  });
+  const competingCancellation = assert.rejects(
+    fixture.bridge.sendToolCancelled("late cancellation"),
+    /exactly once/,
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(
+    fixture.sent.filter((message) =>
+      ["ui/notifications/tool-result", "ui/notifications/tool-cancelled"].includes(message.method),
+    ).length,
+    1,
+  );
+  transportGates[1].resolve();
+  await result;
+  await competingCancellation;
+
+  const failedTransport = createBridgeFixture({
+    afterPostMessage(message) {
+      if (message.method === "ui/notifications/tool-input") {
+        return Promise.reject(new Error("transport failed"));
+      }
+    },
+  });
+  await initializeBridge(failedTransport);
+  await assert.rejects(() => failedTransport.bridge.sendToolInput({}), /transport failed/);
+  await assert.rejects(() => failedTransport.bridge.sendToolInput({}), /exactly once/);
 });
 
 test("bridge proxies only closed, app-visible methods after initialization", async () => {
