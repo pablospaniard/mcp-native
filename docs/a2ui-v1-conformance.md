@@ -62,8 +62,10 @@ catalogs are disabled. The component subset is therefore not a claim that the re
 the complete basic catalog.
 
 The [automated robustness gates](a2ui-v1-performance.md) cover bounded Node.js performance and
-generated-input behavior. Real-platform accessibility, native performance, and the broader iOS and
-Android quality matrix remain Milestone 4 work; none of these gates expand this protocol profile.
+generated-input behavior. The narrowed `0.4.0` Android TalkBack and iOS XCUITest evidence matrix is
+recorded separately; native profiler runs, VoiceOver, physical devices, and a broader platform
+quality matrix remain unclaimed follow-up coverage. None of these gates expand this protocol
+profile.
 
 ## Candidate interpretations
 

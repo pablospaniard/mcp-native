@@ -1,9 +1,9 @@
 # Native accessibility test plan
 
-Status: the `0.4.0` release gate is intentionally scoped to two reproducible environments. The
-Android 17 Google Play emulator row passes with TalkBack evidence; the iOS 26.5 simulator row uses
-XCUITest accessibility APIs and remains pending until its artifacts are recorded. This scope does
-not claim VoiceOver, physical-device, minimum-OS, React Native `0.86`, or general WCAG coverage.
+Status: complete for the intentionally narrow `0.4.0` release gate. The Android 17 Google Play
+emulator row passes with TalkBack evidence, and the iOS 26.5 simulator row passes its XCUITest
+accessibility semantic and layout preflight. This scope does not claim VoiceOver, physical-device,
+minimum-OS, React Native `0.86`, or general WCAG coverage.
 
 ## Scope and fixture
 
@@ -119,8 +119,8 @@ unrelated host.
 ## Evidence record
 
 Record every environment in `docs/evidence/native-accessibility-0.4.0.json` and attach logs,
-screenshots or recordings, and issue links. `npm run native:evidence:check` validates the pending
-record during ordinary development. `npm run native:evidence:verify` is strict: every required case
+screenshots or recordings, and issue links. `npm run native:evidence:check` validates the record
+during ordinary development. `npm run native:evidence:verify` is strict: every required case
 and row must pass with a full commit SHA, environment metadata, tester/date, and at least one safe
 repository-relative artifact or HTTPS evidence link.
 

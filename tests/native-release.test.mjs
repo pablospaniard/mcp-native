@@ -17,7 +17,7 @@ import {
   validateNativeAccessibilityEvidence,
 } from "../scripts/verify-native-accessibility-evidence.mjs";
 
-const pendingEvidence = JSON.parse(readFileSync(NATIVE_ACCESSIBILITY_EVIDENCE_PATH, "utf8"));
+const nativeEvidence = JSON.parse(readFileSync(NATIVE_ACCESSIBILITY_EVIDENCE_PATH, "utf8"));
 
 test("native host arguments pin maintained React Native lines and require temporary output", () => {
   assert.deepEqual(
@@ -100,20 +100,24 @@ test("native fixture respects platform safe areas without an extra root focus ta
   assert.doesNotMatch(source, /<ScrollView\s+accessibilityLabel=/);
 });
 
-test("pending native evidence is structurally valid but cannot pass the release gate", () => {
-  assert.deepEqual(validateNativeAccessibilityEvidence(pendingEvidence), {
-    complete: false,
-    passedRows: 1,
+test("recorded native evidence completes the scoped release gate", () => {
+  assert.deepEqual(validateNativeAccessibilityEvidence(nativeEvidence, { strict: true }), {
+    complete: true,
+    passedRows: 2,
     requiredRows: 2,
   });
+
+  const incomplete = structuredClone(nativeEvidence);
+  incomplete.matrix[0].result = "not-run";
+  incomplete.matrix[0].cases.announcements = "not-run";
   assert.throws(
-    () => validateNativeAccessibilityEvidence(pendingEvidence, { strict: true }),
-    /must be "pass" for a release|full lowercase Git commit SHA/,
+    () => validateNativeAccessibilityEvidence(incomplete, { strict: true }),
+    /must be "pass" for a release/,
   );
 });
 
 test("complete native evidence passes only with exact cases and reviewable artifacts", () => {
-  const complete = structuredClone(pendingEvidence);
+  const complete = structuredClone(nativeEvidence);
   for (const [index, row] of complete.matrix.entries()) {
     row.assistiveTechnologyVersion = "test-version";
     row.locale = "en-US";
@@ -140,7 +144,7 @@ test("complete native evidence passes only with exact cases and reviewable artif
 });
 
 test("native evidence rejects unsafe or missing artifact references", () => {
-  const invalid = structuredClone(pendingEvidence);
+  const invalid = structuredClone(nativeEvidence);
   invalid.matrix[0].evidence = ["../outside.mov"];
   assert.throws(
     () => validateNativeAccessibilityEvidence(invalid),
@@ -152,7 +156,7 @@ test("native evidence rejects unsafe or missing artifact references", () => {
 });
 
 test("native evidence rejects normalized impossible calendar dates", () => {
-  const invalid = structuredClone(pendingEvidence);
+  const invalid = structuredClone(nativeEvidence);
   const row = invalid.matrix[0];
   row.assistiveTechnologyVersion = "test-version";
   row.locale = "en-US";
@@ -169,7 +173,7 @@ test("native evidence rejects normalized impossible calendar dates", () => {
 });
 
 test("native evidence cannot relabel a required platform row", () => {
-  const invalid = structuredClone(pendingEvidence);
+  const invalid = structuredClone(nativeEvidence);
   invalid.matrix[0].reactNative = "0.86.3";
   assert.throws(
     () => validateNativeAccessibilityEvidence(invalid),
