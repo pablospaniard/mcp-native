@@ -55,13 +55,17 @@ compile SDK of 34 and compile SDK 37.
 2. Confirm text, buttons, field labels, values, hints, validation messages, live-region metadata,
    and button disabled state are exposed accurately. The TalkBack row verifies spoken output and
    the XCUITest row verifies the iOS accessibility representation.
-3. Reset the host callback count before accessibility-activating each enabled button. One activation
-   must produce a count of exactly one; disabled buttons and failed renderer checks remain disabled.
-4. Edit every input type. Labels remain available while values change, secure values remain masked,
-   local updates do not create network actions, and submission uses current state.
-5. Test the normal size and each supported larger system text size. Text and inputs scale without
-   clipping, loss of content, overlap, or unreachable controls. React Native documents
-   `allowFontScaling` for [Text](https://reactnative.dev/docs/text.html) and
+3. Reset the host callback count before accessibility-activating a representative enabled action.
+   One activation must produce a count of exactly one; disabled buttons and failed renderer checks
+   remain disabled.
+4. Edit a representative input and inspect the complete input hierarchy. Labels remain available
+   while values change, secure values remain masked, and local updates do not create network
+   actions.
+5. Test the normal and selected larger system text settings recorded by each platform row: Android
+   font scales `1.0` and `2.0`, and iOS content sizes `large` and
+   `accessibility-extra-extra-large`. Text and inputs scale without clipping, loss of content,
+   overlap, or unreachable controls. React Native documents `allowFontScaling` for
+   [Text](https://reactnative.dev/docs/text.html) and
    [TextInput](https://reactnative.dev/docs/textinput.html); MCP Native supplies it as `true`.
 6. Repeat navigation and interaction in portrait and landscape, with reduced motion enabled, and
    with platform contrast-related settings used by the supported matrix. Meaning and action must
