@@ -41,6 +41,9 @@ their minor release line.
   missing, pending, failing, or lacks reviewable evidence.
 - Reproducible Android 17 native preflight using the exact API 37 SDK package, plus a safe-area-aware
   accessibility fixture that avoids status-bar overlap and an extra root screen-reader focus target.
+- A reproducible iOS 26.5 simulator evidence lane using XCUITest accessibility APIs, with the
+  generated iPhone fixture corrected to support portrait and both landscape orientations. The
+  release claim explicitly excludes VoiceOver and physical-device coverage.
 
 ### Deprecated
 

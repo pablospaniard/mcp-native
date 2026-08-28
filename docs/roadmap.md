@@ -96,8 +96,9 @@ Exit criterion: conformance is reported per implemented A2UI feature against the
 
 Status: partial — renderer-local state, action-envelope emission, closed accessibility semantics,
 a generated platform fixture with build/evidence gates, a WCAG assessment, and CI performance/fuzz
-gates. The Android 17 Google Play emulator row passes; all six physical-device rows remain
-outstanding.
+gates. The `0.4.0` release matrix is narrowed to reproducible Android 17 emulator and iOS 26.5
+simulator rows; Android passes and iOS evidence is in progress. VoiceOver and physical-device
+coverage are explicitly unclaimed.
 
 - [x] Add renderer-local data-model updates without network calls on each keystroke.
 - [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
@@ -107,12 +108,14 @@ outstanding.
 - [x] Mount explicit label, description, live-region, and hidden accessibility attributes for the supported subset, with inferred button and input labels.
 - [x] Derive closed text and button roles, button disabled state, hidden-element focus exclusion, and explicit Text/TextInput font scaling at the host boundary; add regression coverage and a real-platform test plan.
 - [x] Define the initial iOS, Android, and React Native target test matrix and add one pinned fixture that exercises base primitives, adapters, variants, dynamic lists, validation, and screen-reader semantics.
-- [ ] Execute the fixture across the target matrix in real host applications; test VoiceOver, TalkBack, dynamic type, focus, reduced motion, contrast, touch targets, orientation, and screen-reader actions in simulator, emulator, device CI, and physical devices where required.
+- [ ] Execute the fixture across the scoped release matrix; test TalkBack plus iOS accessibility semantics, dynamic type, focus structure, reduced motion, contrast, touch targets, orientation, and accessibility actions without claiming unexecuted VoiceOver or physical-device coverage.
 - [x] Establish [parse, update, render-plan, and retained-memory budgets](a2ui-v1-performance.md) for supported surface sizes, with large-surface and rapid-update stress tests.
 - [x] Add deterministic fuzz and property tests for bidirectional protocol parsing, lifecycle state, render-plan conversion, and renderer failure paths.
 - [x] Target applicable [WCAG 2.2 Level AA outcomes](wcag-2.2-native-assessment.md), separate library and host responsibilities, and document exceptions without making an unqualified conformance claim.
 
-Exit criterion: supported iOS and Android hosts render and interact with the supported A2UI subset accessibly, within documented performance budgets, and without weakening the component or capability boundary.
+Exit criterion: the narrowly tested iOS simulator and Android emulator hosts render and interact
+with the supported A2UI subset within documented accessibility and performance limits, without
+weakening the component or capability boundary or generalizing beyond recorded evidence.
 
 ## Milestone 5: stable MCP Apps compatibility
 

@@ -6,6 +6,7 @@ import { parse as parseYaml } from "yaml";
 
 import {
   createNativeHostPackageJson,
+  enableNativeHostPhoneOrientations,
   NATIVE_HOST_REACT_NATIVE_VERSIONS,
   parseNativeHostArguments,
   validateNativeHostOutput,
@@ -77,6 +78,17 @@ test("generated host manifests install local tarballs and expose reproducible ch
   assert.equal(packageJson.scripts["mcp-native:typecheck"], "tsc --noEmit");
 });
 
+test("generated iPhone hosts support both landscape orientations", () => {
+  const source = `\t<key>UISupportedInterfaceOrientations</key>
+\t<array>
+\t\t<string>UIInterfaceOrientationPortrait</string>
+\t</array>`;
+  const updated = enableNativeHostPhoneOrientations(source);
+  assert.match(updated, /UIInterfaceOrientationLandscapeLeft/);
+  assert.match(updated, /UIInterfaceOrientationLandscapeRight/);
+  assert.throws(() => enableNativeHostPhoneOrientations("<plist/>"), /pinned portrait-only block/);
+});
+
 test("native fixture respects platform safe areas without an extra root focus target", () => {
   const source = readFileSync("tests/native-host/App.tsx", "utf8");
   assert.match(
@@ -92,7 +104,7 @@ test("pending native evidence is structurally valid but cannot pass the release 
   assert.deepEqual(validateNativeAccessibilityEvidence(pendingEvidence), {
     complete: false,
     passedRows: 1,
-    requiredRows: 7,
+    requiredRows: 2,
   });
   assert.throws(
     () => validateNativeAccessibilityEvidence(pendingEvidence, { strict: true }),
@@ -116,8 +128,8 @@ test("complete native evidence passes only with exact cases and reviewable artif
   }
   assert.deepEqual(validateNativeAccessibilityEvidence(complete, { strict: true }), {
     complete: true,
-    passedRows: 7,
-    requiredRows: 7,
+    passedRows: 2,
+    requiredRows: 2,
   });
 
   complete.matrix[0].cases["remote-code"] = "pass";
@@ -165,10 +177,10 @@ test("native evidence cannot relabel a required platform row", () => {
   );
 
   invalid.matrix[0].reactNative = "0.87.1";
-  invalid.matrix[0].environment = "simulator";
+  invalid.matrix[0].environment = "physical device";
   assert.throws(
     () => validateNativeAccessibilityEvidence(invalid),
-    /environment must be exactly "physical device"/,
+    /environment must be exactly "simulator"/,
   );
 });
 

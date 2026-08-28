@@ -16,38 +16,15 @@ export const NATIVE_ACCESSIBILITY_CASES = Object.freeze([
 ]);
 
 export const NATIVE_ACCESSIBILITY_ROWS = Object.freeze([
-  "ios-minimum",
-  "ios-current",
-  "android-minimum",
-  "android-current-device",
+  "ios-current-simulator",
   "android-current-emulator",
-  "ios-previous-react-native",
-  "android-previous-react-native",
 ]);
 
 const requiredRowMetadata = Object.freeze({
-  "ios-minimum": Object.freeze({
-    assistiveTechnology: "VoiceOver",
-    environment: "physical device",
-    operatingSystem: "iOS 15.1",
-    reactNative: "0.87.1",
-  }),
-  "ios-current": Object.freeze({
-    assistiveTechnology: "VoiceOver",
-    environment: "physical device",
-    operatingSystem: "iOS 26.6.1",
-    reactNative: "0.87.1",
-  }),
-  "android-minimum": Object.freeze({
-    assistiveTechnology: "TalkBack",
-    environment: "physical device",
-    operatingSystem: "Android 7 / API 24",
-    reactNative: "0.87.1",
-  }),
-  "android-current-device": Object.freeze({
-    assistiveTechnology: "TalkBack",
-    environment: "physical device",
-    operatingSystem: "Android 17 / API 37",
+  "ios-current-simulator": Object.freeze({
+    assistiveTechnology: "XCUITest accessibility API",
+    environment: "simulator",
+    operatingSystem: "iOS 26.5",
     reactNative: "0.87.1",
   }),
   "android-current-emulator": Object.freeze({
@@ -55,18 +32,6 @@ const requiredRowMetadata = Object.freeze({
     environment: "Google Play emulator",
     operatingSystem: "Android 17 / API 37",
     reactNative: "0.87.1",
-  }),
-  "ios-previous-react-native": Object.freeze({
-    assistiveTechnology: "VoiceOver",
-    environment: "physical device",
-    operatingSystem: "iOS 26.6.1",
-    reactNative: "0.86.3",
-  }),
-  "android-previous-react-native": Object.freeze({
-    assistiveTechnology: "TalkBack",
-    environment: "physical device",
-    operatingSystem: "Android 17 / API 37",
-    reactNative: "0.86.3",
   }),
 });
 

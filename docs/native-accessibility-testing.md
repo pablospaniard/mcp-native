@@ -1,10 +1,9 @@
 # Native accessibility test plan
 
-Status: target matrix, generated host, CI preflight, WCAG assessment, and strict evidence gate
-defined; the Android 17 Google Play emulator row passes with reviewable TalkBack evidence, while
-the six required physical-device rows remain unexecuted. This document defines evidence required
-for the Milestone 4 real-platform accessibility gate; it does not claim unexecuted VoiceOver,
-TalkBack, WCAG, or device coverage.
+Status: the `0.4.0` release gate is intentionally scoped to two reproducible environments. The
+Android 17 Google Play emulator row passes with TalkBack evidence; the iOS 26.5 simulator row uses
+XCUITest accessibility APIs and remains pending until its artifacts are recorded. This scope does
+not claim VoiceOver, physical-device, minimum-OS, React Native `0.86`, or general WCAG coverage.
 
 ## Scope and fixture
 
@@ -23,43 +22,31 @@ adapter mappings preserve the renderer-selected semantics.
 
 ## Required environments
 
-- VoiceOver behavior must be verified on a physical iOS device. React Native's
-  [accessibility guide](https://reactnative.dev/docs/accessibility.html) notes that VoiceOver is not
-  available through the simulator; Accessibility Inspector is useful preflight evidence but is not
-  a device-test substitute.
-- TalkBack must be verified on an Android device and on the supported emulator image described in
-  the same React Native accessibility guide.
-- Record the exact application revision, React Native version, host catalog, device or emulator,
-  operating-system version, assistive-technology version, locale, text-size setting, and tester.
+- Android is exercised on the pinned Google Play emulator with TalkBack enabled.
+- iOS is exercised on the pinned current simulator through XCUITest's accessibility API. React
+  Native's [accessibility guide](https://reactnative.dev/docs/accessibility.html) notes that
+  VoiceOver is unavailable in the simulator, so this row verifies programmatic names, roles,
+  values, enabled/hidden state, accessibility activation, input behavior, layout, and platform
+  settings—not spoken output or VoiceOver gestures.
+- Record the exact application revision, React Native version, catalog paths, simulator or
+  emulator, operating-system version, accessibility tooling version, locale, text-size setting,
+  and tester.
 
 ## Target platform matrix
 
-The first gate targets the current stable React Native line and its immediate actively maintained
-predecessor. As of 2026-08-27, the official [React Native release
-overview](https://reactnative.dev/releases/) identifies those lines as `0.87.x` and `0.86.x`; use
-the newest patch in each line. React Native's release policy maintains the latest three minor
-series, but MCP Native does not infer platform support from that upstream maintenance window or
-from its wider package peer range.
+The `0.4.0` evidence gate targets React Native `0.87.1` in the two environments available for a
+repeatable release run. A host may test more versions, form factors, and design systems, but those
+results do not expand the narrow tested claim.
 
-Run the complete fixture in every required row below. Minimum-OS rows protect the deployment floor;
-current-OS rows cover current platform behavior. A host may test more versions, form factors, and
-design systems, but those results do not replace a required row.
+| Required row             | React Native | Environment       | OS target           | Accessibility tool         | Purpose                               |
+| ------------------------ | ------------ | ----------------- | ------------------- | -------------------------- | ------------------------------------- |
+| iOS current simulator    | `0.87.1`     | iPhone 17 Pro sim | iOS 26.5            | XCUITest accessibility API | current iOS semantic/layout preflight |
+| Android current emulator | `0.87.1`     | Google Play image | Android 17 / API 37 | TalkBack                   | reproducible screen-reader lane       |
 
-| Required row             | React Native | Environment                              | OS target                          | Assistive technology   | Purpose                                 |
-| ------------------------ | ------------ | ---------------------------------------- | ---------------------------------- | ---------------------- | --------------------------------------- |
-| iOS minimum              | `0.87.1`     | physical device                          | iOS 15.1                           | VoiceOver              | React Native deployment floor           |
-| iOS current              | `0.87.1`     | physical device                          | iOS 26.6.1                         | VoiceOver              | current stable iOS behavior             |
-| Android minimum          | `0.87.1`     | physical device                          | Android 7 / API 24                 | TalkBack               | React Native deployment floor           |
-| Android current device   | `0.87.1`     | physical device                          | Android 17 / API 37                | TalkBack               | current stable Android behavior         |
-| Android current emulator | `0.87.1`     | Google Play image                        | Android 17 / API 37                | TalkBack               | reproducible automation/preflight lane  |
-| Previous React Native    | `0.86.3`     | one current physical device per platform | iOS 26.6.1 and Android 17 / API 37 | VoiceOver and TalkBack | immediate maintained-line compatibility |
-
-At the 2026-08-27 matrix snapshot, Apple's [release
-feed](https://developer.apple.com/news/releases/) lists iOS 26.6.1 and the Android Developers
-[platform overview](https://developer.android.com/about/versions/17) identifies Android 17 / API 37.
-An iOS 26.6.1 simulator Accessibility Inspector run is recommended preflight evidence, but it cannot
-replace either physical iOS row. Record newer stable OS patches in place of the named current patch
-when the matrix is executed, and update this document rather than silently widening a result.
+The iOS row records the exact installed runtime rather than silently relabeling it as a newer patch.
+Minimum-OS, physical-device, VoiceOver, and previous-React-Native results are explicitly untested.
+The CI bundle and native preflight matrices continue to exercise React Native `0.87.1` and `0.86.3`;
+those build results are not accessibility evidence.
 
 The package's current `react-native >=0.76.0 <1` peer range is an install-compatibility boundary,
 not a tested platform claim. Narrow or widen a published support claim only after evidence exists
@@ -70,15 +57,15 @@ do not expand MCP Native's native component or capability catalog.
 
 ## Test cases
 
-1. Navigate the complete surface in both directions. Focus order follows visual and reading order,
-   every visible actionable control is reachable, and hidden content is neither focused nor read.
-2. Confirm text, buttons, field labels, values, hints, validation messages, live-region updates, and
-   button disabled state are announced accurately without duplicate or stale announcements.
-3. Reset the host callback count before activating each enabled button with the screen reader. One
-   activation must produce a count of exactly one; disabled buttons and failed renderer checks must
-   leave the count at zero.
-4. Edit every input type. Labels remain available while values change, secure values are not spoken
-   as plain text, local updates do not create network actions, and submission uses current state.
+1. Inspect or navigate the complete accessibility surface in both directions. Order follows visual
+   and reading order, every visible actionable control is reachable, and hidden content is absent.
+2. Confirm text, buttons, field labels, values, hints, validation messages, live-region metadata,
+   and button disabled state are exposed accurately. Spoken output is assessed only in the TalkBack
+   row.
+3. Reset the host callback count before accessibility-activating each enabled button. One activation
+   must produce a count of exactly one; disabled buttons and failed renderer checks remain disabled.
+4. Edit every input type. Labels remain available while values change, secure values remain masked,
+   local updates do not create network actions, and submission uses current state.
 5. Test the normal size and each supported larger system text size. Text and inputs scale without
    clipping, loss of content, overlap, or unreachable controls. React Native documents
    `allowFontScaling` for [Text](https://reactnative.dev/docs/text.html) and
@@ -118,12 +105,12 @@ Use Node.js 22.14 or newer and generate one pinned host outside the repository:
 npm run native:host:prepare -- --react-native 0.87.1 --output /absolute/temporary/host
 ```
 
-Repeat with `0.86.3`. Preparation builds and packs the local packages, invokes the pinned official
+CI repeats preparation with `0.86.3`. Preparation builds and packs the local packages, invokes the pinned official
 React Native Community CLI, installs the tarballs, and runs the host's strict TypeScript check. The
 regular CI matrix also creates Android and iOS production Metro bundles for both versions. The
 manually dispatched `Native platform preflight` workflow builds installable Android debug APKs and
-iOS simulator applications for both versions; those artifacts are preflight inputs, not physical
-device evidence.
+iOS simulator applications for both versions. The generated iPhone host explicitly supports
+portrait plus both landscape orientations.
 
 The generator refuses an output inside the repository and refuses to replace an existing path.
 This preserves the one-PoC policy and prevents a cleanup or regeneration command from deleting an
