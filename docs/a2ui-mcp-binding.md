@@ -31,11 +31,15 @@ An implementation enables this binding only when both peers explicitly advertise
 
 On MCP `2026-07-28`, a client advertises the settings under `io.modelcontextprotocol/clientCapabilities.extensions` in the per-request metadata envelope. A server advertises the same settings under `capabilities.extensions` in its `server/discover` result. `createMcpNativeClientOptions()` delegates that wire behavior to the official SDK.
 
-The tested `2025-11-25` compatibility lane makes no support claim for this extension. A host must treat it as unavailable unless both capability declarations are available and match exactly.
+The binding is verified on MCP `2026-07-28`, where both capability declarations are available and
+must match exactly.
 
 Neither `_meta`, a tool name, `structuredContent`, a `resource_link`, nor `application/a2ui+json` grants extension support. Those values remain untrusted data and can be preserved even when negotiation falls back.
 
-This binding negotiation is distinct from A2UI's own `agentCapabilities` and `rendererCapabilities` objects. `@mcp-native/a2ui` can strictly parse those pinned v1 objects and compute exact shared catalog IDs, but binding version `0.1` does not assign them another MCP wire location. Hosts must advertise only catalogs they fully implement. In particular, MCP Native's partial basic-catalog renderer must not claim the complete basic catalog merely because its surface validator supports a subset. Inline renderer catalogs remain disabled.
+This binding negotiation is distinct from A2UI's own `agentCapabilities` and
+`rendererCapabilities` objects. `@mcp-native/a2ui` strictly parses those pinned v1 objects and
+computes exact shared catalog IDs. Hosts advertise the documented component profile they fully
+implement, and inline renderer catalogs remain disabled.
 
 ## Ordered resource transport
 

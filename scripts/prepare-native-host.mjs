@@ -80,6 +80,23 @@ export function createNativeHostPackageJson(source, tarballs) {
   };
 }
 
+export function enableNativeHostPhoneOrientations(source) {
+  const portraitOnly = `\t<key>UISupportedInterfaceOrientations</key>
+\t<array>
+\t\t<string>UIInterfaceOrientationPortrait</string>
+\t</array>`;
+  const allPhoneOrientations = `\t<key>UISupportedInterfaceOrientations</key>
+\t<array>
+\t\t<string>UIInterfaceOrientationPortrait</string>
+\t\t<string>UIInterfaceOrientationLandscapeLeft</string>
+\t\t<string>UIInterfaceOrientationLandscapeRight</string>
+\t</array>`;
+  if (!source.includes(portraitOnly)) {
+    throw new Error("Generated native host Info.plist must contain the pinned portrait-only block");
+  }
+  return source.replace(portraitOnly, allPhoneOrientations);
+}
+
 export function prepareNativeHost({ output, reactNativeVersion, install = true, run = spawnSync }) {
   const resolvedOutput = validateNativeHostOutput(output);
   mkdirSync(dirname(resolvedOutput), { recursive: true });
@@ -144,6 +161,12 @@ export function prepareNativeHost({ output, reactNativeVersion, install = true, 
   cpSync(
     resolve(repositoryRoot, "tests/fixtures/a2ui-v1/accessibility-surface.json"),
     resolve(resolvedOutput, "accessibility-surface.json"),
+  );
+
+  const infoPlistPath = resolve(resolvedOutput, "ios", NATIVE_HOST_NAME, "Info.plist");
+  writeFileSync(
+    infoPlistPath,
+    enableNativeHostPhoneOrientations(readFileSync(infoPlistPath, "utf8")),
   );
 
   const packageJsonPath = resolve(resolvedOutput, "package.json");

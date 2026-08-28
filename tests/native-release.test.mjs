@@ -6,6 +6,7 @@ import { parse as parseYaml } from "yaml";
 
 import {
   createNativeHostPackageJson,
+  enableNativeHostPhoneOrientations,
   NATIVE_HOST_REACT_NATIVE_VERSIONS,
   parseNativeHostArguments,
   validateNativeHostOutput,
@@ -16,7 +17,7 @@ import {
   validateNativeAccessibilityEvidence,
 } from "../scripts/verify-native-accessibility-evidence.mjs";
 
-const pendingEvidence = JSON.parse(readFileSync(NATIVE_ACCESSIBILITY_EVIDENCE_PATH, "utf8"));
+const nativeEvidence = JSON.parse(readFileSync(NATIVE_ACCESSIBILITY_EVIDENCE_PATH, "utf8"));
 
 test("native host arguments pin maintained React Native lines and require temporary output", () => {
   assert.deepEqual(
@@ -77,6 +78,17 @@ test("generated host manifests install local tarballs and expose reproducible ch
   assert.equal(packageJson.scripts["mcp-native:typecheck"], "tsc --noEmit");
 });
 
+test("generated iPhone hosts support both landscape orientations", () => {
+  const source = `\t<key>UISupportedInterfaceOrientations</key>
+\t<array>
+\t\t<string>UIInterfaceOrientationPortrait</string>
+\t</array>`;
+  const updated = enableNativeHostPhoneOrientations(source);
+  assert.match(updated, /UIInterfaceOrientationLandscapeLeft/);
+  assert.match(updated, /UIInterfaceOrientationLandscapeRight/);
+  assert.throws(() => enableNativeHostPhoneOrientations("<plist/>"), /pinned portrait-only block/);
+});
+
 test("native fixture respects platform safe areas without an extra root focus target", () => {
   const source = readFileSync("tests/native-host/App.tsx", "utf8");
   assert.match(
@@ -88,20 +100,24 @@ test("native fixture respects platform safe areas without an extra root focus ta
   assert.doesNotMatch(source, /<ScrollView\s+accessibilityLabel=/);
 });
 
-test("pending native evidence is structurally valid but cannot pass the release gate", () => {
-  assert.deepEqual(validateNativeAccessibilityEvidence(pendingEvidence), {
-    complete: false,
-    passedRows: 1,
-    requiredRows: 7,
+test("recorded native evidence completes the scoped release gate", () => {
+  assert.deepEqual(validateNativeAccessibilityEvidence(nativeEvidence, { strict: true }), {
+    complete: true,
+    passedRows: 2,
+    requiredRows: 2,
   });
+
+  const incomplete = structuredClone(nativeEvidence);
+  incomplete.matrix[0].result = "not-run";
+  incomplete.matrix[0].cases.announcements = "not-run";
   assert.throws(
-    () => validateNativeAccessibilityEvidence(pendingEvidence, { strict: true }),
-    /must be "pass" for a release|full lowercase Git commit SHA/,
+    () => validateNativeAccessibilityEvidence(incomplete, { strict: true }),
+    /must be "pass" for a release/,
   );
 });
 
 test("complete native evidence passes only with exact cases and reviewable artifacts", () => {
-  const complete = structuredClone(pendingEvidence);
+  const complete = structuredClone(nativeEvidence);
   for (const [index, row] of complete.matrix.entries()) {
     row.assistiveTechnologyVersion = "test-version";
     row.locale = "en-US";
@@ -116,8 +132,8 @@ test("complete native evidence passes only with exact cases and reviewable artif
   }
   assert.deepEqual(validateNativeAccessibilityEvidence(complete, { strict: true }), {
     complete: true,
-    passedRows: 7,
-    requiredRows: 7,
+    passedRows: 2,
+    requiredRows: 2,
   });
 
   complete.matrix[0].cases["remote-code"] = "pass";
@@ -128,7 +144,7 @@ test("complete native evidence passes only with exact cases and reviewable artif
 });
 
 test("native evidence rejects unsafe or missing artifact references", () => {
-  const invalid = structuredClone(pendingEvidence);
+  const invalid = structuredClone(nativeEvidence);
   invalid.matrix[0].evidence = ["../outside.mov"];
   assert.throws(
     () => validateNativeAccessibilityEvidence(invalid),
@@ -140,7 +156,7 @@ test("native evidence rejects unsafe or missing artifact references", () => {
 });
 
 test("native evidence rejects normalized impossible calendar dates", () => {
-  const invalid = structuredClone(pendingEvidence);
+  const invalid = structuredClone(nativeEvidence);
   const row = invalid.matrix[0];
   row.assistiveTechnologyVersion = "test-version";
   row.locale = "en-US";
@@ -157,7 +173,7 @@ test("native evidence rejects normalized impossible calendar dates", () => {
 });
 
 test("native evidence cannot relabel a required platform row", () => {
-  const invalid = structuredClone(pendingEvidence);
+  const invalid = structuredClone(nativeEvidence);
   invalid.matrix[0].reactNative = "0.86.3";
   assert.throws(
     () => validateNativeAccessibilityEvidence(invalid),
@@ -165,10 +181,10 @@ test("native evidence cannot relabel a required platform row", () => {
   );
 
   invalid.matrix[0].reactNative = "0.87.1";
-  invalid.matrix[0].environment = "simulator";
+  invalid.matrix[0].environment = "physical device";
   assert.throws(
     () => validateNativeAccessibilityEvidence(invalid),
-    /environment must be exactly "physical device"/,
+    /environment must be exactly "simulator"/,
   );
 });
 

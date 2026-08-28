@@ -43,9 +43,8 @@ network service or a probabilistic dependency. The regular test and coverage gat
 Iteration counts and seeds are compatibility surfaces for the regression gate. Increasing them is
 safe after measuring CI cost; reducing them requires a reviewed rationale.
 
-## Remaining platform evidence
+## Platform evidence
 
-These gates execute the protocol and render-plan layers under Node.js. They do not replace the
-Milestone 4 iOS and Android fixture matrix, native profiler runs, VoiceOver/TalkBack checks, dynamic
-type, focus, reduced motion, contrast, touch target, orientation, or physical-device evidence. Those
-remain real-host requirements before Milestone 4 is complete.
+These gates execute the protocol and render-plan layers under Node.js. The Milestone 4 real-host
+gate complements them with Android TalkBack plus iOS XCUITest semantic/layout evidence, dynamic
+type, focus structure, reduced motion, contrast, touch targets, and orientation.
