@@ -253,6 +253,20 @@ test("OAuth credentials are bound to their authorization-server issuer", async (
     () => provider.tokens({ issuer: ISSUER }),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
   );
+
+  storage.values.tokens = {
+    access_token: "access",
+    token_type: "Bearer",
+    issuer: ISSUER,
+    extension: undefined,
+  };
+  await assert.rejects(
+    () => provider.tokens({ issuer: ISSUER }),
+    (error) =>
+      error instanceof McpNativeOAuthError &&
+      error.code === "invalid-storage" &&
+      /non-JSON value/.test(error.message),
+  );
 });
 
 test("OAuth dynamic registration records are bounded before parsing and persistence", async () => {

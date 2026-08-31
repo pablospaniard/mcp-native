@@ -44,6 +44,8 @@ their minor release line.
   caching, or reuse.
 - Apply the same structural and cumulative bounds to complete token responses, including
   schema-permitted extension fields, before parsing, persistence, or reuse.
+- Reject own `undefined` values in bounded OAuth token, registration, and discovery structures
+  instead of treating them as JSON `null`.
 - Require authorization-server endpoint and URI fields retained from discovery to use HTTPS or an
   HTTP loopback address and contain no fragment before the provider caches or returns them.
 - Reserve one authorization attempt before state persistence so overlapping flows cannot replace its

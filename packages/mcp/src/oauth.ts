@@ -124,6 +124,11 @@ const CLIENT_INFORMATION_BUDGET = Object.freeze({
   maxTotalStringCodeUnits: 24_576,
 });
 const DISCOVERY_STATE_BUDGET = Object.freeze({
+  allowedUndefinedRootProperties: new Set([
+    "authorizationServerMetadata",
+    "resourceMetadata",
+    "resourceMetadataUrl",
+  ]),
   maxArrayItems: 64,
   maxCumulativeArrayItems: 256,
   maxCumulativeProperties: 256,
@@ -136,6 +141,7 @@ const DISCOVERY_STATE_BUDGET = Object.freeze({
 });
 
 interface OAuthJsonBudget {
+  readonly allowedUndefinedRootProperties?: ReadonlySet<string>;
   readonly maxArrayItems: number;
   readonly maxCumulativeArrayItems: number;
   readonly maxCumulativeProperties: number;
@@ -996,7 +1002,10 @@ function assertBoundedOAuthJson(value: unknown, label: string, budget: OAuthJson
         `${label} exceeds the supported structural complexity`,
       );
     }
-    if (entry.value === null || entry.value === undefined) continue;
+    if (entry.value === null) continue;
+    if (entry.value === undefined) {
+      throw new McpNativeOAuthError("invalid-storage", `${label} contains a non-JSON value`);
+    }
     if (typeof entry.value === "string") {
       countString(entry.value, budget.maxStringCodeUnits);
       continue;
@@ -1066,6 +1075,13 @@ function assertBoundedOAuthJson(value: unknown, label: string, budget: OAuthJson
       const descriptor = Object.getOwnPropertyDescriptor(entry.value, key)!;
       if (!descriptor.enumerable || !("value" in descriptor)) {
         throw new McpNativeOAuthError("invalid-storage", `${label} contains a non-JSON property`);
+      }
+      if (
+        descriptor.value === undefined &&
+        entry.depth === 0 &&
+        budget.allowedUndefinedRootProperties?.has(key)
+      ) {
+        continue;
       }
       pending.push({ depth: entry.depth + 1, value: descriptor.value });
     }
