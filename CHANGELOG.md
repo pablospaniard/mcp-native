@@ -42,6 +42,8 @@ their minor release line.
 - Bound dynamic client-registration records and authorization discovery metadata by value size,
   cumulative text, collection width, depth, and total structure before schema parsing, persistence,
   caching, or reuse.
+- Apply the same structural and cumulative bounds to complete token responses, including
+  schema-permitted extension fields, before parsing, persistence, or reuse.
 - Require authorization-server endpoint and URI fields retained from discovery to use HTTPS or an
   HTTP loopback address and contain no fragment before the provider caches or returns them.
 - Reserve one authorization attempt before state persistence so overlapping flows cannot replace its

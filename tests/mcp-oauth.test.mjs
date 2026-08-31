@@ -317,7 +317,21 @@ test("OAuth token values are bounded before parsing, persistence, and reuse", as
         },
         { issuer: ISSUER },
       ),
-    /cumulative supported size/,
+    /cumulative supported (?:string )?size/,
+  );
+  assert.equal(storage.values.tokens, undefined);
+
+  await assert.rejects(
+    () =>
+      provider.saveTokens(
+        {
+          access_token: "access",
+          token_type: "Bearer",
+          extension: { nested: "x".repeat(16_385) },
+        },
+        { issuer: ISSUER },
+      ),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
   );
   assert.equal(storage.values.tokens, undefined);
 

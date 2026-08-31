@@ -99,6 +99,17 @@ const TOKEN_STRING_LIMITS = Object.freeze({
   scope: MAX_SCOPE_CODE_UNITS,
   token_type: MAX_TOKEN_TYPE_CODE_UNITS,
 });
+const TOKEN_INFORMATION_BUDGET = Object.freeze({
+  maxArrayItems: 64,
+  maxCumulativeArrayItems: 128,
+  maxCumulativeProperties: 128,
+  maxDepth: 8,
+  maxNodes: 256,
+  maxObjectProperties: 64,
+  maxPropertyNameCodeUnits: 128,
+  maxStringCodeUnits: MAX_TOKEN_VALUE_CODE_UNITS,
+  maxTotalStringCodeUnits: MAX_TOKEN_CUMULATIVE_CODE_UNITS,
+});
 const MAX_CLIENT_IDENTIFIER_CODE_UNITS = 4_096;
 const MAX_CLIENT_SECRET_CODE_UNITS = 4_096;
 const CLIENT_INFORMATION_BUDGET = Object.freeze({
@@ -817,6 +828,7 @@ function requireMatchingIssuer(actual: string | undefined, expected: string, lab
 }
 
 function parseStoredTokens(value: StoredOAuthTokens): StoredOAuthTokens {
+  assertBoundedOAuthJson(value, "Stored OAuth token response", TOKEN_INFORMATION_BUDGET);
   assertBoundedTokenValues(value);
   const result = OAuthTokensSchema.safeParse(value);
   if (!result.success) {

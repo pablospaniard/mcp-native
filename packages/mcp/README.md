@@ -133,8 +133,8 @@ try {
 service slots, exact issuer binding, and exclusive state reservation, claim, and release serialized
 across store objects using the same namespace in one JS runtime over a narrow native secret backend;
 it cannot make AsyncStorage or a plain file secure. The provider validates stored values
-before returning them to the SDK, bounds individual and cumulative registration, discovery, and
-token data before schema parsing, persistence, or reuse, validates every registered redirect URI,
+before returning them to the SDK, bounds complete registration, discovery, and token structures—including
+token extension fields—before schema parsing, persistence, or reuse, validates every registered redirect URI,
 rejects duplicate registered redirect query names and literal fragment delimiters on server,
 redirect, authorization, and callback URLs, requires every actionable discovery endpoint to use
 HTTPS or an HTTP loopback address and contain no fragment before caching or reuse, refreshes
