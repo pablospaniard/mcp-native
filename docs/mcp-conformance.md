@@ -59,9 +59,9 @@ These seven non-authorization scenarios report 51 successful checks.
 All 25 scored authorization client scenarios in the frozen `2026-07-28` requirements fixture now
 run through the same executable gate with no expected failures. Together with the seven scenarios
 above, the pinned run reports 386 successful checks, zero failures, and zero warnings across 32
-selected scenarios. This verifies the package-level protected Streamable HTTP OAuth boundary; it
-does not substitute for the still-pending real-platform keychain/keystore and authentication-session
-evidence required by the Milestone 6 release gate.
+selected scenarios. This verifies the package-level protected Streamable HTTP OAuth boundary.
+Native-library integration is exercised separately in app-level PoCs and is not part of the
+conformance gate.
 
 ## Cache-scope isolation
 

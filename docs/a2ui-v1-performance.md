@@ -43,8 +43,8 @@ network service or a probabilistic dependency. The regular test and coverage gat
 Iteration counts and seeds are compatibility surfaces for the regression gate. Increasing them is
 safe after measuring CI cost; reducing them requires a reviewed rationale.
 
-## Platform evidence
+## App-level PoCs
 
-These gates execute the protocol and render-plan layers under Node.js. The Milestone 4 real-host
-gate complements them with Android TalkBack plus iOS XCUITest semantic/layout evidence, dynamic
-type, focus structure, reduced motion, contrast, touch targets, and orientation.
+These gates execute the protocol and render-plan layers under Node.js. Separate Expo Go PoCs
+exercise the shared surface through the React Native primitives baseline and selected common
+component libraries. Their results are informative and do not change these repository gates.

@@ -1,6 +1,6 @@
 # WCAG 2.2 native assessment for the 0.4.0 fixture
 
-Status: complete for the narrow `0.4.0` evidence matrix: Android 17 with TalkBack and iOS 26.5
+Status: complete for the narrow historical `0.4.0` result matrix: Android 17 with TalkBack and iOS 26.5
 with XCUITest accessibility APIs.
 
 This assessment records applicable WCAG 2.2 Level A and AA outcomes for the supported A2UI native
@@ -9,8 +9,7 @@ guidance for applying it to native mobile applications. The results below are fi
 name the verified platform behavior precisely.
 
 The unit under assessment is the generated single-screen fixture host using the pinned protocol
-payload and all three supported catalog paths. Results and artifacts are recorded in
-`docs/evidence/native-accessibility-0.4.0.json`. TalkBack verifies Android speech and navigation;
+payload and all three supported catalog paths. TalkBack verifies Android speech and navigation;
 XCUITest verifies iOS programmatic semantics, actions, input behavior, and layout.
 
 ## Assessment matrix
@@ -57,8 +56,8 @@ XCUITest verifies iOS programmatic semantics, actions, input behavior, and layou
   are host presentation responsibilities. The generated fixture supplies one auditable reference
   implementation; another design system must repeat the catalog-parity inspection.
 
-## Completion rule
+## Scope note
 
-The `wcag-inspection` evidence case passes when every required release row and catalog path has a
-reviewable inspection and every applicable tested outcome is recorded. The strict
-`npm run native:evidence:verify` command machine-enforces the two-row `0.4.0` release gate.
+The archived `wcag-inspection` record describes the exact `0.4.0` fixture and platform runs. Current
+component-library behavior is explored through the separate Expo Go PoCs; neither the archived
+record nor the PoCs gate package releases.

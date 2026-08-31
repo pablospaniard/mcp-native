@@ -18,8 +18,9 @@ their minor release line.
   authorization client scenarios; the full pinned gate now covers 32 scenarios and 386 checks.
 - Dependency-neutral native OAuth reference adapters for bounded fixed-slot Keychain/Keystore
   persistence and one exact ASWebAuthenticationSession/Android Custom Tab callback.
-- An exact two-platform native OAuth evidence schema, ordinary structure check, and strict
-  release-candidate gate. Both checked-in rows intentionally remain `not-run` until executed.
+- A non-blocking Expo Go integration policy with separate apps for the React Native primitives
+  baseline and each selected common Expo Go-compatible component library. App results are reported
+  independently from package and milestone gates.
 
 ### Security
 

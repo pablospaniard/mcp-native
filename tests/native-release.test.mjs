@@ -188,7 +188,7 @@ test("native evidence cannot relabel a required platform row", () => {
   );
 });
 
-test("CI pins both maintained React Native host lines and release evidence", () => {
+test("CI pins both maintained React Native host lines without gating releases on app results", () => {
   const ci = parseYaml(readFileSync(".github/workflows/ci.yml", "utf8"));
   const platform = parseYaml(readFileSync(".github/workflows/native-platform.yml", "utf8"));
   assert.deepEqual(ci.jobs["native-host-bundle"].strategy.matrix["react-native"], [
@@ -205,6 +205,6 @@ test("CI pins both maintained React Native host lines and release evidence", () 
   assert.match(androidSdkStep.run, /build-tools;37\.0\.0/);
 
   const rootPackage = JSON.parse(readFileSync("package.json", "utf8"));
-  assert.match(rootPackage.scripts["release:verify"], /native:evidence:verify/);
-  assert.match(rootPackage.scripts["release:verify"], /oauth:evidence:verify/);
+  assert.doesNotMatch(rootPackage.scripts.check, /evidence/);
+  assert.doesNotMatch(rootPackage.scripts["release:verify"], /evidence/);
 });

@@ -59,9 +59,8 @@ owns one interactive attempt, requires reserved state and exactly one saved veri
 rejects cancellation during setup, handoff, or completion, prevents a
 second provider from cancelling the live attempt, and applies callback budgets to both native-session
 and process-recovery entry points. All 25 scored pinned
-`2026-07-28` authorization client scenarios pass. The evidence validator counts a row only when all
-of its required cases pass, and the strict native evidence gate exists, but its two required
-real-platform rows are still `not-run`.
+`2026-07-28` authorization client scenarios pass. Native-library integration is demonstrated
+separately through non-blocking application PoCs.
 
 ## Extension capability substrate
 

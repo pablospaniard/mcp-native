@@ -113,18 +113,14 @@ CI runs the same type and test checks on every pull request. A pull request cann
 
 ### Integration examples
 
-Each distinct integration may have at most one small, focused proof of concept under `examples/`.
-Extend that PoC when the integration grows instead of adding another example application for the
-same integration.
+Maintain a separate Expo Go PoC for the React Native primitives baseline and each selected common,
+Expo Go-compatible component library. Each app must pin its Expo SDK, React Native, component
+library, and MCP Native versions and must exercise the shared representative surface. Extend the
+existing app when a library's coverage grows instead of adding another app for the same library.
 
-Keep examples to hand-authored integration code and the documentation needed to understand it. Do
-not commit a generated standalone application, duplicated dependency lockfile, vendored dependency
-tree, platform build output, or generic Android/iOS project scaffold merely to host an example.
-
-Examples do not replace tests. Cover their behavior through package tests, integration tests, or a
-lightweight smoke script. When a native host build is necessary to prove platform-specific
-behavior, generate it in a temporary test workspace and run only the platform checks relevant to
-the change.
+PoC results are informative and never block package releases, milestone completion, or protocol
+claims. Examples do not replace tests: package behavior still requires unit, integration,
+conformance, performance, or smoke coverage at the closest appropriate layer.
 
 ## Commits
 

@@ -98,7 +98,7 @@ Hosts must verify any additional native wrapper settings on their supported WKWe
 WebView versions. Unsupported settings and platforms must deny rendering rather than silently weaken
 the descriptor.
 
-## Verification evidence
+## Verification coverage
 
 `tests/mcp-apps.test.mjs` covers official-schema interoperability for initialization and host
 notifications, exact discovery and visibility behavior, text/blob resources, CSP and permission

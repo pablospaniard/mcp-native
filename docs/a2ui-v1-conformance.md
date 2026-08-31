@@ -59,9 +59,8 @@ declared component and function profile is closed, and all other server-controll
 closed.
 
 The [automated robustness gates](a2ui-v1-performance.md) cover bounded Node.js performance and
-generated-input behavior. The `0.4.0` Android TalkBack and iOS XCUITest evidence matrix is
-recorded separately. Together, these gates verify the declared protocol profile and its native
-renderer behavior.
+generated-input behavior. App-level component-library compatibility is demonstrated separately in
+non-blocking Expo Go PoCs and is not part of the declared protocol profile.
 
 ## Candidate interpretations
 
@@ -73,7 +72,7 @@ renderer behavior.
 - Successful parsing is never authorization for function execution, tools, URLs, transport,
   device capabilities, or permissions.
 
-## Interoperability evidence
+## Verification coverage
 
 - Vendored schema integrity is checked by `npm run schemas:verify`.
 - Upstream agent-to-renderer examples and incremental lifecycle fixtures exercise parsing and

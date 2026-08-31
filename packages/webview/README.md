@@ -24,7 +24,7 @@ legacy generic helpers still recognize older HTML MIME types and reject both inl
 documents unless the host explicitly grants them through policy.
 
 The exact protocol pin, message set, bounds, exclusions, native/browser differences, and official
-schema evidence are documented in the [MCP Apps compatibility
+schema coverage is documented in the [MCP Apps compatibility
 profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md).
 
 ## Stable MCP Apps host flow

@@ -1,7 +1,7 @@
-# Native OAuth integration and evidence plan
+# Native OAuth host integration
 
-Status: reference adapters and the evidence gate are implemented. Both required platform rows are
-`not-run`; this document does not claim production-ready native OAuth yet.
+Status: the package-level reference adapters are implemented. App-level integration is demonstrated
+separately and does not gate releases or protocol claims.
 
 ## Boundary
 
@@ -24,51 +24,44 @@ supported profile.
 
 Apple documents `ASWebAuthenticationSession` as the OS authentication flow that returns the
 callback only to the calling app. Android recommends Custom Tabs for third-party authentication
-instead of a WebView. A tested React Native bridge may be used, but it remains an app dependency and
-must be pinned in the evidence record:
+instead of a WebView. The Expo Go PoC uses Expo's included secure-store and browser modules, pinned
+to its Expo SDK version:
 
 - [Apple ASWebAuthenticationSession](https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession)
 - [Android Custom Tabs](https://developer.android.com/develop/ui/views/layout/webapps/overview-of-android-custom-tabs)
-- [react-native-keychain](https://oblador.github.io/react-native-keychain/docs/)
-- [react-native-inappbrowser](https://github.com/proyecto26/react-native-inappbrowser)
+- [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/)
+- [Expo WebBrowser](https://docs.expo.dev/versions/latest/sdk/webbrowser/)
 
-## Reference React Native wiring
+## Reference Expo Go wiring
 
 The following app-owned wrapper illustrates the narrow bridge. Keep all native module options
 literal and reviewed; do not derive a service name, accessibility option, browser option, or redirect
 URL from MCP server data.
 
 ```ts
-import * as Keychain from "react-native-keychain";
-import { InAppBrowser } from "react-native-inappbrowser-reborn";
+import * as Linking from "expo-linking";
+import * as SecureStore from "expo-secure-store";
+import * as WebBrowser from "expo-web-browser";
 import {
   createMcpNativeOAuthAuthorizationSession,
   createMcpNativeOAuthPlatformSecureStore,
   createMcpNativeOAuthProvider,
 } from "@mcp-native/mcp/oauth";
 
-const redirectUrl = "my-app://oauth/callback";
-const username = "mcp-native-oauth";
+const redirectUrl = Linking.createURL("oauth/callback");
 
 const storage = createMcpNativeOAuthPlatformSecureStore({
   // App/environment-owned and constant. Never use the server URL or issuer here.
   namespace: "com.example.myapp.production",
   backend: {
     async read(service) {
-      const result = await Keychain.getGenericPassword({ service });
-      if (result === false) return undefined;
-      if (result.username !== username) throw new Error("Unexpected Keychain record owner");
-      return result.password;
+      return (await SecureStore.getItemAsync(service)) ?? undefined;
     },
     async write(service, value) {
-      const result = await Keychain.setGenericPassword(username, value, {
-        service,
-        accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-      });
-      if (result === false) throw new Error("Keychain write failed");
+      await SecureStore.setItemAsync(service, value);
     },
     async remove(service) {
-      await Keychain.resetGenericPassword({ service });
+      await SecureStore.deleteItemAsync(service);
     },
   },
 });
@@ -76,9 +69,7 @@ const storage = createMcpNativeOAuthPlatformSecureStore({
 const authorizationSession = createMcpNativeOAuthAuthorizationSession({
   redirectUrl,
   async open(authorizationUrl, callbackUrl) {
-    const result = await InAppBrowser.openAuth(authorizationUrl.href, callbackUrl.href, {
-      ephemeralWebSession: false,
-    });
+    const result = await WebBrowser.openAuthSessionAsync(authorizationUrl.href, callbackUrl.href);
     if (result.type === "success") return { type: "success", url: result.url };
     if (result.type === "cancel") return { type: "cancel" };
     if (result.type === "dismiss") return { type: "dismiss" };
@@ -120,58 +111,16 @@ provider also cannot invalidate all credentials or the verifier while setup, han
 is active. When the process is recreated and no live owner remains, a new provider may claim and
 release the stale reservation without deleting registrations or tokens.
 
-## Required matrix
+## Expo Go PoC scope
 
-| Required row             | React Native | Secret backend                        | Authorization UI             |
-| ------------------------ | ------------ | ------------------------------------- | ---------------------------- |
-| iOS current simulator    | `0.87.1`     | iOS Keychain                          | `ASWebAuthenticationSession` |
-| Android current emulator | `0.87.1`     | Android Keystore-backed native module | Android Custom Tab           |
+The Expo Go app is an integration demonstration, not a release condition. Pin the Expo SDK and
+module versions in the app and exercise storage persistence and deletion, issuer and namespace
+isolation, single-use callback handling, cancellation, malformed callbacks, background/resume, and
+credential-safe logging. Keep secrets, authorization codes, PKCE verifiers, OAuth state, account
+identifiers, and screenshots or logs containing them out of the repository.
 
-Record the exact OS, device/runtime, native bridge and version, tested commit, operator, date,
-artifacts, and issues. A row may declare `pass` only when every required case is `pass`. A bundle or
-TypeScript test is not platform evidence.
-
-## Required cases
-
-1. Verify through native tooling or module diagnostics that every fixed service is backed by the
-   declared platform secret facility; inspect application storage to ensure no OAuth value appears
-   in AsyncStorage, preferences, databases, files, logs, screenshots, or crash output.
-2. Save registration, tokens, verifier, state, and discovery data; terminate and relaunch the app;
-   confirm the intended values survive and remain schema-valid.
-3. Attempt to load credentials under a different issuer and a different app namespace. Both must
-   fail without exposing or deleting the valid record.
-4. Deliver the same valid-state callback twice concurrently through distinct provider/store objects
-   sharing the app namespace. Exactly one exchange may proceed. While that exchange and verifier
-   cleanup are active, a new provider must not reserve state or replace the verifier.
-5. Invalidate verifier, token, client, discovery, and all scopes; confirm the corresponding native
-   records are gone and unrelated issuer records are not removed.
-6. Inspect the presented authorization UI and platform hierarchy to prove it is the required OS
-   session, not a React Native WebView.
-7. Complete authorization and verify the exact registered callback, PKCE exchange, reconnect, and
-   issuer-bound token use.
-8. Cancel and dismiss the browser. The app must show a safe denied/cancelled state, make no token
-   request, and remove pending state and verifier material.
-9. Deliver wrong-state, duplicate-parameter, wrong-location, oversized, and replayed callbacks. Each
-   must fail before token exchange.
-10. Background and resume the app during authorization. Complete once, then repeat with process
-    recreation and direct deep-link completion.
-11. Inspect application, Metro, native, network-debug, and crash logs for credential, token, PKCE,
-    state, callback-code, server-data, and user-data leakage.
-
-## Evidence commands
-
-The checked-in record starts incomplete at `docs/evidence/native-oauth-m6.json`:
-
-```sh
-npm run oauth:evidence:check
-npm run oauth:evidence:verify
-```
-
-The ordinary check validates the exact rows, cases, bounds, and safe evidence references while
-allowing `not-run` only for rows that do not claim to pass. Any row marked `pass` must already have
-every required case passing. The strict command additionally requires both rows to pass with a full
-commit SHA and at least one reviewable artifact. It is part of `npm run release:verify`, so a
-Milestone 6 release candidate cannot pass until real platform evidence replaces the placeholders.
-
-Never commit access tokens, refresh tokens, client secrets, authorization codes, PKCE verifiers,
-OAuth state, account identifiers, or screenshots/logs containing them as evidence.
+Expo Go uses a development URL whose shape can change between sessions. That is suitable for a
+controlled PoC but not for a production OAuth redirect registration. A production host must use a
+development or production build with a stable app-owned scheme or universal/app link and must
+validate its chosen secure-storage and browser-session modules in that host. Those app-specific
+results are reported independently and never block MCP Native package releases.

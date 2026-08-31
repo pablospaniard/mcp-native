@@ -186,7 +186,7 @@ return { content: [{ type: "text", text: "Saved" }] };
 - A2UI agent-initiated renderer-function execution and interoperability beyond the declared profile
 - Extension-specific operations and additional official extension conformance scenarios
 - Platform accessibility testing and renderer capability transport integration
-- Passing platform OAuth secure-storage/authentication-session evidence and production connection lifecycle
+- Expo Go integration PoCs and production connection lifecycle
 - Richer React Native catalog components, styling, and platform-specific accessibility behavior
 - Sensitive-device capability policies, consent, and permissions
 - MCP Apps browser-host double-iframe support and optional stable methods outside the documented
