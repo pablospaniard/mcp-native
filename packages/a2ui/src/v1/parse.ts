@@ -24,6 +24,14 @@ const UNSUPPORTED_KEYS = ["callRendererFunction", "agentFunctionResponse"] as co
  * Function-call envelopes are rejected in this milestone.
  */
 export function parseA2uiV1Envelope(input: string | unknown): A2uiV1Envelope {
+  return parseA2uiV1EnvelopeWithStringBudget(input, A2UI_V1_MAX_SOURCE_LENGTH);
+}
+
+/** Internal snapshot path for state assembled from multiple individually bounded envelopes. */
+export function parseA2uiV1EnvelopeWithStringBudget(
+  input: string | unknown,
+  maxTotalStringCodeUnits: number,
+): A2uiV1Envelope {
   let value: unknown = input;
 
   if (typeof input === "string") {
@@ -42,7 +50,7 @@ export function parseA2uiV1Envelope(input: string | unknown): A2uiV1Envelope {
 
   let reconstructed: JsonValue;
   try {
-    reconstructed = parseJsonValue(value, "envelope");
+    reconstructed = parseJsonValue(value, "envelope", { maxTotalStringCodeUnits });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid JSON envelope";
     throw new A2uiParseError(message, { cause: error });

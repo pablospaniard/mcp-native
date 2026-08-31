@@ -11,13 +11,6 @@ import {
   parseNativeHostArguments,
   validateNativeHostOutput,
 } from "../scripts/prepare-native-host.mjs";
-import {
-  NATIVE_ACCESSIBILITY_CASES,
-  NATIVE_ACCESSIBILITY_EVIDENCE_PATH,
-  validateNativeAccessibilityEvidence,
-} from "../scripts/verify-native-accessibility-evidence.mjs";
-
-const nativeEvidence = JSON.parse(readFileSync(NATIVE_ACCESSIBILITY_EVIDENCE_PATH, "utf8"));
 
 test("native host arguments pin maintained React Native lines and require temporary output", () => {
   assert.deepEqual(
@@ -98,94 +91,6 @@ test("native fixture respects platform safe areas without an extra root focus ta
   assert.match(source, /<SafeAreaProvider>/);
   assert.match(source, /<SafeAreaView edges=\{\["top", "right", "bottom", "left"\]\}/);
   assert.doesNotMatch(source, /<ScrollView\s+accessibilityLabel=/);
-});
-
-test("recorded native evidence completes the scoped release gate", () => {
-  assert.deepEqual(validateNativeAccessibilityEvidence(nativeEvidence, { strict: true }), {
-    complete: true,
-    passedRows: 2,
-    requiredRows: 2,
-  });
-
-  const incomplete = structuredClone(nativeEvidence);
-  incomplete.matrix[0].result = "not-run";
-  incomplete.matrix[0].cases.announcements = "not-run";
-  assert.throws(
-    () => validateNativeAccessibilityEvidence(incomplete, { strict: true }),
-    /must be "pass" for a release/,
-  );
-});
-
-test("complete native evidence passes only with exact cases and reviewable artifacts", () => {
-  const complete = structuredClone(nativeEvidence);
-  for (const [index, row] of complete.matrix.entries()) {
-    row.assistiveTechnologyVersion = "test-version";
-    row.locale = "en-US";
-    row.textSize = "normal and all supported larger sizes";
-    row.device = `Test device ${index}`;
-    row.revision = "a".repeat(40);
-    row.date = "2026-08-27";
-    row.tester = "Test operator";
-    row.result = "pass";
-    row.evidence = [`https://example.com/evidence/${row.id}`];
-    row.cases = Object.fromEntries(NATIVE_ACCESSIBILITY_CASES.map((name) => [name, "pass"]));
-  }
-  assert.deepEqual(validateNativeAccessibilityEvidence(complete, { strict: true }), {
-    complete: true,
-    passedRows: 2,
-    requiredRows: 2,
-  });
-
-  complete.matrix[0].cases["remote-code"] = "pass";
-  assert.throws(
-    () => validateNativeAccessibilityEvidence(complete, { strict: true }),
-    /unknown field "remote-code"/,
-  );
-});
-
-test("native evidence rejects unsafe or missing artifact references", () => {
-  const invalid = structuredClone(nativeEvidence);
-  invalid.matrix[0].evidence = ["../outside.mov"];
-  assert.throws(
-    () => validateNativeAccessibilityEvidence(invalid),
-    /safe repository-relative path/,
-  );
-
-  invalid.matrix[0].evidence = ["https://"];
-  assert.throws(() => validateNativeAccessibilityEvidence(invalid), /valid HTTPS URL/);
-});
-
-test("native evidence rejects normalized impossible calendar dates", () => {
-  const invalid = structuredClone(nativeEvidence);
-  const row = invalid.matrix[0];
-  row.assistiveTechnologyVersion = "test-version";
-  row.locale = "en-US";
-  row.textSize = "normal and all supported larger sizes";
-  row.device = "Test device";
-  row.revision = "a".repeat(40);
-  row.date = "2026-02-30";
-  row.tester = "Test operator";
-  row.result = "pass";
-  row.evidence = ["https://example.com/evidence/ios-minimum"];
-  row.cases = Object.fromEntries(NATIVE_ACCESSIBILITY_CASES.map((name) => [name, "pass"]));
-
-  assert.throws(() => validateNativeAccessibilityEvidence(invalid), /ISO calendar date/);
-});
-
-test("native evidence cannot relabel a required platform row", () => {
-  const invalid = structuredClone(nativeEvidence);
-  invalid.matrix[0].reactNative = "0.86.3";
-  assert.throws(
-    () => validateNativeAccessibilityEvidence(invalid),
-    /reactNative must be exactly "0.87.1"/,
-  );
-
-  invalid.matrix[0].reactNative = "0.87.1";
-  invalid.matrix[0].environment = "physical device";
-  assert.throws(
-    () => validateNativeAccessibilityEvidence(invalid),
-    /environment must be exactly "simulator"/,
-  );
 });
 
 test("CI pins both maintained React Native host lines without gating releases on app results", () => {

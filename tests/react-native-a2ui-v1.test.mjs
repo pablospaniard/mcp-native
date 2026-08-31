@@ -3009,11 +3009,12 @@ test("expanded formatString work and output remain bounded", () => {
       {
         id: "item",
         component: "Text",
-        text: { call: "formatString", args: { value: "${value}" } },
+        text: { call: "formatString", args: { value: "${/value}" } },
       },
     ],
     {
-      items: Array.from({ length: 513 }, () => ({ value: "x".repeat(2_048) })),
+      value: "x".repeat(2_048),
+      items: Array.from({ length: 513 }, () => ({})),
     },
   );
   assert.throws(

@@ -325,20 +325,70 @@ function injectCsp(html: string, csp: string): string {
   if (html.length > MCP_APPS_MAX_HTML_LENGTH) {
     throw new McpAppsError(`MCP Apps HTML exceeds maximum length of ${MCP_APPS_MAX_HTML_LENGTH}`);
   }
-  // Restrict the accepted shape so no executable element can precede the policy.
-  const start = /^\s*<!doctype\s+html\s*>\s*<html(?:\s[^>]*)?>\s*<head(?:\s[^>]*)?>/iu.exec(html);
-  if (start === null || start.index !== 0) {
+  // Restrict the accepted shape so no executable element can precede the policy. Start tags
+  // must be scanned with quote awareness: a regular expression that stops at the first `>` can
+  // mistake `<head>` text inside an attribute for the real element and inject an inert CSP value
+  // into the still-open `<html>` tag.
+  const insertionOffset = findCspInsertionOffset(html);
+  if (insertionOffset === undefined) {
     throw new McpAppsError(
       "MCP Apps HTML must start with an HTML5 doctype, html element, and head element",
     );
   }
   const escaped = escapeHtmlAttribute(csp);
   const meta = `<meta http-equiv="Content-Security-Policy" content="${escaped}">`;
-  const result = `${html.slice(0, start[0].length)}${meta}${html.slice(start[0].length)}`;
+  const result = `${html.slice(0, insertionOffset)}${meta}${html.slice(insertionOffset)}`;
   if (result.length > MCP_APPS_MAX_HTML_LENGTH + 4_096) {
     throw new McpAppsError("CSP-injected MCP Apps HTML exceeds its output budget");
   }
   return result;
+}
+
+function findCspInsertionOffset(html: string): number | undefined {
+  const doctype = /^\s*<!doctype\s+html\s*>/iu.exec(html);
+  if (doctype === null || doctype.index !== 0) return undefined;
+
+  let offset = skipAsciiWhitespace(html, doctype[0].length);
+  offset = findOpeningTagEnd(html, offset, "html") ?? -1;
+  if (offset < 0) return undefined;
+  offset = skipAsciiWhitespace(html, offset);
+  return findOpeningTagEnd(html, offset, "head");
+}
+
+function skipAsciiWhitespace(value: string, offset: number): number {
+  while (offset < value.length && /[\t\n\f\r ]/u.test(value[offset]!)) offset += 1;
+  return offset;
+}
+
+function findOpeningTagEnd(
+  html: string,
+  offset: number,
+  expectedName: "head" | "html",
+): number | undefined {
+  const prefix = `<${expectedName}`;
+  if (html.slice(offset, offset + prefix.length).toLowerCase() !== prefix) return undefined;
+  const boundary = html[offset + prefix.length];
+  if (boundary !== ">" && boundary !== undefined && !/[\t\n\f\r ]/u.test(boundary)) {
+    return undefined;
+  }
+
+  let quote: '"' | "'" | undefined;
+  for (let index = offset + prefix.length; index < html.length; index += 1) {
+    const character = html[index]!;
+    if (quote !== undefined) {
+      if (character === quote) quote = undefined;
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (character !== ">") continue;
+    let previous = index - 1;
+    while (previous >= offset && /[\t\n\f\r ]/u.test(html[previous]!)) previous -= 1;
+    return html[previous] === "/" ? undefined : index + 1;
+  }
+  return undefined;
 }
 
 function escapeHtmlAttribute(value: string): string {

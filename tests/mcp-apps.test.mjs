@@ -447,6 +447,18 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
       }),
     /HTML5 doctype/,
   );
+  const quotedFakeHead = createMcpAppsNativeSandbox({
+    ...resource,
+    html: '<!doctype html><html data-marker="><head>"><head><script>fetch("https://evil.test")</script></head><body></body></html>',
+  });
+  assert.match(
+    quotedFakeHead.source.html,
+    /^<!doctype html><html data-marker="><head>"><head><meta http-equiv="Content-Security-Policy"/i,
+  );
+  assert.equal(
+    quotedFakeHead.source.html.indexOf('<meta http-equiv="Content-Security-Policy"'),
+    quotedFakeHead.source.html.lastIndexOf('<meta http-equiv="Content-Security-Policy"'),
+  );
   assert.throws(
     () => createMcpAppsNativeSandbox(createResolvedResource({ domain: "view.example.com" })),
     /sandbox domain is unsupported/,
@@ -1120,6 +1132,34 @@ test("bridge covers lifecycle validation, downloads, modalities, and constructor
     params: { content: [{ type: "text", text: "current selection" }] },
   });
   assert.deepEqual(fixture.sent.at(-1).result, {});
+  const messageCalls = fixture.calls.filter(([kind]) => kind === "message").length;
+  const invalidLinks = [
+    [40, { type: "resource_link", name: "Data", uri: "ui://data", size: -1 }],
+    [41, { type: "resource_link", name: "Data", uri: "ui://data", icons: [{ src: 1 }] }],
+    [
+      42,
+      {
+        type: "resource_link",
+        name: "Data",
+        uri: "ui://data",
+        annotations: { audience: ["system"] },
+      },
+    ],
+  ];
+  await Promise.all(
+    invalidLinks.map(([id, link]) =>
+      fixture.bridge.receive({
+        jsonrpc: "2.0",
+        id,
+        method: "ui/message",
+        params: { role: "user", content: [link] },
+      }),
+    ),
+  );
+  for (const [id] of invalidLinks) {
+    assert.equal(fixture.sent.find((message) => message.id === id).error.code, -32602);
+  }
+  assert.equal(fixture.calls.filter(([kind]) => kind === "message").length, messageCalls);
   await fixture.bridge.receive({
     jsonrpc: "2.0",
     method: "ui/notifications/request-teardown",

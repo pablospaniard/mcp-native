@@ -23,6 +23,7 @@ import {
   MCP_NATIVE_LEGACY_PROTOCOL_REVISION,
   MCP_NATIVE_PROTOCOL_REVISION,
   MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS,
+  MCP_SDK_MAX_RESULT_ITEMS,
   McpSdkAdapterError,
   McpSdkClientAdapter,
 } from "../packages/mcp/dist/index.js";
@@ -823,7 +824,7 @@ test("the SDK adapter rejects malformed and non-JSON tool data", async (t) => {
     {
       name: "unsupported content type",
       operation: "callTool",
-      result: { content: [{ type: "data", value: Number.POSITIVE_INFINITY }] },
+      result: { content: [{ type: "data", value: 1 }] },
       message: /Unsupported MCP content type "data"/,
     },
     {
@@ -942,4 +943,45 @@ test("the SDK adapter rejects circular and non-plain JSON values", async () => {
     },
   });
   await assert.rejects(() => dateAdapter.callTool("bad", {}), /Expected a plain object/);
+});
+
+test("the SDK adapter bounds aggregate result collections and strings", async () => {
+  const oversizedTools = new McpSdkClientAdapter({
+    async listTools() {
+      return {
+        tools: Array.from({ length: MCP_SDK_MAX_RESULT_ITEMS + 1 }, (_, index) => ({
+          name: `tool-${index}`,
+          inputSchema: { type: "object" },
+        })),
+      };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  });
+  await assert.rejects(() => oversizedTools.listTools(), /exceeds maximum of 1024 items/);
+
+  const oversizedStrings = new McpSdkClientAdapter({
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return {
+        content: Array.from({ length: 17 }, () => ({
+          type: "text",
+          text: "x".repeat(65_536),
+        })),
+      };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  });
+  await assert.rejects(
+    () => oversizedStrings.callTool("large", {}),
+    /maximum cumulative string\/key length/,
+  );
 });

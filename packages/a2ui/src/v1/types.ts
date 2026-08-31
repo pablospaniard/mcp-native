@@ -10,6 +10,10 @@ export const A2UI_V1_MAX_ENVELOPES = 1_024;
 export const A2UI_V1_MAX_SURFACES = 1_024;
 /** Maximum retained component definitions in one surface. */
 export const A2UI_V1_MAX_COMPONENTS = 1_024;
+/** Maximum JSON values retained across all surfaces in one store. */
+export const A2UI_V1_MAX_STORE_VALUES = 100_000;
+/** Maximum UTF-16 code units retained across JSON strings and keys in one store. */
+export const A2UI_V1_MAX_STORE_STRING_CODE_UNITS = 8_388_608;
 
 export type A2uiV1Component = JsonObject & {
   readonly id: string;

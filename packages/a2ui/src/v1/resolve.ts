@@ -13,6 +13,8 @@ export interface ResolvedA2uiV1JsonlResource {
   readonly envelopes: readonly A2uiV1Envelope[];
 }
 
+const A2UI_V1_MAX_MCP_RESULT_ITEMS = 1_024;
+
 /**
  * Resolves the single A2UI resource link in a successful tool result and parses
  * its text body as an ordered v1 JSONL envelope batch. Does not invoke the
@@ -72,6 +74,11 @@ function expectContentArray(value: unknown): readonly McpContent[] {
   if (!Array.isArray(value)) {
     throw new A2uiResourceError("Expected an array at tool result.content");
   }
+  if (value.length > A2UI_V1_MAX_MCP_RESULT_ITEMS) {
+    throw new A2uiResourceError(
+      `tool result.content exceeds maximum of ${A2UI_V1_MAX_MCP_RESULT_ITEMS} items`,
+    );
+  }
   return value as readonly McpContent[];
 }
 
@@ -105,6 +112,11 @@ function expectResourceContents(value: unknown): McpReadResourceResult["contents
   const result = value as Record<string, unknown>;
   if (!Array.isArray(result.contents)) {
     throw new A2uiResourceError("Expected an array at resource result.contents");
+  }
+  if (result.contents.length > A2UI_V1_MAX_MCP_RESULT_ITEMS) {
+    throw new A2uiResourceError(
+      `resource result.contents exceeds maximum of ${A2UI_V1_MAX_MCP_RESULT_ITEMS} items`,
+    );
   }
 
   return result.contents.map((item, index) => {

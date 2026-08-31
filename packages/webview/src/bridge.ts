@@ -792,6 +792,8 @@ function parseDownloadContent(value: unknown, path: string): JsonObject {
 }
 
 function validateContentBlock(block: JsonObject, path: string): void {
+  validateOptionalAnnotations(block.annotations, `${path}.annotations`);
+  validateOptionalMeta(block["_meta"], `${path}._meta`);
   switch (block.type) {
     case "text":
       expectOnlyKeys(block, ["type", "text", "annotations", "_meta"], path);
@@ -808,6 +810,7 @@ function validateContentBlock(block: JsonObject, path: string): void {
       const resource = parseBoundedObject(block.resource, `${path}.resource`);
       expectOnlyKeys(resource, ["uri", "mimeType", "text", "blob", "_meta"], `${path}.resource`);
       expectBoundedString(resource.uri, `${path}.resource.uri`);
+      validateOptionalMeta(resource["_meta"], `${path}.resource._meta`);
       if (resource.mimeType !== undefined) {
         expectBoundedString(resource.mimeType, `${path}.resource.mimeType`);
       }
@@ -838,10 +841,77 @@ function validateContentBlock(block: JsonObject, path: string): void {
       );
       expectBoundedString(block.name, `${path}.name`);
       expectBoundedString(block.uri, `${path}.uri`);
+      for (const field of ["title", "description", "mimeType"] as const) {
+        if (block[field] !== undefined) expectBoundedString(block[field], `${path}.${field}`);
+      }
+      if (
+        block.size !== undefined &&
+        (typeof block.size !== "number" || !Number.isSafeInteger(block.size) || block.size < 0)
+      ) {
+        throw new McpAppsBridgeError(`Expected a non-negative safe integer at ${path}.size`);
+      }
+      validateOptionalIcons(block.icons, `${path}.icons`);
       break;
     default:
       throw new McpAppsBridgeError(`Unsupported content type at ${path}.type`);
   }
+}
+
+function validateOptionalAnnotations(value: JsonValue | undefined, path: string): void {
+  if (value === undefined) return;
+  const annotations = parseBoundedObject(value, path);
+  expectOnlyKeys(annotations, ["audience", "priority", "lastModified"], path);
+  if (annotations.audience !== undefined) {
+    if (!Array.isArray(annotations.audience) || annotations.audience.length > 2) {
+      throw new McpAppsBridgeError(`Expected at most two audience roles at ${path}.audience`);
+    }
+    for (const [index, role] of annotations.audience.entries()) {
+      if (role !== "assistant" && role !== "user") {
+        throw new McpAppsBridgeError(`Expected assistant or user at ${path}.audience[${index}]`);
+      }
+    }
+  }
+  if (
+    annotations.priority !== undefined &&
+    (typeof annotations.priority !== "number" ||
+      !Number.isFinite(annotations.priority) ||
+      annotations.priority < 0 ||
+      annotations.priority > 1)
+  ) {
+    throw new McpAppsBridgeError(`Expected a number from 0 to 1 at ${path}.priority`);
+  }
+  if (annotations.lastModified !== undefined) {
+    expectBoundedString(annotations.lastModified, `${path}.lastModified`);
+  }
+}
+
+function validateOptionalIcons(value: JsonValue | undefined, path: string): void {
+  if (value === undefined) return;
+  if (!Array.isArray(value) || value.length > 64) {
+    throw new McpAppsBridgeError(`Expected at most 64 icons at ${path}`);
+  }
+  for (const [index, iconValue] of value.entries()) {
+    const iconPath = `${path}[${index}]`;
+    const icon = parseBoundedObject(iconValue, iconPath);
+    expectOnlyKeys(icon, ["src", "mimeType", "sizes", "theme"], iconPath);
+    expectBoundedString(icon.src, `${iconPath}.src`);
+    if (icon.mimeType !== undefined) expectBoundedString(icon.mimeType, `${iconPath}.mimeType`);
+    if (icon.sizes !== undefined) {
+      if (!Array.isArray(icon.sizes) || icon.sizes.length > 64) {
+        throw new McpAppsBridgeError(`Expected at most 64 icon sizes at ${iconPath}.sizes`);
+      }
+      for (const [sizeIndex, size] of icon.sizes.entries()) {
+        expectBoundedString(size, `${iconPath}.sizes[${sizeIndex}]`);
+      }
+    }
+    if (icon.theme !== undefined && icon.theme !== "dark" && icon.theme !== "light") {
+      throw new McpAppsBridgeError(`Expected dark or light at ${iconPath}.theme`);
+    }
+  }
+}
+
+function validateOptionalMeta(value: JsonValue | undefined, path: string): void {
+  if (value !== undefined) parseBoundedObject(value, path);
 }
 
 function expectParamsObject(value: JsonValue | undefined, method: string): JsonObject {

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   JSON_MAX_DEPTH,
   JSON_MAX_STRING_LENGTH,
+  JSON_MAX_TOTAL_STRING_CODE_UNITS,
   JSON_MAX_VALUES,
   JsonValidationError,
   McpNativeActionDeniedError,
@@ -154,6 +155,19 @@ test("the public JSON validators enforce depth, value-count, and string limits",
     () => parseJsonValue({ ["x".repeat(JSON_MAX_STRING_LENGTH + 1)]: true }),
     (error) =>
       error instanceof JsonValidationError && /object key.*maximum length/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      parseJsonValue(
+        Array.from({ length: 17 }, () => "x".repeat(JSON_MAX_STRING_LENGTH)),
+        "bounded",
+        { maxTotalStringCodeUnits: JSON_MAX_TOTAL_STRING_CODE_UNITS },
+      ),
+    (error) =>
+      error instanceof JsonValidationError &&
+      new RegExp(
+        `maximum cumulative string/key length of ${JSON_MAX_TOTAL_STRING_CODE_UNITS}`,
+      ).test(error.message),
   );
   assert.deepEqual(parseJsonValue({ a: "1234" }, "bounded", { maxTotalStringCodeUnits: 5 }), {
     a: "1234",

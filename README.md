@@ -101,7 +101,7 @@ The packages are intentionally separated so the core runtime does not depend on 
 React Native, or any single declarative UI protocol. Release `0.5.0` adds the stable MCP Apps
 `2026-01-26` native host-adapter profile with strict discovery, bounded bridge handling, and a
 closed WebView sandbox contract. Release `0.4.0` completed the feature-scoped A2UI v1 Candidate
-adapter and recorded its real-platform accessibility results. Package versions are independent of
+adapter and its automated native host-boundary coverage. Package versions are independent of
 the internal A2UI proof-of-concept surface value `"0.1"`.
 
 ## Installation
@@ -172,8 +172,6 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
   `ui://` text/blob resource loading
 - A closed CSP-first native WebView sandbox, React Native WebView safe-prop adapter, and bounded
   JSON-RPC lifecycle verified against official `@modelcontextprotocol/ext-apps@1.7.5` schemas
-- Recorded Android 17 TalkBack and iOS 26.5 XCUITest accessibility results for the pinned native
-  fixture
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
 This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native
@@ -181,7 +179,7 @@ adapter supports only the documented component subset, absolute and dynamic-list
 bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks
 for supported text fields and buttons, pure boolean functions, `@index`, action events returned to
 a host callback, and press-time host-policy-gated HTTP(S) `openUrl`. Renderer behavior outside the
-recorded native fixture remains unclaimed. Broader consent and tool-risk UX, production connection
+automated native fixture remains unclaimed. Broader consent and tool-risk UX, production connection
 lifecycle and observability, action transport delivery, and the separate Expo Go integration PoCs
 remain Milestone 6 work.
 
@@ -399,7 +397,7 @@ This deprecated resolver requires exactly one `application/a2ui+json` resource l
 
 MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
 
-Those principles do not amount to unqualified protocol conformance. The [feature-scoped A2UI v1.0 Candidate profile](docs/a2ui-v1-conformance.md) verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses the supported lifecycle plus every renderer-to-agent message kind, maintains ordered surface/data-model state, validates rooted catalog graphs, and mounts the documented subset with bounded behavior. Renderer-to-agent transport, agent-initiated renderer-function execution, inline catalogs, and platform behavior outside the recorded release matrix remain excluded. The [stable MCP Apps native profile](docs/mcp-apps-compatibility.md) implements exact discovery, resources, metadata, sandbox controls, and the supported Apps JSON-RPC lifecycle while documenting native/browser isolation differences and optional method exclusions. The tracked claims live in [Standards and compatibility](docs/standards-compatibility.md).
+Those principles do not amount to unqualified protocol conformance. The [feature-scoped A2UI v1.0 Candidate profile](docs/a2ui-v1-conformance.md) verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses the supported lifecycle plus every renderer-to-agent message kind, maintains ordered surface/data-model state, validates rooted catalog graphs, and mounts the documented subset with bounded behavior. Renderer-to-agent transport, agent-initiated renderer-function execution, inline catalogs, and platform behavior outside the automated package tests remain excluded. The [stable MCP Apps native profile](docs/mcp-apps-compatibility.md) implements exact discovery, resources, metadata, sandbox controls, and the supported Apps JSON-RPC lifecycle while documenting native/browser isolation differences and optional method exclusions. The tracked claims live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 
@@ -506,7 +504,7 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Derive closed native text/button semantics and preserve text scaling at the host boundary
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
-- [x] Generate pinned RN 0.87/0.86 hosts and record the scoped WCAG/platform results
+- [x] Generate pinned RN 0.87/0.86 hosts and exercise automated bundle and host-boundary checks
 - [x] Complete the documented real-platform accessibility behavior
 - [x] Execute the supported iOS/Android fixture and accessibility matrix in generated real hosts
 - [x] Implement stable MCP Apps `2026-01-26` discovery, native sandboxing, and bridge compatibility
