@@ -375,6 +375,11 @@ test("OAuth resource indicators are pinned to the configured MCP server", async 
     () => provider.validateResourceURL("https://other.example.com/mcp"),
     (error) => error instanceof McpNativeOAuthError && error.code === "resource-mismatch",
   );
+  await assert.rejects(
+    () =>
+      provider.validateResourceURL(SERVER_URL, `https://mcp.example.com/${"resource".repeat(513)}`),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
 });
 
 test("OAuth discovery cache rejects issuer and protected-resource substitution", async () => {
@@ -755,6 +760,37 @@ test("OAuth cancellation releases a reservation persisted by an earlier process"
   assert.equal(storage.values.state, undefined);
   assert.equal(storage.values.verifier, undefined);
 
+  assert.equal(await provider.state(), VALID_STATE);
+  assert.equal(storage.values.state, VALID_STATE);
+});
+
+test("overlapping OAuth cancellations cannot erase a new authorization attempt", async () => {
+  const storage = createStorage({ state: VALID_STATE, verifier: VALID_VERIFIER });
+  const invalidate = storage.invalidate.bind(storage);
+  let release;
+  const blocked = new Promise((resolve) => {
+    release = resolve;
+  });
+  storage.invalidate = async (scope, issuer) => {
+    if (scope === "verifier") await blocked;
+    await invalidate(scope, issuer);
+  };
+  const { provider } = createProvider({ storage });
+
+  const cancellation = provider.cancelAuthorization();
+  await Promise.resolve();
+  await assert.rejects(
+    () => provider.cancelAuthorization(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  await assert.rejects(
+    () => provider.state(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  assert.equal(storage.values.state, VALID_STATE);
+
+  release();
+  await cancellation;
   assert.equal(await provider.state(), VALID_STATE);
   assert.equal(storage.values.state, VALID_STATE);
 });

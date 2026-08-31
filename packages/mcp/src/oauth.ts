@@ -80,6 +80,7 @@ const MAX_CALLBACK_CODE_UNITS = 8_192;
 const MAX_CALLBACK_PARAMETERS = 16;
 const MAX_CALLBACK_PARAMETER_NAME_CODE_UNITS = 128;
 const MAX_CALLBACK_PARAMETER_VALUE_CODE_UNITS = 4_096;
+const MAX_RESOURCE_IDENTIFIER_CODE_UNITS = 4_096;
 const CALLBACK_VALUE_LIMITS = Object.freeze({
   code: 4_096,
   error: 256,
@@ -263,6 +264,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   #activeIssuer: string | undefined;
   #pendingAuthorizationUrl: string | undefined;
   #authorizationAttemptReserved = false;
+  #authorizationCleanupRunning = false;
   #authorizationStateSetupRunning = false;
   #authorizationCompletionRunning = false;
   #authorizationHandoffRunning = false;
@@ -307,7 +309,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   }
 
   async state(): Promise<string> {
-    if (this.#authorizationAttemptReserved) {
+    if (this.#authorizationAttemptReserved || this.#authorizationCleanupRunning) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
         "Another OAuth authorization attempt is already pending",
@@ -416,6 +418,12 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         "OAuth authorization URL must not contain a fragment",
       );
     }
+    if (this.#authorizationCleanupRunning) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth authorization cleanup is already running",
+      );
+    }
     if (this.#pendingAuthorizationUrl === url.href) {
       return;
     }
@@ -480,14 +488,24 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         "OAuth provider cannot be reused for a different MCP server",
       );
     }
-    if (
-      resource !== undefined &&
-      !checkResourceAllowed({ requestedResource: this.#resourceUrl, configuredResource: resource })
-    ) {
-      throw new McpNativeOAuthError(
-        "resource-mismatch",
-        "Protected resource metadata does not identify the configured MCP server",
-      );
+    if (resource !== undefined) {
+      if (typeof resource !== "string" || resource.length > MAX_RESOURCE_IDENTIFIER_CODE_UNITS) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "Protected resource identifier is invalid or exceeds the supported size",
+        );
+      }
+      if (
+        !checkResourceAllowed({
+          requestedResource: this.#resourceUrl,
+          configuredResource: resource,
+        })
+      ) {
+        throw new McpNativeOAuthError(
+          "resource-mismatch",
+          "Protected resource metadata does not identify the configured MCP server",
+        );
+      }
     }
     return new URL(this.#resourceUrl.href);
   }
@@ -514,31 +532,42 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   }
 
   async invalidateCredentials(scope: McpNativeOAuthCredentialScope): Promise<void> {
-    if (scope === "all" || scope === "verifier") {
+    const clearsAuthorizationAttempt = scope === "all" || scope === "verifier";
+    if (clearsAuthorizationAttempt) {
       if (
         this.#authorizationStateSetupRunning ||
+        this.#authorizationCleanupRunning ||
         this.#authorizationCompletionRunning ||
         this.#authorizationHandoffRunning
       ) {
         throw new McpNativeOAuthError(
           "invalid-configuration",
-          "OAuth authorization state setup, handoff, or callback completion is already running",
+          "OAuth authorization state setup, handoff, callback completion, or cleanup is already running",
         );
       }
-      await this.#storage.claimOAuthStateForCleanup(this.#authorizationOwner);
+      this.#authorizationCleanupRunning = true;
     }
-    await this.#storage.invalidate(scope, this.#activeIssuer);
-    if (scope === "verifier") {
-      await this.#storage.clearOAuthState(this.#authorizationOwner);
-      this.#pendingAuthorizationUrl = undefined;
-      this.#authorizationAttemptReserved = false;
-    }
-    if (scope === "all" || scope === "discovery") {
-      this.#activeIssuer = undefined;
-    }
-    if (scope === "all") {
-      this.#pendingAuthorizationUrl = undefined;
-      this.#authorizationAttemptReserved = false;
+    try {
+      if (clearsAuthorizationAttempt) {
+        await this.#storage.claimOAuthStateForCleanup(this.#authorizationOwner);
+      }
+      await this.#storage.invalidate(scope, this.#activeIssuer);
+      if (scope === "verifier") {
+        await this.#storage.clearOAuthState(this.#authorizationOwner);
+        this.#pendingAuthorizationUrl = undefined;
+        this.#authorizationAttemptReserved = false;
+      }
+      if (scope === "all" || scope === "discovery") {
+        this.#activeIssuer = undefined;
+      }
+      if (scope === "all") {
+        this.#pendingAuthorizationUrl = undefined;
+        this.#authorizationAttemptReserved = false;
+      }
+    } finally {
+      if (clearsAuthorizationAttempt) {
+        this.#authorizationCleanupRunning = false;
+      }
     }
   }
 
@@ -550,12 +579,13 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   async cancelAuthorization(): Promise<void> {
     if (
       this.#authorizationStateSetupRunning ||
+      this.#authorizationCleanupRunning ||
       this.#authorizationCompletionRunning ||
       this.#authorizationHandoffRunning
     ) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
-        "OAuth authorization state setup, handoff, or callback completion is already running",
+        "OAuth authorization state setup, handoff, callback completion, or cleanup is already running",
       );
     }
     await this.#discardPendingAuthorization();
@@ -566,10 +596,10 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
    * OAuth state is consumed before token exchange, so the callback cannot be replayed.
    */
   async finishAuthorization(finisher: OAuthFinisher, callbackUrl: string | URL): Promise<void> {
-    if (this.#authorizationCompletionRunning) {
+    if (this.#authorizationCompletionRunning || this.#authorizationCleanupRunning) {
       throw new McpNativeOAuthError(
         "invalid-callback",
-        "OAuth callback completion is already running",
+        "OAuth callback completion or authorization cleanup is already running",
       );
     }
     this.#authorizationCompletionRunning = true;
@@ -633,6 +663,13 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   }
 
   async #discardPendingAuthorization(): Promise<void> {
+    if (this.#authorizationCleanupRunning) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth authorization cleanup is already running",
+      );
+    }
+    this.#authorizationCleanupRunning = true;
     this.#pendingAuthorizationUrl = undefined;
     try {
       await this.#storage.claimOAuthStateForCleanup(this.#authorizationOwner);
@@ -640,6 +677,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       await this.#storage.clearOAuthState(this.#authorizationOwner);
     } finally {
       this.#authorizationAttemptReserved = false;
+      this.#authorizationCleanupRunning = false;
     }
   }
 }

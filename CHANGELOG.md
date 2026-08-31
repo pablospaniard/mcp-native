@@ -49,6 +49,8 @@ their minor release line.
 - Require authorization-server endpoint and URI fields retained from discovery to use HTTPS or an
   HTTP loopback address and contain no fragment before the provider caches or returns them.
 - Reject empty and non-empty fragments on fetched or cached protected-resource metadata URLs.
+- Bound server-controlled protected-resource identifiers before URL parsing and serialize OAuth
+  authorization cleanup so overlapping cancellation cannot erase a newly started attempt.
 - Reserve one authorization attempt before state persistence so overlapping flows cannot replace its
   state or verifier, and apply total, count, name, and value limits to both native-session and direct
   process-recovery callbacks before code redemption. Direct recovery also reserves the persisted
