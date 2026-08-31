@@ -345,6 +345,30 @@ test("OAuth callback completion validates redirect, state, duplicates, and consu
   );
 });
 
+test("OAuth recovery callbacks are bounded before URL parsing and code redemption", async () => {
+  await Promise.all(
+    [
+      `${REDIRECT_URL}?code=${"c".repeat(4_097)}&state=${VALID_STATE}`,
+      `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}&extension=${"x".repeat(64)}`,
+      `${REDIRECT_URL}?error=access_denied&error_description=${"x".repeat(8_193)}&state=${VALID_STATE}`,
+    ].map(async (callback) => {
+      const { provider, storage } = createProvider();
+      await provider.state();
+      await provider.saveCodeVerifier(VALID_VERIFIER);
+      await assert.rejects(
+        () =>
+          provider.finishAuthorization(
+            { finishAuth: () => assert.fail("must not redeem") },
+            callback,
+          ),
+        (error) => error instanceof McpNativeOAuthError && error.code === "invalid-callback",
+      );
+      assert.equal(storage.values.state, VALID_STATE);
+      assert.equal(storage.values.verifier, VALID_VERIFIER);
+    }),
+  );
+});
+
 test("OAuth callback errors do not expose attacker-controlled descriptions", async () => {
   const { provider, storage } = createProvider();
   await provider.state();

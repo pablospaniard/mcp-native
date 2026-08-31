@@ -141,7 +141,9 @@ redemption, and never exposes attacker-controlled callback error descriptions.
 `createMcpNativeOAuthAuthorizationSession()` normalizes an app-owned
 `ASWebAuthenticationSession`/Android Custom Tab bridge into one exact callback. It rejects overlap,
 callback substitution, oversized or malformed results, and reuse. Cancellation clears pending state
-and PKCE material without deleting registrations or tokens. See the [native integration and evidence
+and PKCE material without deleting registrations or tokens. The provider reserves one interactive
+attempt before state persistence, and applies the same total and per-parameter callback budgets to
+the direct process-recovery path. See the [native integration and evidence
 plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md) for a React
 Native Keychain/Keystore mapping and the required platform matrix.
 

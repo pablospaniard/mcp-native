@@ -270,6 +270,56 @@ test("cancelled OS authorization sessions clear durable state and PKCE material"
   assert.equal(await storage.consumeOAuthState(VALID_STATE), false);
 });
 
+test("overlapping authorization attempts leave the first state and verifier usable", async () => {
+  const { storage } = createPlatformStore();
+  let complete;
+  const blocked = new Promise((resolve) => {
+    complete = resolve;
+  });
+  const session = createMcpNativeOAuthAuthorizationSession({
+    redirectUrl: REDIRECT_URL,
+    async open() {
+      await blocked;
+      return { type: "success", url: `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}` };
+    },
+  });
+  let stateCalls = 0;
+  const provider = createMcpNativeOAuthProvider({
+    serverUrl: SERVER_URL,
+    redirectUrl: REDIRECT_URL,
+    clientMetadata: { client_name: "Native host", redirect_uris: [REDIRECT_URL] },
+    storage,
+    createState() {
+      stateCalls += 1;
+      return VALID_STATE;
+    },
+    openAuthorization: session.openAuthorization,
+  });
+
+  await provider.state();
+  await provider.saveCodeVerifier(VALID_VERIFIER);
+  const first = provider.redirectToAuthorization(new URL(`${ISSUER}/authorize?client_id=client`));
+  await Promise.resolve();
+  await assert.rejects(
+    () => provider.state(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  assert.equal(stateCalls, 1);
+  assert.equal(await storage.loadCodeVerifier(), VALID_VERIFIER);
+
+  complete();
+  await first;
+  let code;
+  await session.finishAuthorization(provider, {
+    finishAuth(parameters) {
+      code = parameters.get("code");
+    },
+  });
+  assert.equal(code, "code-1");
+  assert.equal(await storage.loadCodeVerifier(), undefined);
+  assert.equal(await storage.consumeOAuthState(VALID_STATE), false);
+});
+
 test("authorization cancellation attempts verifier cleanup when state deletion fails", async () => {
   const secrets = createSecretBackend();
   const storage = createMcpNativeOAuthPlatformSecureStore({

@@ -101,7 +101,10 @@ await authorizationSession.finishAuthorization(provider, transport);
 `finishAuthorization()` consumes its in-memory callback before token exchange. If the application
 process is recreated and receives the registered deep link directly, call
 `provider.finishAuthorization(transport, callbackUrl)` instead; durable state, PKCE, and discovery
-material remain in the platform store for that recovery path. A reported platform cancellation is
+material remain in the platform store for that recovery path. Both paths enforce the same total,
+parameter-count, parameter-name, and parameter-value callback budgets before code redemption. One
+provider reserves one interactive attempt before persisting state; a concurrent attempt fails
+without replacing the first attempt's state or verifier. A reported platform cancellation is
 fail-closed and clears the pending state and verifier without deleting registrations or tokens.
 
 ## Required matrix

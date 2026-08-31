@@ -251,8 +251,10 @@ headers. By default, runtime
 `approveReauthorization` for every authorization retry while credentials exist—including repeated
 same-scope challenges—and permits at most one SDK retry per request. The callback error path never
 renders attacker-controlled OAuth descriptions. A cancelled OS session clears pending state and
-PKCE material without deleting registrations or tokens. All 25 scored official authorization
-scenarios pass. The [native OAuth plan](docs/native-oauth-testing.md) and strict evidence gate are
+PKCE material without deleting registrations or tokens. One provider reserves only one interactive
+attempt at a time, and both native-session and direct process-recovery callbacks have total and
+per-parameter budgets before code redemption. All 25 scored official authorization scenarios pass.
+The [native OAuth plan](docs/native-oauth-testing.md) and strict evidence gate are
 implemented, but both required platform rows remain `not-run`; production readiness still requires
 those real-platform results and the remaining host controls.
 

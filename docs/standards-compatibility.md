@@ -173,7 +173,10 @@ non-boolean check conditions.
    schemes, and pins the RFC 8707 resource to one MCP endpoint.
 3. **Implemented callback boundary:** callback scheme/authority/path, configured query parameters,
    OAuth state, and duplicate `code`/`state`/`iss` fields fail closed before SDK code redemption;
-   attacker-controlled OAuth descriptions are never included in the public error.
+   total, count, name, and value budgets apply to both native-session and process-recovery callback
+   paths; attacker-controlled OAuth descriptions are never included in the public error. One
+   provider reserves one interactive attempt before persisting state so an overlapping attempt
+   cannot replace its state or verifier.
 4. **Implemented transport policy:** protected transports reject manual Authorization, Cookie, and
    Proxy-Authorization headers and surface insufficient-scope responses to the host by default. The
    opt-in step-up path requires a host callback for every reauthorization while credentials exist

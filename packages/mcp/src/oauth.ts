@@ -75,6 +75,18 @@ const RESERVED_REDIRECT_SCHEMES = new Set([
 ]);
 const MAX_SCOPE_CODE_UNITS = 2_048;
 const MAX_SCOPE_TOKENS = 64;
+const MAX_CALLBACK_CODE_UNITS = 8_192;
+const MAX_CALLBACK_PARAMETERS = 16;
+const MAX_CALLBACK_PARAMETER_NAME_CODE_UNITS = 128;
+const MAX_CALLBACK_PARAMETER_VALUE_CODE_UNITS = 4_096;
+const CALLBACK_VALUE_LIMITS = Object.freeze({
+  code: 4_096,
+  error: 256,
+  error_description: 2_048,
+  error_uri: 2_048,
+  iss: 2_048,
+  state: 512,
+});
 const MAX_TOKEN_VALUE_CODE_UNITS = 16_384;
 const MAX_TOKEN_TYPE_CODE_UNITS = 64;
 const MAX_TOKEN_CUMULATIVE_CODE_UNITS = 24_576;
@@ -182,6 +194,8 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   #activeIssuer: string | undefined;
   #pendingAuthorizationUrl: string | undefined;
   #pendingState: string | undefined;
+  #authorizationAttemptReserved = false;
+  #authorizationHandoffRunning = false;
 
   constructor(options: McpNativeOAuthProviderOptions) {
     this.#resourceUrl = resourceUrlFromServerUrl(parseProtectedServerUrl(options.serverUrl));
@@ -220,16 +234,28 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   }
 
   async state(): Promise<string> {
-    const state = await this.#createState();
-    if (!STATE_PATTERN.test(state)) {
+    if (this.#authorizationAttemptReserved) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
-        "OAuth state must contain 32 to 512 URL-safe characters",
+        "Another OAuth authorization attempt is already pending",
       );
     }
-    await this.#storage.saveOAuthState(state);
-    this.#pendingState = state;
-    return state;
+    this.#authorizationAttemptReserved = true;
+    try {
+      const state = await this.#createState();
+      if (!STATE_PATTERN.test(state)) {
+        throw new McpNativeOAuthError(
+          "invalid-configuration",
+          "OAuth state must contain 32 to 512 URL-safe characters",
+        );
+      }
+      await this.#storage.saveOAuthState(state);
+      this.#pendingState = state;
+      return state;
+    } catch (error) {
+      this.#authorizationAttemptReserved = false;
+      throw error;
+    }
   }
 
   async clientInformation(
@@ -290,34 +316,43 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     if (this.#pendingAuthorizationUrl === url.href) {
       return;
     }
-    const requestedScopes = parseScope(url.searchParams.get("scope"));
-    const storedTokens = await this.#storage.loadTokens(this.#activeIssuer);
-    if (storedTokens !== undefined) {
-      const currentScopes = parseScope(parseStoredTokens(storedTokens).scope ?? null);
-      const currentScopeSet = new Set(currentScopes);
-      const addedScopes = requestedScopes.filter((scope) => !currentScopeSet.has(scope));
-      const approved = await this.#approveReauthorization?.(
-        Object.freeze({
-          issuer: this.#activeIssuer,
-          currentScopes: Object.freeze([...currentScopes]),
-          requestedScopes: Object.freeze([...requestedScopes]),
-          addedScopes: Object.freeze([...addedScopes]),
-        }),
+    if (this.#authorizationHandoffRunning) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "Another OAuth authorization handoff is already running",
       );
-      if (approved !== true) {
-        throw new McpNativeOAuthError(
-          "reauthorization-denied",
-          "OAuth reauthorization requires explicit host approval",
-        );
-      }
     }
+    this.#authorizationHandoffRunning = true;
     try {
+      const requestedScopes = parseScope(url.searchParams.get("scope"));
+      const storedTokens = await this.#storage.loadTokens(this.#activeIssuer);
+      if (storedTokens !== undefined) {
+        const currentScopes = parseScope(parseStoredTokens(storedTokens).scope ?? null);
+        const currentScopeSet = new Set(currentScopes);
+        const addedScopes = requestedScopes.filter((scope) => !currentScopeSet.has(scope));
+        const approved = await this.#approveReauthorization?.(
+          Object.freeze({
+            issuer: this.#activeIssuer,
+            currentScopes: Object.freeze([...currentScopes]),
+            requestedScopes: Object.freeze([...requestedScopes]),
+            addedScopes: Object.freeze([...addedScopes]),
+          }),
+        );
+        if (approved !== true) {
+          throw new McpNativeOAuthError(
+            "reauthorization-denied",
+            "OAuth reauthorization requires explicit host approval",
+          );
+        }
+      }
       await this.#openAuthorization(new URL(url.href));
+      this.#pendingAuthorizationUrl = url.href;
     } catch (error) {
       await this.#discardPendingAuthorization();
       throw error;
+    } finally {
+      this.#authorizationHandoffRunning = false;
     }
-    this.#pendingAuthorizationUrl = url.href;
   }
 
   async saveCodeVerifier(verifier: string): Promise<void> {
@@ -383,6 +418,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     if (scope === "all") {
       this.#pendingAuthorizationUrl = undefined;
       this.#pendingState = undefined;
+      this.#authorizationAttemptReserved = false;
     }
   }
 
@@ -418,7 +454,11 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       await finisher.finishAuth(parameters);
     } finally {
       this.#pendingAuthorizationUrl = undefined;
-      await this.#storage.invalidate("verifier", this.#activeIssuer);
+      try {
+        await this.#storage.invalidate("verifier", this.#activeIssuer);
+      } finally {
+        this.#authorizationAttemptReserved = false;
+      }
     }
   }
 
@@ -444,7 +484,11 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     try {
       if (state !== undefined) await this.#storage.consumeOAuthState(state);
     } finally {
-      await this.#storage.invalidate("verifier", this.#activeIssuer);
+      try {
+        await this.#storage.invalidate("verifier", this.#activeIssuer);
+      } finally {
+        this.#authorizationAttemptReserved = false;
+      }
     }
   }
 }
@@ -775,6 +819,13 @@ function assertCodeVerifier(verifier: string): void {
 }
 
 function parseCallbackUrl(value: string | URL, redirectUrl: URL): URL {
+  const serialized = value instanceof URL ? value.href : value;
+  if (serialized.length > MAX_CALLBACK_CODE_UNITS) {
+    throw new McpNativeOAuthError(
+      "invalid-callback",
+      "OAuth callback URL exceeds the supported size",
+    );
+  }
   const callback = parseUrl(value, "OAuth callback URL");
   if (callback.hash !== "") {
     throw new McpNativeOAuthError("invalid-callback", "OAuth callback must not contain a fragment");
@@ -800,7 +851,36 @@ function parseCallbackUrl(value: string | URL, redirectUrl: URL): URL {
       );
     }
   }
+  assertBoundedCallbackParameters(callback, redirectUrl);
   return callback;
+}
+
+function assertBoundedCallbackParameters(callback: URL, redirectUrl: URL): void {
+  const configuredNames = new Set(redirectUrl.searchParams.keys());
+  const parameters = [...callback.searchParams];
+  if (parameters.length > MAX_CALLBACK_PARAMETERS) {
+    throw new McpNativeOAuthError(
+      "invalid-callback",
+      "OAuth callback contains too many parameters",
+    );
+  }
+  for (const [name, value] of parameters) {
+    if (!CALLBACK_PARAMETER_NAMES.has(name) && !configuredNames.has(name)) {
+      throw new McpNativeOAuthError(
+        "invalid-callback",
+        "OAuth callback contains an unsupported parameter",
+      );
+    }
+    const limit =
+      CALLBACK_VALUE_LIMITS[name as keyof typeof CALLBACK_VALUE_LIMITS] ??
+      MAX_CALLBACK_PARAMETER_VALUE_CODE_UNITS;
+    if (name.length > MAX_CALLBACK_PARAMETER_NAME_CODE_UNITS || value.length > limit) {
+      throw new McpNativeOAuthError(
+        "invalid-callback",
+        "OAuth callback parameter exceeds the supported size",
+      );
+    }
+  }
 }
 
 function requireSingleParameter(parameters: URLSearchParams, name: string): void {

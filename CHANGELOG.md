@@ -38,6 +38,9 @@ their minor release line.
 - Restrict redirect URIs to HTTPS app links, HTTP loopback URLs, or hierarchical private-use app
   schemes; reject issuer query/fragment components; and bound both individual and cumulative token
   values before parsing, persistence, or request reuse.
+- Reserve one authorization attempt before state persistence so overlapping flows cannot replace its
+  state or verifier, and apply total, count, name, and value limits to both native-session and direct
+  process-recovery callbacks before code redemption.
 
 ## 0.5.0 - 2026-08-28
 
