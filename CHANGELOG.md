@@ -6,6 +6,22 @@ their minor release line.
 
 ## Unreleased
 
+### Added
+
+- An issuer-bound interactive OAuth provider for the official MCP SDK v2 with host-owned secure
+  storage, persisted PKCE/state/discovery data, exact callback validation, canonical RFC 8707
+  resource pinning, and issuer-scoped client registrations and tokens.
+- A protected Streamable HTTP factory that rejects manual credential headers and surfaces
+  insufficient-scope challenges to the host before any step-up authorization.
+
+### Security
+
+- Reject insecure non-loopback OAuth endpoints, redirect/callback substitution, duplicate callback
+  parameters, invalid or replayed state, malformed stored credentials, cross-issuer credential
+  reuse, mismatched authorization-server metadata, and protected-resource substitution.
+- Keep OAuth callback error descriptions out of host-visible errors and require credential, PKCE,
+  state, and discovery persistence behind an explicit keychain/keystore-grade host contract.
+
 ## 0.5.0 - 2026-08-28
 
 Adds the stable MCP Apps native host-adapter profile with strict capability negotiation, bounded

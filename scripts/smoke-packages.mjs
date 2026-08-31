@@ -63,6 +63,9 @@ try {
 
     const files = new Set(packed.files.map(({ path }) => path));
     const requiredFiles = ["README.md", "dist/index.d.ts", "dist/index.js", "package.json"];
+    if (packageName === "@mcp-native/mcp") {
+      requiredFiles.push("dist/oauth.d.ts", "dist/oauth.js");
+    }
     if (packageName === "@mcp-native/a2ui") {
       requiredFiles.push(
         "schemas/7541f953050cd58b80f0bf5d85fe2d63192af305/CHECKSUMS.sha256",

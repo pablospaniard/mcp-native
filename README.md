@@ -91,7 +91,7 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | Package                                                                              | Source                                           | Responsibility                                                                |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------------------------------- |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | [`packages/core`](packages/core)                 | Transport-neutral runtime contracts, resource access, and action routing      |
-| [`@mcp-native/mcp`](https://www.npmjs.com/package/@mcp-native/mcp)                   | [`packages/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK client                  |
+| [`@mcp-native/mcp`](https://www.npmjs.com/package/@mcp-native/mcp)                   | [`packages/mcp`](packages/mcp)                   | Validated SDK adapter and protected-HTTP OAuth host boundary                  |
 | [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | [`packages/a2ui`](packages/a2ui)                 | Feature-scoped A2UI v1 Candidate adapter plus deprecated `0.1` migration APIs |
 | [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | [`packages/react-native`](packages/react-native) | Trusted render plans, React hooks, and a host-owned component renderer        |
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | [`packages/webview`](packages/webview)           | Stable MCP Apps discovery, sandbox, native adapter, and JSON-RPC bridge       |
@@ -134,6 +134,9 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - A validated adapter for connected clients from the official MCP TypeScript SDK v2
 - MCP `2026-07-28` tool/resource field preservation and HTTP handler/fetch integration coverage
 - Exact protocol options for the `2026-07-28` target and tested `2025-11-25` compatibility lane
+- An issuer-bound interactive OAuth provider for protected Streamable HTTP with official SDK
+  discovery/PKCE, exact resource indicators, secure-storage hooks, safe callback completion, and
+  host-gated scope escalation
 - Seven pinned official MCP client scenarios covering the implemented modern HTTP boundary
 - Frozen official requirement accounting and shared-cache isolation tests across principals
 - Explicit MCP extension settings and mutual negotiation without MIME or metadata inference
@@ -166,9 +169,68 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
   `ui://` text/blob resource loading
 - A closed CSP-first native WebView sandbox, React Native WebView safe-prop adapter, and bounded
   JSON-RPC lifecycle verified against official `@modelcontextprotocol/ext-apps@1.7.5` schemas
+- Passing Android 17 TalkBack and iOS 26.5 XCUITest accessibility evidence for the pinned native
+  fixture, backed by a strict release-evidence gate
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native adapter currently supports only the documented component subset, absolute and dynamic-list-relative string bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks for supported text fields and buttons, pure boolean functions, `@index`, action events returned to a host callback, and press-time host-policy-gated HTTP(S) `openUrl`; action transport delivery, complete platform accessibility/capability behavior, authentication helpers, and a minimal tested mobile integration PoC remain future milestones.
+This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native
+adapter supports only the documented component subset, absolute and dynamic-list-relative string
+bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks
+for supported text fields and buttons, pure boolean functions, `@index`, action events returned to
+a host callback, and press-time host-policy-gated HTTP(S) `openUrl`. The pinned native fixture has
+passing Android/iOS evidence, but renderer behavior outside that matrix remains unclaimed. Complete
+authorization conformance, consent and tool-risk UX, production connection lifecycle and
+observability, action transport delivery, and the tested end-to-end mobile integration PoC remain
+Milestone 6 work.
+
+## Protected Streamable HTTP OAuth
+
+Milestone 6 is in progress. `@mcp-native/mcp` now provides the interactive OAuth host boundary while
+the official SDK owns protected-resource and authorization-server discovery, PKCE, scope selection,
+issuer validation, token exchange, refresh, and bearer attachment:
+
+```ts
+import { Client, UnauthorizedError } from "@modelcontextprotocol/client";
+import { createMcpNativeClientOptions } from "@mcp-native/mcp";
+import { createMcpNativeOAuthProvider, createMcpNativeOAuthTransport } from "@mcp-native/mcp/oauth";
+
+const serverUrl = new URL("https://mcp.example.com/mcp");
+const redirectUrl = "my-app://oauth/callback";
+const provider = createMcpNativeOAuthProvider({
+  serverUrl,
+  redirectUrl,
+  clientMetadata: {
+    client_name: "My native host",
+    redirect_uris: [redirectUrl],
+  },
+  storage: secureOAuthStore, // OS keychain/keystore-backed; never AsyncStorage or a plain file
+  createState: () => createCryptographicallyRandomState(),
+  openAuthorization: (url) => openPlatformAuthenticationSession(url, redirectUrl),
+});
+
+const client = new Client(
+  { name: "my-native-host", version: "1.0.0" },
+  createMcpNativeClientOptions("modern-only"),
+);
+const transport = createMcpNativeOAuthTransport(serverUrl, provider);
+
+try {
+  await client.connect(transport);
+} catch (error) {
+  if (!(error instanceof UnauthorizedError)) throw error;
+  // After the platform authentication session returns the exact callback URL:
+  await provider.finishAuthorization(transport, callbackUrl);
+  // Reconnect the Client with a fresh transport as required by SDK v2.
+}
+```
+
+The provider rejects cross-issuer stored credentials, a protected-resource mismatch, insecure
+non-loopback endpoints, redirect/state/parameter substitution, duplicate callback fields, and raw
+`Authorization`, `Cookie`, or `Proxy-Authorization` transport headers. Runtime `insufficient_scope`
+challenges are surfaced to the host so a user-facing consent decision happens before step-up
+reauthorization. The callback error path never renders attacker-controlled OAuth descriptions.
+Protected HTTP remains a scoped foundation—not a complete conformance claim—until the pinned
+official authorization scenarios and the remaining host controls pass.
 
 ## A2UI v1 Candidate host flow
 
@@ -298,7 +360,7 @@ This deprecated resolver requires exactly one `application/a2ui+json` resource l
 
 MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
 
-Those principles do not amount to unqualified protocol conformance. The [feature-scoped A2UI v1.0 Candidate profile](docs/a2ui-v1-conformance.md) verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses the supported lifecycle plus every renderer-to-agent message kind, maintains ordered surface/data-model state, validates rooted catalog graphs, and mounts the documented subset with bounded behavior. Renderer-to-agent transport, agent-initiated renderer-function execution, inline catalogs, and complete platform quality remain excluded. The [stable MCP Apps native profile](docs/mcp-apps-compatibility.md) implements exact discovery, resources, metadata, sandbox controls, and the supported Apps JSON-RPC lifecycle while documenting native/browser isolation differences and optional method exclusions. The tracked claims live in [Standards and compatibility](docs/standards-compatibility.md).
+Those principles do not amount to unqualified protocol conformance. The [feature-scoped A2UI v1.0 Candidate profile](docs/a2ui-v1-conformance.md) verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses the supported lifecycle plus every renderer-to-agent message kind, maintains ordered surface/data-model state, validates rooted catalog graphs, and mounts the documented subset with bounded behavior. Renderer-to-agent transport, agent-initiated renderer-function execution, inline catalogs, and platform behavior outside the recorded release matrix remain excluded. The [stable MCP Apps native profile](docs/mcp-apps-compatibility.md) implements exact discovery, resources, metadata, sandbox controls, and the supported Apps JSON-RPC lifecycle while documenting native/browser isolation differences and optional method exclusions. The tracked claims live in [Standards and compatibility](docs/standards-compatibility.md).
 
 ## Security model
 
@@ -407,10 +469,11 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
 - [x] Generate pinned RN 0.87/0.86 hosts and enforce a strict WCAG/platform evidence release gate
-- [ ] Complete real-platform accessibility behavior and testing
-- [ ] Execute the supported iOS/Android fixture and accessibility matrix in real host applications
+- [x] Complete the documented real-platform accessibility behavior and release evidence scope
+- [x] Execute the supported iOS/Android fixture and accessibility matrix in generated real hosts
 - [x] Implement stable MCP Apps `2026-01-26` discovery, native sandboxing, and bridge compatibility
-- [ ] Add MCP HTTP authorization, consent, and host permission controls
+- [x] Add the issuer-bound MCP HTTP OAuth provider, secure-storage seam, and safe callback boundary
+- [ ] Pass the pinned official authorization scenarios and add consent, tool-risk, and host permission controls
 - [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
 - [ ] Ship one small, tested React Native integration PoC without a committed host-app scaffold
 - [ ] Expand protocol coverage through reviewed RFCs and tests

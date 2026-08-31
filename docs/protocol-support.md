@@ -42,8 +42,12 @@ const client = new Client(
 
 `auto` is the helper default because MCP Native targets long-lived native hosts that normally benefit from modern negotiation. Spawn-per-invocation command-line tools should choose deliberately: the official SDK warns that probing a silent legacy stdio server can consume the full probe timeout and may spawn a disposable sibling process.
 
-The helper returns verified SDK options. The host owns client construction, transport selection,
-connection, authentication, retry, and shutdown.
+The helper returns verified SDK options. The host owns client construction, connection lifecycle,
+consent, retry, and shutdown. For protected Streamable HTTP, `@mcp-native/mcp` additionally exports
+an issuer-bound official SDK OAuth provider and transport factory. They pin one protected resource,
+validate stored discovery and callback state, reject manual credential headers, and require a
+host-owned secure store and browser/authentication-session handoff. The complete authorization claim
+remains pending until every applicable pinned official authorization scenario passes.
 
 ## Extension capability substrate
 

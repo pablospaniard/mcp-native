@@ -39,6 +39,19 @@ The root `npm run check` command also runs this gate, so pull requests cannot pa
 
 The pinned run reports 51 successful checks, zero failures, and zero warnings across these scenarios.
 
+## Authorization status
+
+The pinned requirements fixture also scores the `2026-07-28` authorization client scenarios. They
+remain explicitly excluded from the executable scenario manifest while the new issuer-bound OAuth
+provider and transport foundation gains full scenario coverage. Unit tests currently cover secure
+configuration, PKCE/state persistence, callback validation, issuer-bound storage, discovery-cache
+validation, exact resource indicators, generic callback errors, and credential-header rejection.
+
+This is intentionally not reported as protected Streamable HTTP conformance. Removing the
+`auth/` exclusion requires every applicable frozen authorization scenario to run through the same
+gate with no expected failures, followed by platform secure-storage and authentication-session
+evidence.
+
 ## Cache-scope isolation
 
 Cache behavior is tested separately from the official wire scenarios by using the official SDK's `InMemoryResponseCacheStore` as a shared store for multiple clients with the same server identity:

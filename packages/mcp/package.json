@@ -30,13 +30,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./oauth": {
+      "types": "./dist/oauth.d.ts",
+      "import": "./dist/oauth.js"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@mcp-native/core": "^0.5.0"
+    "@mcp-native/core": "^0.5.0",
+    "@modelcontextprotocol/core": "2.0.0"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.0.0"

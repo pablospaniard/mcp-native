@@ -6,7 +6,7 @@
   "excludedRequirements": [
     {
       "prefix": "auth/",
-      "reason": "Protected HTTP authorization is outside the current client boundary."
+      "reason": "The protected HTTP OAuth foundation is implemented, but the pinned authorization scenarios and platform evidence are not complete."
     },
     {
       "scenario": "sep-2322-client-request-state",

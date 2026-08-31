@@ -12,9 +12,12 @@
 
 > **Compatibility:** SDK v2 is the correct implementation line for MCP `2026-07-28`. The initial tool/resource boundary preserves official fields and is covered through the SDK's current HTTP handler/fetch path, but the package does not yet claim complete MCP conformance.
 
-`@mcp-native/mcp` adapts a connected [`Client`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/client.md) from `@modelcontextprotocol/client` v2 to the transport-neutral `McpClient` interface in `@mcp-native/core`.
+`@mcp-native/mcp` adapts a connected [`Client`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/client.md) from `@modelcontextprotocol/client` v2 to the transport-neutral `McpClient` interface in `@mcp-native/core`. It also provides the native host boundary for interactive OAuth on protected Streamable HTTP connections.
 
-The adapter deliberately does not create a transport, manage credentials, or own the SDK client's lifecycle. The host chooses and connects the official client, then hands it to MCP Native.
+The result adapter does not own the SDK client's lifecycle. For unprotected connections, the host
+still chooses the transport directly. For protected HTTP, the package creates the exact official
+transport/profile while the host owns its secure credential store, browser handoff, user consent,
+and reconnection lifecycle.
 
 ## Install
 
@@ -74,6 +77,52 @@ const adapter = new McpSdkClientAdapter(client, { clientExtensions });
 
 The official SDK places these settings in the `2026-07-28` per-request capability envelope. After connection, `McpSdkClientAdapter.getClientExtensionSettings()` returns the advertised snapshot passed into the adapter, and `getServerExtensionSettings()` returns the validated server declaration from `server/discover`. Pass those two maps to a core or extension-specific negotiator, or call `runtime.negotiateExtension(id)` so negotiation stays tied to what was actually advertised. The `2025-11-25` lane has no extension support claim.
 
+## Protected Streamable HTTP
+
+`createMcpNativeOAuthProvider()` implements the security-sensitive host seams needed by the official
+SDK's interactive OAuth flow:
+
+```ts
+import { Client, UnauthorizedError } from "@modelcontextprotocol/client";
+import { createMcpNativeClientOptions } from "@mcp-native/mcp";
+import { createMcpNativeOAuthProvider, createMcpNativeOAuthTransport } from "@mcp-native/mcp/oauth";
+
+const serverUrl = new URL("https://mcp.example.com/mcp");
+const redirectUrl = "my-app://oauth/callback";
+const provider = createMcpNativeOAuthProvider({
+  serverUrl,
+  redirectUrl,
+  clientMetadata: { client_name: "My app", redirect_uris: [redirectUrl] },
+  storage: secureOAuthStore,
+  createState: () => createCryptographicallyRandomState(),
+  openAuthorization: (url) => openPlatformAuthenticationSession(url, redirectUrl),
+});
+const client = new Client(
+  { name: "my-app", version: "1.0.0" },
+  createMcpNativeClientOptions("modern-only"),
+);
+const transport = createMcpNativeOAuthTransport(serverUrl, provider);
+
+try {
+  await client.connect(transport);
+} catch (error) {
+  if (!(error instanceof UnauthorizedError)) throw error;
+  await provider.finishAuthorization(transport, callbackUrl);
+  // Reconnect on a fresh official transport after successful completion.
+}
+```
+
+`McpNativeOAuthSecureStore` must be implemented with OS keychain/keystore-grade encrypted storage.
+It persists issuer-bound client registrations and tokens plus the PKCE verifier, OAuth state, and
+validated discovery state. The provider validates stored values before returning them to the SDK,
+pins RFC 8707 resource indicators to one MCP endpoint, compares callback location and state before
+code redemption, and never exposes attacker-controlled callback error descriptions.
+
+`createMcpNativeOAuthTransport()` rejects manual credential headers and configures
+`insufficient_scope` to throw. The host must present and record an explicit consent decision before
+driving SDK step-up authorization. Complete protected-HTTP conformance remains pending until the
+pinned official authorization scenarios pass.
+
 ## Mapping
 
 | Official SDK operation                 | MCP Native result                                                           |
@@ -112,6 +161,15 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 | `createMcpNativeClientOptions`, `McpNativeProtocolMode`                                                          | Exact official SDK options for automatic, modern-only, or legacy-only operation. |
 | `McpNativeClientCapabilityOptions`                                                                               | Explicit host-approved extension settings accepted by the options helper.        |
 | `MCP_NATIVE_PROTOCOL_REVISION`, `MCP_NATIVE_LEGACY_PROTOCOL_REVISION`, `MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS` | The current target and deliberately tested revision list.                        |
+| The protected-HTTP exports below live at the explicit `@mcp-native/mcp/oauth` subpath so importing               |
+| the result adapter does not load a transport implementation:                                                     |
+
+| Export                                                         | Purpose                                                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `McpNativeOAuthClientProvider`, `createMcpNativeOAuthProvider` | Issuer-bound official SDK OAuth provider with native host seams.                |
+| `McpNativeOAuthSecureStore`                                    | Host keychain/keystore persistence contract for credentials and redirect state. |
+| `createMcpNativeOAuthTransport`                                | Protected HTTP transport with resource pinning and host-gated scope escalation. |
+| `McpNativeOAuthError`                                          | Fail-closed categories without attacker-controlled callback details.            |
 
 ## Scope
 
@@ -119,7 +177,9 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 - Integration tests pin `2026-07-28` through the official SDK HTTP handler/fetch path and verify `auto` fallback to exactly `2025-11-25` through the linked in-memory transport.
 - Seven applicable official client scenarios cover tool calls, request metadata and version retry, standard and custom HTTP headers, invalid header annotations, safe `$ref` handling, and JSON Schema 2020-12 preservation. See the [pinned coverage report](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-conformance.md).
 - The conformance gate accounts for every scored client requirement in the pinned official fixture, while shared-store tests verify that private cache entries stay principal-partitioned and public entries are reused only for the same server identity and request.
-- Hosts retain connection setup, transport selection, authentication, retries, and shutdown.
+- Hosts retain connection lifecycle, consent, platform authentication-session presentation,
+  secure-storage implementation, retries, and shutdown. The protected-HTTP helper owns only the
+  exact OAuth/transport policy boundary documented above.
 - Generic JSON-safe `_meta` is preserved across the adapter boundary.
 - Generic extension discovery and settings are implemented and verified on the modern SDK path.
 - The adapter package remains independent of React Native, A2UI, and WebView packages.
