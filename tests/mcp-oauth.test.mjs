@@ -428,6 +428,29 @@ test("OAuth discovery cache rejects issuer and protected-resource substitution",
       );
     }),
   );
+
+  await Promise.all(
+    ["#", "#alternate"].flatMap((fragment) => {
+      const resourceMetadataUrl = `https://mcp.example.com/.well-known/oauth-protected-resource${fragment}`;
+      const persisted = createProvider();
+      const cached = createProvider();
+      cached.storage.values.discovery = { authorizationServerUrl: ISSUER, resourceMetadataUrl };
+      return [
+        assert.rejects(
+          () =>
+            persisted.provider.saveDiscoveryState({
+              authorizationServerUrl: ISSUER,
+              resourceMetadataUrl,
+            }),
+          (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+        ),
+        assert.rejects(
+          () => cached.provider.discoveryState(),
+          (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+        ),
+      ];
+    }),
+  );
 });
 
 test("OAuth discovery state is reusable only across the pending PKCE callback", async () => {

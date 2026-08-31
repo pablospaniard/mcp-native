@@ -957,10 +957,20 @@ function parseDiscoveryState(state: OAuthDiscoveryState, resourceUrl: URL): OAut
       "Stored protected-resource metadata does not advertise the selected authorization server",
     );
   }
-  const resourceMetadataUrl =
-    state.resourceMetadataUrl === undefined
-      ? undefined
-      : parseSecureEndpoint(state.resourceMetadataUrl, "protected-resource metadata URL").href;
+  let resourceMetadataUrl: string | undefined;
+  if (state.resourceMetadataUrl !== undefined) {
+    const parsedResourceMetadataUrl = parseSecureEndpoint(
+      state.resourceMetadataUrl,
+      "protected-resource metadata URL",
+    );
+    if (parsedResourceMetadataUrl.href.includes("#")) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        "Stored protected-resource metadata URL must not contain a fragment",
+      );
+    }
+    resourceMetadataUrl = parsedResourceMetadataUrl.href;
+  }
   return {
     authorizationServerUrl,
     ...(authorizationServerMetadata === undefined ? {} : { authorizationServerMetadata }),
