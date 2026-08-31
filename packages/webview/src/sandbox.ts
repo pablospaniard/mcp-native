@@ -325,20 +325,94 @@ function injectCsp(html: string, csp: string): string {
   if (html.length > MCP_APPS_MAX_HTML_LENGTH) {
     throw new McpAppsError(`MCP Apps HTML exceeds maximum length of ${MCP_APPS_MAX_HTML_LENGTH}`);
   }
-  // Restrict the accepted shape so no executable element can precede the policy.
-  const start = /^\s*<!doctype\s+html\s*>\s*<html(?:\s[^>]*)?>\s*<head(?:\s[^>]*)?>/iu.exec(html);
-  if (start === null || start.index !== 0) {
+  // Restrict the accepted shape so no executable element can precede the policy. Start tags
+  // must be scanned with quote awareness: a regular expression that stops at the first `>` can
+  // mistake `<head>` text inside an attribute for the real element and inject an inert CSP value
+  // into the still-open `<html>` tag.
+  const insertionOffset = findCspInsertionOffset(html);
+  if (insertionOffset === undefined) {
     throw new McpAppsError(
       "MCP Apps HTML must start with an HTML5 doctype, html element, and head element",
     );
   }
   const escaped = escapeHtmlAttribute(csp);
   const meta = `<meta http-equiv="Content-Security-Policy" content="${escaped}">`;
-  const result = `${html.slice(0, start[0].length)}${meta}${html.slice(start[0].length)}`;
+  const result = `${html.slice(0, insertionOffset)}${meta}${html.slice(insertionOffset)}`;
   if (result.length > MCP_APPS_MAX_HTML_LENGTH + 4_096) {
     throw new McpAppsError("CSP-injected MCP Apps HTML exceeds its output budget");
   }
   return result;
+}
+
+function findCspInsertionOffset(html: string): number | undefined {
+  const doctype = /^\s*<!doctype\s+html\s*>/iu.exec(html);
+  if (doctype === null || doctype.index !== 0) return undefined;
+
+  let offset = skipAsciiWhitespace(html, doctype[0].length);
+  offset = findOpeningTagEnd(html, offset, "html") ?? -1;
+  if (offset < 0) return undefined;
+  offset = skipAsciiWhitespace(html, offset);
+  return findOpeningTagEnd(html, offset, "head");
+}
+
+function skipAsciiWhitespace(value: string, offset: number): number {
+  while (offset < value.length && isAsciiWhitespace(value[offset]!)) offset += 1;
+  return offset;
+}
+
+function findOpeningTagEnd(
+  html: string,
+  offset: number,
+  expectedName: "head" | "html",
+): number | undefined {
+  const prefix = `<${expectedName}`;
+  if (html.slice(offset, offset + prefix.length).toLowerCase() !== prefix) return undefined;
+  let index = offset + prefix.length;
+  if (html[index] === ">") return index + 1;
+  if (!isAsciiWhitespace(html[index])) return undefined;
+
+  while (index < html.length) {
+    index = skipAsciiWhitespace(html, index);
+    if (html[index] === ">") return index + 1;
+    if (!isAttributeNameCharacter(html[index])) return undefined;
+
+    while (index < html.length && isAttributeNameCharacter(html[index])) index += 1;
+    const nameEnd = index;
+    index = skipAsciiWhitespace(html, index);
+    if (html[index] === "=") {
+      index = skipAsciiWhitespace(html, index + 1);
+      const quote = html[index];
+      if (quote === '"' || quote === "'") {
+        index += 1;
+        while (index < html.length && html[index] !== quote) index += 1;
+        if (html[index] !== quote) return undefined;
+        index += 1;
+      } else {
+        const valueStart = index;
+        while (index < html.length && html[index] !== ">" && !isAsciiWhitespace(html[index])) {
+          if (!isUnquotedAttributeValueCharacter(html[index]!)) return undefined;
+          index += 1;
+        }
+        if (index === valueStart) return undefined;
+      }
+    } else {
+      index = nameEnd;
+    }
+    if (html[index] !== ">" && !isAsciiWhitespace(html[index])) return undefined;
+  }
+  return undefined;
+}
+
+function isAsciiWhitespace(value: string | undefined): boolean {
+  return value !== undefined && /[\t\n\f\r ]/u.test(value);
+}
+
+function isAttributeNameCharacter(value: string | undefined): boolean {
+  return value !== undefined && /[A-Za-z0-9_.:-]/u.test(value);
+}
+
+function isUnquotedAttributeValueCharacter(value: string): boolean {
+  return !['"', "'", "<", "=", "`"].includes(value);
 }
 
 function escapeHtmlAttribute(value: string): string {

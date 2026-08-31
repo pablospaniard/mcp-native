@@ -24,6 +24,8 @@ export type { A2uiMcpBindingGrant, A2uiMcpBindingNegotiation } from "./binding.j
 export {
   A2UI_V1_MAX_ENVELOPES,
   A2UI_V1_MAX_SOURCE_LENGTH,
+  A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
+  A2UI_V1_MAX_STORE_VALUES,
   A2UI_V1_PROTOCOL_VERSION,
   A2UI_V1_BASIC_CATALOG_ID,
   A2UI_V1_BASIC_COMPONENT_NAMES,
@@ -90,6 +92,7 @@ export const A2UI_MAX_NODES = 256;
 export const A2UI_MAX_SOURCE_LENGTH = 1_048_576;
 /** @deprecated Applies only to the frozen custom 0.1 surface model. */
 export const A2UI_MAX_STRING_LENGTH = 65_536;
+const A2UI_MAX_MCP_RESULT_ITEMS = 1_024;
 
 interface A2uiNodeBase {
   readonly id: string;
@@ -303,6 +306,11 @@ function expectContentArray(value: unknown): readonly McpContent[] {
   if (!Array.isArray(value)) {
     throw new A2uiResourceError("Expected an array at tool result.content");
   }
+  if (value.length > A2UI_MAX_MCP_RESULT_ITEMS) {
+    throw new A2uiResourceError(
+      `tool result.content exceeds maximum of ${A2UI_MAX_MCP_RESULT_ITEMS} items`,
+    );
+  }
   return value as readonly McpContent[];
 }
 
@@ -336,6 +344,11 @@ function expectResourceContents(value: unknown): McpReadResourceResult["contents
   const contents = (value as Record<string, unknown>).contents;
   if (!Array.isArray(contents)) {
     throw new A2uiResourceError("Expected an array at resource result.contents");
+  }
+  if (contents.length > A2UI_MAX_MCP_RESULT_ITEMS) {
+    throw new A2uiResourceError(
+      `resource result.contents exceeds maximum of ${A2UI_MAX_MCP_RESULT_ITEMS} items`,
+    );
   }
 
   return contents.map((content, index) => {

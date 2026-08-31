@@ -3,7 +3,13 @@ import type { JsonObject, JsonValue } from "@mcp-native/core";
 
 import { A2uiParseError } from "../errors.js";
 import { parseA2uiV1Envelope } from "./parse.js";
-import { A2UI_V1_MAX_COMPONENTS, A2UI_V1_MAX_SURFACES } from "./types.js";
+import {
+  A2UI_V1_MAX_COMPONENTS,
+  A2UI_V1_MAX_ENVELOPES,
+  A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
+  A2UI_V1_MAX_STORE_VALUES,
+  A2UI_V1_MAX_SURFACES,
+} from "./types.js";
 import type { A2uiV1Component, A2uiV1Envelope, A2uiV1SurfaceState } from "./types.js";
 import { validateA2uiV1SurfaceState } from "./validate.js";
 import type { A2uiV1SurfaceValidationPolicy } from "./validate.js";
@@ -14,8 +20,17 @@ interface MutableSurface {
   sendDataModel: boolean;
   dataModelRevision: number;
   components: Map<string, A2uiV1Component>;
+  componentBudgets: Map<string, JsonBudget>;
   dataModel: JsonObject;
+  dataModelBudget: JsonBudget;
   metadata?: JsonObject;
+  metadataBudget: JsonBudget;
+  retainedBudget: JsonBudget;
+}
+
+interface JsonBudget {
+  readonly values: number;
+  readonly stringCodeUnits: number;
 }
 
 /**
@@ -24,6 +39,8 @@ interface MutableSurface {
  */
 export class A2uiSurfaceStore {
   readonly #surfaces = new Map<string, MutableSurface>();
+  #retainedValues = 0;
+  #retainedStringCodeUnits = 0;
 
   get size(): number {
     return this.#surfaces.size;
@@ -82,8 +99,15 @@ export class A2uiSurfaceStore {
     if (!Array.isArray(envelopes)) {
       throw new A2uiParseError("Expected an array of A2UI v1 envelopes");
     }
+    if (envelopes.length > A2UI_V1_MAX_ENVELOPES) {
+      throw new A2uiParseError(
+        `A2UI v1 batch exceeds maximum of ${A2UI_V1_MAX_ENVELOPES} envelopes`,
+      );
+    }
     const validated = envelopes.map((envelope) => parseA2uiV1Envelope(envelope));
     const snapshot = cloneSurfaces(this.#surfaces);
+    const retainedValues = this.#retainedValues;
+    const retainedStringCodeUnits = this.#retainedStringCodeUnits;
     try {
       for (const envelope of validated) {
         this.#applyValidated(envelope);
@@ -93,6 +117,8 @@ export class A2uiSurfaceStore {
       for (const [surfaceId, surface] of snapshot) {
         this.#surfaces.set(surfaceId, surface);
       }
+      this.#retainedValues = retainedValues;
+      this.#retainedStringCodeUnits = retainedStringCodeUnits;
       throw error;
     }
   }
@@ -114,30 +140,54 @@ export class A2uiSurfaceStore {
       throw new A2uiParseError(`A2UI store exceeds maximum of ${A2UI_V1_MAX_SURFACES} surfaces`);
     }
 
-    const components = new Map<string, A2uiV1Component>();
-    if (message.components !== undefined) {
-      mergeComponents(components, message.components);
-    }
+    const componentUpdate = parseComponentUpdates(new Map(), message.components ?? []);
+    const components = componentUpdate.components;
+    const componentBudgets = componentUpdate.budgets;
 
     const dataModel =
       message.dataModel === undefined
         ? {}
         : parseJsonObject(message.dataModel, "createSurface.dataModel");
+    const dataModelBudget = measureJson(dataModel);
+    let metadata: JsonObject | undefined;
+    let metadataBudget = EMPTY_BUDGET;
+    if (message.metadata !== undefined) {
+      metadata = parseJsonObject(message.metadata, "createSurface.metadata");
+      metadataBudget = measureJson(metadata);
+    }
+    const baseBudget = measureJson({
+      surfaceId: message.surfaceId,
+      ...(message.catalogId === undefined ? {} : { catalogId: message.catalogId }),
+      sendDataModel: message.sendDataModel === true,
+      dataModelRevision: 0,
+    });
+    const retainedBudget = addBudgets(
+      baseBudget,
+      sumBudgets(componentBudgets.values()),
+      dataModelBudget,
+      metadataBudget,
+    );
+    this.#assertStoreBudget(retainedBudget);
 
     const surface: MutableSurface = {
       surfaceId: message.surfaceId,
       sendDataModel: message.sendDataModel === true,
       dataModelRevision: 0,
       components,
+      componentBudgets,
       dataModel,
+      dataModelBudget,
+      metadataBudget,
+      retainedBudget,
     };
     if (message.catalogId !== undefined) {
       surface.catalogId = message.catalogId;
     }
-    if (message.metadata !== undefined) {
-      surface.metadata = parseJsonObject(message.metadata, "createSurface.metadata");
+    if (metadata !== undefined) {
+      surface.metadata = metadata;
     }
     this.#surfaces.set(message.surfaceId, surface);
+    this.#commitBudgetDelta(retainedBudget);
   }
 
   #updateComponents(message: {
@@ -145,9 +195,18 @@ export class A2uiSurfaceStore {
     readonly components: readonly A2uiV1Component[];
   }): void {
     const surface = this.#requireSurface(message.surfaceId, "updateComponents");
-    const updatedComponents = cloneComponents(surface.components);
-    mergeComponents(updatedComponents, message.components);
-    surface.components = updatedComponents;
+    const update = parseComponentUpdates(surface.components, message.components);
+    let delta = EMPTY_BUDGET;
+    for (const [id, budget] of update.budgets) {
+      delta = addBudgets(delta, subtractBudgets(budget, surface.componentBudgets.get(id)));
+    }
+    this.#assertStoreBudget(delta);
+    for (const [id, component] of update.components) {
+      surface.components.set(id, component);
+      surface.componentBudgets.set(id, update.budgets.get(id)!);
+    }
+    surface.retainedBudget = addBudgets(surface.retainedBudget, delta);
+    this.#commitBudgetDelta(delta);
   }
 
   #updateDataModel(message: {
@@ -162,7 +221,14 @@ export class A2uiSurfaceStore {
       parseJsonValue(message.value, "updateDataModel.value"),
     );
     try {
-      surface.dataModel = parseJsonObject(updatedDataModel, "updateDataModel.result");
+      const dataModel = parseJsonObject(updatedDataModel, "updateDataModel.result");
+      const dataModelBudget = measureJson(dataModel);
+      const delta = subtractBudgets(dataModelBudget, surface.dataModelBudget);
+      this.#assertStoreBudget(delta);
+      surface.dataModel = dataModel;
+      surface.dataModelBudget = dataModelBudget;
+      surface.retainedBudget = addBudgets(surface.retainedBudget, delta);
+      this.#commitBudgetDelta(delta);
       surface.dataModelRevision += 1;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Invalid merged data model";
@@ -173,11 +239,34 @@ export class A2uiSurfaceStore {
   }
 
   #deleteSurface(surfaceId: string): void {
-    if (!this.#surfaces.delete(surfaceId)) {
+    const surface = this.#surfaces.get(surfaceId);
+    if (surface === undefined) {
       throw new A2uiParseError(
         `Cannot delete A2UI surface ${JSON.stringify(surfaceId)}; it does not exist`,
       );
     }
+    this.#surfaces.delete(surfaceId);
+    this.#commitBudgetDelta(negateBudget(surface.retainedBudget));
+  }
+
+  #assertStoreBudget(delta: JsonBudget): void {
+    const values = this.#retainedValues + delta.values;
+    const stringCodeUnits = this.#retainedStringCodeUnits + delta.stringCodeUnits;
+    if (values > A2UI_V1_MAX_STORE_VALUES) {
+      throw new A2uiParseError(
+        `A2UI store exceeds maximum of ${A2UI_V1_MAX_STORE_VALUES} retained JSON values`,
+      );
+    }
+    if (stringCodeUnits > A2UI_V1_MAX_STORE_STRING_CODE_UNITS) {
+      throw new A2uiParseError(
+        `A2UI store exceeds maximum of ${A2UI_V1_MAX_STORE_STRING_CODE_UNITS} retained string code units`,
+      );
+    }
+  }
+
+  #commitBudgetDelta(delta: JsonBudget): void {
+    this.#retainedValues += delta.values;
+    this.#retainedStringCodeUnits += delta.stringCodeUnits;
   }
 
   #requireSurface(surfaceId: string, operation: string): MutableSurface {
@@ -191,11 +280,14 @@ export class A2uiSurfaceStore {
   }
 }
 
-function mergeComponents(
-  target: Map<string, A2uiV1Component>,
+function parseComponentUpdates(
+  current: ReadonlyMap<string, A2uiV1Component>,
   components: readonly A2uiV1Component[],
-): void {
+): { components: Map<string, A2uiV1Component>; budgets: Map<string, JsonBudget> } {
   const seen = new Set<string>();
+  const updates = new Map<string, A2uiV1Component>();
+  const budgets = new Map<string, JsonBudget>();
+  let added = 0;
   for (const [index, component] of components.entries()) {
     const reconstructed = parseJsonObject(component, `components[${index}]`);
     if (typeof reconstructed.id !== "string" || reconstructed.id.length === 0) {
@@ -210,13 +302,16 @@ function mergeComponents(
       );
     }
     seen.add(reconstructed.id);
-    target.set(reconstructed.id, reconstructed as A2uiV1Component);
-    if (target.size > A2UI_V1_MAX_COMPONENTS) {
+    if (!current.has(reconstructed.id)) added += 1;
+    updates.set(reconstructed.id, reconstructed as A2uiV1Component);
+    budgets.set(reconstructed.id, measureJson(reconstructed));
+    if (current.size + added > A2UI_V1_MAX_COMPONENTS) {
       throw new A2uiParseError(
         `A2UI surface exceeds maximum of ${A2UI_V1_MAX_COMPONENTS} components`,
       );
     }
   }
+  return { components: updates, budgets };
 }
 
 function freezeSurface(surface: MutableSurface): A2uiV1SurfaceState {
@@ -241,14 +336,64 @@ function cloneSurfaces(surfaces: ReadonlyMap<string, MutableSurface>): Map<strin
       ...(surface.catalogId === undefined ? {} : { catalogId: surface.catalogId }),
       sendDataModel: surface.sendDataModel,
       dataModelRevision: surface.dataModelRevision,
-      components: cloneComponents(surface.components),
-      dataModel: parseJsonObject(surface.dataModel, "surface.dataModel"),
-      ...(surface.metadata === undefined
-        ? {}
-        : { metadata: parseJsonObject(surface.metadata, "surface.metadata") }),
+      components: new Map(surface.components),
+      componentBudgets: new Map(surface.componentBudgets),
+      dataModel: surface.dataModel,
+      dataModelBudget: surface.dataModelBudget,
+      ...(surface.metadata === undefined ? {} : { metadata: surface.metadata }),
+      metadataBudget: surface.metadataBudget,
+      retainedBudget: surface.retainedBudget,
     });
   }
   return clone;
+}
+
+const EMPTY_BUDGET: JsonBudget = Object.freeze({ values: 0, stringCodeUnits: 0 });
+
+function measureJson(value: JsonValue): JsonBudget {
+  let values = 0;
+  let stringCodeUnits = 0;
+  const pending: JsonValue[] = [value];
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    values += 1;
+    if (typeof current === "string") {
+      stringCodeUnits += current.length;
+    } else if (Array.isArray(current)) {
+      pending.push(...current);
+    } else if (current !== null && typeof current === "object") {
+      for (const [key, child] of Object.entries(current)) {
+        stringCodeUnits += key.length;
+        pending.push(child);
+      }
+    }
+  }
+  return { values, stringCodeUnits };
+}
+
+function addBudgets(...budgets: readonly JsonBudget[]): JsonBudget {
+  return budgets.reduce(
+    (total, budget) => ({
+      values: total.values + budget.values,
+      stringCodeUnits: total.stringCodeUnits + budget.stringCodeUnits,
+    }),
+    EMPTY_BUDGET,
+  );
+}
+
+function sumBudgets(budgets: Iterable<JsonBudget>): JsonBudget {
+  return addBudgets(...budgets);
+}
+
+function subtractBudgets(budget: JsonBudget, previous: JsonBudget | undefined): JsonBudget {
+  return {
+    values: budget.values - (previous?.values ?? 0),
+    stringCodeUnits: budget.stringCodeUnits - (previous?.stringCodeUnits ?? 0),
+  };
+}
+
+function negateBudget(budget: JsonBudget): JsonBudget {
+  return { values: -budget.values, stringCodeUnits: -budget.stringCodeUnits };
 }
 
 function cloneComponents(

@@ -4,9 +4,13 @@ import type { JsonValue } from "@mcp-native/core";
 import { A2uiParseError } from "../errors.js";
 import basicCatalog from "./vendor/catalog.json" with { type: "json" };
 import { parseA2uiV1FormatString } from "./format-string.js";
-import { parseA2uiV1Envelope } from "./parse.js";
+import { parseA2uiV1EnvelopeWithStringBudget } from "./parse.js";
 import { formatAjvErrors, getA2uiV1FunctionCallValidator } from "./schemas.js";
-import { A2UI_V1_MAX_COMPONENTS, A2UI_V1_MAX_SOURCE_LENGTH } from "./types.js";
+import {
+  A2UI_V1_MAX_COMPONENTS,
+  A2UI_V1_MAX_SOURCE_LENGTH,
+  A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
+} from "./types.js";
 import type { A2uiV1Component, A2uiV1SurfaceState } from "./types.js";
 
 export const A2UI_V1_BASIC_CATALOG_ID =
@@ -214,7 +218,10 @@ function reconstructSurfaceSnapshot(input: unknown): A2uiV1SurfaceState {
   if (source.metadata !== undefined) {
     createSurface.metadata = source.metadata;
   }
-  const envelope = parseA2uiV1Envelope({ version: "v1.0", createSurface });
+  const envelope = parseA2uiV1EnvelopeWithStringBudget(
+    { version: "v1.0", createSurface },
+    A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
+  );
   if (!("createSurface" in envelope)) {
     throw new A2uiParseError("Expected a validated createSurface snapshot");
   }

@@ -178,6 +178,12 @@ pass. Native-library integration is demonstrated separately through non-blocking
 
 SDK content blocks retain MCP's official discriminated shapes: text, image, audio, resource link, and embedded resource. Tool definitions preserve titles, icons, complete input/output schemas, annotations, and JSON-safe `_meta`. Resource reads preserve text and blob items as separate entries.
 
+The adapter validates and reconstructs each complete SDK result before mapping it. One result may
+contain at most 1,024 top-level tools, content blocks, or resource contents, with at most 64 icons
+or icon sizes per value and the core cumulative JSON string/key budget across the entire result.
+SDK objects may materialize omitted optional properties as `undefined`; those object properties are
+discarded, while `undefined` array entries and all other non-JSON values fail closed.
+
 Install `@mcp-native/a2ui` to resolve an `application/a2ui+json` `resource_link` from an adapted tool result into a validated declarative surface.
 
 ## Validation boundary

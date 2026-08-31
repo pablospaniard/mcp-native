@@ -7,6 +7,8 @@ import test from "node:test";
 import {
   A2UI_MCP_EXTENSION_CAPABILITIES,
   A2UI_MIME_TYPE,
+  A2UI_V1_MAX_ENVELOPES,
+  A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
   A2uiParseError,
   A2uiResourceError,
   A2uiSurfaceStore,
@@ -560,6 +562,30 @@ test("surface store validates its public input even when callers bypass the pars
     () => store.applyAll(null),
     (error) => error instanceof A2uiParseError && /array/.test(error.message),
   );
+  assert.throws(
+    () => store.applyAll(Array(A2UI_V1_MAX_ENVELOPES + 1).fill(null)),
+    /batch exceeds maximum of 1024 envelopes/,
+  );
+});
+
+test("surface store bounds cumulative retained strings and rolls back the batch", () => {
+  const store = new A2uiSurfaceStore();
+  store.apply({ version: "v1.0", createSurface: { surfaceId: "keep" } });
+  const text = "x".repeat(65_536);
+  const count = Math.floor(A2UI_V1_MAX_STORE_STRING_CODE_UNITS / text.length) + 1;
+  const batch = Array.from({ length: count }, (_, index) => ({
+    version: "v1.0",
+    createSurface: {
+      surfaceId: `bounded-${index}`,
+      components: [{ id: "root", component: "Text", text }],
+    },
+  }));
+
+  assert.throws(() => store.applyAll(batch), /maximum of 8388608 retained string code units/);
+  assert.deepEqual(
+    store.list().map((surface) => surface.surfaceId),
+    ["keep"],
+  );
 });
 
 test("surface store owns component snapshots at ingress and egress", () => {
@@ -809,6 +835,40 @@ test("resolveA2uiV1JsonlFromToolResult reads JSONL and never uses the 0.1 parser
         bindingGrant,
       ),
     (error) => error instanceof A2uiResourceError && /exactly one/.test(error.message),
+  );
+
+  await assert.rejects(
+    () =>
+      resolveA2uiV1JsonlFromToolResult(
+        {
+          async readResource() {
+            return { contents: [] };
+          },
+        },
+        { content: Array(1_025).fill({ type: "text", text: "x" }) },
+        bindingGrant,
+      ),
+    /tool result\.content exceeds maximum of 1024 items/,
+  );
+
+  await assert.rejects(
+    () =>
+      resolveA2uiV1JsonlFromToolResult(
+        {
+          async readResource(uri) {
+            return {
+              contents: Array(1_025).fill({ uri, mimeType: A2UI_MIME_TYPE, text: jsonl }),
+            };
+          },
+        },
+        {
+          content: [
+            { type: "resource_link", name: "surface", uri: "ui://v1", mimeType: A2UI_MIME_TYPE },
+          ],
+        },
+        bindingGrant,
+      ),
+    /resource result\.contents exceeds maximum of 1024 items/,
   );
 });
 

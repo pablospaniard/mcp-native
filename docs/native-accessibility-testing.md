@@ -1,7 +1,6 @@
 # Expo Go React Native integration PoCs
 
-Status: maintained independently from package releases. Historical `0.4.0` Android TalkBack and iOS
-XCUITest fixture results remain archived, but they are not release or milestone gates.
+Status: maintained independently from package releases and milestone gates.
 
 ## Scope
 
@@ -51,10 +50,3 @@ Keep each PoC deliberately small:
 Extend the existing app when coverage for a library grows. Do not add multiple PoCs for the same
 library or treat screenshots and manual observations as substitutes for package-level regression
 tests.
-
-## Historical `0.4.0` platform results
-
-The original generated React Native `0.87.1` fixture was exercised on an Android 17 Google Play
-emulator with TalkBack and an iOS 26.5 simulator through XCUITest accessibility APIs. Those archived
-results describe that exact fixture and environment only and do not participate in current checks or
-release verification.

@@ -129,10 +129,10 @@ The official SDK adapter, declarative resource-resolution, and initial React Nat
 - `@mcp-native/mcp` targets `@modelcontextprotocol/client` v2;
 - an integration test connects the official `Client` and `McpServer` through the SDK's linked in-memory transport;
 - `tools/list`, `tools/call`, and `resources/read` traverse the adapter and core runtime;
-- malformed SDK-like results fail with `McpSdkAdapterError` before reaching UI code.
+- malformed or aggregate-over-budget SDK-like results fail with `McpSdkAdapterError` before reaching UI code.
 - an official SDK tool result can return an `application/a2ui+json` `resource_link` that is read and parsed through `@mcp-native/a2ui`;
 - resolution requires exactly one matching link and one matching text resource, preventing server-controlled ambiguity or MIME guessing;
-- errored tool results, malformed links and contents, binary bodies, and invalid surfaces fail before rendering.
+- errored tool results, oversized result collections, malformed links and contents, binary bodies, and invalid surfaces fail before rendering.
 - validated surfaces mount through a host-provided catalog containing `View`, `Text`, `Button`, and `TextInput`, with optional closed host-owned variants for supported structure and style hints;
 - buttons dispatch only their validated tool actions, and text inputs emit only declared binding changes;
 - action arguments are validated again at the renderer and runtime boundaries;

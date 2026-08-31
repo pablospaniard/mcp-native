@@ -71,25 +71,25 @@ await runtime.dispatch({
 
 ## Public API
 
-| Export                                                                                       | Purpose                                                                                     |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `McpNativeRuntime`                                                                           | Delegates tool listing, tool calls, resource reads, and declared actions to an `McpClient`. |
-| `McpClient`                                                                                  | Minimal interface implemented by an SDK- or transport-specific adapter.                     |
-| `McpTool`, `McpListToolsResult`, `McpResource`, `McpReadResourceResult`, `McpToolCallResult` | Transport-neutral MCP data contracts used by the runtime.                                   |
-| `McpContent` and its discriminated content interfaces                                        | Exact text, image, audio, resource-link, and embedded-resource shapes.                      |
-| `McpAnnotations`, `McpToolAnnotations`, `McpIcon`, `McpCacheScope`                           | Official metadata, presentation hints, and response-cache contracts.                        |
-| `ToolAction`, `McpNativeAction`                                                              | Declarative actions that can be dispatched through the runtime.                             |
-| `McpNativeRuntimeOptions`, `McpNativeActionPolicy`                                           | Host policy controlling which validated surface actions `dispatch()` may execute.           |
-| `createAllowlistActionPolicy`, `McpNativeToolAllowlistEntry`                                 | Fail-closed helper that authorizes tools by name and exact or predicated arguments.         |
-| `McpNativeActionDeniedError`                                                                 | Fail-closed error for actions not explicitly allowed by the host.                           |
-| `parseMcpNativeAction`, `parseJsonObject`, `parseJsonValue`                                  | Strict validators that return safely reconstructed untrusted data.                          |
-| `JsonValidationOptions`                                                                      | Optional cumulative string/key budget for one reconstructed JSON graph.                     |
-| `JSON_MAX_DEPTH`, `JSON_MAX_VALUES`, `JSON_MAX_STRING_LENGTH`                                | Fixed complexity limits applied by the public JSON validators.                              |
-| `JsonValidationError`                                                                        | Error for non-JSON, circular, non-plain, or non-finite input.                               |
-| `JsonPrimitive`, `JsonValue`, `JsonObject`                                                   | JSON-safe value types for untrusted protocol data.                                          |
-| `McpExtensionSettings`, `McpExtensionNegotiation`                                            | Validated extension maps and explicit negotiation outcomes.                                 |
-| `parseMcpExtensionSettings`, `isMcpExtensionIdentifier`                                      | Fail-closed validation for prefixed extension declarations.                                 |
-| `negotiateMcpExtension`                                                                      | Computes mutual support from client and server declarations only.                           |
+| Export                                                                                            | Purpose                                                                                     |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `McpNativeRuntime`                                                                                | Delegates tool listing, tool calls, resource reads, and declared actions to an `McpClient`. |
+| `McpClient`                                                                                       | Minimal interface implemented by an SDK- or transport-specific adapter.                     |
+| `McpTool`, `McpListToolsResult`, `McpResource`, `McpReadResourceResult`, `McpToolCallResult`      | Transport-neutral MCP data contracts used by the runtime.                                   |
+| `McpContent` and its discriminated content interfaces                                             | Exact text, image, audio, resource-link, and embedded-resource shapes.                      |
+| `McpAnnotations`, `McpToolAnnotations`, `McpIcon`, `McpCacheScope`                                | Official metadata, presentation hints, and response-cache contracts.                        |
+| `ToolAction`, `McpNativeAction`                                                                   | Declarative actions that can be dispatched through the runtime.                             |
+| `McpNativeRuntimeOptions`, `McpNativeActionPolicy`                                                | Host policy controlling which validated surface actions `dispatch()` may execute.           |
+| `createAllowlistActionPolicy`, `McpNativeToolAllowlistEntry`                                      | Fail-closed helper that authorizes tools by name and exact or predicated arguments.         |
+| `McpNativeActionDeniedError`                                                                      | Fail-closed error for actions not explicitly allowed by the host.                           |
+| `parseMcpNativeAction`, `parseJsonObject`, `parseJsonValue`                                       | Strict validators that return safely reconstructed untrusted data.                          |
+| `JsonValidationOptions`                                                                           | Optional cumulative string/key budget for one reconstructed JSON graph.                     |
+| `JSON_MAX_DEPTH`, `JSON_MAX_VALUES`, `JSON_MAX_STRING_LENGTH`, `JSON_MAX_TOTAL_STRING_CODE_UNITS` | Fixed complexity limits and a shared protocol-facing cumulative string/key budget.          |
+| `JsonValidationError`                                                                             | Error for non-JSON, circular, non-plain, or non-finite input.                               |
+| `JsonPrimitive`, `JsonValue`, `JsonObject`                                                        | JSON-safe value types for untrusted protocol data.                                          |
+| `McpExtensionSettings`, `McpExtensionNegotiation`                                                 | Validated extension maps and explicit negotiation outcomes.                                 |
+| `parseMcpExtensionSettings`, `isMcpExtensionIdentifier`                                           | Fail-closed validation for prefixed extension declarations.                                 |
+| `negotiateMcpExtension`                                                                           | Computes mutual support from client and server declarations only.                           |
 
 ## Extension negotiation
 

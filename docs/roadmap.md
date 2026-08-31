@@ -100,9 +100,9 @@ Exit criterion: conformance is reported per implemented A2UI feature against the
 
 ## Milestone 4: production native renderer behavior
 
-Status: complete for `0.4.0` — renderer-local state, action-envelope emission, closed accessibility
-semantics, a generated platform fixture, a WCAG assessment, CI performance/fuzz gates, and recorded
-Android 17 emulator and iOS 26.5 simulator results.
+Status: complete for `0.4.0` package behavior — renderer-local state, action-envelope emission,
+closed accessibility semantics, a generated platform fixture, a WCAG responsibility assessment,
+and CI performance/fuzz gates. Platform and component-library validation stays in separate PoCs.
 
 - [x] Add renderer-local data-model updates without network calls on each keystroke.
 - [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
@@ -112,10 +112,10 @@ Android 17 emulator and iOS 26.5 simulator results.
 - [x] Mount explicit label, description, live-region, and hidden accessibility attributes for the supported subset, with inferred button and input labels.
 - [x] Derive closed text and button roles, button disabled state, hidden-element focus exclusion, and explicit Text/TextInput font scaling at the host boundary; add regression coverage and a real-platform test plan.
 - [x] Define the initial iOS, Android, and React Native target test matrix and add one pinned fixture that exercises base primitives, adapters, variants, dynamic lists, validation, and screen-reader semantics.
-- [x] Execute the fixture across the release matrix; test TalkBack plus iOS accessibility semantics, dynamic type, focus structure, reduced motion, contrast, touch targets, orientation, and accessibility actions.
+- [x] Define shared TalkBack and iOS accessibility, dynamic type, focus, contrast, touch-target, orientation, and action scenarios for the separate Expo Go PoCs.
 - [x] Establish [parse, update, render-plan, and retained-memory budgets](a2ui-v1-performance.md) for supported surface sizes, with large-surface and rapid-update stress tests.
 - [x] Add deterministic fuzz and property tests for bidirectional protocol parsing, lifecycle state, render-plan conversion, and renderer failure paths.
-- [x] Assess applicable [WCAG 2.2 Level AA outcomes](wcag-2.2-native-assessment.md), record the passing fixture results, and separate library and host responsibilities.
+- [x] Assess applicable [WCAG 2.2 Level AA responsibilities](wcag-2.2-native-assessment.md) and separate library and host responsibilities.
 
 Exit criterion: the supported A2UI subset remains within documented accessibility and performance
 limits without weakening the component or capability boundary. Library-specific rendering is

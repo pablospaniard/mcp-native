@@ -501,6 +501,12 @@ test("A2UI resource resolution fails closed", async (t) => {
       message: /array at tool result\.content/,
     },
     {
+      name: "oversized tool content collection",
+      result: { content: Array(1_025).fill({ type: "text", text: "x" }) },
+      readResult: { contents: [validResource] },
+      message: /tool result\.content exceeds maximum of 1024 items/,
+    },
+    {
       name: "malformed content block",
       result: { content: [null] },
       readResult: { contents: [validResource] },
@@ -585,6 +591,12 @@ test("A2UI resource resolution fails closed", async (t) => {
       result: { content: [validLink] },
       readResult: { contents: {} },
       message: /array at resource result\.contents/,
+    },
+    {
+      name: "oversized resource collection",
+      result: { content: [validLink] },
+      readResult: { contents: Array(1_025).fill(validResource) },
+      message: /resource result\.contents exceeds maximum of 1024 items/,
     },
     {
       name: "malformed resource result",

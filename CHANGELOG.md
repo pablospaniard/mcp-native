@@ -24,6 +24,11 @@ their minor release line.
 
 ### Security
 
+- Bound complete MCP SDK results, downstream A2UI result collections, decoded JSON string/key
+  totals, A2UI lifecycle batches, and cumulative state retained by one surface store.
+- Validate complete MCP Apps content annotations, icons, sizes, metadata objects, and resource-link
+  fields before host callbacks, and make CSP insertion scan quoted start-tag attributes correctly.
+- Apply A2UI component updates without repeatedly reconstructing every retained component.
 - Reject insecure non-loopback OAuth endpoints, redirect/callback substitution, duplicate callback
   parameters, invalid or replayed state, malformed stored credentials, cross-issuer credential
   reuse, mismatched authorization-server metadata, and protected-resource substitution.
@@ -94,8 +99,6 @@ their minor release line.
   complete IPv4 `127.0.0.0/8` loopback range for native OAuth endpoints and redirects.
 - Reject registered redirect URIs with duplicate query parameter names instead of accepting a
   configuration that no callback could satisfy.
-- Reject native OAuth evidence rows that declare `pass` while any required case is still `fail` or
-  `not-run`, including during the ordinary non-release structure check.
 
 ## 0.5.0 - 2026-08-28
 
@@ -129,7 +132,7 @@ resource and bridge handling, and a closed native WebView sandbox contract.
 ## 0.4.0 - 2026-08-28
 
 Completes the feature-scoped A2UI v1 Candidate adapter with bounded renderer functions, native
-component variants, accessibility semantics, robustness gates, and real-platform release evidence.
+component variants, accessibility semantics, and automated robustness gates.
 
 ### Added
 
@@ -137,7 +140,7 @@ component variants, accessibility semantics, robustness gates, and real-platform
   `rendererFunctionResponse`, and `error`, with schema-derived interoperability fixtures and exact
   public envelope types.
 - A feature-scoped A2UI v1 Candidate conformance profile covering the supported subset, explicit
-  exclusions, Candidate interpretations, interoperability evidence, and custom `0.1` migration.
+  exclusions, Candidate interpretations, interoperability fixtures, and custom `0.1` migration.
 - Bounded, host-localized A2UI v1 `formatDate` execution for strict calendar dates, RFC 3339
   timestamps, Unix epochs, nested interpolation, and dispatch-time values.
 - A2UI v1 `required`, `regex`, `length`, `numeric`, and `email` validation functions plus
@@ -150,7 +153,7 @@ component variants, accessibility semantics, robustness gates, and real-platform
 - Closed React Native component variants for host-owned `Row`, `Column`, `List`, and `Card`
   presentation plus pinned text, button, and text-field style hints, with primitive fallbacks.
 - Closed React Native accessibility semantics for rendered text and buttons, explicit disabled state,
-  enabled text scaling, and a real-platform verification plan with reviewable release evidence.
+  enabled text scaling, and shared platform scenarios for separate integration PoCs.
 - A pinned native accessibility fixture and initial React Native, iOS, and Android target test matrix
   for consistent primitive, adapter, variant, dynamic-list, validation, and screen-reader runs.
 - A fixed A2UI performance regression gate for maximum-size parsing and render-plan construction,
@@ -160,14 +163,11 @@ component variants, accessibility semantics, robustness gates, and real-platform
 - A temporary official React Native host generator pinned to `0.87.1` and `0.86.3`, with primitive,
   typed-adapter, and closed-variant accessibility catalog paths plus Android/iOS Metro and native
   build preflight workflows.
-- A bounded native evidence format, WCAG 2.2 applicability assessment, negative validator tests,
-  and strict release gate that prevents publication while any required real-platform row is
-  missing, pending, failing, or lacks reviewable evidence.
+- A WCAG 2.2 responsibility assessment separating library-enforced behavior from host and
+  component-library integration checks.
 - Reproducible Android 17 native preflight using the exact API 37 SDK package, plus a safe-area-aware
   accessibility fixture that avoids status-bar overlap and an extra root screen-reader focus target.
-- Passing Android TalkBack and iOS XCUITest accessibility evidence, completing the `0.4.0` native
-  accessibility release matrix. The generated iPhone fixture supports portrait and both landscape
-  orientations.
+- A generated iPhone fixture supporting portrait and both landscape orientations.
 
 ### Deprecated
 

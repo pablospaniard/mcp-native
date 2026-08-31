@@ -608,14 +608,22 @@ test("formatString syntax and reconstructed function calls fail closed", async (
 test("formatString limits are cumulative across a reachable surface", async (t) => {
   await t.test("source length", () => {
     const children = Array.from({ length: 17 }, (_, index) => `text-${index}`);
-    const store = createStore([
-      { id: "root", component: "Column", children },
-      ...children.map((id) => ({
-        id,
-        component: "Text",
-        text: { call: "formatString", args: { value: "x".repeat(65_536) } },
-      })),
-    ]);
+    const store = createStore([{ id: "root", component: "Column", children }]);
+    for (const id of children) {
+      store.apply({
+        version: "v1.0",
+        updateComponents: {
+          surfaceId: "validated",
+          components: [
+            {
+              id,
+              component: "Text",
+              text: { call: "formatString", args: { value: "x".repeat(65_536) } },
+            },
+          ],
+        },
+      });
+    }
 
     assert.throws(
       () =>

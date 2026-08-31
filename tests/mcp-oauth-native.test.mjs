@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -8,18 +7,12 @@ import {
   createMcpNativeOAuthPlatformSecureStore,
   createMcpNativeOAuthProvider,
 } from "../packages/mcp/dist/oauth.js";
-import {
-  NATIVE_OAUTH_CASES,
-  NATIVE_OAUTH_EVIDENCE_PATH,
-  validateNativeOAuthEvidence,
-} from "../scripts/verify-native-oauth-evidence.mjs";
 
 const ISSUER = "https://auth.example.com";
 const REDIRECT_URL = "mcp-native://oauth/callback";
 const SERVER_URL = "https://mcp.example.com/mcp";
 const VALID_STATE = "state_abcdefghijklmnopqrstuvwxyz-0123456789";
 const VALID_VERIFIER = "v".repeat(64);
-const nativeOAuthEvidence = JSON.parse(readFileSync(NATIVE_OAUTH_EVIDENCE_PATH, "utf8"));
 
 function createSecretBackend(initial = {}) {
   const values = new Map(Object.entries(initial));
@@ -778,58 +771,4 @@ test("authorization cancellation attempts verifier cleanup when state deletion f
     service.endsWith(".verifier"),
   );
   assert.equal(secrets.values.has(verifierService), false);
-});
-
-test("native OAuth evidence scaffold is exact and remains incomplete before platform runs", () => {
-  assert.deepEqual(validateNativeOAuthEvidence(nativeOAuthEvidence), {
-    complete: false,
-    passedRows: 0,
-    requiredRows: 2,
-  });
-  assert.throws(
-    () => validateNativeOAuthEvidence(nativeOAuthEvidence, { strict: true }),
-    /must be "pass" for a release candidate/,
-  );
-});
-
-test("native OAuth release evidence requires exact passing cases and reviewable artifacts", () => {
-  const complete = structuredClone(nativeOAuthEvidence);
-  for (const [index, row] of complete.matrix.entries()) {
-    row.operatingSystem = `Test OS ${index}`;
-    row.backendLibrary = "test-native-backend";
-    row.backendVersion = "1.0.0";
-    row.device = `Test device ${index}`;
-    row.date = "2026-08-31";
-    row.tester = "Test operator";
-    row.revision = "a".repeat(40);
-    row.result = "pass";
-    row.cases = Object.fromEntries(NATIVE_OAUTH_CASES.map((name) => [name, "pass"]));
-    row.evidence = [`https://example.com/native-oauth/${row.id}`];
-  }
-  assert.deepEqual(validateNativeOAuthEvidence(complete, { strict: true }), {
-    complete: true,
-    passedRows: 2,
-    requiredRows: 2,
-  });
-
-  for (const inconsistentResult of ["fail", "not-run"]) {
-    complete.matrix[0].cases["callback-success"] = inconsistentResult;
-    assert.throws(
-      () => validateNativeOAuthEvidence(complete),
-      /must be "pass" when the platform row result is "pass"/,
-    );
-  }
-  complete.matrix[0].cases["callback-success"] = "pass";
-
-  complete.matrix[0].cases["embedded-webview"] = "pass";
-  assert.throws(
-    () => validateNativeOAuthEvidence(complete, { strict: true }),
-    /unknown field "embedded-webview"/,
-  );
-});
-
-test("native OAuth evidence rejects unsafe artifact references", () => {
-  const invalid = structuredClone(nativeOAuthEvidence);
-  invalid.matrix[0].evidence = ["../outside.log"];
-  assert.throws(() => validateNativeOAuthEvidence(invalid), /safe repository-relative path/);
 });

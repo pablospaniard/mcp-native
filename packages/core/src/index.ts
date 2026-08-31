@@ -12,6 +12,8 @@ export const JSON_MAX_DEPTH = 64;
 export const JSON_MAX_VALUES = 10_000;
 /** Maximum UTF-16 code units accepted in one JSON string. */
 export const JSON_MAX_STRING_LENGTH = 65_536;
+/** Shared protocol-facing cumulative UTF-16 code-unit budget for strings and object keys. */
+export const JSON_MAX_TOTAL_STRING_CODE_UNITS = 1_048_576;
 
 /** Thrown when an untrusted value cannot be represented as JSON data. */
 export class JsonValidationError extends TypeError {
