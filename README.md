@@ -137,6 +137,8 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - An issuer-bound interactive OAuth provider for protected Streamable HTTP with official SDK
   discovery/PKCE, exact resource indicators, secure-storage hooks, safe callback completion, and
   host-gated scope escalation
+- Bounded reference adapters for an app-owned Keychain/Keystore backend and OS authentication
+  session, plus an exact two-platform evidence gate
 - Thirty-two pinned official MCP client scenarios, including every scored `2026-07-28`
   authorization scenario, covering the implemented modern HTTP boundary
 - Frozen official requirement accounting and shared-cache isolation tests across principals
@@ -193,10 +195,23 @@ issuer validation, token exchange, refresh, and bearer attachment:
 ```ts
 import { Client, UnauthorizedError } from "@modelcontextprotocol/client";
 import { createMcpNativeClientOptions } from "@mcp-native/mcp";
-import { createMcpNativeOAuthProvider, createMcpNativeOAuthTransport } from "@mcp-native/mcp/oauth";
+import {
+  createMcpNativeOAuthAuthorizationSession,
+  createMcpNativeOAuthPlatformSecureStore,
+  createMcpNativeOAuthProvider,
+  createMcpNativeOAuthTransport,
+} from "@mcp-native/mcp/oauth";
 
 const serverUrl = new URL("https://mcp.example.com/mcp");
 const redirectUrl = "my-app://oauth/callback";
+const secureOAuthStore = createMcpNativeOAuthPlatformSecureStore({
+  namespace: "com.example.myapp.production", // app-owned constant, never a server value
+  backend: keychainOrKeystoreBackend,
+});
+const authorizationSession = createMcpNativeOAuthAuthorizationSession({
+  redirectUrl,
+  open: openSystemAuthenticationSession,
+});
 const provider = createMcpNativeOAuthProvider({
   serverUrl,
   redirectUrl,
@@ -204,9 +219,9 @@ const provider = createMcpNativeOAuthProvider({
     client_name: "My native host",
     redirect_uris: [redirectUrl],
   },
-  storage: secureOAuthStore, // OS keychain/keystore-backed; never AsyncStorage or a plain file
+  storage: secureOAuthStore,
   createState: () => createCryptographicallyRandomState(),
-  openAuthorization: (url) => openPlatformAuthenticationSession(url, redirectUrl),
+  openAuthorization: authorizationSession.openAuthorization,
   approveReauthorization: (request) => consentAndCheckRetryBudget(request),
 });
 
@@ -222,8 +237,7 @@ try {
   await client.connect(transport);
 } catch (error) {
   if (!(error instanceof UnauthorizedError)) throw error;
-  // After the platform authentication session returns the exact callback URL:
-  await provider.finishAuthorization(transport, callbackUrl);
+  await authorizationSession.finishAuthorization(provider, transport);
   // Reconnect the Client with a fresh transport as required by SDK v2.
 }
 ```
@@ -234,9 +248,11 @@ non-loopback endpoints, redirect/state/parameter substitution, duplicate callbac
 `insufficient_scope` challenges are surfaced to the host. The opt-in `host-approved` path calls
 `approveReauthorization` for every authorization retry while credentials exist—including repeated
 same-scope challenges—and permits at most one SDK retry per request. The callback error path never
-renders attacker-controlled OAuth descriptions. All 25 scored official authorization scenarios
-pass; production readiness still requires real-platform secure-storage/authentication-session
-evidence and the remaining host controls.
+renders attacker-controlled OAuth descriptions. A cancelled OS session clears pending state and
+PKCE material without deleting registrations or tokens. All 25 scored official authorization
+scenarios pass. The [native OAuth plan](docs/native-oauth-testing.md) and strict evidence gate are
+implemented, but both required platform rows remain `not-run`; production readiness still requires
+those real-platform results and the remaining host controls.
 
 ## A2UI v1 Candidate host flow
 
@@ -480,6 +496,8 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Implement stable MCP Apps `2026-01-26` discovery, native sandboxing, and bridge compatibility
 - [x] Add the issuer-bound MCP HTTP OAuth provider, secure-storage seam, and safe callback boundary
 - [x] Pass every scored pinned official `2026-07-28` authorization client scenario
+- [x] Add bounded Keychain/Keystore and OS authentication-session reference adapters and evidence gate
+- [ ] Record passing iOS and Android native OAuth evidence
 - [ ] Add broader consent, tool-risk, privacy, and host permission controls
 - [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
 - [ ] Ship one small, tested React Native integration PoC without a committed host-app scaffold

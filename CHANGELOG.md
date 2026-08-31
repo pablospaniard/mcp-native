@@ -16,6 +16,10 @@ their minor release line.
   reauthorization path capped to one SDK retry per request.
 - A headless native-host authorization driver that passes all 25 scored official MCP `2026-07-28`
   authorization client scenarios; the full pinned gate now covers 32 scenarios and 386 checks.
+- Dependency-neutral native OAuth reference adapters for bounded fixed-slot Keychain/Keystore
+  persistence and one exact ASWebAuthenticationSession/Android Custom Tab callback.
+- An exact two-platform native OAuth evidence schema, ordinary structure check, and strict
+  release-candidate gate. Both checked-in rows intentionally remain `not-run` until executed.
 
 ### Security
 
@@ -27,6 +31,10 @@ their minor release line.
 - Require an exact host approval decision for every interactive reauthorization while credentials
   exist, including repeated same-scope challenges, and refresh protected-resource discovery after
   callback completion so authorization-server migrations cannot reuse old credentials.
+- Reject unsafe server-derived storage namespaces, oversized or corrupt stored values, concurrent
+  authentication sessions, malformed native session results, callback-location substitution, and
+  callback reuse. Explicit platform cancellation removes pending state and PKCE material without
+  deleting registrations or tokens.
 
 ## 0.5.0 - 2026-08-28
 

@@ -67,9 +67,9 @@ Its resource contract preserves every content item returned by `resources/read`;
 
 ### `@mcp-native/mcp`
 
-Owns the integration with the official MCP TypeScript SDK. It accepts an already connected SDK `Client`, adapts `listTools`, `callTool`, and `readResource` to the contracts in `@mcp-native/core`, advertises host-approved extension settings, and exposes validated server extension settings. For protected Streamable HTTP it also supplies an issuer-bound interactive OAuth provider and exact official transport factory while keeping platform storage, browser presentation, consent, and lifecycle in the host.
+Owns the integration with the official MCP TypeScript SDK. It accepts an already connected SDK `Client`, adapts `listTools`, `callTool`, and `readResource` to the contracts in `@mcp-native/core`, advertises host-approved extension settings, and exposes validated server extension settings. For protected Streamable HTTP it also supplies an issuer-bound interactive OAuth provider, exact official transport factory, bounded adapter over an app-owned native secret backend, and closed OS authentication-session result adapter while keeping native dependency selection, browser presentation, consent, and lifecycle in the host.
 
-This package is the validation boundary between SDK results and the runtime. It rejects malformed collections, non-JSON values, non-plain objects, circular values, invalid optional fields, and resource bodies that are missing or ambiguous. The OAuth boundary additionally rejects insecure endpoints, callback/state substitution, cross-issuer stored credentials, resource-indicator mismatch, and credential-bearing custom headers. It never persists credentials itself and does not silently manage connection lifecycle.
+This package is the validation boundary between SDK results and the runtime. It rejects malformed collections, non-JSON values, non-plain objects, circular values, invalid optional fields, and resource bodies that are missing or ambiguous. The OAuth boundary additionally rejects insecure endpoints, callback/state substitution, cross-issuer stored credentials, resource-indicator mismatch, credential-bearing custom headers, overlapping system sessions, and malformed native callbacks. Its reference store persists only through the host-supplied secret backend with fixed app-owned keys and bounded values; it never chooses a native module, treats general application storage as secure, or silently manages connection lifecycle.
 
 ### `@mcp-native/a2ui`
 
@@ -186,7 +186,7 @@ return { content: [{ type: "text", text: "Saved" }] };
 - A2UI agent-initiated renderer-function execution and interoperability beyond the declared profile
 - Extension-specific operations and additional official extension conformance scenarios
 - Platform accessibility testing and renderer capability transport integration
-- Platform OAuth secure-storage/authentication-session evidence and production connection lifecycle
+- Passing platform OAuth secure-storage/authentication-session evidence and production connection lifecycle
 - Richer React Native catalog components, styling, and platform-specific accessibility behavior
 - Sensitive-device capability policies, consent, and permissions
 - MCP Apps browser-host double-iframe support and optional stable methods outside the documented

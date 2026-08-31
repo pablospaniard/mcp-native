@@ -137,9 +137,10 @@ and platform controls. See [the exact compatibility profile](mcp-apps-compatibil
 
 ## Milestone 6: remote authorization and release readiness
 
-Status: in progress. The issuer-bound interactive OAuth host boundary and every scored official
-`2026-07-28` authorization client scenario are implemented; real-platform credential/session
-evidence, broader host controls, lifecycle/operability, and the integration PoC remain open.
+Status: in progress. The issuer-bound interactive OAuth host boundary, every scored official
+`2026-07-28` authorization client scenario, dependency-neutral platform reference adapters, and an
+exact evidence gate are implemented. Both required credential/session platform rows are still
+`not-run`; broader host controls, lifecycle/operability, and the integration PoC also remain open.
 
 - [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
       and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
@@ -149,8 +150,13 @@ evidence, broader host controls, lifecycle/operability, and the integration PoC 
       credential headers, and surface `insufficient_scope` to the host before step-up authorization.
 - [x] Pass and pin every applicable official MCP `2026-07-28` authorization client scenario before
       claiming the complete protected Streamable HTTP profile.
-- [ ] Integrate platform keychain/keystore reference adapters and authentication-session evidence;
-      the library contract deliberately cannot treat AsyncStorage or plain files as secure storage.
+- [x] Add bounded platform keychain/keystore and OS authentication-session reference adapters; the
+      library contract deliberately cannot treat AsyncStorage or plain files as secure storage or
+      use an embedded WebView for authorization.
+- [x] Add an exact iOS/Android native OAuth evidence schema, ordinary structure check, and strict
+      release-candidate gate.
+- [ ] Record passing real-platform keychain/keystore and authentication-session evidence for both
+      required rows; the checked-in matrix currently reports `0/2` passing.
 - [ ] Add broader consent, tool-risk review, capability approval, privacy controls, and host
       integration guidance for persistent cross-request scope-upgrade tracking. The transport now
       defaults to throwing on `insufficient_scope`; its opt-in retry path requires a host approval

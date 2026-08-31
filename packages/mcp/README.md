@@ -85,17 +85,30 @@ SDK's interactive OAuth flow:
 ```ts
 import { Client, UnauthorizedError } from "@modelcontextprotocol/client";
 import { createMcpNativeClientOptions } from "@mcp-native/mcp";
-import { createMcpNativeOAuthProvider, createMcpNativeOAuthTransport } from "@mcp-native/mcp/oauth";
+import {
+  createMcpNativeOAuthAuthorizationSession,
+  createMcpNativeOAuthPlatformSecureStore,
+  createMcpNativeOAuthProvider,
+  createMcpNativeOAuthTransport,
+} from "@mcp-native/mcp/oauth";
 
 const serverUrl = new URL("https://mcp.example.com/mcp");
 const redirectUrl = "my-app://oauth/callback";
+const secureOAuthStore = createMcpNativeOAuthPlatformSecureStore({
+  namespace: "com.example.myapp.production",
+  backend: keychainOrKeystoreBackend,
+});
+const authorizationSession = createMcpNativeOAuthAuthorizationSession({
+  redirectUrl,
+  open: openSystemAuthenticationSession,
+});
 const provider = createMcpNativeOAuthProvider({
   serverUrl,
   redirectUrl,
   clientMetadata: { client_name: "My app", redirect_uris: [redirectUrl] },
   storage: secureOAuthStore,
   createState: () => createCryptographicallyRandomState(),
-  openAuthorization: (url) => openPlatformAuthenticationSession(url, redirectUrl),
+  openAuthorization: authorizationSession.openAuthorization,
   approveReauthorization: (request) => consentAndCheckRetryBudget(request),
 });
 const client = new Client(
@@ -110,18 +123,26 @@ try {
   await client.connect(transport);
 } catch (error) {
   if (!(error instanceof UnauthorizedError)) throw error;
-  await provider.finishAuthorization(transport, callbackUrl);
+  await authorizationSession.finishAuthorization(provider, transport);
   // Reconnect on a fresh official transport after successful completion.
 }
 ```
 
 `McpNativeOAuthSecureStore` must be implemented with OS keychain/keystore-grade encrypted storage.
-It persists issuer-bound client registrations and tokens plus the PKCE verifier, OAuth state, and
-validated redirect-bound discovery state. The provider validates stored values before returning
-them to the SDK, refreshes discovery after the callback so authorization-server migrations cannot
-reuse old credentials, pins RFC 8707 resource indicators to one MCP endpoint, compares callback
-location and state before code redemption, and never exposes attacker-controlled callback error
-descriptions.
+`createMcpNativeOAuthPlatformSecureStore()` supplies the bounded serialization, fixed app-owned
+service slots, exact issuer binding, and serialized state consumption over a narrow native secret
+backend; it cannot make AsyncStorage or a plain file secure. The provider validates stored values
+before returning them to the SDK, refreshes discovery after the callback so authorization-server
+migrations cannot reuse old credentials, pins RFC 8707 resource indicators to one MCP endpoint,
+compares callback location and state before code redemption, and never exposes attacker-controlled
+callback error descriptions.
+
+`createMcpNativeOAuthAuthorizationSession()` normalizes an app-owned
+`ASWebAuthenticationSession`/Android Custom Tab bridge into one exact callback. It rejects overlap,
+callback substitution, oversized or malformed results, and reuse. Cancellation clears pending state
+and PKCE material without deleting registrations or tokens. See the [native integration and evidence
+plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md) for a React
+Native Keychain/Keystore mapping and the required platform matrix.
 
 `createMcpNativeOAuthTransport()` rejects manual credential headers and configures
 `insufficient_scope` to throw by default. Setting `scopeEscalation: "host-approved"` is accepted only
@@ -129,7 +150,8 @@ when the provider has an `approveReauthorization` callback. That callback runs f
 authorization request while credentials exist, even when a hostile resource repeats the same scope;
 the transport permits at most one SDK step-up retry per request. The host must maintain any stricter
 cross-request budget. All 25 scored pinned official `2026-07-28` authorization client scenarios
-pass; real-platform secure-storage and authentication-session evidence remains a Milestone 6 gate.
+pass. The evidence schema and strict release-candidate gate are active, but both required native
+rows remain `not-run`.
 
 ## Mapping
 
@@ -172,13 +194,15 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 | The protected-HTTP exports below live at the explicit `@mcp-native/mcp/oauth` subpath so importing               |
 | the result adapter does not load a transport implementation:                                                     |
 
-| Export                                                         | Purpose                                                                         |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `McpNativeOAuthClientProvider`, `createMcpNativeOAuthProvider` | Issuer-bound official SDK OAuth provider with native host seams.                |
-| `McpNativeOAuthSecureStore`                                    | Host keychain/keystore persistence contract for credentials and redirect state. |
-| `McpNativeOAuthReauthorizationRequest`                         | Frozen host decision input for bounded interactive reauthorization.             |
-| `createMcpNativeOAuthTransport`                                | Protected HTTP transport with resource pinning and host-gated scope escalation. |
-| `McpNativeOAuthError`                                          | Fail-closed categories without attacker-controlled callback details.            |
+| Export                                                                           | Purpose                                                                         |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `McpNativeOAuthClientProvider`, `createMcpNativeOAuthProvider`                   | Issuer-bound official SDK OAuth provider with native host seams.                |
+| `McpNativeOAuthSecureStore`                                                      | Host keychain/keystore persistence contract for credentials and redirect state. |
+| `McpNativeOAuthPlatformSecureStore`, `createMcpNativeOAuthPlatformSecureStore`   | Bounded adapter over an app-owned native secret backend.                        |
+| `McpNativeOAuthAuthorizationSession`, `createMcpNativeOAuthAuthorizationSession` | Closed OS browser-session callback adapter.                                     |
+| `McpNativeOAuthReauthorizationRequest`                                           | Frozen host decision input for bounded interactive reauthorization.             |
+| `createMcpNativeOAuthTransport`                                                  | Protected HTTP transport with resource pinning and host-gated scope escalation. |
+| `McpNativeOAuthError`                                                            | Fail-closed categories without attacker-controlled callback details.            |
 
 ## Scope
 

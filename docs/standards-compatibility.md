@@ -177,13 +177,18 @@ non-boolean check conditions.
    Proxy-Authorization headers and surface insufficient-scope responses to the host by default. The
    opt-in step-up path requires a host callback for every reauthorization while credentials exist
    and caps SDK work to one retry per request.
-5. **Host responsibility:** production implementations must use OS keychain/keystore-grade storage,
+5. **Implemented native integration boundary:** a bounded fixed-slot reference store maps the OAuth
+   contract onto an app-owned native secret backend, and a closed session adapter accepts one exact
+   `ASWebAuthenticationSession`/Android Custom Tab callback while rejecting overlap, substitution,
+   malformed results, cancellation residue, and reuse. Neither adapter imports React Native or
+   upgrades an insecure backend.
+6. **Host responsibility:** production implementations must use OS keychain/keystore-grade storage,
    a platform authentication session, cryptographically random state, user consent, bounded
    cross-request step-up tracking, and must never forward an MCP access token to an upstream API.
-6. **Verified package boundary:** all 25 scored authorization client scenarios in the exact pinned
+7. **Verified package boundary:** all 25 scored authorization client scenarios in the exact pinned
    official `2026-07-28` requirements fixture pass with no expected failures. The Milestone 6
-   release-readiness claim remains pending on real-platform storage/session evidence and broader
-   host controls.
+   evidence schema and strict gate are implemented, but both platform rows remain `not-run`, so the
+   release-readiness claim remains pending on real-platform results and broader host controls.
 
 ## Version and claim policy
 

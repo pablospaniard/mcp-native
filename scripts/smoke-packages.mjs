@@ -48,6 +48,18 @@ try {
       throw new Error(`@mcp-native/webview declarations are missing ${typeName}`);
     }
   }
+  const oauthDeclarations = ["oauth", "oauth-error", "oauth-native"]
+    .map((moduleName) => readFileSync(`packages/mcp/dist/${moduleName}.d.ts`, "utf8"))
+    .join("\n");
+  for (const typeName of [
+    "McpNativeOAuthAuthorizationSession",
+    "McpNativeOAuthPlatformSecureStore",
+    "McpNativeOAuthSecretBackend",
+  ]) {
+    if (!oauthDeclarations.includes(typeName)) {
+      throw new Error(`@mcp-native/mcp OAuth declarations are missing ${typeName}`);
+    }
+  }
 
   const tarballs = packages.map((packageName) => {
     const output = execFileSync(
@@ -64,7 +76,14 @@ try {
     const files = new Set(packed.files.map(({ path }) => path));
     const requiredFiles = ["README.md", "dist/index.d.ts", "dist/index.js", "package.json"];
     if (packageName === "@mcp-native/mcp") {
-      requiredFiles.push("dist/oauth.d.ts", "dist/oauth.js");
+      requiredFiles.push(
+        "dist/oauth.d.ts",
+        "dist/oauth.js",
+        "dist/oauth-error.d.ts",
+        "dist/oauth-error.js",
+        "dist/oauth-native.d.ts",
+        "dist/oauth-native.js",
+      );
     }
     if (packageName === "@mcp-native/a2ui") {
       requiredFiles.push(
@@ -107,7 +126,6 @@ try {
   for (const packageDirectory of workspacePackageDirectories) {
     collectExternalDependencies(join(process.cwd(), packageDirectory));
   }
-
   const externalTarballs = [...externalDependencies.entries()].map(
     ([dependencyName, dependencyDirectory]) => {
       const output = execFileSync(
@@ -158,6 +176,13 @@ try {
     const entryPoint = join(consumerDirectory, "node_modules", packageName, "dist", "index.js");
     return import(pathToFileURL(entryPoint).href);
   });
+  importPromises.push(
+    import(
+      pathToFileURL(
+        join(consumerDirectory, "node_modules", "@mcp-native", "mcp", "dist", "oauth-native.js"),
+      ).href
+    ),
+  );
 
   await Promise.all(importPromises);
 

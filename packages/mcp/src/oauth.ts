@@ -26,6 +26,22 @@ import {
   OpenIdProviderDiscoveryMetadataSchema,
 } from "@modelcontextprotocol/core";
 
+import { McpNativeOAuthError } from "./oauth-error.js";
+export { McpNativeOAuthError } from "./oauth-error.js";
+export type { McpNativeOAuthErrorCode } from "./oauth-error.js";
+export {
+  McpNativeOAuthAuthorizationSession,
+  McpNativeOAuthPlatformSecureStore,
+  createMcpNativeOAuthAuthorizationSession,
+  createMcpNativeOAuthPlatformSecureStore,
+} from "./oauth-native.js";
+export type {
+  McpNativeOAuthAuthorizationSessionOptions,
+  McpNativeOAuthAuthorizationSessionResult,
+  McpNativeOAuthPlatformSecureStoreOptions,
+  McpNativeOAuthSecretBackend,
+} from "./oauth-native.js";
+
 const CALLBACK_PARAMETER_NAMES = new Set([
   "code",
   "error",
@@ -113,26 +129,6 @@ export interface McpNativeOAuthTransportOptions {
   readonly scopeEscalation?: "throw" | "host-approved";
 }
 
-export type McpNativeOAuthErrorCode =
-  | "authorization-denied"
-  | "callback-mismatch"
-  | "invalid-callback"
-  | "invalid-configuration"
-  | "invalid-storage"
-  | "resource-mismatch"
-  | "reauthorization-denied"
-  | "state-mismatch";
-
-export class McpNativeOAuthError extends Error {
-  readonly code: McpNativeOAuthErrorCode;
-
-  constructor(code: McpNativeOAuthErrorCode, message: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = "McpNativeOAuthError";
-    this.code = code;
-  }
-}
-
 type OAuthFinisher = Pick<StreamableHTTPClientTransport, "finishAuth">;
 
 /**
@@ -154,6 +150,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     | undefined;
   #activeIssuer: string | undefined;
   #pendingAuthorizationUrl: string | undefined;
+  #pendingState: string | undefined;
 
   constructor(options: McpNativeOAuthProviderOptions) {
     this.#resourceUrl = resourceUrlFromServerUrl(parseProtectedServerUrl(options.serverUrl));
@@ -200,6 +197,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       );
     }
     await this.#storage.saveOAuthState(state);
+    this.#pendingState = state;
     return state;
   }
 
@@ -282,7 +280,12 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         );
       }
     }
-    await this.#openAuthorization(new URL(url.href));
+    try {
+      await this.#openAuthorization(new URL(url.href));
+    } catch (error) {
+      await this.#discardPendingAuthorization();
+      throw error;
+    }
     this.#pendingAuthorizationUrl = url.href;
   }
 
@@ -346,6 +349,15 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     if (scope === "all" || scope === "discovery") {
       this.#activeIssuer = undefined;
     }
+    if (scope === "all") {
+      this.#pendingAuthorizationUrl = undefined;
+      this.#pendingState = undefined;
+    }
+  }
+
+  /** Clears a host-cancelled interactive attempt without deleting registrations or tokens. */
+  async cancelAuthorization(): Promise<void> {
+    await this.#discardPendingAuthorization();
   }
 
   /**
@@ -359,6 +371,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     if (!(await this.#storage.consumeOAuthState(parameters.get("state")!))) {
       throw new McpNativeOAuthError("state-mismatch", "OAuth callback state did not match");
     }
+    this.#pendingState = undefined;
 
     try {
       if (parameters.has("error")) {
@@ -391,6 +404,17 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
 
   hasReauthorizationApproval(): boolean {
     return this.#approveReauthorization !== undefined;
+  }
+
+  async #discardPendingAuthorization(): Promise<void> {
+    this.#pendingAuthorizationUrl = undefined;
+    const state = this.#pendingState;
+    this.#pendingState = undefined;
+    try {
+      if (state !== undefined) await this.#storage.consumeOAuthState(state);
+    } finally {
+      await this.#storage.invalidate("verifier", this.#activeIssuer);
+    }
   }
 }
 
