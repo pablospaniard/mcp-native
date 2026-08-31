@@ -106,8 +106,10 @@ parameter-count, parameter-name, and parameter-value callback budgets before cod
 provider reserves one interactive attempt before persisting state; a concurrent attempt fails
 without replacing the first attempt's state or verifier. Process recovery makes the same reservation
 before consuming persisted state, so a concurrent new flow cannot lose its verifier during old-flow
-cleanup. A reported platform cancellation is
-fail-closed and clears the pending state and verifier without deleting registrations or tokens.
+cleanup. A reported platform cancellation is fail-closed and clears the pending state and verifier
+without deleting registrations or tokens. Call `provider.cancelAuthorization()` only to abandon an
+attempt after the platform handoff has settled; it is rejected while the opener or callback
+completion is active so cleanup cannot race the attempt's state and verifier.
 
 ## Required matrix
 

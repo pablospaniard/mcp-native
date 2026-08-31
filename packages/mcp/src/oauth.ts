@@ -98,6 +98,42 @@ const TOKEN_STRING_LIMITS = Object.freeze({
   scope: MAX_SCOPE_CODE_UNITS,
   token_type: MAX_TOKEN_TYPE_CODE_UNITS,
 });
+const MAX_CLIENT_IDENTIFIER_CODE_UNITS = 4_096;
+const MAX_CLIENT_SECRET_CODE_UNITS = 4_096;
+const CLIENT_INFORMATION_BUDGET = Object.freeze({
+  maxArrayItems: 64,
+  maxCumulativeArrayItems: 256,
+  maxCumulativeProperties: 256,
+  maxDepth: 8,
+  maxNodes: 512,
+  maxObjectProperties: 64,
+  maxPropertyNameCodeUnits: 128,
+  maxStringCodeUnits: 8_192,
+  maxTotalStringCodeUnits: 24_576,
+});
+const DISCOVERY_STATE_BUDGET = Object.freeze({
+  maxArrayItems: 64,
+  maxCumulativeArrayItems: 256,
+  maxCumulativeProperties: 256,
+  maxDepth: 8,
+  maxNodes: 512,
+  maxObjectProperties: 128,
+  maxPropertyNameCodeUnits: 128,
+  maxStringCodeUnits: 4_096,
+  maxTotalStringCodeUnits: 24_576,
+});
+
+interface OAuthJsonBudget {
+  readonly maxArrayItems: number;
+  readonly maxCumulativeArrayItems: number;
+  readonly maxCumulativeProperties: number;
+  readonly maxDepth: number;
+  readonly maxNodes: number;
+  readonly maxObjectProperties: number;
+  readonly maxPropertyNameCodeUnits: number;
+  readonly maxStringCodeUnits: number;
+  readonly maxTotalStringCodeUnits: number;
+}
 
 export type McpNativeOAuthCredentialScope = "all" | "client" | "discovery" | "tokens" | "verifier";
 
@@ -423,12 +459,15 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     }
   }
 
-  /** Clears a host-cancelled interactive attempt without deleting registrations or tokens. */
+  /**
+   * Clears an abandoned interactive attempt after the platform handoff has settled.
+   * Active handoff and callback completion cannot be cancelled through this method.
+   */
   async cancelAuthorization(): Promise<void> {
-    if (this.#authorizationCompletionRunning) {
+    if (this.#authorizationCompletionRunning || this.#authorizationHandoffRunning) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
-        "OAuth callback completion is already running",
+        "OAuth authorization handoff or callback completion is already running",
       );
     }
     await this.#discardPendingAuthorization();
@@ -738,6 +777,25 @@ function assertBoundedTokenValues(value: unknown): void {
 function parseStoredClientInformation(
   value: StoredOAuthClientInformation,
 ): StoredOAuthClientInformation {
+  assertBoundedOAuthJson(value, "Stored OAuth client information", CLIENT_INFORMATION_BUDGET);
+  if (
+    typeof value.client_id === "string" &&
+    value.client_id.length > MAX_CLIENT_IDENTIFIER_CODE_UNITS
+  ) {
+    throw new McpNativeOAuthError(
+      "invalid-storage",
+      "Stored OAuth client identifier exceeds the supported size",
+    );
+  }
+  if (
+    typeof value.client_secret === "string" &&
+    value.client_secret.length > MAX_CLIENT_SECRET_CODE_UNITS
+  ) {
+    throw new McpNativeOAuthError(
+      "invalid-storage",
+      "Stored OAuth client secret exceeds the supported size",
+    );
+  }
   const full = OAuthClientInformationFullSchema.safeParse(value);
   const issuer = Object.hasOwn(value, "issuer") ? value.issuer : undefined;
   if (full.success) {
@@ -753,6 +811,7 @@ function parseStoredClientInformation(
 }
 
 function parseDiscoveryState(state: OAuthDiscoveryState, resourceUrl: URL): OAuthDiscoveryState {
+  assertBoundedOAuthJson(state, "Stored OAuth discovery state", DISCOVERY_STATE_BUDGET);
   const authorizationServerUrl = parseIssuer(
     state.authorizationServerUrl,
     "discovery authorization-server issuer",
@@ -812,6 +871,115 @@ function parseDiscoveryState(state: OAuthDiscoveryState, resourceUrl: URL): OAut
     ...(resourceMetadataResult?.success ? { resourceMetadata: resourceMetadataResult.data } : {}),
     ...(resourceMetadataUrl === undefined ? {} : { resourceMetadataUrl }),
   };
+}
+
+function assertBoundedOAuthJson(value: unknown, label: string, budget: OAuthJsonBudget): void {
+  const seen = new WeakSet<object>();
+  const pending: Array<{ readonly depth: number; readonly value: unknown }> = [{ depth: 0, value }];
+  let arrayItems = 0;
+  let nodes = 0;
+  let properties = 0;
+  let stringCodeUnits = 0;
+
+  const countString = (text: string, limit: number): void => {
+    if (text.length > limit) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `${label} contains a string that exceeds the supported size`,
+      );
+    }
+    stringCodeUnits += text.length;
+    if (stringCodeUnits > budget.maxTotalStringCodeUnits) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `${label} exceeds the cumulative supported string size`,
+      );
+    }
+  };
+
+  while (pending.length > 0) {
+    const entry = pending.pop()!;
+    nodes += 1;
+    if (nodes > budget.maxNodes || entry.depth > budget.maxDepth) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `${label} exceeds the supported structural complexity`,
+      );
+    }
+    if (entry.value === null || entry.value === undefined) continue;
+    if (typeof entry.value === "string") {
+      countString(entry.value, budget.maxStringCodeUnits);
+      continue;
+    }
+    if (typeof entry.value === "number") {
+      if (!Number.isFinite(entry.value)) {
+        throw new McpNativeOAuthError("invalid-storage", `${label} contains a non-JSON number`);
+      }
+      continue;
+    }
+    if (typeof entry.value === "boolean") continue;
+    if (typeof entry.value !== "object") {
+      throw new McpNativeOAuthError("invalid-storage", `${label} contains a non-JSON value`);
+    }
+    if (seen.has(entry.value)) {
+      throw new McpNativeOAuthError("invalid-storage", `${label} contains a circular value`);
+    }
+    seen.add(entry.value);
+
+    if (Array.isArray(entry.value)) {
+      if (entry.value.length > budget.maxArrayItems) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          `${label} contains an array that exceeds the supported size`,
+        );
+      }
+      arrayItems += entry.value.length;
+      if (arrayItems > budget.maxCumulativeArrayItems) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          `${label} exceeds the cumulative supported array size`,
+        );
+      }
+      for (let index = 0; index < entry.value.length; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(entry.value, index);
+        if (descriptor === undefined || !("value" in descriptor)) {
+          throw new McpNativeOAuthError("invalid-storage", `${label} contains a non-JSON array`);
+        }
+        pending.push({ depth: entry.depth + 1, value: descriptor.value });
+      }
+      continue;
+    }
+
+    const prototype = Object.getPrototypeOf(entry.value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new McpNativeOAuthError("invalid-storage", `${label} contains a non-plain object`);
+    }
+    const keys = Reflect.ownKeys(entry.value);
+    if (keys.length > budget.maxObjectProperties) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `${label} contains an object that exceeds the supported size`,
+      );
+    }
+    properties += keys.length;
+    if (properties > budget.maxCumulativeProperties) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `${label} exceeds the cumulative supported property count`,
+      );
+    }
+    for (const key of keys) {
+      if (typeof key !== "string") {
+        throw new McpNativeOAuthError("invalid-storage", `${label} contains a non-JSON key`);
+      }
+      countString(key, budget.maxPropertyNameCodeUnits);
+      const descriptor = Object.getOwnPropertyDescriptor(entry.value, key)!;
+      if (!descriptor.enumerable || !("value" in descriptor)) {
+        throw new McpNativeOAuthError("invalid-storage", `${label} contains a non-JSON property`);
+      }
+      pending.push({ depth: entry.depth + 1, value: descriptor.value });
+    }
+  }
 }
 
 function parseAuthorizationServerMetadata(

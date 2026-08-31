@@ -165,6 +165,46 @@ test("OAuth credentials are bound to their authorization-server issuer", async (
   );
 });
 
+test("OAuth dynamic registration records are bounded before parsing and persistence", async () => {
+  const { provider, storage } = createProvider();
+  await assert.rejects(
+    () =>
+      provider.saveClientInformation(
+        { client_id: "c".repeat(4_097), client_secret: "secret" },
+        { issuer: ISSUER },
+      ),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  assert.equal(storage.values.clientInformation.size, 0);
+
+  await assert.rejects(
+    () =>
+      provider.saveClientInformation(
+        {
+          client_id: "client",
+          client_secret: "s".repeat(4_000),
+          client_name: "n".repeat(8_000),
+          redirect_uris: [REDIRECT_URL],
+          software_statement: "j".repeat(8_000),
+          scope: "x".repeat(5_000),
+        },
+        { issuer: ISSUER },
+      ),
+    /cumulative supported string size/,
+  );
+  assert.equal(storage.values.clientInformation.size, 0);
+
+  storage.values.clientInformation.set(ISSUER, {
+    client_id: "client",
+    client_secret: "s".repeat(4_097),
+    issuer: ISSUER,
+  });
+  await assert.rejects(
+    () => provider.clientInformation({ issuer: ISSUER }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+});
+
 test("OAuth token values are bounded before parsing, persistence, and reuse", async () => {
   const { provider, storage } = createProvider();
   await assert.rejects(
@@ -291,6 +331,63 @@ test("OAuth discovery state is reusable only across the pending PKCE callback", 
   assert.equal(await provider.discoveryState(), undefined);
   await provider.saveCodeVerifier(VALID_VERIFIER);
   assert.equal((await provider.discoveryState()).authorizationServerUrl, ISSUER);
+});
+
+test("OAuth discovery metadata is bounded before parsing, caching, and reuse", async () => {
+  const baseMetadata = {
+    issuer: ISSUER,
+    authorization_endpoint: `${ISSUER}/authorize`,
+    token_endpoint: `${ISSUER}/token`,
+    response_types_supported: ["code"],
+  };
+  const oversizedStates = [
+    {
+      authorizationServerUrl: ISSUER,
+      authorizationServerMetadata: {
+        ...baseMetadata,
+        authorization_endpoint: `${ISSUER}/${"a".repeat(4_097)}`,
+      },
+    },
+    {
+      authorizationServerUrl: ISSUER,
+      authorizationServerMetadata: {
+        ...baseMetadata,
+        response_types_supported: Array.from({ length: 65 }, () => "code"),
+      },
+    },
+    {
+      authorizationServerUrl: ISSUER,
+      authorizationServerMetadata: {
+        ...baseMetadata,
+        extension_1: "x".repeat(4_000),
+        extension_2: "x".repeat(4_000),
+        extension_3: "x".repeat(4_000),
+        extension_4: "x".repeat(4_000),
+        extension_5: "x".repeat(4_000),
+        extension_6: "x".repeat(4_000),
+        extension_7: "x".repeat(4_000),
+      },
+    },
+  ];
+
+  await Promise.all(
+    oversizedStates.map(async (state) => {
+      const invalid = createProvider();
+      await assert.rejects(
+        () => invalid.provider.saveDiscoveryState(state),
+        (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+      );
+      assert.equal(invalid.storage.values.discovery, undefined);
+    }),
+  );
+
+  const corrupted = createProvider();
+  corrupted.storage.values.discovery = oversizedStates[0];
+  await corrupted.provider.saveCodeVerifier(VALID_VERIFIER);
+  await assert.rejects(
+    () => corrupted.provider.discoveryState(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
 });
 
 test("OAuth callback completion validates redirect, state, duplicates, and consumes secrets", async () => {

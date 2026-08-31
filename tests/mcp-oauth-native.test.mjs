@@ -301,6 +301,10 @@ test("overlapping authorization attempts leave the first state and verifier usab
   const first = provider.redirectToAuthorization(new URL(`${ISSUER}/authorize?client_id=client`));
   await Promise.resolve();
   await assert.rejects(
+    () => provider.cancelAuthorization(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  await assert.rejects(
     () => provider.state(),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
   );

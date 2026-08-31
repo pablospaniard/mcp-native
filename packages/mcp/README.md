@@ -132,20 +132,22 @@ try {
 `createMcpNativeOAuthPlatformSecureStore()` supplies the bounded serialization, fixed app-owned
 service slots, exact issuer binding, and serialized state consumption over a narrow native secret
 backend; it cannot make AsyncStorage or a plain file secure. The provider validates stored values
-before returning them to the SDK, bounds individual and cumulative token strings before persistence
-or reuse, rejects issuer query/fragment components and executable redirect schemes, refreshes
-discovery after the callback so authorization-server migrations cannot reuse old credentials, pins
-RFC 8707 resource indicators to one MCP endpoint, compares callback location and state before code
-redemption, and never exposes attacker-controlled callback error descriptions.
+before returning them to the SDK, bounds individual and cumulative registration, discovery, and
+token data before schema parsing, persistence, or reuse, rejects issuer query/fragment components
+and executable redirect schemes, refreshes discovery after the callback so authorization-server
+migrations cannot reuse old credentials, pins RFC 8707 resource indicators to one MCP endpoint,
+compares callback location and state before code redemption, and never exposes attacker-controlled
+callback error descriptions.
 
 `createMcpNativeOAuthAuthorizationSession()` normalizes an app-owned
 `ASWebAuthenticationSession`/Android Custom Tab bridge into one exact callback. It rejects overlap,
-callback substitution, oversized or malformed results, and reuse. Cancellation clears pending state
-and PKCE material without deleting registrations or tokens. The provider reserves one interactive
-attempt before state persistence, and applies the same total and per-parameter callback budgets to
-the direct process-recovery path. See the [native integration and evidence
-plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md) for a React
-Native Keychain/Keystore mapping and the required platform matrix.
+callback substitution, oversized or malformed results, and reuse. A cancellation result clears
+pending state and PKCE material without deleting registrations or tokens; direct provider
+cancellation is rejected while the system handoff or callback completion is active. The provider
+reserves one interactive attempt before state persistence, and applies the same total and
+per-parameter callback budgets to the direct process-recovery path. See the [native integration and
+evidence plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md)
+for a React Native Keychain/Keystore mapping and the required platform matrix.
 
 `createMcpNativeOAuthTransport()` rejects manual credential headers and configures
 `insufficient_scope` to throw by default. Setting `scopeEscalation: "host-approved"` is accepted only

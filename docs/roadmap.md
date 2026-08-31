@@ -145,9 +145,10 @@ exact evidence gate are implemented. Both required credential/session platform r
 - [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
       and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
       redirect-bound discovery state with post-callback refresh, and an exact RFC 8707 resource
-      indicator. Redirect schemes, issuer components, and individual/cumulative token sizes fail
-      closed before browser handoff, persistence, or reuse; one-attempt reservation and callback
-      budgets cover native-session and process-recovery paths.
+      indicator. Redirect schemes, issuer components, and individual/cumulative registration,
+      discovery, and token sizes fail closed before parsing, browser handoff, persistence, caching,
+      or reuse; one-attempt reservation, cancellation locking, and callback budgets cover
+      native-session and process-recovery paths.
 - [x] Add the protected Streamable HTTP factory without issuer-validation opt-outs or manual
       credential headers, and surface `insufficient_scope` to the host before step-up authorization.
 - [x] Pass and pin every applicable official MCP `2026-07-28` authorization client scenario before

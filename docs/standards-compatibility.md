@@ -167,16 +167,19 @@ non-boolean check conditions.
 1. **Implemented foundation:** the official SDK v2 owns protected-resource and authorization-server
    discovery, PKCE, scope calculation, issuer checks, code exchange, refresh, and bearer attachment.
 2. **Implemented host boundary:** `McpNativeOAuthClientProvider` validates host configuration and
-   bounded stored SDK values, binds registrations and tokens to an exact issuer without query or
-   fragment components, persists redirect state and discovery through `McpNativeOAuthSecureStore`,
-   restricts redirect URIs to HTTPS app links, HTTP loopback, or hierarchical private-use app
-   schemes, and pins the RFC 8707 resource to one MCP endpoint.
+   bounded stored SDK values, applies individual and cumulative structural budgets to dynamic
+   registrations and discovery metadata before parsing, persistence, caching, or reuse, binds
+   registrations and tokens to an exact issuer without query or fragment components, persists
+   redirect state and discovery through `McpNativeOAuthSecureStore`, restricts redirect URIs to
+   HTTPS app links, HTTP loopback, or hierarchical private-use app schemes, and pins the RFC 8707
+   resource to one MCP endpoint.
 3. **Implemented callback boundary:** callback scheme/authority/path, configured query parameters,
    OAuth state, and duplicate `code`/`state`/`iss` fields fail closed before SDK code redemption;
    total, count, name, and value budgets apply to both native-session and process-recovery callback
    paths; attacker-controlled OAuth descriptions are never included in the public error. One
    provider reserves one interactive attempt before persisting state so an overlapping attempt
-   cannot replace its state or verifier.
+   cannot replace its state or verifier, and rejects direct cancellation while its platform handoff
+   or callback completion is active.
 4. **Implemented transport policy:** protected transports reject manual Authorization, Cookie, and
    Proxy-Authorization headers and surface insufficient-scope responses to the host by default. The
    opt-in step-up path requires a host callback for every reauthorization while credentials exist

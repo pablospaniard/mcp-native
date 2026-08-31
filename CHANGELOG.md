@@ -38,10 +38,15 @@ their minor release line.
 - Restrict redirect URIs to HTTPS app links, HTTP loopback URLs, or hierarchical private-use app
   schemes; reject issuer query/fragment components; and bound both individual and cumulative token
   values before parsing, persistence, or request reuse.
+- Bound dynamic client-registration records and authorization discovery metadata by value size,
+  cumulative text, collection width, depth, and total structure before schema parsing, persistence,
+  caching, or reuse.
 - Reserve one authorization attempt before state persistence so overlapping flows cannot replace its
   state or verifier, and apply total, count, name, and value limits to both native-session and direct
   process-recovery callbacks before code redemption. Direct recovery also reserves the persisted
   attempt while it atomically consumes state and clears its verifier.
+- Reject direct cancellation while a system authorization handoff or callback completion is active,
+  preventing cleanup from racing the attempt's state and PKCE verifier.
 
 ## 0.5.0 - 2026-08-28
 
