@@ -1,23 +1,17 @@
-# React Native integration PoC
+# React Native integration PoC policy
 
-This folder will contain the React Native integration's single small end-to-end PoC: MCP connection,
-A2UI resource resolution, native rendering, and action dispatch back to MCP.
+React Native integration demonstrations are maintained as separate Expo Go apps: one primitives
+baseline and one app for each selected common, Expo Go-compatible component library. Every app uses
+the same end-to-end flow: MCP connection, A2UI resource resolution, native rendering, and action
+dispatch back to MCP.
 
-Keep the PoC to the hand-authored integration flow and the minimum documentation needed to embed it
-in a consumer-owned React Native application. Do not bootstrap or commit a complete generated React
-Native project, Android/iOS scaffold, independent dependency lockfile, vendored dependencies, or
-build output here.
+Keep each app focused on its library adapter and the minimum code needed to run in Expo Go. Pin the
+Expo SDK, React Native, component library, and MCP Native versions in that app and document known
+limitations without generalizing them to other libraries.
 
-Package and integration tests must prove the runtime, validation, renderer-local state,
-host-callback seams, and end-to-end action flow. A lightweight smoke check must exercise the PoC
-itself. Platform-specific behavior remains subject to the supported host test matrix; when a native
-build is required, CI should generate a temporary host rather than turn this directory into a
-second application project.
+Package and integration tests must prove the runtime, validation, renderer-local state, and
+host-callback seams. PoC observations are informative compatibility demonstrations; they do not
+block releases or replace automated package coverage.
 
-Future React Native integration scenarios should extend this PoC instead of adding another React
-Native example.
-
-The release accessibility screen lives as hand-authored test input in `tests/native-host/App.tsx`.
-`npm run native:host:prepare` copies it into a pinned official React Native host under an explicit
-temporary directory. That generated host is test infrastructure and does not create another
-committed integration PoC.
+Future scenarios for an existing library should extend that library's app. Add a new app only when
+covering another commonly used Expo Go-compatible library.

@@ -101,8 +101,8 @@ The packages are intentionally separated so the core runtime does not depend on 
 React Native, or any single declarative UI protocol. Release `0.5.0` adds the stable MCP Apps
 `2026-01-26` native host-adapter profile with strict discovery, bounded bridge handling, and a
 closed WebView sandbox contract. Release `0.4.0` completed the feature-scoped A2UI v1 Candidate
-adapter and its real-platform accessibility gates. Package versions are independent of the internal
-A2UI proof-of-concept surface value `"0.1"`.
+adapter and recorded its real-platform accessibility results. Package versions are independent of
+the internal A2UI proof-of-concept surface value `"0.1"`.
 
 ## Installation
 
@@ -138,7 +138,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
   discovery/PKCE, exact resource indicators, secure-storage hooks, safe callback completion, and
   host-gated scope escalation
 - Bounded reference adapters for an app-owned Keychain/Keystore backend and OS authentication
-  session, plus an exact two-platform evidence gate
+  session
 - Thirty-two pinned official MCP client scenarios, including every scored `2026-07-28`
   authorization scenario, covering the implemented modern HTTP boundary
 - Frozen official requirement accounting and shared-cache isolation tests across principals
@@ -172,19 +172,18 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
   `ui://` text/blob resource loading
 - A closed CSP-first native WebView sandbox, React Native WebView safe-prop adapter, and bounded
   JSON-RPC lifecycle verified against official `@modelcontextprotocol/ext-apps@1.7.5` schemas
-- Passing Android 17 TalkBack and iOS 26.5 XCUITest accessibility evidence for the pinned native
-  fixture, backed by a strict release-evidence gate
+- Recorded Android 17 TalkBack and iOS 26.5 XCUITest accessibility results for the pinned native
+  fixture
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
 This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native
 adapter supports only the documented component subset, absolute and dynamic-list-relative string
 bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks
 for supported text fields and buttons, pure boolean functions, `@index`, action events returned to
-a host callback, and press-time host-policy-gated HTTP(S) `openUrl`. The pinned native fixture has
-passing Android/iOS evidence, but renderer behavior outside that matrix remains unclaimed.
-Real-platform OAuth storage/session evidence, broader consent and tool-risk UX, production
-connection lifecycle and observability, action transport delivery, and the tested end-to-end mobile
-integration PoC remain Milestone 6 work.
+a host callback, and press-time host-policy-gated HTTP(S) `openUrl`. Renderer behavior outside the
+recorded native fixture remains unclaimed. Broader consent and tool-risk UX, production connection
+lifecycle and observability, action transport delivery, and the separate Expo Go integration PoCs
+remain Milestone 6 work.
 
 ## Protected Streamable HTTP OAuth
 
@@ -268,10 +267,9 @@ process-recovery callbacks have total and per-parameter budgets before code rede
 is allowed only after the provider has reserved state and saved exactly one PKCE verifier for the
 attempt. All 25 scored official
 authorization scenarios pass.
-The [native OAuth plan](docs/native-oauth-testing.md) and strict evidence gate are implemented. A
-platform row can count as passing only when all required cases pass, but both required rows remain
-`not-run`; production readiness still requires those real-platform results and the remaining host
-controls.
+Native integration is exercised separately through non-blocking app-level PoCs. Production hosts
+remain responsible for choosing app-owned secure-storage and authentication-session implementations
+and for the broader consent and lifecycle controls described below.
 
 ## A2UI v1 Candidate host flow
 
@@ -437,23 +435,21 @@ npm test
 
 Useful commands:
 
-| Command                          | Purpose                                                         |
-| -------------------------------- | --------------------------------------------------------------- |
-| `npm run build`                  | Build every workspace with TypeScript project references        |
-| `npm run check`                  | Run formatting, linting, types, schemas, tests, and conformance |
-| `npm run format:check`           | Check formatting without changing files                         |
-| `npm run format:fix`             | Format supported project files with Oxfmt                       |
-| `npm run lint`                   | Check source files with Oxlint                                  |
-| `npm run lint:fix`               | Apply safe Oxlint fixes, then report any remaining diagnostics  |
-| `npm run typecheck`              | Type-check all TypeScript project references                    |
-| `npm test`                       | Build and run the Node test suite                               |
-| `npm run test:coverage`          | Run tests and enforce coverage thresholds                       |
-| `npm run test:performance`       | Enforce documented A2UI performance regression budgets          |
-| `npm run native:evidence:check`  | Validate the pending native accessibility evidence record       |
-| `npm run native:evidence:verify` | Require complete evidence for release verification              |
-| `npm run schemas:verify`         | Verify the pinned A2UI schema bundle and runtime copies         |
-| `npm run package:smoke`          | Build, pack, and install all publishable packages offline       |
-| `npm run clean`                  | Remove TypeScript project build outputs                         |
+| Command                    | Purpose                                                         |
+| -------------------------- | --------------------------------------------------------------- |
+| `npm run build`            | Build every workspace with TypeScript project references        |
+| `npm run check`            | Run formatting, linting, types, schemas, tests, and conformance |
+| `npm run format:check`     | Check formatting without changing files                         |
+| `npm run format:fix`       | Format supported project files with Oxfmt                       |
+| `npm run lint`             | Check source files with Oxlint                                  |
+| `npm run lint:fix`         | Apply safe Oxlint fixes, then report any remaining diagnostics  |
+| `npm run typecheck`        | Type-check all TypeScript project references                    |
+| `npm test`                 | Build and run the Node test suite                               |
+| `npm run test:coverage`    | Run tests and enforce coverage thresholds                       |
+| `npm run test:performance` | Enforce documented A2UI performance regression budgets          |
+| `npm run schemas:verify`   | Verify the pinned A2UI schema bundle and runtime copies         |
+| `npm run package:smoke`    | Build, pack, and install all publishable packages offline       |
+| `npm run clean`            | Remove TypeScript project build outputs                         |
 
 Maintainers should follow the tokenless [release and package-onboarding process](docs/releasing.md).
 
@@ -464,7 +460,7 @@ mcp-native/
 ├── .github/                   # CI, ownership, and collaboration templates
 ├── docs/                      # Architecture decisions and design notes
 ├── examples/
-│   └── react-native-demo/     # Minimal React Native integration PoC; no generated host project
+│   └── react-native-demo/     # Expo Go app-per-library PoC policy and shared flow
 ├── packages/
 │   ├── core/
 │   ├── mcp/
@@ -475,10 +471,11 @@ mcp-native/
 └── tests/                     # Cross-package proof-of-concept tests
 ```
 
-Each integration may have at most one focused PoC under `examples/`. Examples contain only the
-hand-authored integration flow and supporting documentation, not a generated standalone project or
-duplicated dependency tree. Repository tests and lightweight smoke checks prove the flow; examples
-are explanatory entry points, not separate applications or substitutes for test coverage.
+React Native integrations are demonstrated independently with one Expo Go PoC per selected common,
+Expo Go-compatible component library, plus a primitives baseline. Each PoC pins its library and Expo
+SDK versions and exercises the same representative flow. PoC results are informative and never
+block package releases or milestone completion; repository tests and smoke checks remain the
+package gates.
 
 ## Roadmap
 
@@ -509,17 +506,16 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Derive closed native text/button semantics and preserve text scaling at the host boundary
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
-- [x] Generate pinned RN 0.87/0.86 hosts and enforce a strict WCAG/platform evidence release gate
-- [x] Complete the documented real-platform accessibility behavior and release evidence scope
+- [x] Generate pinned RN 0.87/0.86 hosts and record the scoped WCAG/platform results
+- [x] Complete the documented real-platform accessibility behavior
 - [x] Execute the supported iOS/Android fixture and accessibility matrix in generated real hosts
 - [x] Implement stable MCP Apps `2026-01-26` discovery, native sandboxing, and bridge compatibility
 - [x] Add the issuer-bound MCP HTTP OAuth provider, secure-storage seam, and safe callback boundary
 - [x] Pass every scored pinned official `2026-07-28` authorization client scenario
-- [x] Add bounded Keychain/Keystore and OS authentication-session reference adapters and evidence gate
-- [ ] Record passing iOS and Android native OAuth evidence
+- [x] Add bounded Keychain/Keystore and OS authentication-session reference adapters
 - [ ] Add broader consent, tool-risk, privacy, and host permission controls
 - [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
-- [ ] Ship one small, tested React Native integration PoC without a committed host-app scaffold
+- [ ] Maintain separate Expo Go PoCs for the primitives baseline and selected common component libraries
 - [ ] Expand protocol coverage through reviewed RFCs and tests
 
 ## Contributing

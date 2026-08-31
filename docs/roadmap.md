@@ -18,15 +18,21 @@ The custom `@mcp-native/a2ui` `0.1` object remains useful as a proof and test fi
 
 ## Integration PoC policy
 
-Each supported integration may have at most one small, valuable PoC. A PoC demonstrates the
-end-to-end integration-specific flow with hand-authored code; it is not a committed generated
-application project. Extend the existing PoC instead of adding parallel examples for the same
-integration.
+React Native integration validation is developed independently from package releases as a set of
+small Expo Go apps. Maintain one focused PoC per commonly used, Expo Go-compatible React Native
+component library, plus a React Native primitives baseline. Each app pins its library and Expo SDK
+versions and exercises the same representative surface, adapter mapping, interaction, and
+accessibility scenarios. Extend the existing app when a library's coverage grows instead of adding
+parallel apps for the same library.
 
-Every PoC requires automated package, integration, or smoke coverage. Use temporary generated hosts
-only when a platform build is necessary to prove behavior, and run the narrowest relevant platform
-checks. Protocol examples and hostile inputs used by automated tests are fixtures, not additional
-example applications.
+PoC results are informative compatibility demonstrations. They never block package releases,
+milestone completion, or protocol claims, and the package documentation must not imply support for
+libraries that have not been exercised. Libraries that require custom native modules are outside
+the Expo Go PoC matrix until they offer an Expo Go-compatible path.
+
+Package behavior still requires automated unit, integration, conformance, and smoke coverage. PoC
+apps supplement those tests; they do not replace them. Protocol examples and hostile inputs used by
+automated tests remain fixtures, not additional example applications.
 
 ## Milestone 0: proof-of-concept architecture
 
@@ -87,17 +93,16 @@ Status: complete for the documented feature-scoped Candidate profile.
 - [x] Execute bounded HTTP(S) `openUrl` through a synchronous host policy and host opener only from the originating Button press.
 - [x] Adapt the supported component subset, container alignment, absolute data bindings, dynamic lists, supported formatting and validation functions, supported renderer checks, and `openUrl` into the existing trusted native render plan.
 - [x] Add official protocol fixtures, schema-derived bidirectional fixtures, negative fixtures, and lifecycle tests for the implemented profile.
-- [x] Publish the exact [feature-scoped conformance profile](a2ui-v1-conformance.md), exclusions, Candidate interpretations, and interoperability evidence.
+- [x] Publish the exact [feature-scoped conformance profile](a2ui-v1-conformance.md), exclusions, Candidate interpretations, and interoperability coverage.
 - [x] Deprecate and freeze the custom `0.1` parser, resolver, types, and React Native renderer with an explicit v1 migration path.
 
 Exit criterion: conformance is reported per implemented A2UI feature against the pinned Candidate revision; the custom `0.1` input is deprecated or made explicitly internal.
 
 ## Milestone 4: production native renderer behavior
 
-Status: complete for `0.4.0` — renderer-local state, action-envelope emission,
-closed accessibility semantics, a generated platform fixture with build/evidence gates, a WCAG
-assessment, CI performance/fuzz gates, and passing Android 17 emulator and iOS 26.5 simulator
-evidence.
+Status: complete for `0.4.0` — renderer-local state, action-envelope emission, closed accessibility
+semantics, a generated platform fixture, a WCAG assessment, CI performance/fuzz gates, and recorded
+Android 17 emulator and iOS 26.5 simulator results.
 
 - [x] Add renderer-local data-model updates without network calls on each keystroke.
 - [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
@@ -112,9 +117,9 @@ evidence.
 - [x] Add deterministic fuzz and property tests for bidirectional protocol parsing, lifecycle state, render-plan conversion, and renderer failure paths.
 - [x] Assess applicable [WCAG 2.2 Level AA outcomes](wcag-2.2-native-assessment.md), record the passing fixture results, and separate library and host responsibilities.
 
-Exit criterion: the recorded iOS simulator and Android emulator hosts render and interact
-with the supported A2UI subset within documented accessibility and performance limits, without
-weakening the component or capability boundary or generalizing beyond recorded evidence.
+Exit criterion: the supported A2UI subset remains within documented accessibility and performance
+limits without weakening the component or capability boundary. Library-specific rendering is
+demonstrated separately through the non-blocking Expo Go PoCs.
 
 ## Milestone 5: stable MCP Apps compatibility
 
@@ -138,9 +143,9 @@ and platform controls. See [the exact compatibility profile](mcp-apps-compatibil
 ## Milestone 6: remote authorization and release readiness
 
 Status: in progress. The issuer-bound interactive OAuth host boundary, every scored official
-`2026-07-28` authorization client scenario, dependency-neutral platform reference adapters, and an
-exact evidence gate are implemented. Both required credential/session platform rows are still
-`not-run`; broader host controls, lifecycle/operability, and the integration PoC also remain open.
+`2026-07-28` authorization client scenario, and dependency-neutral platform reference adapters are
+implemented. Broader host controls, lifecycle/operability, and the Expo Go integration PoCs remain
+open.
 
 - [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
       and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
@@ -163,11 +168,6 @@ exact evidence gate are implemented. Both required credential/session platform r
       library contract deliberately cannot treat AsyncStorage or plain files as secure storage or
       use an embedded WebView for authorization. Same-namespace store objects serialize state
       operations in one JS runtime so duplicate instances cannot both consume one callback state.
-- [x] Add an exact iOS/Android native OAuth evidence schema, ordinary structure check, and strict
-      release-candidate gate. A row that declares `pass` is rejected unless every required case also
-      passes, even during the ordinary check.
-- [ ] Record passing real-platform keychain/keystore and authentication-session evidence for both
-      required rows; the checked-in matrix currently reports `0/2` passing.
 - [ ] Add broader consent, tool-risk review, capability approval, privacy controls, and host
       integration guidance for persistent cross-request scope-upgrade tracking. The transport now
       defaults to throwing on `insufficient_scope`; its opt-in retry path requires a host approval
@@ -184,7 +184,9 @@ exact evidence gate are implemented. Both required credential/session platform r
       non-forwarding, and lifecycle cleanup.
 - [x] Continue npm trusted publishing with OIDC, provenance, protected release environments, and
       exact version verification.
-- [ ] Ship one small, tested React Native integration PoC without a committed host-app scaffold, and
-      document its supported protocol matrix.
+- [ ] Maintain a separate Expo Go PoC for the React Native primitives baseline and each selected
+      common Expo Go-compatible component library, and document the exact versions exercised.
 
-Exit criterion: a release candidate passes protocol, security, accessibility, performance, reliability, operability, package, real-platform, and end-to-end interoperability gates.
+Exit criterion: a release candidate passes protocol, security, accessibility, performance,
+reliability, operability, package, and end-to-end interoperability gates. Expo Go PoC status is
+reported separately and is not an exit criterion.

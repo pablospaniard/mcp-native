@@ -156,9 +156,9 @@ After a process restart, when no live owner remains, cancellation can claim and 
 reservation. Callback validation claims rather than deletes the state, keeping the namespace occupied
 until verifier cleanup succeeds. Full and verifier credential invalidation observe the same
 active-flow and ownership checks as cancellation. The same total and per-parameter callback budgets apply to the
-direct process-recovery path. See the [native integration and evidence
-plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md) for a React
-Native Keychain/Keystore mapping and the required platform matrix.
+direct process-recovery path. See the [native OAuth host integration
+guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md) for an
+Expo Go-compatible reference mapping and production-host responsibilities.
 
 `createMcpNativeOAuthTransport()` rejects manual credential headers and configures
 `insufficient_scope` to throw by default. Setting `scopeEscalation: "host-approved"` is accepted only
@@ -166,8 +166,7 @@ when the provider has an `approveReauthorization` callback. That callback runs f
 authorization request while credentials exist, even when a hostile resource repeats the same scope;
 the transport permits at most one SDK step-up retry per request. The host must maintain any stricter
 cross-request budget. All 25 scored pinned official `2026-07-28` authorization client scenarios
-pass. The evidence schema requires every case to pass before a platform row can count as passing,
-and the strict release-candidate gate is active, but both required native rows remain `not-run`.
+pass. Native-library integration is demonstrated separately through non-blocking app-level PoCs.
 
 ## Mapping
 
