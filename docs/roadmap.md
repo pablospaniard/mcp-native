@@ -148,6 +148,7 @@ exact evidence gate are implemented. Both required credential/session platform r
       indicator. Redirect schemes, issuer components, and individual/cumulative registration,
       discovery, and token sizes fail closed before parsing, browser handoff, persistence, caching,
       or reuse; actionable discovered endpoints require fragment-free HTTPS or HTTP loopback;
+      every registered redirect URI is validated; literal empty fragments fail closed;
       one-attempt reservation, cancellation locking, and callback budgets cover native-session and
       process-recovery paths.
 - [x] Add the protected Streamable HTTP factory without issuer-validation opt-outs or manual
@@ -156,7 +157,8 @@ exact evidence gate are implemented. Both required credential/session platform r
       claiming the complete protected Streamable HTTP profile.
 - [x] Add bounded platform keychain/keystore and OS authentication-session reference adapters; the
       library contract deliberately cannot treat AsyncStorage or plain files as secure storage or
-      use an embedded WebView for authorization.
+      use an embedded WebView for authorization. Same-namespace store objects serialize state
+      operations in one JS runtime so duplicate instances cannot both consume one callback state.
 - [x] Add an exact iOS/Android native OAuth evidence schema, ordinary structure check, and strict
       release-candidate gate. A row that declares `pass` is rejected unless every required case also
       passes, even during the ordinary check.

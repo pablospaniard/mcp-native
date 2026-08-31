@@ -10,7 +10,8 @@ integration helpers:
 
 - `createMcpNativeOAuthPlatformSecureStore()` maps the OAuth persistence contract onto five fixed,
   app-namespaced secret slots. Values are bounded, credentials retain their exact issuer, and OAuth
-  state compare-and-delete operations are serialized within the store instance.
+  state operations are serialized across store objects using the same fixed namespace in one JS
+  runtime.
 - `createMcpNativeOAuthAuthorizationSession()` accepts only `success`, `cancel`, or `dismiss` from an
   app-owned OS authentication-session bridge. It rejects overlapping sessions, callback-location
   substitution, oversized callbacks, malformed results, and callback reuse.
@@ -131,7 +132,8 @@ TypeScript test is not platform evidence.
    confirm the intended values survive and remain schema-valid.
 3. Attempt to load credentials under a different issuer and a different app namespace. Both must
    fail without exposing or deleting the valid record.
-4. Deliver the same valid-state callback twice concurrently. Exactly one exchange may proceed.
+4. Deliver the same valid-state callback twice concurrently through distinct provider/store objects
+   sharing the app namespace. Exactly one exchange may proceed.
 5. Invalidate verifier, token, client, discovery, and all scopes; confirm the corresponding native
    records are gone and unrelated issuer records are not removed.
 6. Inspect the presented authorization UI and platform hierarchy to prove it is the required OS

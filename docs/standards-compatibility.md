@@ -170,10 +170,11 @@ non-boolean check conditions.
    bounded stored SDK values, applies individual and cumulative structural budgets to dynamic
    registrations and discovery metadata before parsing, persistence, caching, or reuse, binds
    registrations and tokens to an exact issuer without query or fragment components, persists
-   redirect state and discovery through `McpNativeOAuthSecureStore`, restricts redirect URIs to
-   HTTPS app links, HTTP loopback, or hierarchical private-use app schemes, requires actionable
-   authorization-server endpoint/URI fields to use HTTPS or HTTP loopback without fragments before
-   caching or reuse, and pins the RFC 8707 resource to one MCP endpoint.
+   redirect state and discovery through `McpNativeOAuthSecureStore`, restricts every registered
+   redirect URI to HTTPS app links, HTTP loopback, or hierarchical private-use app schemes, rejects
+   literal fragment delimiters across server/redirect/authorization/callback boundaries, requires
+   actionable authorization-server endpoint/URI fields to use HTTPS or HTTP loopback without
+   fragments before caching or reuse, and pins the RFC 8707 resource to one MCP endpoint.
 3. **Implemented callback boundary:** callback scheme/authority/path, configured query parameters,
    OAuth state, and duplicate `code`/`state`/`iss` fields fail closed before SDK code redemption;
    total, count, name, and value budgets apply to both native-session and process-recovery callback
@@ -187,10 +188,11 @@ non-boolean check conditions.
    and caps SDK work to one retry per request. Access, refresh, and ID tokens are subject to both
    per-value and cumulative limits before persistence or request reuse.
 5. **Implemented native integration boundary:** a bounded fixed-slot reference store maps the OAuth
-   contract onto an app-owned native secret backend, and a closed session adapter accepts one exact
-   `ASWebAuthenticationSession`/Android Custom Tab callback while rejecting overlap, substitution,
-   malformed results, cancellation residue, and reuse. Neither adapter imports React Native or
-   upgrades an insecure backend.
+   contract onto an app-owned native secret backend and serializes state operations across store
+   objects using the same fixed namespace in one JS runtime. A closed session adapter accepts one
+   exact `ASWebAuthenticationSession`/Android Custom Tab callback while rejecting overlap,
+   substitution, malformed results, cancellation residue, and reuse. Neither adapter imports React
+   Native or upgrades an insecure backend.
 6. **Host responsibility:** production implementations must use OS keychain/keystore-grade storage,
    a platform authentication session, cryptographically random state, user consent, bounded
    cross-request step-up tracking, and must never forward an MCP access token to an upstream API.

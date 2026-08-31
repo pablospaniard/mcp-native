@@ -243,11 +243,12 @@ try {
 ```
 
 The provider rejects cross-issuer stored credentials, issuer query/fragment components, a
-protected-resource mismatch, insecure endpoints, executable redirect schemes,
+protected-resource mismatch, insecure endpoints, any unsafe URI in the registered redirect list,
+literal fragment delimiters on server, redirect, authorization, and callback URLs,
 redirect/state/parameter substitution, duplicate callback fields, oversized individual or
 cumulative registration, discovery, and token data, and raw `Authorization`, `Cookie`, or
-`Proxy-Authorization` transport headers. These budgets apply before schema parsing, persistence,
-or reuse, and every actionable discovery endpoint must use HTTPS or an HTTP loopback address and
+`Proxy-Authorization` transport headers. These budgets apply before schema parsing, persistence, or
+reuse, and every actionable discovery endpoint must use HTTPS or an HTTP loopback address and
 contain no fragment before the metadata can be cached or returned. By default, runtime
 `insufficient_scope` challenges are surfaced to the host. The opt-in `host-approved` path calls
 `approveReauthorization` for every authorization retry while credentials exist—including repeated

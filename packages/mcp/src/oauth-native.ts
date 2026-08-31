@@ -46,6 +46,7 @@ const CALLBACK_PARAMETER_NAMES = new Set([
   "iss",
   "state",
 ]);
+const STATE_LOCKS = new Map<string, Promise<void>>();
 
 type OAuthFinisher = Pick<StreamableHTTPClientTransport, "finishAuth">;
 type SecretSlot = "client" | "discovery" | "state" | "tokens" | "verifier";
@@ -73,12 +74,12 @@ interface IssuerRecord<T> {
 
 /**
  * Bounded reference implementation of the OAuth store contract over a native secret backend.
- * One instance and namespace represent one protected-resource authorization context.
+ * One namespace represents one protected-resource authorization context. State operations are
+ * serialized across store objects using the same fixed namespaced service in this JS runtime.
  */
 export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureStore {
   readonly #backend: McpNativeOAuthSecretBackend;
   readonly #services: Readonly<Record<SecretSlot, string>>;
-  #stateQueue: Promise<void> = Promise.resolve();
 
   constructor(options: McpNativeOAuthPlatformSecureStoreOptions) {
     if (!NAMESPACE_PATTERN.test(options.namespace)) {
@@ -300,11 +301,17 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
   }
 
   #withStateLock<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.#stateQueue.then(operation, operation);
-    this.#stateQueue = result.then(
+    const service = this.#services.state;
+    const previous = STATE_LOCKS.get(service) ?? Promise.resolve();
+    const result = previous.then(operation, operation);
+    const tail = result.then(
       () => undefined,
       () => undefined,
     );
+    STATE_LOCKS.set(service, tail);
+    void tail.then(() => {
+      if (STATE_LOCKS.get(service) === tail) STATE_LOCKS.delete(service);
+    });
     return result;
   }
 }
@@ -459,7 +466,7 @@ function hasExactSessionResultKeys(value: Record<string, unknown>): boolean {
 
 function parseRedirectUrl(value: string | URL): URL {
   const url = parseUrl(value, "OAuth redirect URL");
-  if (url.username !== "" || url.password !== "" || url.hash !== "") {
+  if (url.username !== "" || url.password !== "" || url.href.includes("#")) {
     throw new McpNativeOAuthError(
       "invalid-configuration",
       "OAuth redirect URL must not contain credentials or a fragment",
@@ -496,13 +503,16 @@ function parseSecureUrl(value: string | URL, label: string): URL {
       `${label} must use HTTPS or an HTTP loopback address`,
     );
   }
+  if (url.href.includes("#")) {
+    throw new McpNativeOAuthError("invalid-configuration", `${label} must not contain a fragment`);
+  }
   return url;
 }
 
 function parseCallbackUrl(value: string, redirectUrl: URL): URL {
   const callback = parseUrl(value, "OAuth callback URL");
   if (
-    callback.hash !== "" ||
+    callback.href.includes("#") ||
     callback.protocol !== redirectUrl.protocol ||
     callback.username !== redirectUrl.username ||
     callback.password !== redirectUrl.password ||

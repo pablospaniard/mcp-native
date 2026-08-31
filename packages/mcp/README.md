@@ -130,15 +130,17 @@ try {
 
 `McpNativeOAuthSecureStore` must be implemented with OS keychain/keystore-grade encrypted storage.
 `createMcpNativeOAuthPlatformSecureStore()` supplies the bounded serialization, fixed app-owned
-service slots, exact issuer binding, and serialized state consumption over a narrow native secret
-backend; it cannot make AsyncStorage or a plain file secure. The provider validates stored values
+service slots, exact issuer binding, and state consumption serialized across store objects using the
+same namespace in one JS runtime over a narrow native secret backend; it cannot make AsyncStorage or
+a plain file secure. The provider validates stored values
 before returning them to the SDK, bounds individual and cumulative registration, discovery, and
-token data before schema parsing, persistence, or reuse, rejects issuer query/fragment components
-and executable redirect schemes, requires every actionable discovery endpoint to use HTTPS or an
-HTTP loopback address and contain no fragment before caching or reuse, refreshes discovery after the
-callback so authorization-server migrations cannot reuse old credentials, pins RFC 8707 resource
-indicators to one MCP endpoint, compares callback location and state before code redemption, and
-never exposes attacker-controlled callback error descriptions.
+token data before schema parsing, persistence, or reuse, validates every registered redirect URI,
+rejects literal fragment delimiters on server, redirect, authorization, and callback URLs, requires
+every actionable discovery endpoint to use HTTPS or an HTTP loopback address and contain no fragment
+before caching or reuse, refreshes discovery after the callback so authorization-server migrations
+cannot reuse old credentials, pins RFC 8707 resource indicators to one MCP endpoint, compares
+callback location and state before code redemption, and never exposes attacker-controlled callback
+error descriptions.
 
 `createMcpNativeOAuthAuthorizationSession()` normalizes an app-owned
 `ASWebAuthenticationSession`/Android Custom Tab bridge into one exact callback. It rejects overlap,

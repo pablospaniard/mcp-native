@@ -250,6 +250,9 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         { cause: metadataResult.error },
       );
     }
+    for (const redirectUrl of metadataResult.data.redirect_uris) {
+      parseRedirectUrl(redirectUrl);
+    }
     if (!metadataResult.data.redirect_uris.includes(this.redirectUrl.href)) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
@@ -350,6 +353,12 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
 
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
     const url = parseSecureEndpoint(authorizationUrl, "authorization URL");
+    if (url.href.includes("#")) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth authorization URL must not contain a fragment",
+      );
+    }
     if (this.#pendingAuthorizationUrl === url.href) {
       return;
     }
@@ -623,7 +632,7 @@ function parseScope(value: string | null): readonly string[] {
 
 function parseProtectedServerUrl(value: string | URL): URL {
   const url = parseSecureEndpoint(value, "MCP server URL");
-  if (url.hash !== "") {
+  if (url.href.includes("#")) {
     throw new McpNativeOAuthError(
       "invalid-configuration",
       "MCP server URL must not contain a fragment",
@@ -634,7 +643,7 @@ function parseProtectedServerUrl(value: string | URL): URL {
 
 function parseRedirectUrl(value: string | URL): URL {
   const url = parseUrl(value, "OAuth redirect URL");
-  if (url.username !== "" || url.password !== "" || url.hash !== "") {
+  if (url.username !== "" || url.password !== "" || url.href.includes("#")) {
     throw new McpNativeOAuthError(
       "invalid-configuration",
       "OAuth redirect URL must not contain credentials or a fragment",
@@ -1041,7 +1050,7 @@ function parseCallbackUrl(value: string | URL, redirectUrl: URL): URL {
     );
   }
   const callback = parseUrl(value, "OAuth callback URL");
-  if (callback.hash !== "") {
+  if (callback.href.includes("#")) {
     throw new McpNativeOAuthError("invalid-callback", "OAuth callback must not contain a fragment");
   }
   if (

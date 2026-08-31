@@ -35,8 +35,9 @@ their minor release line.
   authentication sessions, malformed native session results, callback-location substitution, and
   callback reuse. Explicit platform cancellation removes pending state and PKCE material without
   deleting registrations or tokens.
-- Restrict redirect URIs to HTTPS app links, HTTP loopback URLs, or hierarchical private-use app
-  schemes; reject issuer query/fragment components; and bound both individual and cumulative token
+- Restrict every registered redirect URI to HTTPS app links, HTTP loopback URLs, or hierarchical
+  private-use app schemes; reject issuer query/fragment components and literal empty fragments on
+  server, redirect, authorization, and callback URLs; and bound both individual and cumulative token
   values before parsing, persistence, or request reuse.
 - Bound dynamic client-registration records and authorization discovery metadata by value size,
   cumulative text, collection width, depth, and total structure before schema parsing, persistence,
@@ -47,6 +48,8 @@ their minor release line.
   state or verifier, and apply total, count, name, and value limits to both native-session and direct
   process-recovery callbacks before code redemption. Direct recovery also reserves the persisted
   attempt while it atomically consumes state and clears its verifier.
+- Serialize state save, consume, and full invalidation across reference-store objects using the same
+  fixed namespace in one JS runtime, so duplicate instances cannot both accept one callback state.
 - Reject direct cancellation while a system authorization handoff or callback completion is active,
   preventing cleanup from racing the attempt's state and PKCE verifier.
 - Reject native OAuth evidence rows that declare `pass` while any required case is still `fail` or

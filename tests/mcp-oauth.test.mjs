@@ -104,6 +104,15 @@ test("OAuth provider validates metadata and supplies native registration default
     () => createProvider({ serverUrl: "http://remote.example.com/mcp" }),
     /HTTPS or an HTTP loopback address/,
   );
+  assert.throws(() => createProvider({ serverUrl: `${SERVER_URL}#` }), /fragment/);
+  assert.throws(
+    () =>
+      createProvider({
+        redirectUrl: `${REDIRECT_URL}#`,
+        clientMetadata: { redirect_uris: [`${REDIRECT_URL}#`] },
+      }),
+    /fragment/,
+  );
   for (const redirectUrl of [
     "javascript:alert(1)",
     "data:text/html,callback",
@@ -116,6 +125,13 @@ test("OAuth provider validates metadata and supplies native registration default
           clientMetadata: { redirect_uris: [redirectUrl] },
         }),
       /safe private-use app scheme/,
+    );
+    assert.throws(
+      () =>
+        createProvider({
+          clientMetadata: { redirect_uris: [REDIRECT_URL, redirectUrl] },
+        }),
+      (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
     );
   }
 });
@@ -505,6 +521,7 @@ test("OAuth recovery callbacks are bounded before URL parsing and code redemptio
       `${REDIRECT_URL}?code=${"c".repeat(4_097)}&state=${VALID_STATE}`,
       `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}&extension=${"x".repeat(64)}`,
       `${REDIRECT_URL}?error=access_denied&error_description=${"x".repeat(8_193)}&state=${VALID_STATE}`,
+      `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}#`,
     ].map(async (callback) => {
       const { provider, storage } = createProvider();
       await provider.state();
@@ -586,6 +603,10 @@ test("OAuth authorization handoff and transport reject credential bypasses", asy
   await assert.rejects(
     () => provider.redirectToAuthorization(new URL("http://auth.example.com/authorize")),
     /HTTPS or an HTTP loopback address/,
+  );
+  await assert.rejects(
+    () => provider.redirectToAuthorization(new URL("https://auth.example.com/authorize#")),
+    /fragment/,
   );
 
   const transport = createMcpNativeOAuthTransport(SERVER_URL, provider, {

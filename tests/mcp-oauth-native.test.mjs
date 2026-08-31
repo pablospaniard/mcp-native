@@ -121,6 +121,25 @@ test("platform OAuth storage serializes state consumption and bounds corrupt sec
   );
 });
 
+test("platform OAuth storage serializes state consumption across store instances", async () => {
+  const secrets = createSecretBackend();
+  const first = createMcpNativeOAuthPlatformSecureStore({
+    namespace: "com.example.host.shared",
+    backend: secrets.backend,
+  });
+  const second = createMcpNativeOAuthPlatformSecureStore({
+    namespace: "com.example.host.shared",
+    backend: secrets.backend,
+  });
+  await first.saveOAuthState(VALID_STATE);
+
+  const results = await Promise.all([
+    first.consumeOAuthState(VALID_STATE),
+    second.consumeOAuthState(VALID_STATE),
+  ]);
+  assert.deepEqual(results.sort(), [false, true]);
+});
+
 test("platform OAuth storage removes corrupt issuer records during invalidation", async () => {
   const { secrets, storage } = createPlatformStore();
   await storage.saveTokens(ISSUER, {
@@ -189,6 +208,14 @@ test("OS authorization-session adapter rejects cancellation, overlap, and callba
       /safe private-use app scheme/,
     );
   }
+  assert.throws(
+    () =>
+      createMcpNativeOAuthAuthorizationSession({
+        redirectUrl: `${REDIRECT_URL}#`,
+        open: () => ({ type: "cancel" }),
+      }),
+    /fragment/,
+  );
 
   const cancelled = createMcpNativeOAuthAuthorizationSession({
     redirectUrl: REDIRECT_URL,
@@ -197,6 +224,22 @@ test("OS authorization-session adapter rejects cancellation, overlap, and callba
   await assert.rejects(
     () => cancelled.openAuthorization(new URL(`${ISSUER}/authorize`)),
     (error) => error instanceof McpNativeOAuthError && error.code === "authorization-denied",
+  );
+  await assert.rejects(
+    () => cancelled.openAuthorization(new URL(`${ISSUER}/authorize#`)),
+    /fragment/,
+  );
+
+  const fragmented = createMcpNativeOAuthAuthorizationSession({
+    redirectUrl: REDIRECT_URL,
+    open: () => ({
+      type: "success",
+      url: `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}#`,
+    }),
+  });
+  await assert.rejects(
+    () => fragmented.openAuthorization(new URL(`${ISSUER}/authorize`)),
+    (error) => error instanceof McpNativeOAuthError && error.code === "callback-mismatch",
   );
 
   const substituted = createMcpNativeOAuthAuthorizationSession({
