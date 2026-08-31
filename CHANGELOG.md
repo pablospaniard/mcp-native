@@ -40,7 +40,8 @@ their minor release line.
   values before parsing, persistence, or request reuse.
 - Reserve one authorization attempt before state persistence so overlapping flows cannot replace its
   state or verifier, and apply total, count, name, and value limits to both native-session and direct
-  process-recovery callbacks before code redemption.
+  process-recovery callbacks before code redemption. Direct recovery also reserves the persisted
+  attempt while it atomically consumes state and clears its verifier.
 
 ## 0.5.0 - 2026-08-28
 

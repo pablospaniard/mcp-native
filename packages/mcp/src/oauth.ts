@@ -195,6 +195,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   #pendingAuthorizationUrl: string | undefined;
   #pendingState: string | undefined;
   #authorizationAttemptReserved = false;
+  #authorizationCompletionRunning = false;
   #authorizationHandoffRunning = false;
 
   constructor(options: McpNativeOAuthProviderOptions) {
@@ -424,6 +425,12 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
 
   /** Clears a host-cancelled interactive attempt without deleting registrations or tokens. */
   async cancelAuthorization(): Promise<void> {
+    if (this.#authorizationCompletionRunning) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth callback completion is already running",
+      );
+    }
     await this.#discardPendingAuthorization();
   }
 
@@ -432,31 +439,50 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
    * OAuth state is consumed before token exchange, so the callback cannot be replayed.
    */
   async finishAuthorization(finisher: OAuthFinisher, callbackUrl: string | URL): Promise<void> {
-    const callback = parseCallbackUrl(callbackUrl, this.redirectUrl);
-    const parameters = callback.searchParams;
-    requireSingleParameter(parameters, "state");
-    if (!(await this.#storage.consumeOAuthState(parameters.get("state")!))) {
-      throw new McpNativeOAuthError("state-mismatch", "OAuth callback state did not match");
+    if (this.#authorizationCompletionRunning) {
+      throw new McpNativeOAuthError(
+        "invalid-callback",
+        "OAuth callback completion is already running",
+      );
     }
-    this.#pendingState = undefined;
+    this.#authorizationCompletionRunning = true;
+    const reservedForRecovery = !this.#authorizationAttemptReserved;
+    this.#authorizationAttemptReserved = true;
+    let stateConsumed = false;
 
     try {
-      if (parameters.has("error")) {
-        throw new McpNativeOAuthError(
-          "authorization-denied",
-          "The authorization server did not grant access",
-        );
+      const callback = parseCallbackUrl(callbackUrl, this.redirectUrl);
+      const parameters = callback.searchParams;
+      requireSingleParameter(parameters, "state");
+      if (!(await this.#storage.consumeOAuthState(parameters.get("state")!))) {
+        throw new McpNativeOAuthError("state-mismatch", "OAuth callback state did not match");
       }
-      requireSingleParameter(parameters, "code");
-      if (parameters.has("iss")) {
-        requireSingleParameter(parameters, "iss");
-      }
-      await finisher.finishAuth(parameters);
-    } finally {
-      this.#pendingAuthorizationUrl = undefined;
+      stateConsumed = true;
+      this.#pendingState = undefined;
+
       try {
-        await this.#storage.invalidate("verifier", this.#activeIssuer);
+        if (parameters.has("error")) {
+          throw new McpNativeOAuthError(
+            "authorization-denied",
+            "The authorization server did not grant access",
+          );
+        }
+        requireSingleParameter(parameters, "code");
+        if (parameters.has("iss")) {
+          requireSingleParameter(parameters, "iss");
+        }
+        await finisher.finishAuth(parameters);
       } finally {
+        this.#pendingAuthorizationUrl = undefined;
+        try {
+          await this.#storage.invalidate("verifier", this.#activeIssuer);
+        } finally {
+          this.#authorizationAttemptReserved = false;
+        }
+      }
+    } finally {
+      this.#authorizationCompletionRunning = false;
+      if (!stateConsumed && reservedForRecovery) {
         this.#authorizationAttemptReserved = false;
       }
     }

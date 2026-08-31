@@ -369,6 +369,43 @@ test("OAuth recovery callbacks are bounded before URL parsing and code redemptio
   );
 });
 
+test("OAuth recovery completion reserves persisted state against a new attempt", async () => {
+  const storage = createStorage({ state: VALID_STATE, verifier: VALID_VERIFIER });
+  const consume = storage.consumeOAuthState.bind(storage);
+  let release;
+  const blocked = new Promise((resolve) => {
+    release = resolve;
+  });
+  storage.consumeOAuthState = async (state) => {
+    await blocked;
+    return consume(state);
+  };
+  const { provider } = createProvider({ storage });
+  let code;
+  const completion = provider.finishAuthorization(
+    {
+      finishAuth(parameters) {
+        code = parameters.get("code");
+      },
+    },
+    `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}`,
+  );
+  await Promise.resolve();
+
+  await assert.rejects(
+    () => provider.state(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  assert.equal(storage.values.state, VALID_STATE);
+  assert.equal(storage.values.verifier, VALID_VERIFIER);
+
+  release();
+  await completion;
+  assert.equal(code, "code-1");
+  assert.equal(storage.values.state, undefined);
+  assert.equal(storage.values.verifier, undefined);
+});
+
 test("OAuth callback errors do not expose attacker-controlled descriptions", async () => {
   const { provider, storage } = createProvider();
   await provider.state();
