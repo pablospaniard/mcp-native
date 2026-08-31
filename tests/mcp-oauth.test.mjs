@@ -104,6 +104,20 @@ test("OAuth provider validates metadata and supplies native registration default
     () => createProvider({ serverUrl: "http://remote.example.com/mcp" }),
     /HTTPS or an HTTP loopback address/,
   );
+  for (const redirectUrl of [
+    "javascript:alert(1)",
+    "data:text/html,callback",
+    "file:///tmp/oauth-callback",
+  ]) {
+    assert.throws(
+      () =>
+        createProvider({
+          redirectUrl,
+          clientMetadata: { redirect_uris: [redirectUrl] },
+        }),
+      /safe private-use app scheme/,
+    );
+  }
 });
 
 test("OAuth provider persists and validates state and PKCE material", async () => {
@@ -145,6 +159,43 @@ test("OAuth credentials are bound to their authorization-server issuer", async (
     issuer: "https://other.example.com",
   };
   storage.loadTokens = async () => storage.values.tokens;
+  await assert.rejects(
+    () => provider.tokens({ issuer: ISSUER }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+});
+
+test("OAuth token values are bounded before parsing, persistence, and reuse", async () => {
+  const { provider, storage } = createProvider();
+  await assert.rejects(
+    () =>
+      provider.saveTokens(
+        { access_token: "a".repeat(16_385), token_type: "Bearer" },
+        { issuer: ISSUER },
+      ),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  assert.equal(storage.values.tokens, undefined);
+
+  await assert.rejects(
+    () =>
+      provider.saveTokens(
+        {
+          access_token: "a".repeat(13_000),
+          refresh_token: "r".repeat(13_000),
+          token_type: "Bearer",
+        },
+        { issuer: ISSUER },
+      ),
+    /cumulative supported size/,
+  );
+  assert.equal(storage.values.tokens, undefined);
+
+  storage.values.tokens = {
+    access_token: "a".repeat(16_385),
+    token_type: "Bearer",
+    issuer: ISSUER,
+  };
   await assert.rejects(
     () => provider.tokens({ issuer: ISSUER }),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
@@ -207,6 +258,17 @@ test("OAuth discovery cache rejects issuer and protected-resource substitution",
   await assert.rejects(
     () => provider.discoveryState(),
     (error) => error instanceof McpNativeOAuthError && error.code === "resource-mismatch",
+  );
+
+  await Promise.all(
+    [`${ISSUER}?tenant=x`, `${ISSUER}#tenant-x`].map(async (authorizationServerUrl) => {
+      const invalid = createProvider();
+      invalid.storage.values.discovery = { authorizationServerUrl };
+      await assert.rejects(
+        () => invalid.provider.discoveryState(),
+        (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+      );
+    }),
   );
 });
 

@@ -35,6 +35,9 @@ their minor release line.
   authentication sessions, malformed native session results, callback-location substitution, and
   callback reuse. Explicit platform cancellation removes pending state and PKCE material without
   deleting registrations or tokens.
+- Restrict redirect URIs to HTTPS app links, HTTP loopback URLs, or hierarchical private-use app
+  schemes; reject issuer query/fragment components; and bound both individual and cumulative token
+  values before parsing, persistence, or request reuse.
 
 ## 0.5.0 - 2026-08-28
 

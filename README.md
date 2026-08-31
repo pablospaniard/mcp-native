@@ -242,9 +242,11 @@ try {
 }
 ```
 
-The provider rejects cross-issuer stored credentials, a protected-resource mismatch, insecure
-non-loopback endpoints, redirect/state/parameter substitution, duplicate callback fields, and raw
-`Authorization`, `Cookie`, or `Proxy-Authorization` transport headers. By default, runtime
+The provider rejects cross-issuer stored credentials, issuer query/fragment components, a
+protected-resource mismatch, insecure endpoints, executable redirect schemes,
+redirect/state/parameter substitution, duplicate callback fields, oversized individual or
+cumulative token values, and raw `Authorization`, `Cookie`, or `Proxy-Authorization` transport
+headers. By default, runtime
 `insufficient_scope` challenges are surfaced to the host. The opt-in `host-approved` path calls
 `approveReauthorization` for every authorization retry while credentials exist—including repeated
 same-scope challenges—and permits at most one SDK retry per request. The callback error path never

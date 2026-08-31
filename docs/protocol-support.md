@@ -45,8 +45,9 @@ const client = new Client(
 The helper returns verified SDK options. The host owns client construction, connection lifecycle,
 consent, retry, and shutdown. For protected Streamable HTTP, `@mcp-native/mcp` additionally exports
 an issuer-bound official SDK OAuth provider and transport factory. They pin one protected resource,
-validate stored discovery and callback state, reject manual credential headers, and require a
-host-owned secure store and browser/authentication-session handoff. Dependency-neutral reference
+validate bounded stored credentials, discovery, redirect schemes, issuer URLs, and callback state,
+reject manual credential headers, and require a host-owned secure store and
+browser/authentication-session handoff. Dependency-neutral reference
 adapters provide bounded fixed-slot persistence over a native secret backend and a closed
 ASWebAuthenticationSession/Custom Tab result boundary without importing React Native. All 25 scored
 pinned `2026-07-28` authorization client scenarios pass. The strict native evidence gate exists, but

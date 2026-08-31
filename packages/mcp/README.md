@@ -132,10 +132,11 @@ try {
 `createMcpNativeOAuthPlatformSecureStore()` supplies the bounded serialization, fixed app-owned
 service slots, exact issuer binding, and serialized state consumption over a narrow native secret
 backend; it cannot make AsyncStorage or a plain file secure. The provider validates stored values
-before returning them to the SDK, refreshes discovery after the callback so authorization-server
-migrations cannot reuse old credentials, pins RFC 8707 resource indicators to one MCP endpoint,
-compares callback location and state before code redemption, and never exposes attacker-controlled
-callback error descriptions.
+before returning them to the SDK, bounds individual and cumulative token strings before persistence
+or reuse, rejects issuer query/fragment components and executable redirect schemes, refreshes
+discovery after the callback so authorization-server migrations cannot reuse old credentials, pins
+RFC 8707 resource indicators to one MCP endpoint, compares callback location and state before code
+redemption, and never exposes attacker-controlled callback error descriptions.
 
 `createMcpNativeOAuthAuthorizationSession()` normalizes an app-owned
 `ASWebAuthenticationSession`/Android Custom Tab bridge into one exact callback. It rejects overlap,

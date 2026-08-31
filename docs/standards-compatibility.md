@@ -167,16 +167,18 @@ non-boolean check conditions.
 1. **Implemented foundation:** the official SDK v2 owns protected-resource and authorization-server
    discovery, PKCE, scope calculation, issuer checks, code exchange, refresh, and bearer attachment.
 2. **Implemented host boundary:** `McpNativeOAuthClientProvider` validates host configuration and
-   stored SDK values, binds registrations and tokens to the exact issuer, persists redirect state
-   and discovery through `McpNativeOAuthSecureStore`, and pins the RFC 8707 resource to one MCP
-   endpoint.
+   bounded stored SDK values, binds registrations and tokens to an exact issuer without query or
+   fragment components, persists redirect state and discovery through `McpNativeOAuthSecureStore`,
+   restricts redirect URIs to HTTPS app links, HTTP loopback, or hierarchical private-use app
+   schemes, and pins the RFC 8707 resource to one MCP endpoint.
 3. **Implemented callback boundary:** callback scheme/authority/path, configured query parameters,
    OAuth state, and duplicate `code`/`state`/`iss` fields fail closed before SDK code redemption;
    attacker-controlled OAuth descriptions are never included in the public error.
 4. **Implemented transport policy:** protected transports reject manual Authorization, Cookie, and
    Proxy-Authorization headers and surface insufficient-scope responses to the host by default. The
    opt-in step-up path requires a host callback for every reauthorization while credentials exist
-   and caps SDK work to one retry per request.
+   and caps SDK work to one retry per request. Access, refresh, and ID tokens are subject to both
+   per-value and cumulative limits before persistence or request reuse.
 5. **Implemented native integration boundary:** a bounded fixed-slot reference store maps the OAuth
    contract onto an app-owned native secret backend, and a closed session adapter accepts one exact
    `ASWebAuthenticationSession`/Android Custom Tab callback while rejecting overlap, substitution,

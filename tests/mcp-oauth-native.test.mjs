@@ -175,6 +175,21 @@ test("OS authorization-session adapter accepts one exact callback and consumes i
 });
 
 test("OS authorization-session adapter rejects cancellation, overlap, and callback substitution", async () => {
+  for (const redirectUrl of [
+    "javascript:alert(1)",
+    "data:text/html,callback",
+    "file:///tmp/oauth-callback",
+  ]) {
+    assert.throws(
+      () =>
+        createMcpNativeOAuthAuthorizationSession({
+          redirectUrl,
+          open: () => ({ type: "cancel" }),
+        }),
+      /safe private-use app scheme/,
+    );
+  }
+
   const cancelled = createMcpNativeOAuthAuthorizationSession({
     redirectUrl: REDIRECT_URL,
     open: () => ({ type: "cancel" }),

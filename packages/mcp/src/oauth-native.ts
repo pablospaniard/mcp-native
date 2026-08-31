@@ -18,6 +18,26 @@ const MAX_ISSUER_CODE_UNITS = 2_048;
 const NAMESPACE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
 const PKCE_VERIFIER_PATTERN = /^[A-Za-z0-9._~-]{43,128}$/u;
 const OAUTH_STATE_PATTERN = /^[A-Za-z0-9._~-]{32,512}$/u;
+const PRIVATE_USE_REDIRECT_SCHEME_PATTERN = /^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+:$/u;
+const RESERVED_REDIRECT_SCHEMES = new Set([
+  "about:",
+  "blob:",
+  "chrome-extension:",
+  "chrome:",
+  "content:",
+  "data:",
+  "file:",
+  "ftp:",
+  "http:",
+  "https:",
+  "intent:",
+  "javascript:",
+  "mailto:",
+  "tel:",
+  "vbscript:",
+  "ws:",
+  "wss:",
+]);
 const CALLBACK_PARAMETER_NAMES = new Set([
   "code",
   "error",
@@ -401,6 +421,22 @@ function assertIssuer(issuer: string): void {
   if (typeof issuer !== "string" || issuer.length === 0 || issuer.length > MAX_ISSUER_CODE_UNITS) {
     throw new McpNativeOAuthError("invalid-storage", "OAuth issuer is invalid or too large");
   }
+  let url: URL;
+  try {
+    url = new URL(issuer);
+  } catch (error) {
+    throw new McpNativeOAuthError("invalid-storage", "OAuth issuer is invalid", { cause: error });
+  }
+  if (
+    url.username !== "" ||
+    url.password !== "" ||
+    (url.protocol !== "https:" &&
+      !(url.protocol === "http:" && isLoopbackHostname(url.hostname))) ||
+    url.href.includes("?") ||
+    url.href.includes("#")
+  ) {
+    throw new McpNativeOAuthError("invalid-storage", "OAuth issuer is invalid");
+  }
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -429,10 +465,10 @@ function parseRedirectUrl(value: string | URL): URL {
       "OAuth redirect URL must not contain credentials or a fragment",
     );
   }
-  if (url.protocol === "http:" && !isLoopbackHostname(url.hostname)) {
+  if (!isSupportedRedirectLocation(url)) {
     throw new McpNativeOAuthError(
       "invalid-configuration",
-      "HTTP OAuth redirect URLs are allowed only for loopback hosts",
+      "OAuth redirect URL must use HTTPS, HTTP loopback, or a safe private-use app scheme",
     );
   }
   for (const name of CALLBACK_PARAMETER_NAMES) {
@@ -494,4 +530,15 @@ function parseUrl(value: string | URL, label: string): URL {
 function isLoopbackHostname(hostname: string): boolean {
   const normalized = hostname.toLowerCase();
   return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "[::1]";
+}
+
+function isSupportedRedirectLocation(url: URL): boolean {
+  if (url.protocol === "https:") return true;
+  if (url.protocol === "http:") return isLoopbackHostname(url.hostname);
+  return (
+    !RESERVED_REDIRECT_SCHEMES.has(url.protocol) &&
+    PRIVATE_USE_REDIRECT_SCHEME_PATTERN.test(url.protocol) &&
+    url.hostname !== "" &&
+    url.port === ""
+  );
 }

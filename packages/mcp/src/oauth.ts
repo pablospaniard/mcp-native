@@ -53,8 +53,39 @@ const CALLBACK_PARAMETER_NAMES = new Set([
 const STATE_PATTERN = /^[A-Za-z0-9._~-]{32,512}$/u;
 const PKCE_VERIFIER_PATTERN = /^[A-Za-z0-9._~-]{43,128}$/u;
 const SCOPE_TOKEN_PATTERN = /^[\u0021\u0023-\u005b\u005d-\u007e]{1,256}$/u;
+const PRIVATE_USE_REDIRECT_SCHEME_PATTERN = /^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+:$/u;
+const RESERVED_REDIRECT_SCHEMES = new Set([
+  "about:",
+  "blob:",
+  "chrome-extension:",
+  "chrome:",
+  "content:",
+  "data:",
+  "file:",
+  "ftp:",
+  "http:",
+  "https:",
+  "intent:",
+  "javascript:",
+  "mailto:",
+  "tel:",
+  "vbscript:",
+  "ws:",
+  "wss:",
+]);
 const MAX_SCOPE_CODE_UNITS = 2_048;
 const MAX_SCOPE_TOKENS = 64;
+const MAX_TOKEN_VALUE_CODE_UNITS = 16_384;
+const MAX_TOKEN_TYPE_CODE_UNITS = 64;
+const MAX_TOKEN_CUMULATIVE_CODE_UNITS = 24_576;
+const TOKEN_STRING_LIMITS = Object.freeze({
+  access_token: MAX_TOKEN_VALUE_CODE_UNITS,
+  id_token: MAX_TOKEN_VALUE_CODE_UNITS,
+  issuer: 2_048,
+  refresh_token: MAX_TOKEN_VALUE_CODE_UNITS,
+  scope: MAX_SCOPE_CODE_UNITS,
+  token_type: MAX_TOKEN_TYPE_CODE_UNITS,
+});
 
 export type McpNativeOAuthCredentialScope = "all" | "client" | "discovery" | "tokens" | "verifier";
 
@@ -500,10 +531,10 @@ function parseRedirectUrl(value: string | URL): URL {
       "OAuth redirect URL must not contain credentials or a fragment",
     );
   }
-  if (url.protocol === "http:" && !isLoopbackHostname(url.hostname)) {
+  if (!isSupportedRedirectLocation(url)) {
     throw new McpNativeOAuthError(
       "invalid-configuration",
-      "HTTP OAuth redirect URLs are allowed only for loopback hosts",
+      "OAuth redirect URL must use HTTPS, HTTP loopback, or a safe private-use app scheme",
     );
   }
   for (const name of CALLBACK_PARAMETER_NAMES) {
@@ -549,11 +580,28 @@ function isLoopbackHostname(hostname: string): boolean {
   return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "[::1]";
 }
 
+function isSupportedRedirectLocation(url: URL): boolean {
+  if (url.protocol === "https:") return true;
+  if (url.protocol === "http:") return isLoopbackHostname(url.hostname);
+  return (
+    !RESERVED_REDIRECT_SCHEMES.has(url.protocol) &&
+    PRIVATE_USE_REDIRECT_SCHEME_PATTERN.test(url.protocol) &&
+    url.hostname !== "" &&
+    url.port === ""
+  );
+}
+
 function parseIssuer(value: unknown, label: string): string {
   if (typeof value !== "string") {
     throw new McpNativeOAuthError("invalid-storage", `${label} is missing`);
   }
-  parseSecureEndpoint(value, label);
+  const url = parseSecureEndpoint(value, label);
+  if (url.href.includes("?") || url.href.includes("#")) {
+    throw new McpNativeOAuthError(
+      "invalid-storage",
+      `${label} must not contain a query or fragment`,
+    );
+  }
   return value;
 }
 
@@ -582,6 +630,7 @@ function requireMatchingIssuer(actual: string | undefined, expected: string, lab
 }
 
 function parseStoredTokens(value: StoredOAuthTokens): StoredOAuthTokens {
+  assertBoundedTokenValues(value);
   const result = OAuthTokensSchema.safeParse(value);
   if (!result.success) {
     throw new McpNativeOAuthError("invalid-storage", "Stored OAuth tokens are invalid", {
@@ -589,7 +638,31 @@ function parseStoredTokens(value: StoredOAuthTokens): StoredOAuthTokens {
     });
   }
   const issuer = Object.hasOwn(value, "issuer") ? value.issuer : undefined;
+  parseScope(result.data.scope ?? null);
   return { ...result.data, ...(issuer === undefined ? {} : { issuer }) };
+}
+
+function assertBoundedTokenValues(value: unknown): void {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return;
+  const record = value as Record<string, unknown>;
+  let total = 0;
+  for (const [field, limit] of Object.entries(TOKEN_STRING_LIMITS)) {
+    const fieldValue = record[field];
+    if (typeof fieldValue !== "string") continue;
+    if (fieldValue.length > limit) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `Stored OAuth ${field} exceeds the supported size`,
+      );
+    }
+    total += fieldValue.length;
+    if (total > MAX_TOKEN_CUMULATIVE_CODE_UNITS) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        "Stored OAuth token values exceed the cumulative supported size",
+      );
+    }
+  }
 }
 
 function parseStoredClientInformation(
