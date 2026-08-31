@@ -1013,7 +1013,13 @@ function assertSecureAuthorizationServerMetadataEndpoints(metadata: Record<strin
     ) {
       continue;
     }
-    parseSecureEndpoint(value, `authorization-server metadata ${field}`);
+    const endpoint = parseSecureEndpoint(value, `authorization-server metadata ${field}`);
+    if (endpoint.href.includes("#")) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `Stored authorization-server metadata ${field} must not contain a fragment`,
+      );
+    }
   }
 }
 

@@ -390,7 +390,7 @@ test("OAuth discovery metadata is bounded before parsing, caching, and reuse", a
   );
 });
 
-test("OAuth discovery metadata rejects insecure actionable endpoints before caching and reuse", async () => {
+test("OAuth discovery metadata rejects insecure or fragmented endpoints before caching and reuse", async () => {
   const baseMetadata = {
     issuer: ISSUER,
     authorization_endpoint: `${ISSUER}/authorize`,
@@ -413,35 +413,37 @@ test("OAuth discovery metadata rejects insecure actionable endpoints before cach
   ];
 
   await Promise.all(
-    endpointFields.map(async (field) => {
-      const invalid = createProvider();
-      await assert.rejects(
-        () =>
-          invalid.provider.saveDiscoveryState({
-            authorizationServerUrl: ISSUER,
-            authorizationServerMetadata: {
-              ...baseMetadata,
-              [field]: `http://remote.example.com/${field}`,
-            },
-          }),
-        (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
-      );
-      assert.equal(invalid.storage.values.discovery, undefined);
-    }),
+    endpointFields.flatMap((field) =>
+      [`http://remote.example.com/${field}`, `${ISSUER}/${field}#alternate`].map(async (value) => {
+        const invalid = createProvider();
+        await assert.rejects(
+          () =>
+            invalid.provider.saveDiscoveryState({
+              authorizationServerUrl: ISSUER,
+              authorizationServerMetadata: { ...baseMetadata, [field]: value },
+            }),
+          (error) =>
+            error instanceof McpNativeOAuthError &&
+            (error.code === "invalid-configuration" || error.code === "invalid-storage"),
+        );
+        assert.equal(invalid.storage.values.discovery, undefined);
+      }),
+    ),
   );
 
-  const corrupted = createProvider();
-  corrupted.storage.values.discovery = {
-    authorizationServerUrl: ISSUER,
-    authorizationServerMetadata: {
-      ...baseMetadata,
-      token_endpoint: "http://remote.example.com/token",
-    },
-  };
-  await corrupted.provider.saveCodeVerifier(VALID_VERIFIER);
-  await assert.rejects(
-    () => corrupted.provider.discoveryState(),
-    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  await Promise.all(
+    ["http://remote.example.com/token", `${ISSUER}/token#alternate`].map(async (tokenEndpoint) => {
+      const corrupted = createProvider();
+      corrupted.storage.values.discovery = {
+        authorizationServerUrl: ISSUER,
+        authorizationServerMetadata: { ...baseMetadata, token_endpoint: tokenEndpoint },
+      };
+      await corrupted.provider.saveCodeVerifier(VALID_VERIFIER);
+      await assert.rejects(
+        () => corrupted.provider.discoveryState(),
+        (error) => error instanceof McpNativeOAuthError,
+      );
+    }),
   );
 });
 

@@ -247,8 +247,8 @@ protected-resource mismatch, insecure endpoints, executable redirect schemes,
 redirect/state/parameter substitution, duplicate callback fields, oversized individual or
 cumulative registration, discovery, and token data, and raw `Authorization`, `Cookie`, or
 `Proxy-Authorization` transport headers. These budgets apply before schema parsing, persistence,
-or reuse, and every actionable discovery endpoint must use HTTPS or an HTTP loopback address before
-the metadata can be cached or returned. By default, runtime
+or reuse, and every actionable discovery endpoint must use HTTPS or an HTTP loopback address and
+contain no fragment before the metadata can be cached or returned. By default, runtime
 `insufficient_scope` challenges are surfaced to the host. The opt-in `host-approved` path calls
 `approveReauthorization` for every authorization retry while credentials exist—including repeated
 same-scope challenges—and permits at most one SDK retry per request. The callback error path never

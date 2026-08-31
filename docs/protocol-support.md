@@ -47,7 +47,7 @@ consent, retry, and shutdown. For protected Streamable HTTP, `@mcp-native/mcp` a
 an issuer-bound official SDK OAuth provider and transport factory. They pin one protected resource,
 validate bounded stored registrations, tokens, discovery, redirect schemes, issuer URLs, and
 callback state before parsing, persistence, or reuse, and require every actionable discovery
-endpoint to use HTTPS or an HTTP loopback address,
+endpoint to use HTTPS or an HTTP loopback address without a fragment,
 reject manual credential headers, and require a host-owned secure store and
 browser/authentication-session handoff. Dependency-neutral reference
 adapters provide bounded fixed-slot persistence over a native secret backend and a closed

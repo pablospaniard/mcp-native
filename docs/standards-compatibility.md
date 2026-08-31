@@ -172,8 +172,8 @@ non-boolean check conditions.
    registrations and tokens to an exact issuer without query or fragment components, persists
    redirect state and discovery through `McpNativeOAuthSecureStore`, restricts redirect URIs to
    HTTPS app links, HTTP loopback, or hierarchical private-use app schemes, requires actionable
-   authorization-server endpoint/URI fields to use HTTPS or HTTP loopback before caching or reuse,
-   and pins the RFC 8707 resource to one MCP endpoint.
+   authorization-server endpoint/URI fields to use HTTPS or HTTP loopback without fragments before
+   caching or reuse, and pins the RFC 8707 resource to one MCP endpoint.
 3. **Implemented callback boundary:** callback scheme/authority/path, configured query parameters,
    OAuth state, and duplicate `code`/`state`/`iss` fields fail closed before SDK code redemption;
    total, count, name, and value budgets apply to both native-session and process-recovery callback
