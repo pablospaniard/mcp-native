@@ -4,16 +4,18 @@ This document separates MCP Native's architectural goals from protocol-conforman
 
 ## Status snapshot
 
-- Assessed: 2026-08-28
+- Assessed: 2026-08-31
 - MCP baseline: [Model Context Protocol `2026-07-28`](https://modelcontextprotocol.io/specification/2026-07-28)
 - A2UI baseline: [A2UI Protocol v1.0 Candidate at `7541f953`](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md)
 - MCP Apps baseline: [stable MCP Apps `2026-01-26`](https://github.com/modelcontextprotocol/ext-apps/blob/92f46a574568a3ddac7600343b7d3c4c4ed7b588/specification/2026-01-26/apps.mdx)
 
-MCP Native verifies a documented MCP `2026-07-28` client boundary, a `2025-11-25` compatibility
-lane, a feature-scoped A2UI v1.0 Candidate profile, and a stable MCP Apps `2026-01-26` native
-host-adapter profile. See the [MCP protocol support policy](protocol-support.md), [A2UI conformance
-profile](a2ui-v1-conformance.md), and [MCP Apps compatibility profile](mcp-apps-compatibility.md)
-for the exact implemented operations and behaviors.
+MCP Native verifies a documented MCP `2026-07-28` client boundary, including every scored pinned
+authorization client scenario, a `2025-11-25` compatibility lane, a feature-scoped A2UI v1.0
+Candidate profile, and a stable MCP Apps `2026-01-26` native host-adapter profile. The package-level
+protected HTTP OAuth boundary is verified; real-platform credential/session evidence remains a
+release-readiness gate. See the [MCP protocol support policy](protocol-support.md), [A2UI
+conformance profile](a2ui-v1-conformance.md), and [MCP Apps compatibility
+profile](mcp-apps-compatibility.md) for the exact implemented operations and behaviors.
 
 ## Official references
 
@@ -59,8 +61,9 @@ Use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) with sh
 
 | Area                | Community contract                                                                                        | Current implementation                                                                                                                                                                                                                                                                                                                                               | Status                                  |
 | ------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| MCP wire behavior   | MCP `2026-07-28` stateless requests and per-request metadata                                              | SDK v2 plus seven pinned official client scenarios and cache-isolation tests                                                                                                                                                                                                                                                                                         | Verified client boundary                |
+| MCP wire behavior   | MCP `2026-07-28` stateless requests and per-request metadata                                              | SDK v2 plus 32 pinned official client scenarios and cache-isolation tests                                                                                                                                                                                                                                                                                            | Verified client boundary                |
 | MCP data fidelity   | Official tools, content, resources, schemas, metadata, annotations, and cache hints                       | Preserved across the initial tools/list, tools/call, and resources/read boundary                                                                                                                                                                                                                                                                                     | Supported initial boundary              |
+| MCP authorization   | `2026-07-28` OAuth discovery, PKCE, issuer/resource binding, least-privilege scopes, and bearer usage     | Issuer-bound secure-store/callback provider and credential-safe transport factory passing all 25 scored pinned authorization client scenarios; platform evidence remains pending                                                                                                                                                                                     | Verified package boundary               |
 | Extension protocol  | Explicit identifiers, capability negotiation, versioning, and graceful degradation                        | Validated maps, mutual negotiation, modern SDK exchange, fallback, and a project-owned A2UI binding                                                                                                                                                                                                                                                                  | Supported substrate only                |
 | Component ownership | A2UI catalogs constrain available components and functions                                                | Pinned basic catalog plus explicit host component/event/function allowlists and typed local adapters for third-party primitive implementations                                                                                                                                                                                                                       | Implemented closed profile              |
 | Remote code         | Catalog functions are named, registered capabilities rather than downloaded code                          | Server-provided React Native code and arbitrary component resolution are prohibited                                                                                                                                                                                                                                                                                  | Architecturally aligned                 |
@@ -158,6 +161,48 @@ non-boolean check conditions.
 8. **Documented platform difference:** native WebViews do not reproduce a web host's cross-origin
    double-iframe sandbox. The exact origin, CSP-meta, data-store, process, permission-delegate,
    navigation, and cleanup responsibilities are recorded in the compatibility profile.
+
+### MCP `2026-07-28` authorization
+
+1. **Implemented foundation:** the official SDK v2 owns protected-resource and authorization-server
+   discovery, PKCE, scope calculation, issuer checks, code exchange, refresh, and bearer attachment.
+2. **Implemented host boundary:** `McpNativeOAuthClientProvider` validates host configuration and
+   bounded stored SDK values, applies individual and cumulative structural budgets to dynamic
+   registrations and discovery metadata before parsing, persistence, caching, or reuse, binds
+   registrations and tokens to an exact issuer without query or fragment components, persists
+   redirect state and discovery through `McpNativeOAuthSecureStore`, restricts every registered
+   redirect URI to HTTPS app links, HTTP loopback, or hierarchical private-use app schemes, rejects
+   duplicate redirect query names and literal fragment delimiters across
+   server/redirect/authorization/callback boundaries, requires actionable authorization-server
+   endpoint/URI fields to use HTTPS or HTTP loopback without fragments before caching or reuse, and
+   pins the RFC 8707 resource to one MCP endpoint.
+3. **Implemented callback boundary:** callback scheme/authority/path, configured query parameters,
+   OAuth state, and duplicate `code`/`state`/`iss` fields fail closed before SDK code redemption;
+   total, count, name, and value budgets apply to both native-session and process-recovery callback
+   paths; attacker-controlled OAuth descriptions are never included in the public error. One
+   provider reserves one interactive attempt before persisting state so an overlapping attempt
+   cannot replace its state or verifier, retains that reservation from callback claim through
+   verifier cleanup, and rejects direct cancellation while state setup, platform handoff, or
+   callback completion is active.
+4. **Implemented transport policy:** protected transports reject manual Authorization, Cookie, and
+   Proxy-Authorization headers and surface insufficient-scope responses to the host by default. The
+   opt-in step-up path requires a host callback for every reauthorization while credentials exist
+   and caps SDK work to one retry per request. Access, refresh, and ID tokens are subject to both
+   per-value and cumulative limits before persistence or request reuse.
+5. **Implemented native integration boundary:** a bounded fixed-slot reference store maps the OAuth
+   contract onto an app-owned native secret backend and serializes state operations across store
+   objects using the same fixed namespace in one JS runtime. A closed session adapter accepts one
+   exact `ASWebAuthenticationSession`/Android Custom Tab callback while rejecting overlap,
+   substitution, malformed results, cancellation residue, and reuse. Neither adapter imports React
+   Native or upgrades an insecure backend.
+6. **Host responsibility:** production implementations must use OS keychain/keystore-grade storage,
+   a platform authentication session, cryptographically random state, user consent, bounded
+   cross-request step-up tracking, and must never forward an MCP access token to an upstream API.
+7. **Verified package boundary:** all 25 scored authorization client scenarios in the exact pinned
+   official `2026-07-28` requirements fixture pass with no expected failures. The Milestone 6
+   evidence schema rejects a passing row unless every required case passes, and the strict gate is
+   implemented, but both platform rows remain `not-run`, so the release-readiness claim remains
+   pending on real-platform results and broader host controls.
 
 ## Version and claim policy
 

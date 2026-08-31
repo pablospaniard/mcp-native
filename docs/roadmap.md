@@ -137,15 +137,54 @@ and platform controls. See [the exact compatibility profile](mcp-apps-compatibil
 
 ## Milestone 6: remote authorization and release readiness
 
-- Implement the MCP `2026-07-28` authorization profile before claiming protected Streamable HTTP support.
-- Use PKCE, protected-resource and authorization-server discovery, resource indicators, issuer validation, least-privilege scopes, and secure platform token storage.
-- Never pass an MCP access token through to an upstream API.
-- Add consent, tool-risk review, capability approval, and privacy controls in the host layer.
-- Define production connection lifecycle behavior for timeouts, cancellation, bounded retry and backoff, reconnection, offline transitions, and graceful shutdown while leaving wire behavior to the official SDK.
-- Add structured logs, metrics, and traces with explicit credential, token, server-data, and user-data redaction rules.
-- Provide actionable loading, empty, denied, disconnected, retryable, and terminal error states for host applications.
-- Publish a host-integration checklist covering component catalogs, action policies, permissions, binding state ownership, error handling, transport configuration, and lifecycle cleanup.
-- Continue npm trusted publishing with OIDC, provenance, protected release environments, and exact version verification.
-- Ship one small, tested React Native integration PoC without a committed host-app scaffold, and document its supported protocol matrix.
+Status: in progress. The issuer-bound interactive OAuth host boundary, every scored official
+`2026-07-28` authorization client scenario, dependency-neutral platform reference adapters, and an
+exact evidence gate are implemented. Both required credential/session platform rows are still
+`not-run`; broader host controls, lifecycle/operability, and the integration PoC also remain open.
+
+- [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
+      and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
+      redirect-bound discovery state with post-callback refresh, and an exact RFC 8707 resource
+      indicator. Redirect schemes, issuer components, and individual/cumulative registration,
+      discovery, and token sizes fail closed before parsing, browser handoff, persistence, caching,
+      or reuse; actionable discovered endpoints require fragment-free HTTPS or HTTP loopback;
+      every registered redirect URI is validated, duplicate configured query names are rejected,
+      redirects must leave bounded capacity for the authorization response, and literal empty
+      fragments fail closed; one-attempt reservation remains held from callback
+      claim through verifier cleanup and is bound to its live provider, while cancellation locking
+      also covers full and verifier invalidation, authorization URLs are bounded before handoff, and
+      callback budgets cover native-session and process-recovery paths. Browser handoff requires
+      reserved state and exactly one saved PKCE verifier for the attempt.
+- [x] Add the protected Streamable HTTP factory without issuer-validation opt-outs or manual
+      credential headers, and surface `insufficient_scope` to the host before step-up authorization.
+- [x] Pass and pin every applicable official MCP `2026-07-28` authorization client scenario before
+      claiming the complete protected Streamable HTTP profile.
+- [x] Add bounded platform keychain/keystore and OS authentication-session reference adapters; the
+      library contract deliberately cannot treat AsyncStorage or plain files as secure storage or
+      use an embedded WebView for authorization. Same-namespace store objects serialize state
+      operations in one JS runtime so duplicate instances cannot both consume one callback state.
+- [x] Add an exact iOS/Android native OAuth evidence schema, ordinary structure check, and strict
+      release-candidate gate. A row that declares `pass` is rejected unless every required case also
+      passes, even during the ordinary check.
+- [ ] Record passing real-platform keychain/keystore and authentication-session evidence for both
+      required rows; the checked-in matrix currently reports `0/2` passing.
+- [ ] Add broader consent, tool-risk review, capability approval, privacy controls, and host
+      integration guidance for persistent cross-request scope-upgrade tracking. The transport now
+      defaults to throwing on `insufficient_scope`; its opt-in retry path requires a host approval
+      callback and caps SDK work to one retry per request.
+- [ ] Define production connection lifecycle behavior for timeouts, cancellation, bounded retry and
+      backoff, reconnection, offline transitions, and graceful shutdown while leaving wire behavior
+      to the official SDK.
+- [ ] Add structured logs, metrics, and traces with explicit credential, token, server-data, and
+      user-data redaction rules.
+- [ ] Provide actionable loading, empty, denied, disconnected, retryable, and terminal error states
+      for host applications.
+- [ ] Publish a host-integration checklist covering component catalogs, action policies,
+      permissions, binding state ownership, error handling, transport configuration, token
+      non-forwarding, and lifecycle cleanup.
+- [x] Continue npm trusted publishing with OIDC, provenance, protected release environments, and
+      exact version verification.
+- [ ] Ship one small, tested React Native integration PoC without a committed host-app scaffold, and
+      document its supported protocol matrix.
 
 Exit criterion: a release candidate passes protocol, security, accessibility, performance, reliability, operability, package, real-platform, and end-to-end interoperability gates.

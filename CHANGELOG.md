@@ -6,6 +6,96 @@ their minor release line.
 
 ## Unreleased
 
+### Added
+
+- An issuer-bound interactive OAuth provider for the official MCP SDK v2 with host-owned secure
+  storage, persisted PKCE/state/discovery data, exact callback validation, canonical RFC 8707
+  resource pinning, and issuer-scoped client registrations and tokens.
+- A protected Streamable HTTP factory that rejects manual credential headers and surfaces
+  insufficient-scope challenges to the host by default, with an opt-in host-approved
+  reauthorization path capped to one SDK retry per request.
+- A headless native-host authorization driver that passes all 25 scored official MCP `2026-07-28`
+  authorization client scenarios; the full pinned gate now covers 32 scenarios and 386 checks.
+- Dependency-neutral native OAuth reference adapters for bounded fixed-slot Keychain/Keystore
+  persistence and one exact ASWebAuthenticationSession/Android Custom Tab callback.
+- An exact two-platform native OAuth evidence schema, ordinary structure check, and strict
+  release-candidate gate. Both checked-in rows intentionally remain `not-run` until executed.
+
+### Security
+
+- Reject insecure non-loopback OAuth endpoints, redirect/callback substitution, duplicate callback
+  parameters, invalid or replayed state, malformed stored credentials, cross-issuer credential
+  reuse, mismatched authorization-server metadata, and protected-resource substitution.
+- Keep OAuth callback error descriptions out of host-visible errors and require credential, PKCE,
+  state, and discovery persistence behind an explicit keychain/keystore-grade host contract.
+- Require an exact host approval decision for every interactive reauthorization while credentials
+  exist, including repeated same-scope challenges, and refresh protected-resource discovery after
+  callback completion so authorization-server migrations cannot reuse old credentials.
+- Reject unsafe server-derived storage namespaces, oversized or corrupt stored values, concurrent
+  authentication sessions, malformed native session results, callback-location substitution, and
+  callback reuse. Explicit platform cancellation removes pending state and PKCE material without
+  deleting registrations or tokens.
+- Restrict every registered redirect URI to HTTPS app links, HTTP loopback URLs, or hierarchical
+  private-use app schemes; reject issuer query/fragment components and literal empty fragments on
+  server, redirect, authorization, and callback URLs; and bound both individual and cumulative token
+  values before parsing, persistence, or request reuse.
+- Bound dynamic client-registration records and authorization discovery metadata by value size,
+  cumulative text, collection width, depth, and total structure before schema parsing, persistence,
+  caching, or reuse.
+- Apply the same structural and cumulative bounds to complete token responses, including
+  schema-permitted extension fields, before parsing, persistence, or reuse.
+- Reject own `undefined` values in bounded OAuth token, registration, and discovery structures
+  instead of treating them as JSON `null`.
+- Require authorization-server endpoint and URI fields retained from discovery to use HTTPS or an
+  HTTP loopback address and contain no fragment before the provider caches or returns them.
+- Reject empty and non-empty fragments on fetched or cached protected-resource metadata URLs.
+- Bound server-controlled protected-resource identifiers before URL parsing and serialize OAuth
+  authorization cleanup so overlapping cancellation cannot erase a newly started attempt.
+- Reject configured redirects that cannot fit bounded OAuth callback names, values, required
+  response fields, or total URL size.
+- Bind each reserved authorization attempt to one PKCE verifier and one browser handoff, require
+  both state and verifier before that handoff, and reject callback completion while state/verifier
+  setup or the browser handoff is still active.
+- Fail closed with controlled OAuth errors when a custom secure store returns a non-object
+  registration, token response, or discovery-state root.
+- Validate the complete host storage/callback contract and reject non-string state, verifier, and
+  secure-store namespace values without JavaScript regular-expression coercion.
+- Apply the reference store's issuer-length limit in the provider before issuer URL parsing,
+  persistence, or reuse.
+- Classify malformed or insecure issuers and discovery endpoints from OAuth storage as storage
+  failures instead of host configuration failures.
+- Convert malformed protected-resource identifiers into controlled OAuth storage errors before
+  they reach URL matching.
+- Classify malformed platform and process-recovery callback URLs as `invalid-callback` rather than
+  host configuration failures.
+- Resolve the public `@mcp-native/mcp/oauth` subpath through its ESM export condition from the
+  packed consumer during package smoke verification.
+- Keep the OS authorization-session adapter exclusive until callback token exchange finishes.
+- Reserve one authorization attempt before state persistence so overlapping flows cannot replace its
+  state or verifier, and apply total, count, name, and value limits to both native-session and direct
+  process-recovery callbacks before code redemption. Direct recovery also reserves the persisted
+  attempt while it atomically claims state, clears its verifier, and then releases the state slot.
+- Serialize state save, claim, release, and full invalidation across reference-store objects using
+  the same fixed namespace in one JS runtime, so duplicate instances cannot both accept one callback
+  state or reserve a new attempt during verifier cleanup.
+- Make the store state reservation exclusive per namespace so a second provider, or a duplicate
+  store object over one backend, cannot overwrite a live attempt's redirect state. Cancellation
+  releases the reserved slot even when an earlier process persisted it, without deleting
+  registrations or tokens.
+- Reject direct cancellation while state setup, a system authorization handoff, or callback
+  completion is active, preventing cleanup from racing the attempt's state and PKCE verifier.
+- Bind each live state reservation to its provider so another provider sharing the namespace cannot
+  cancel the active handoff or delete its PKCE verifier; allow stale cleanup only when no live owner
+  remains after process restart.
+- Apply the same active-flow and ownership checks to full or verifier credential invalidation so
+  neither can bypass authorization cancellation serialization.
+- Bound authorization URLs before reparsing or copying them into the host opener, and accept the
+  complete IPv4 `127.0.0.0/8` loopback range for native OAuth endpoints and redirects.
+- Reject registered redirect URIs with duplicate query parameter names instead of accepting a
+  configuration that no callback could satisfy.
+- Reject native OAuth evidence rows that declare `pass` while any required case is still `fail` or
+  `not-run`, including during the ordinary non-release structure check.
+
 ## 0.5.0 - 2026-08-28
 
 Adds the stable MCP Apps native host-adapter profile with strict capability negotiation, bounded

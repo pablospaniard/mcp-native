@@ -206,4 +206,5 @@ test("CI pins both maintained React Native host lines and release evidence", () 
 
   const rootPackage = JSON.parse(readFileSync("package.json", "utf8"));
   assert.match(rootPackage.scripts["release:verify"], /native:evidence:verify/);
+  assert.match(rootPackage.scripts["release:verify"], /oauth:evidence:verify/);
 });

@@ -2,7 +2,6 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 
 const packages = [
   "@mcp-native/core",
@@ -48,6 +47,18 @@ try {
       throw new Error(`@mcp-native/webview declarations are missing ${typeName}`);
     }
   }
+  const oauthDeclarations = ["oauth", "oauth-error", "oauth-native"]
+    .map((moduleName) => readFileSync(`packages/mcp/dist/${moduleName}.d.ts`, "utf8"))
+    .join("\n");
+  for (const typeName of [
+    "McpNativeOAuthAuthorizationSession",
+    "McpNativeOAuthPlatformSecureStore",
+    "McpNativeOAuthSecretBackend",
+  ]) {
+    if (!oauthDeclarations.includes(typeName)) {
+      throw new Error(`@mcp-native/mcp OAuth declarations are missing ${typeName}`);
+    }
+  }
 
   const tarballs = packages.map((packageName) => {
     const output = execFileSync(
@@ -63,6 +74,16 @@ try {
 
     const files = new Set(packed.files.map(({ path }) => path));
     const requiredFiles = ["README.md", "dist/index.d.ts", "dist/index.js", "package.json"];
+    if (packageName === "@mcp-native/mcp") {
+      requiredFiles.push(
+        "dist/oauth.d.ts",
+        "dist/oauth.js",
+        "dist/oauth-error.d.ts",
+        "dist/oauth-error.js",
+        "dist/oauth-native.d.ts",
+        "dist/oauth-native.js",
+      );
+    }
     if (packageName === "@mcp-native/a2ui") {
       requiredFiles.push(
         "schemas/7541f953050cd58b80f0bf5d85fe2d63192af305/CHECKSUMS.sha256",
@@ -104,7 +125,6 @@ try {
   for (const packageDirectory of workspacePackageDirectories) {
     collectExternalDependencies(join(process.cwd(), packageDirectory));
   }
-
   const externalTarballs = [...externalDependencies.entries()].map(
     ([dependencyName, dependencyDirectory]) => {
       const output = execFileSync(
@@ -146,17 +166,27 @@ try {
     },
   );
 
-  const importPromises = packages.map((packageName) => {
+  for (const packageName of packages) {
     const packageJsonPath = join(consumerDirectory, "node_modules", packageName, "package.json");
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
     if (packageJson.version !== expectedVersion) {
       throw new Error(`${packageName} has unexpected version ${packageJson.version}`);
     }
-    const entryPoint = join(consumerDirectory, "node_modules", packageName, "dist", "index.js");
-    return import(pathToFileURL(entryPoint).href);
+  }
+  const smokeEntryPoint = join(consumerDirectory, "smoke.mjs");
+  writeFileSync(
+    smokeEntryPoint,
+    `await Promise.all(${JSON.stringify(packages)}.map((specifier) => import(specifier)));
+const oauthEntryPoint = import.meta.resolve("@mcp-native/mcp/oauth");
+if (!oauthEntryPoint.endsWith("/dist/oauth.js")) {
+  throw new Error(\`Unexpected @mcp-native/mcp/oauth entry point: \${oauthEntryPoint}\`);
+}\n`,
+  );
+  execFileSync(process.execPath, [smokeEntryPoint], {
+    cwd: consumerDirectory,
+    env: npmEnvironment,
+    stdio: "inherit",
   });
-
-  await Promise.all(importPromises);
 
   console.log(`Verified ${packages.length} installable package tarballs.`);
 } finally {
