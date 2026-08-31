@@ -46,15 +46,17 @@ The helper returns verified SDK options. The host owns client construction, conn
 consent, retry, and shutdown. For protected Streamable HTTP, `@mcp-native/mcp` additionally exports
 an issuer-bound official SDK OAuth provider and transport factory. They pin one protected resource,
 validate bounded stored registrations, tokens, discovery, redirect schemes, issuer URLs, and
-callback state before parsing, persistence, or reuse,
+callback state before parsing, persistence, or reuse, and require every actionable discovery
+endpoint to use HTTPS or an HTTP loopback address,
 reject manual credential headers, and require a host-owned secure store and
 browser/authentication-session handoff. Dependency-neutral reference
 adapters provide bounded fixed-slot persistence over a native secret backend and a closed
 ASWebAuthenticationSession/Custom Tab result boundary without importing React Native. One provider
 reserves one interactive attempt, rejects cancellation during its handoff or completion, and applies
 callback budgets to both native-session and process-recovery entry points. All 25 scored pinned
-`2026-07-28` authorization client scenarios pass. The strict
-native evidence gate exists, but its two required real-platform rows are still `not-run`.
+`2026-07-28` authorization client scenarios pass. The evidence validator counts a row only when all
+of its required cases pass, and the strict native evidence gate exists, but its two required
+real-platform rows are still `not-run`.
 
 ## Extension capability substrate
 

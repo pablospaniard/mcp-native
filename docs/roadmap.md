@@ -147,8 +147,9 @@ exact evidence gate are implemented. Both required credential/session platform r
       redirect-bound discovery state with post-callback refresh, and an exact RFC 8707 resource
       indicator. Redirect schemes, issuer components, and individual/cumulative registration,
       discovery, and token sizes fail closed before parsing, browser handoff, persistence, caching,
-      or reuse; one-attempt reservation, cancellation locking, and callback budgets cover
-      native-session and process-recovery paths.
+      or reuse; actionable discovered endpoints require HTTPS or HTTP loopback; one-attempt
+      reservation, cancellation locking, and callback budgets cover native-session and
+      process-recovery paths.
 - [x] Add the protected Streamable HTTP factory without issuer-validation opt-outs or manual
       credential headers, and surface `insufficient_scope` to the host before step-up authorization.
 - [x] Pass and pin every applicable official MCP `2026-07-28` authorization client scenario before
@@ -157,7 +158,8 @@ exact evidence gate are implemented. Both required credential/session platform r
       library contract deliberately cannot treat AsyncStorage or plain files as secure storage or
       use an embedded WebView for authorization.
 - [x] Add an exact iOS/Android native OAuth evidence schema, ordinary structure check, and strict
-      release-candidate gate.
+      release-candidate gate. A row that declares `pass` is rejected unless every required case also
+      passes, even during the ordinary check.
 - [ ] Record passing real-platform keychain/keystore and authentication-session evidence for both
       required rows; the checked-in matrix currently reports `0/2` passing.
 - [ ] Add broader consent, tool-risk review, capability approval, privacy controls, and host

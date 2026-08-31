@@ -247,7 +247,8 @@ protected-resource mismatch, insecure endpoints, executable redirect schemes,
 redirect/state/parameter substitution, duplicate callback fields, oversized individual or
 cumulative registration, discovery, and token data, and raw `Authorization`, `Cookie`, or
 `Proxy-Authorization` transport headers. These budgets apply before schema parsing, persistence,
-or reuse. By default, runtime
+or reuse, and every actionable discovery endpoint must use HTTPS or an HTTP loopback address before
+the metadata can be cached or returned. By default, runtime
 `insufficient_scope` challenges are surfaced to the host. The opt-in `host-approved` path calls
 `approveReauthorization` for every authorization retry while credentials exist—including repeated
 same-scope challenges—and permits at most one SDK retry per request. The callback error path never
@@ -257,9 +258,10 @@ active system handoff or callback completion has settled. One provider reserves 
 interactive attempt at a time, and both native-session and direct process-recovery callbacks have
 total and per-parameter budgets before code redemption. All 25 scored official authorization
 scenarios pass.
-The [native OAuth plan](docs/native-oauth-testing.md) and strict evidence gate are
-implemented, but both required platform rows remain `not-run`; production readiness still requires
-those real-platform results and the remaining host controls.
+The [native OAuth plan](docs/native-oauth-testing.md) and strict evidence gate are implemented. A
+platform row can count as passing only when all required cases pass, but both required rows remain
+`not-run`; production readiness still requires those real-platform results and the remaining host
+controls.
 
 ## A2UI v1 Candidate host flow
 

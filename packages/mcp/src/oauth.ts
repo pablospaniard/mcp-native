@@ -990,10 +990,12 @@ function parseAuthorizationServerMetadata(
   }
   const oauth = OAuthMetadataSchema.safeParse(value);
   if (oauth.success) {
+    assertSecureAuthorizationServerMetadataEndpoints(oauth.data);
     return oauth.data;
   }
   const openId = OpenIdProviderDiscoveryMetadataSchema.safeParse(value);
   if (openId.success) {
+    assertSecureAuthorizationServerMetadataEndpoints(openId.data);
     return openId.data;
   }
   throw new McpNativeOAuthError(
@@ -1001,6 +1003,18 @@ function parseAuthorizationServerMetadata(
     "Stored authorization-server metadata is invalid",
     { cause: openId.error },
   );
+}
+
+function assertSecureAuthorizationServerMetadataEndpoints(metadata: Record<string, unknown>): void {
+  for (const [field, value] of Object.entries(metadata)) {
+    if (
+      typeof value !== "string" ||
+      (field !== "service_documentation" && !field.endsWith("_endpoint") && !field.endsWith("_uri"))
+    ) {
+      continue;
+    }
+    parseSecureEndpoint(value, `authorization-server metadata ${field}`);
+  }
 }
 
 function assertCodeVerifier(verifier: string): void {

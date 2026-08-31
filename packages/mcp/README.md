@@ -134,10 +134,11 @@ service slots, exact issuer binding, and serialized state consumption over a nar
 backend; it cannot make AsyncStorage or a plain file secure. The provider validates stored values
 before returning them to the SDK, bounds individual and cumulative registration, discovery, and
 token data before schema parsing, persistence, or reuse, rejects issuer query/fragment components
-and executable redirect schemes, refreshes discovery after the callback so authorization-server
-migrations cannot reuse old credentials, pins RFC 8707 resource indicators to one MCP endpoint,
-compares callback location and state before code redemption, and never exposes attacker-controlled
-callback error descriptions.
+and executable redirect schemes, requires every actionable discovery endpoint to use HTTPS or an
+HTTP loopback address before caching or reuse, refreshes discovery after the callback so
+authorization-server migrations cannot reuse old credentials, pins RFC 8707 resource indicators to
+one MCP endpoint, compares callback location and state before code redemption, and never exposes
+attacker-controlled callback error descriptions.
 
 `createMcpNativeOAuthAuthorizationSession()` normalizes an app-owned
 `ASWebAuthenticationSession`/Android Custom Tab bridge into one exact callback. It rejects overlap,
@@ -155,8 +156,8 @@ when the provider has an `approveReauthorization` callback. That callback runs f
 authorization request while credentials exist, even when a hostile resource repeats the same scope;
 the transport permits at most one SDK step-up retry per request. The host must maintain any stricter
 cross-request budget. All 25 scored pinned official `2026-07-28` authorization client scenarios
-pass. The evidence schema and strict release-candidate gate are active, but both required native
-rows remain `not-run`.
+pass. The evidence schema requires every case to pass before a platform row can count as passing,
+and the strict release-candidate gate is active, but both required native rows remain `not-run`.
 
 ## Mapping
 

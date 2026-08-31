@@ -393,6 +393,15 @@ test("native OAuth release evidence requires exact passing cases and reviewable 
     requiredRows: 2,
   });
 
+  for (const inconsistentResult of ["fail", "not-run"]) {
+    complete.matrix[0].cases["callback-success"] = inconsistentResult;
+    assert.throws(
+      () => validateNativeOAuthEvidence(complete),
+      /must be "pass" when the platform row result is "pass"/,
+    );
+  }
+  complete.matrix[0].cases["callback-success"] = "pass";
+
   complete.matrix[0].cases["embedded-webview"] = "pass";
   assert.throws(
     () => validateNativeOAuthEvidence(complete, { strict: true }),

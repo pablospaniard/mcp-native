@@ -390,6 +390,61 @@ test("OAuth discovery metadata is bounded before parsing, caching, and reuse", a
   );
 });
 
+test("OAuth discovery metadata rejects insecure actionable endpoints before caching and reuse", async () => {
+  const baseMetadata = {
+    issuer: ISSUER,
+    authorization_endpoint: `${ISSUER}/authorize`,
+    token_endpoint: `${ISSUER}/token`,
+    response_types_supported: ["code"],
+  };
+  const endpointFields = [
+    "authorization_endpoint",
+    "token_endpoint",
+    "registration_endpoint",
+    "revocation_endpoint",
+    "introspection_endpoint",
+    "userinfo_endpoint",
+    "jwks_uri",
+    "service_documentation",
+    "op_policy_uri",
+    "op_tos_uri",
+    "device_authorization_endpoint",
+    "pushed_authorization_request_endpoint",
+  ];
+
+  await Promise.all(
+    endpointFields.map(async (field) => {
+      const invalid = createProvider();
+      await assert.rejects(
+        () =>
+          invalid.provider.saveDiscoveryState({
+            authorizationServerUrl: ISSUER,
+            authorizationServerMetadata: {
+              ...baseMetadata,
+              [field]: `http://remote.example.com/${field}`,
+            },
+          }),
+        (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+      );
+      assert.equal(invalid.storage.values.discovery, undefined);
+    }),
+  );
+
+  const corrupted = createProvider();
+  corrupted.storage.values.discovery = {
+    authorizationServerUrl: ISSUER,
+    authorizationServerMetadata: {
+      ...baseMetadata,
+      token_endpoint: "http://remote.example.com/token",
+    },
+  };
+  await corrupted.provider.saveCodeVerifier(VALID_VERIFIER);
+  await assert.rejects(
+    () => corrupted.provider.discoveryState(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+});
+
 test("OAuth callback completion validates redirect, state, duplicates, and consumes secrets", async () => {
   const { provider, storage } = createProvider();
   await provider.state();

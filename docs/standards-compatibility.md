@@ -171,8 +171,9 @@ non-boolean check conditions.
    registrations and discovery metadata before parsing, persistence, caching, or reuse, binds
    registrations and tokens to an exact issuer without query or fragment components, persists
    redirect state and discovery through `McpNativeOAuthSecureStore`, restricts redirect URIs to
-   HTTPS app links, HTTP loopback, or hierarchical private-use app schemes, and pins the RFC 8707
-   resource to one MCP endpoint.
+   HTTPS app links, HTTP loopback, or hierarchical private-use app schemes, requires actionable
+   authorization-server endpoint/URI fields to use HTTPS or HTTP loopback before caching or reuse,
+   and pins the RFC 8707 resource to one MCP endpoint.
 3. **Implemented callback boundary:** callback scheme/authority/path, configured query parameters,
    OAuth state, and duplicate `code`/`state`/`iss` fields fail closed before SDK code redemption;
    total, count, name, and value budgets apply to both native-session and process-recovery callback
@@ -195,8 +196,9 @@ non-boolean check conditions.
    cross-request step-up tracking, and must never forward an MCP access token to an upstream API.
 7. **Verified package boundary:** all 25 scored authorization client scenarios in the exact pinned
    official `2026-07-28` requirements fixture pass with no expected failures. The Milestone 6
-   evidence schema and strict gate are implemented, but both platform rows remain `not-run`, so the
-   release-readiness claim remains pending on real-platform results and broader host controls.
+   evidence schema rejects a passing row unless every required case passes, and the strict gate is
+   implemented, but both platform rows remain `not-run`, so the release-readiness claim remains
+   pending on real-platform results and broader host controls.
 
 ## Version and claim policy
 

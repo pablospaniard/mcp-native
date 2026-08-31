@@ -113,7 +113,10 @@ export function validateNativeOAuthEvidence(
       expectBoundedString(row[key], `${path}.${key}`);
     }
     const result = expectResult(row.result, `${path}.result`);
-    validateCases(row.cases, `${path}.cases`, strict);
+    validateCases(row.cases, `${path}.cases`, {
+      passingRow: result === "pass",
+      releaseCandidate: strict,
+    });
     validateStringArray(row.evidence, `${path}.evidence`);
     validateStringArray(row.issues, `${path}.issues`);
     for (const [evidenceIndex, reference] of row.evidence.entries()) {
@@ -137,13 +140,17 @@ export function validateNativeOAuthEvidence(
   });
 }
 
-function validateCases(value, path, strict) {
+function validateCases(value, path, { passingRow, releaseCandidate }) {
   const cases = expectObject(value, path);
   expectExactKeys(cases, new Set(NATIVE_OAUTH_CASES), path);
   for (const caseName of NATIVE_OAUTH_CASES) {
     const result = expectResult(cases[caseName], `${path}.${caseName}`);
-    if (strict && result !== "pass") {
-      throw new Error(`${path}.${caseName} must be "pass" for a release candidate`);
+    if ((passingRow || releaseCandidate) && result !== "pass") {
+      throw new Error(
+        `${path}.${caseName} must be "pass" ${
+          releaseCandidate ? "for a release candidate" : 'when the platform row result is "pass"'
+        }`,
+      );
     }
   }
 }

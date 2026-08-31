@@ -41,12 +41,16 @@ their minor release line.
 - Bound dynamic client-registration records and authorization discovery metadata by value size,
   cumulative text, collection width, depth, and total structure before schema parsing, persistence,
   caching, or reuse.
+- Require authorization-server endpoint and URI fields retained from discovery to use HTTPS or an
+  HTTP loopback address before the provider caches or returns them.
 - Reserve one authorization attempt before state persistence so overlapping flows cannot replace its
   state or verifier, and apply total, count, name, and value limits to both native-session and direct
   process-recovery callbacks before code redemption. Direct recovery also reserves the persisted
   attempt while it atomically consumes state and clears its verifier.
 - Reject direct cancellation while a system authorization handoff or callback completion is active,
   preventing cleanup from racing the attempt's state and PKCE verifier.
+- Reject native OAuth evidence rows that declare `pass` while any required case is still `fail` or
+  `not-run`, including during the ordinary non-release structure check.
 
 ## 0.5.0 - 2026-08-28
 

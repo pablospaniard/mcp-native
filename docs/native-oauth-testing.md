@@ -119,7 +119,8 @@ completion is active so cleanup cannot race the attempt's state and verifier.
 | Android current emulator | `0.87.1`     | Android Keystore-backed native module | Android Custom Tab           |
 
 Record the exact OS, device/runtime, native bridge and version, tested commit, operator, date,
-artifacts, and issues. A bundle or TypeScript test is not platform evidence.
+artifacts, and issues. A row may declare `pass` only when every required case is `pass`. A bundle or
+TypeScript test is not platform evidence.
 
 ## Required cases
 
@@ -156,9 +157,10 @@ npm run oauth:evidence:verify
 ```
 
 The ordinary check validates the exact rows, cases, bounds, and safe evidence references while
-allowing `not-run`. The strict command requires both rows and every case to pass with a full commit
-SHA and at least one reviewable artifact. It is part of `npm run release:verify`, so a Milestone 6
-release candidate cannot pass until real platform evidence replaces the placeholders.
+allowing `not-run` only for rows that do not claim to pass. Any row marked `pass` must already have
+every required case passing. The strict command additionally requires both rows to pass with a full
+commit SHA and at least one reviewable artifact. It is part of `npm run release:verify`, so a
+Milestone 6 release candidate cannot pass until real platform evidence replaces the placeholders.
 
 Never commit access tokens, refresh tokens, client secrets, authorization codes, PKCE verifiers,
 OAuth state, account identifiers, or screenshots/logs containing them as evidence.
