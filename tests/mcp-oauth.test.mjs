@@ -12,6 +12,7 @@ const REDIRECT_URL = "mcp-native://oauth/callback";
 const ISSUER = "https://auth.example.com";
 const VALID_STATE = "state_abcdefghijklmnopqrstuvwxyz-0123456789";
 const VALID_VERIFIER = "v".repeat(64);
+const CLAIMED_STATE_MARKER = "mcp-native:claimed";
 
 function createStorage(initial = {}) {
   const values = {
@@ -55,7 +56,7 @@ function createStorage(initial = {}) {
     },
     async consumeOAuthState(state) {
       if (values.state !== state) return false;
-      values.state = undefined;
+      values.state = CLAIMED_STATE_MARKER;
       return true;
     },
     async clearOAuthState() {
@@ -121,6 +122,22 @@ test("OAuth provider validates metadata and supplies native registration default
         clientMetadata: { redirect_uris: [`${REDIRECT_URL}#`] },
       }),
     /fragment/,
+  );
+  const duplicateQueryRedirect = `${REDIRECT_URL}?tenant=a&tenant=b`;
+  assert.throws(
+    () =>
+      createProvider({
+        redirectUrl: duplicateQueryRedirect,
+        clientMetadata: { redirect_uris: [duplicateQueryRedirect] },
+      }),
+    /duplicate query parameter names/,
+  );
+  assert.throws(
+    () =>
+      createProvider({
+        clientMetadata: { redirect_uris: [REDIRECT_URL, duplicateQueryRedirect] },
+      }),
+    /duplicate query parameter names/,
   );
   for (const redirectUrl of [
     "javascript:alert(1)",

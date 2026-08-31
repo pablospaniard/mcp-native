@@ -46,6 +46,7 @@ const CALLBACK_PARAMETER_NAMES = new Set([
   "iss",
   "state",
 ]);
+const CLAIMED_STATE_MARKER = "mcp-native:claimed";
 const STATE_LOCKS = new Map<string, Promise<void>>();
 
 type OAuthFinisher = Pick<StreamableHTTPClientTransport, "finishAuth">;
@@ -76,7 +77,7 @@ interface IssuerRecord<T> {
  * Bounded reference implementation of the OAuth store contract over a native secret backend.
  * One namespace represents one protected-resource authorization context. State operations are
  * serialized across store objects using the same fixed namespaced service in this JS runtime,
- * and a reserved state is exclusive until it is consumed or cleared.
+ * and a claimed state keeps the reservation exclusive until it is explicitly cleared.
  */
 export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureStore {
   readonly #backend: McpNativeOAuthSecretBackend;
@@ -155,7 +156,7 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
       throw new McpNativeOAuthError("invalid-storage", "OAuth state is invalid");
     }
     await this.#withStateLock(async () => {
-      if ((await this.#backend.read(this.#services.state)) !== undefined) {
+      if ((await this.#read("state")) !== undefined) {
         throw new McpNativeOAuthError(
           "invalid-storage",
           "Another OAuth authorization state is already reserved for this namespace",
@@ -176,7 +177,7 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
     return this.#withStateLock(async () => {
       const stored = await this.#read("state");
       if (stored !== state) return false;
-      await this.#backend.remove(this.#services.state);
+      await this.#backend.write(this.#services.state, CLAIMED_STATE_MARKER);
       return true;
     });
   }
@@ -491,6 +492,7 @@ function parseRedirectUrl(value: string | URL): URL {
       "OAuth redirect URL must use HTTPS, HTTP loopback, or a safe private-use app scheme",
     );
   }
+  assertUniqueRedirectParameters(url);
   for (const name of CALLBACK_PARAMETER_NAMES) {
     if (url.searchParams.has(name)) {
       throw new McpNativeOAuthError(
@@ -500,6 +502,19 @@ function parseRedirectUrl(value: string | URL): URL {
     }
   }
   return url;
+}
+
+function assertUniqueRedirectParameters(url: URL): void {
+  const names = new Set<string>();
+  for (const name of url.searchParams.keys()) {
+    if (names.has(name)) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth redirect URL must not contain duplicate query parameter names",
+      );
+    }
+    names.add(name);
+  }
 }
 
 function parseSecureUrl(value: string | URL, label: string): URL {

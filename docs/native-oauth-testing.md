@@ -107,8 +107,9 @@ parameter-count, parameter-name, and parameter-value callback budgets before cod
 provider reserves one interactive attempt before persisting state; a concurrent attempt fails
 without replacing the first attempt's state or verifier. The store reservation is exclusive per
 namespace, so duplicate providers or store objects sharing one backend cannot overwrite each other's
-redirect state. Process recovery makes the same reservation before consuming persisted state, so a
-concurrent new flow cannot lose its verifier during old-flow cleanup. A reported platform
+redirect state. Process recovery makes the same reservation before claiming persisted state. The
+claim prevents replay without releasing the slot until verifier cleanup succeeds, so a concurrent
+new flow cannot replace the verifier during old-flow token exchange or cleanup. A reported platform
 cancellation is fail-closed and clears the pending state and verifier without deleting registrations
 or tokens. Call `provider.cancelAuthorization()` only to abandon an attempt after the platform
 handoff has settled; it is rejected while state setup, the opener, or callback completion is active
@@ -137,7 +138,8 @@ TypeScript test is not platform evidence.
 3. Attempt to load credentials under a different issuer and a different app namespace. Both must
    fail without exposing or deleting the valid record.
 4. Deliver the same valid-state callback twice concurrently through distinct provider/store objects
-   sharing the app namespace. Exactly one exchange may proceed.
+   sharing the app namespace. Exactly one exchange may proceed. While that exchange and verifier
+   cleanup are active, a new provider must not reserve state or replace the verifier.
 5. Invalidate verifier, token, client, discovery, and all scopes; confirm the corresponding native
    records are gone and unrelated issuer records are not removed.
 6. Inspect the presented authorization UI and platform hierarchy to prove it is the required OS

@@ -164,7 +164,10 @@ export interface McpNativeOAuthSecureStore {
    * overwrite each other's redirect state.
    */
   saveOAuthState(state: string): void | Promise<void>;
-  /** Atomically compares and deletes the stored state to prevent concurrent callback replay. */
+  /**
+   * Atomically compares and claims the stored state to prevent callback replay while retaining
+   * the reservation until verifier cleanup finishes and `clearOAuthState()` releases it.
+   */
   consumeOAuthState(state: string): boolean | Promise<boolean>;
   /** Releases the reservation without a value, including one left by a terminated process. */
   clearOAuthState(): void | Promise<void>;
@@ -509,7 +512,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     this.#authorizationCompletionRunning = true;
     const reservedForRecovery = !this.#authorizationAttemptReserved;
     this.#authorizationAttemptReserved = true;
-    let stateConsumed = false;
+    let stateClaimed = false;
 
     try {
       const callback = parseCallbackUrl(callbackUrl, this.redirectUrl);
@@ -518,7 +521,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       if (!(await this.#storage.consumeOAuthState(parameters.get("state")!))) {
         throw new McpNativeOAuthError("state-mismatch", "OAuth callback state did not match");
       }
-      stateConsumed = true;
+      stateClaimed = true;
 
       try {
         if (parameters.has("error")) {
@@ -536,13 +539,14 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         this.#pendingAuthorizationUrl = undefined;
         try {
           await this.#storage.invalidate("verifier", this.#activeIssuer);
+          await this.#storage.clearOAuthState();
         } finally {
           this.#authorizationAttemptReserved = false;
         }
       }
     } finally {
       this.#authorizationCompletionRunning = false;
-      if (!stateConsumed && reservedForRecovery) {
+      if (!stateClaimed && reservedForRecovery) {
         this.#authorizationAttemptReserved = false;
       }
     }
@@ -566,13 +570,10 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   async #discardPendingAuthorization(): Promise<void> {
     this.#pendingAuthorizationUrl = undefined;
     try {
+      await this.#storage.invalidate("verifier", this.#activeIssuer);
       await this.#storage.clearOAuthState();
     } finally {
-      try {
-        await this.#storage.invalidate("verifier", this.#activeIssuer);
-      } finally {
-        this.#authorizationAttemptReserved = false;
-      }
+      this.#authorizationAttemptReserved = false;
     }
   }
 }
@@ -665,6 +666,7 @@ function parseRedirectUrl(value: string | URL): URL {
       "OAuth redirect URL must use HTTPS, HTTP loopback, or a safe private-use app scheme",
     );
   }
+  assertUniqueRedirectParameters(url);
   for (const name of CALLBACK_PARAMETER_NAMES) {
     if (url.searchParams.has(name)) {
       throw new McpNativeOAuthError(
@@ -674,6 +676,19 @@ function parseRedirectUrl(value: string | URL): URL {
     }
   }
   return url;
+}
+
+function assertUniqueRedirectParameters(url: URL): void {
+  const names = new Set<string>();
+  for (const name of url.searchParams.keys()) {
+    if (names.has(name)) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth redirect URL must not contain duplicate query parameter names",
+      );
+    }
+    names.add(name);
+  }
 }
 
 function parseSecureEndpoint(value: string | URL, label: string): URL {

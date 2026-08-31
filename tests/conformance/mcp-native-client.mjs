@@ -72,7 +72,7 @@ const createOAuthStore = (preRegisteredClient) => {
     },
     async consumeOAuthState(value) {
       if (state !== value) return false;
-      state = undefined;
+      state = "mcp-native:claimed";
       return true;
     },
     async clearOAuthState() {

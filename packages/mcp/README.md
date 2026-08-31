@@ -130,17 +130,17 @@ try {
 
 `McpNativeOAuthSecureStore` must be implemented with OS keychain/keystore-grade encrypted storage.
 `createMcpNativeOAuthPlatformSecureStore()` supplies the bounded serialization, fixed app-owned
-service slots, exact issuer binding, and exclusive state reservation and consumption serialized
+service slots, exact issuer binding, and exclusive state reservation, claim, and release serialized
 across store objects using the same namespace in one JS runtime over a narrow native secret backend;
 it cannot make AsyncStorage or a plain file secure. The provider validates stored values
 before returning them to the SDK, bounds individual and cumulative registration, discovery, and
 token data before schema parsing, persistence, or reuse, validates every registered redirect URI,
-rejects literal fragment delimiters on server, redirect, authorization, and callback URLs, requires
-every actionable discovery endpoint to use HTTPS or an HTTP loopback address and contain no fragment
-before caching or reuse, refreshes discovery after the callback so authorization-server migrations
-cannot reuse old credentials, pins RFC 8707 resource indicators to one MCP endpoint, compares
-callback location and state before code redemption, and never exposes attacker-controlled callback
-error descriptions.
+rejects duplicate registered redirect query names and literal fragment delimiters on server,
+redirect, authorization, and callback URLs, requires every actionable discovery endpoint to use
+HTTPS or an HTTP loopback address and contain no fragment before caching or reuse, refreshes
+discovery after the callback so authorization-server migrations cannot reuse old credentials, pins
+RFC 8707 resource indicators to one MCP endpoint, compares callback location and state before code
+redemption, and never exposes attacker-controlled callback error descriptions.
 
 `createMcpNativeOAuthAuthorizationSession()` normalizes an app-owned
 `ASWebAuthenticationSession`/Android Custom Tab bridge into one exact callback. It rejects overlap,
@@ -149,9 +149,11 @@ pending state and PKCE material without deleting registrations or tokens; direct
 cancellation is rejected while the system handoff, state setup, or callback completion is active. The
 provider reserves one interactive attempt before state persistence, the store rejects a second
 reservation for the same namespace, and cancellation releases a reservation persisted by an earlier
-process. The same total and per-parameter callback budgets apply to the direct process-recovery path. See the [native integration and
-evidence plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md)
-for a React Native Keychain/Keystore mapping and the required platform matrix.
+process. Callback validation claims rather than deletes the state, keeping the namespace occupied
+until verifier cleanup succeeds. The same total and per-parameter callback budgets apply to the
+direct process-recovery path. See the [native integration and evidence
+plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md) for a React
+Native Keychain/Keystore mapping and the required platform matrix.
 
 `createMcpNativeOAuthTransport()` rejects manual credential headers and configures
 `insufficient_scope` to throw by default. Setting `scopeEscalation: "host-approved"` is accepted only

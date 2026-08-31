@@ -148,9 +148,10 @@ exact evidence gate are implemented. Both required credential/session platform r
       indicator. Redirect schemes, issuer components, and individual/cumulative registration,
       discovery, and token sizes fail closed before parsing, browser handoff, persistence, caching,
       or reuse; actionable discovered endpoints require fragment-free HTTPS or HTTP loopback;
-      every registered redirect URI is validated; literal empty fragments fail closed;
-      one-attempt reservation, cancellation locking, and callback budgets cover native-session and
-      process-recovery paths.
+      every registered redirect URI is validated, duplicate configured query names are rejected,
+      and literal empty fragments fail closed; one-attempt reservation remains held from callback
+      claim through verifier cleanup, while cancellation locking and callback budgets cover
+      native-session and process-recovery paths.
 - [x] Add the protected Streamable HTTP factory without issuer-validation opt-outs or manual
       credential headers, and surface `insufficient_scope` to the host before step-up authorization.
 - [x] Pass and pin every applicable official MCP `2026-07-28` authorization client scenario before

@@ -244,21 +244,23 @@ try {
 
 The provider rejects cross-issuer stored credentials, issuer query/fragment components, a
 protected-resource mismatch, insecure endpoints, any unsafe URI in the registered redirect list,
-literal fragment delimiters on server, redirect, authorization, and callback URLs,
-redirect/state/parameter substitution, duplicate callback fields, oversized individual or
-cumulative registration, discovery, and token data, and raw `Authorization`, `Cookie`, or
-`Proxy-Authorization` transport headers. These budgets apply before schema parsing, persistence, or
-reuse, and every actionable discovery endpoint must use HTTPS or an HTTP loopback address and
-contain no fragment before the metadata can be cached or returned. By default, runtime
+duplicate registered redirect query names, literal fragment delimiters on server, redirect,
+authorization, and callback URLs, redirect/state/parameter substitution, duplicate callback fields,
+oversized individual or cumulative registration, discovery, and token data, and raw
+`Authorization`, `Cookie`, or `Proxy-Authorization` transport headers. These budgets apply before
+schema parsing, persistence, or reuse, and every actionable discovery endpoint must use HTTPS or an
+HTTP loopback address and contain no fragment before the metadata can be cached or returned. By
+default, runtime
 `insufficient_scope` challenges are surfaced to the host. The opt-in `host-approved` path calls
 `approveReauthorization` for every authorization retry while credentials exist—including repeated
 same-scope challenges—and permits at most one SDK retry per request. The callback error path never
 renders attacker-controlled OAuth descriptions. A cancelled OS session clears pending state and
 PKCE material without deleting registrations or tokens; direct cancellation is rejected until an
-active system handoff or callback completion has settled. One provider reserves only one
-interactive attempt at a time, and both native-session and direct process-recovery callbacks have
-total and per-parameter budgets before code redemption. All 25 scored official authorization
-scenarios pass.
+active state setup, system handoff, or callback completion has settled. A claimed callback state
+keeps the shared namespace reserved until verifier cleanup succeeds, so another provider cannot
+replace the verifier during token exchange. Both native-session and direct process-recovery
+callbacks have total and per-parameter budgets before code redemption. All 25 scored official
+authorization scenarios pass.
 The [native OAuth plan](docs/native-oauth-testing.md) and strict evidence gate are implemented. A
 platform row can count as passing only when all required cases pass, but both required rows remain
 `not-run`; production readiness still requires those real-platform results and the remaining host

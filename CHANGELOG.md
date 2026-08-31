@@ -47,15 +47,18 @@ their minor release line.
 - Reserve one authorization attempt before state persistence so overlapping flows cannot replace its
   state or verifier, and apply total, count, name, and value limits to both native-session and direct
   process-recovery callbacks before code redemption. Direct recovery also reserves the persisted
-  attempt while it atomically consumes state and clears its verifier.
-- Serialize state save, consume, and full invalidation across reference-store objects using the same
-  fixed namespace in one JS runtime, so duplicate instances cannot both accept one callback state.
+  attempt while it atomically claims state, clears its verifier, and then releases the state slot.
+- Serialize state save, claim, release, and full invalidation across reference-store objects using
+  the same fixed namespace in one JS runtime, so duplicate instances cannot both accept one callback
+  state or reserve a new attempt during verifier cleanup.
 - Make the store state reservation exclusive per namespace so a second provider, or a duplicate
   store object over one backend, cannot overwrite a live attempt's redirect state. Cancellation
   releases the reserved slot even when an earlier process persisted it, without deleting
   registrations or tokens.
 - Reject direct cancellation while state setup, a system authorization handoff, or callback
   completion is active, preventing cleanup from racing the attempt's state and PKCE verifier.
+- Reject registered redirect URIs with duplicate query parameter names instead of accepting a
+  configuration that no callback could satisfy.
 - Reject native OAuth evidence rows that declare `pass` while any required case is still `fail` or
   `not-run`, including during the ordinary non-release structure check.
 

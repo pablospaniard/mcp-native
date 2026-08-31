@@ -172,16 +172,18 @@ non-boolean check conditions.
    registrations and tokens to an exact issuer without query or fragment components, persists
    redirect state and discovery through `McpNativeOAuthSecureStore`, restricts every registered
    redirect URI to HTTPS app links, HTTP loopback, or hierarchical private-use app schemes, rejects
-   literal fragment delimiters across server/redirect/authorization/callback boundaries, requires
-   actionable authorization-server endpoint/URI fields to use HTTPS or HTTP loopback without
-   fragments before caching or reuse, and pins the RFC 8707 resource to one MCP endpoint.
+   duplicate redirect query names and literal fragment delimiters across
+   server/redirect/authorization/callback boundaries, requires actionable authorization-server
+   endpoint/URI fields to use HTTPS or HTTP loopback without fragments before caching or reuse, and
+   pins the RFC 8707 resource to one MCP endpoint.
 3. **Implemented callback boundary:** callback scheme/authority/path, configured query parameters,
    OAuth state, and duplicate `code`/`state`/`iss` fields fail closed before SDK code redemption;
    total, count, name, and value budgets apply to both native-session and process-recovery callback
    paths; attacker-controlled OAuth descriptions are never included in the public error. One
    provider reserves one interactive attempt before persisting state so an overlapping attempt
-   cannot replace its state or verifier, and rejects direct cancellation while its platform handoff
-   or callback completion is active.
+   cannot replace its state or verifier, retains that reservation from callback claim through
+   verifier cleanup, and rejects direct cancellation while state setup, platform handoff, or
+   callback completion is active.
 4. **Implemented transport policy:** protected transports reject manual Authorization, Cookie, and
    Proxy-Authorization headers and surface insufficient-scope responses to the host by default. The
    opt-in step-up path requires a host callback for every reauthorization while credentials exist

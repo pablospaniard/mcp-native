@@ -177,6 +177,11 @@ test("platform OAuth storage reserves state exclusively across provider instance
 
   // The attempt that won the reservation keeps a usable callback state.
   assert.equal(await firstStore.consumeOAuthState(reserved[0].value), true);
+  await assert.rejects(
+    () => firstStore.saveOAuthState(firstState),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  await firstStore.clearOAuthState();
 
   await firstStore.saveOAuthState(firstState);
   await assert.rejects(
@@ -186,6 +191,131 @@ test("platform OAuth storage reserves state exclusively across provider instance
   await secondStore.clearOAuthState();
   await secondStore.saveOAuthState(secondState);
   assert.equal(await firstStore.consumeOAuthState(secondState), true);
+  await firstStore.clearOAuthState();
+});
+
+test("platform OAuth storage holds a claimed state through verifier cleanup", async () => {
+  const secrets = createSecretBackend();
+  let cleanupStarted;
+  const cleanupStarting = new Promise((resolve) => {
+    cleanupStarted = resolve;
+  });
+  let releaseCleanup;
+  const cleanupBlocked = new Promise((resolve) => {
+    releaseCleanup = resolve;
+  });
+  const backend = {
+    ...secrets.backend,
+    async remove(service) {
+      if (service.endsWith(".verifier")) {
+        cleanupStarted();
+        await cleanupBlocked;
+      }
+      await secrets.backend.remove(service);
+    },
+  };
+  const createStore = () =>
+    createMcpNativeOAuthPlatformSecureStore({
+      namespace: "com.example.host.overlap",
+      backend,
+    });
+  const firstStore = createStore();
+  const secondStore = createStore();
+  const firstState = `state_${"a".repeat(40)}`;
+  const secondState = `state_${"b".repeat(40)}`;
+  const firstVerifier = "v".repeat(64);
+  const secondVerifier = "w".repeat(64);
+  const createHostProvider = (storage, state) =>
+    createMcpNativeOAuthProvider({
+      serverUrl: SERVER_URL,
+      redirectUrl: REDIRECT_URL,
+      clientMetadata: { client_name: "Native host", redirect_uris: [REDIRECT_URL] },
+      storage,
+      createState: () => state,
+      openAuthorization: () => {},
+    });
+  const first = createHostProvider(firstStore, firstState);
+  const second = createHostProvider(secondStore, secondState);
+
+  await first.state();
+  await first.saveCodeVerifier(firstVerifier);
+  const completion = first.finishAuthorization(
+    {
+      async finishAuth() {
+        assert.equal(await first.codeVerifier(), firstVerifier);
+      },
+    },
+    `${REDIRECT_URL}?code=code-1&state=${firstState}`,
+  );
+  await cleanupStarting;
+
+  await assert.rejects(
+    () => second.state(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  assert.equal(await secondStore.loadCodeVerifier(), firstVerifier);
+
+  releaseCleanup();
+  await completion;
+  assert.equal(await firstStore.loadCodeVerifier(), undefined);
+  assert.equal(await firstStore.consumeOAuthState(firstState), false);
+
+  assert.equal(await second.state(), secondState);
+  await second.saveCodeVerifier(secondVerifier);
+  assert.equal(await firstStore.loadCodeVerifier(), secondVerifier);
+});
+
+test("platform OAuth storage retains a claimed state when verifier cleanup fails", async () => {
+  const secrets = createSecretBackend();
+  let failVerifierCleanup = true;
+  const backend = {
+    ...secrets.backend,
+    async remove(service) {
+      if (failVerifierCleanup && service.endsWith(".verifier")) {
+        throw new Error("verifier cleanup failed");
+      }
+      await secrets.backend.remove(service);
+    },
+  };
+  const createStore = () =>
+    createMcpNativeOAuthPlatformSecureStore({
+      namespace: "com.example.host.cleanup-failure",
+      backend,
+    });
+  const firstStore = createStore();
+  const secondStore = createStore();
+  const secondState = `state_${"b".repeat(40)}`;
+  const provider = createMcpNativeOAuthProvider({
+    serverUrl: SERVER_URL,
+    redirectUrl: REDIRECT_URL,
+    clientMetadata: { client_name: "Native host", redirect_uris: [REDIRECT_URL] },
+    storage: firstStore,
+    createState: () => VALID_STATE,
+    openAuthorization: () => {},
+  });
+
+  await provider.state();
+  await provider.saveCodeVerifier(VALID_VERIFIER);
+  await assert.rejects(
+    () =>
+      provider.finishAuthorization(
+        { finishAuth: () => undefined },
+        `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}`,
+      ),
+    /verifier cleanup failed/,
+  );
+
+  assert.equal(await secondStore.consumeOAuthState(VALID_STATE), false);
+  await assert.rejects(
+    () => secondStore.saveOAuthState(secondState),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+
+  failVerifierCleanup = false;
+  await provider.cancelAuthorization();
+  await secondStore.saveOAuthState(secondState);
+  assert.equal(await firstStore.consumeOAuthState(secondState), true);
+  await firstStore.clearOAuthState();
 });
 
 test("platform OAuth storage removes corrupt issuer records during invalidation", async () => {
@@ -263,6 +393,14 @@ test("OS authorization-session adapter rejects cancellation, overlap, and callba
         open: () => ({ type: "cancel" }),
       }),
     /fragment/,
+  );
+  assert.throws(
+    () =>
+      createMcpNativeOAuthAuthorizationSession({
+        redirectUrl: `${REDIRECT_URL}?tenant=a&tenant=b`,
+        open: () => ({ type: "cancel" }),
+      }),
+    /duplicate query parameter names/,
   );
 
   const cancelled = createMcpNativeOAuthAuthorizationSession({
