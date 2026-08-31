@@ -608,6 +608,14 @@ test("a second provider cannot cancel another provider's authorization handoff",
     () => second.cancelAuthorization(),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
   );
+  await assert.rejects(
+    () => first.invalidateCredentials("all"),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  await assert.rejects(
+    () => second.invalidateCredentials("all"),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
   assert.equal(await firstStore.loadCodeVerifier(), VALID_VERIFIER);
 
   releaseHandoff();

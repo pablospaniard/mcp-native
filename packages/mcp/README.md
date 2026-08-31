@@ -140,7 +140,8 @@ redirect, authorization, and callback URLs, requires every actionable discovery 
 HTTPS or an HTTP loopback address and contain no fragment before caching or reuse, refreshes
 discovery after the callback so authorization-server migrations cannot reuse old credentials, pins
 RFC 8707 resource indicators to one MCP endpoint, compares callback location and state before code
-redemption, and never exposes attacker-controlled callback error descriptions.
+redemption, bounds authorization URLs before reparsing and browser handoff, accepts IPv4 loopback
+addresses throughout `127.0.0.0/8`, and never exposes attacker-controlled callback error descriptions.
 
 `createMcpNativeOAuthAuthorizationSession()` normalizes an app-owned
 `ASWebAuthenticationSession`/Android Custom Tab bridge into one exact callback. It rejects overlap,
@@ -151,7 +152,8 @@ provider reserves one interactive attempt before state persistence, the store re
 reservation for the same namespace, and only that provider can cancel or clear the live attempt.
 After a process restart, when no live owner remains, cancellation can claim and release the stale
 reservation. Callback validation claims rather than deletes the state, keeping the namespace occupied
-until verifier cleanup succeeds. The same total and per-parameter callback budgets apply to the
+until verifier cleanup succeeds. Full credential invalidation observes the same active-flow and
+ownership checks as cancellation. The same total and per-parameter callback budgets apply to the
 direct process-recovery path. See the [native integration and evidence
 plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md) for a React
 Native Keychain/Keystore mapping and the required platform matrix.

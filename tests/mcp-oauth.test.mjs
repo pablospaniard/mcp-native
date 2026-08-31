@@ -149,6 +149,14 @@ test("OAuth provider validates metadata and supplies native registration default
     () => createProvider({ serverUrl: "http://remote.example.com/mcp" }),
     /HTTPS or an HTTP loopback address/,
   );
+  assert.doesNotThrow(() => createProvider({ serverUrl: "http://127.0.0.2:8080/mcp" }));
+  const ipv4LoopbackRedirect = "http://127.42.0.9:49152/oauth/callback";
+  assert.doesNotThrow(() =>
+    createProvider({
+      redirectUrl: ipv4LoopbackRedirect,
+      clientMetadata: { redirect_uris: [ipv4LoopbackRedirect] },
+    }),
+  );
   assert.throws(() => createProvider({ serverUrl: `${SERVER_URL}#` }), /fragment/);
   assert.throws(
     () =>
@@ -628,6 +636,10 @@ test("OAuth recovery completion reserves persisted state against a new attempt",
     () => provider.state(),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
   );
+  await assert.rejects(
+    () => provider.invalidateCredentials("all"),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
   assert.equal(storage.values.state, VALID_STATE);
   assert.equal(storage.values.verifier, VALID_VERIFIER);
 
@@ -655,6 +667,10 @@ test("OAuth cancellation cannot race an in-flight state reservation", async () =
   const pending = provider.state();
   await assert.rejects(
     () => provider.cancelAuthorization(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  await assert.rejects(
+    () => provider.invalidateCredentials("all"),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
   );
   assert.equal(storage.values.verifier, VALID_VERIFIER);
@@ -717,6 +733,13 @@ test("OAuth authorization handoff and transport reject credential bypasses", asy
   await assert.rejects(
     () => provider.redirectToAuthorization(new URL("https://auth.example.com/authorize#")),
     /fragment/,
+  );
+  await assert.rejects(
+    () =>
+      provider.redirectToAuthorization(
+        new URL(`https://auth.example.com/authorize?padding=${"x".repeat(8_192)}`),
+      ),
+    /authorization URL exceeds the supported size/,
   );
 
   const transport = createMcpNativeOAuthTransport(SERVER_URL, provider, {

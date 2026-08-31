@@ -75,6 +75,7 @@ const RESERVED_REDIRECT_SCHEMES = new Set([
 ]);
 const MAX_SCOPE_CODE_UNITS = 2_048;
 const MAX_SCOPE_TOKENS = 64;
+const MAX_AUTHORIZATION_URL_CODE_UNITS = 8_192;
 const MAX_CALLBACK_CODE_UNITS = 8_192;
 const MAX_CALLBACK_PARAMETERS = 16;
 const MAX_CALLBACK_PARAMETER_NAME_CODE_UNITS = 128;
@@ -384,7 +385,14 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   }
 
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
-    const url = parseSecureEndpoint(authorizationUrl, "authorization URL");
+    const serializedAuthorizationUrl = authorizationUrl.href;
+    if (serializedAuthorizationUrl.length > MAX_AUTHORIZATION_URL_CODE_UNITS) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth authorization URL exceeds the supported size",
+      );
+    }
+    const url = parseSecureEndpoint(serializedAuthorizationUrl, "authorization URL");
     if (url.href.includes("#")) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
@@ -489,6 +497,19 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   }
 
   async invalidateCredentials(scope: McpNativeOAuthCredentialScope): Promise<void> {
+    if (scope === "all") {
+      if (
+        this.#authorizationStateSetupRunning ||
+        this.#authorizationCompletionRunning ||
+        this.#authorizationHandoffRunning
+      ) {
+        throw new McpNativeOAuthError(
+          "invalid-configuration",
+          "OAuth authorization state setup, handoff, or callback completion is already running",
+        );
+      }
+      await this.#storage.claimOAuthStateForCleanup(this.#authorizationOwner);
+    }
     await this.#storage.invalidate(scope, this.#activeIssuer);
     if (scope === "all" || scope === "discovery") {
       this.#activeIssuer = undefined;
@@ -743,7 +764,13 @@ function parseUrl(value: string | URL, label: string): URL {
 
 function isLoopbackHostname(hostname: string): boolean {
   const normalized = hostname.toLowerCase();
-  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "[::1]";
+  if (normalized === "localhost" || normalized === "[::1]") return true;
+  const octets = normalized.split(".");
+  return (
+    octets.length === 4 &&
+    octets[0] === "127" &&
+    octets.slice(1).every((octet) => /^(?:0|[1-9][0-9]{0,2})$/u.test(octet) && Number(octet) <= 255)
+  );
 }
 
 function isSupportedRedirectLocation(url: URL): boolean {
