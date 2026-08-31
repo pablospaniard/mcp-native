@@ -6,6 +6,7 @@ import type {
 } from "@modelcontextprotocol/client";
 
 import { McpNativeOAuthError } from "./oauth-error.js";
+import { isLoopbackHostname, MAX_AUTHORIZATION_URL_CODE_UNITS } from "./oauth-url.js";
 import type {
   McpNativeOAuthClientProvider,
   McpNativeOAuthCredentialScope,
@@ -426,7 +427,14 @@ export class McpNativeOAuthAuthorizationSession {
         "Another OAuth authorization session or callback is already pending",
       );
     }
-    const authorization = parseSecureUrl(authorizationUrl, "OAuth authorization URL");
+    const serializedAuthorizationUrl = authorizationUrl.href;
+    if (serializedAuthorizationUrl.length > MAX_AUTHORIZATION_URL_CODE_UNITS) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth authorization URL exceeds the supported size",
+      );
+    }
+    const authorization = parseSecureUrl(serializedAuthorizationUrl, "OAuth authorization URL");
     this.#running = true;
     try {
       let result: McpNativeOAuthAuthorizationSessionResult;
@@ -621,11 +629,6 @@ function parseUrl(value: string | URL, label: string): URL {
       cause: error,
     });
   }
-}
-
-function isLoopbackHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
-  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "[::1]";
 }
 
 function isSupportedRedirectLocation(url: URL): boolean {

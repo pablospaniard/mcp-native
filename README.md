@@ -260,7 +260,7 @@ active state setup, system handoff, or callback completion has settled. A claime
 keeps the shared namespace reserved until verifier cleanup succeeds, so another provider cannot
 replace the verifier during token exchange. The reservation is bound to its live provider, so a
 second provider sharing the namespace also cannot cancel or clear the first provider's attempt;
-full credential invalidation follows the same guard. Stale cleanup remains available after process
+full and verifier credential invalidation follow the same guard. Stale cleanup remains available after process
 restart. Authorization URLs are bounded before browser handoff, and both native-session and direct
 process-recovery callbacks have total and per-parameter budgets before code redemption. All 25 scored official
 authorization scenarios pass.

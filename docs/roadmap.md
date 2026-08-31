@@ -151,8 +151,8 @@ exact evidence gate are implemented. Both required credential/session platform r
       every registered redirect URI is validated, duplicate configured query names are rejected,
       and literal empty fragments fail closed; one-attempt reservation remains held from callback
       claim through verifier cleanup and is bound to its live provider, while cancellation locking
-      also covers full invalidation, authorization URLs are bounded before handoff, and callback
-      budgets cover native-session and process-recovery paths.
+      also covers full and verifier invalidation, authorization URLs are bounded before handoff, and
+      callback budgets cover native-session and process-recovery paths.
 - [x] Add the protected Streamable HTTP factory without issuer-validation opt-outs or manual
       credential headers, and surface `insufficient_scope` to the host before step-up authorization.
 - [x] Pass and pin every applicable official MCP `2026-07-28` authorization client scenario before

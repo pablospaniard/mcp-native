@@ -60,8 +60,8 @@ their minor release line.
 - Bind each live state reservation to its provider so another provider sharing the namespace cannot
   cancel the active handoff or delete its PKCE verifier; allow stale cleanup only when no live owner
   remains after process restart.
-- Apply the same active-flow and ownership checks to full credential invalidation so it cannot
-  bypass authorization cancellation serialization.
+- Apply the same active-flow and ownership checks to full or verifier credential invalidation so
+  neither can bypass authorization cancellation serialization.
 - Bound authorization URLs before reparsing or copying them into the host opener, and accept the
   complete IPv4 `127.0.0.0/8` loopback range for native OAuth endpoints and redirects.
 - Reject registered redirect URIs with duplicate query parameter names instead of accepting a

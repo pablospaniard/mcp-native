@@ -152,8 +152,8 @@ provider reserves one interactive attempt before state persistence, the store re
 reservation for the same namespace, and only that provider can cancel or clear the live attempt.
 After a process restart, when no live owner remains, cancellation can claim and release the stale
 reservation. Callback validation claims rather than deletes the state, keeping the namespace occupied
-until verifier cleanup succeeds. Full credential invalidation observes the same active-flow and
-ownership checks as cancellation. The same total and per-parameter callback budgets apply to the
+until verifier cleanup succeeds. Full and verifier credential invalidation observe the same
+active-flow and ownership checks as cancellation. The same total and per-parameter callback budgets apply to the
 direct process-recovery path. See the [native integration and evidence
 plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md) for a React
 Native Keychain/Keystore mapping and the required platform matrix.

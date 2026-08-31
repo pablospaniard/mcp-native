@@ -27,6 +27,7 @@ import {
 } from "@modelcontextprotocol/core";
 
 import { McpNativeOAuthError } from "./oauth-error.js";
+import { isLoopbackHostname, MAX_AUTHORIZATION_URL_CODE_UNITS } from "./oauth-url.js";
 export { McpNativeOAuthError } from "./oauth-error.js";
 export type { McpNativeOAuthErrorCode } from "./oauth-error.js";
 export {
@@ -75,7 +76,6 @@ const RESERVED_REDIRECT_SCHEMES = new Set([
 ]);
 const MAX_SCOPE_CODE_UNITS = 2_048;
 const MAX_SCOPE_TOKENS = 64;
-const MAX_AUTHORIZATION_URL_CODE_UNITS = 8_192;
 const MAX_CALLBACK_CODE_UNITS = 8_192;
 const MAX_CALLBACK_PARAMETERS = 16;
 const MAX_CALLBACK_PARAMETER_NAME_CODE_UNITS = 128;
@@ -497,7 +497,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   }
 
   async invalidateCredentials(scope: McpNativeOAuthCredentialScope): Promise<void> {
-    if (scope === "all") {
+    if (scope === "all" || scope === "verifier") {
       if (
         this.#authorizationStateSetupRunning ||
         this.#authorizationCompletionRunning ||
@@ -511,6 +511,11 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       await this.#storage.claimOAuthStateForCleanup(this.#authorizationOwner);
     }
     await this.#storage.invalidate(scope, this.#activeIssuer);
+    if (scope === "verifier") {
+      await this.#storage.clearOAuthState(this.#authorizationOwner);
+      this.#pendingAuthorizationUrl = undefined;
+      this.#authorizationAttemptReserved = false;
+    }
     if (scope === "all" || scope === "discovery") {
       this.#activeIssuer = undefined;
     }
@@ -760,17 +765,6 @@ function parseUrl(value: string | URL, label: string): URL {
       cause: error,
     });
   }
-}
-
-function isLoopbackHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
-  if (normalized === "localhost" || normalized === "[::1]") return true;
-  const octets = normalized.split(".");
-  return (
-    octets.length === 4 &&
-    octets[0] === "127" &&
-    octets.slice(1).every((octet) => /^(?:0|[1-9][0-9]{0,2})$/u.test(octet) && Number(octet) <= 255)
-  );
 }
 
 function isSupportedRedirectLocation(url: URL): boolean {

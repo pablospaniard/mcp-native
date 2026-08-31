@@ -383,6 +383,17 @@ test("OS authorization-session adapter accepts one exact callback and consumes i
     () => session.finishAuthorization(provider, { finishAuth: () => undefined }),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-callback",
   );
+
+  const loopbackRedirect = "http://127.42.0.9:49152/oauth/callback";
+  const loopback = createMcpNativeOAuthAuthorizationSession({
+    redirectUrl: loopbackRedirect,
+    open: () => ({
+      type: "success",
+      url: `${loopbackRedirect}?code=code-2&state=${VALID_STATE}`,
+    }),
+  });
+  await loopback.openAuthorization(new URL("http://127.0.0.2:49153/authorize"));
+  assert.equal(loopback.hasPendingCallback(), true);
 });
 
 test("OS authorization-session adapter rejects cancellation, overlap, and callback substitution", async () => {
@@ -465,6 +476,13 @@ test("OS authorization-session adapter rejects cancellation, overlap, and callba
   await assert.rejects(
     () => malformed.openAuthorization(new URL(`${ISSUER}/authorize`)),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-callback",
+  );
+  await assert.rejects(
+    () =>
+      cancelled.openAuthorization(
+        new URL(`https://auth.example.com/authorize?padding=${"x".repeat(8_192)}`),
+      ),
+    /authorization URL exceeds the supported size/,
   );
 
   let complete;
@@ -614,6 +632,14 @@ test("a second provider cannot cancel another provider's authorization handoff",
   );
   await assert.rejects(
     () => second.invalidateCredentials("all"),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  await assert.rejects(
+    () => first.invalidateCredentials("verifier"),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  await assert.rejects(
+    () => second.invalidateCredentials("verifier"),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
   );
   assert.equal(await firstStore.loadCodeVerifier(), VALID_VERIFIER);

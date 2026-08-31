@@ -221,6 +221,11 @@ test("OAuth provider persists and validates state and PKCE material", async () =
     () => createProvider({ createState: () => "predictable" }).provider.state(),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
   );
+
+  await provider.invalidateCredentials("verifier");
+  assert.equal(storage.values.state, undefined);
+  assert.equal(storage.values.verifier, undefined);
+  assert.equal(await provider.state(), VALID_STATE);
 });
 
 test("OAuth credentials are bound to their authorization-server issuer", async () => {
