@@ -187,6 +187,19 @@ test("OAuth discovery cache rejects issuer and protected-resource substitution",
   storage.values.discovery = {
     authorizationServerUrl: ISSUER,
     resourceMetadata: {
+      resource: SERVER_URL,
+      authorization_servers: ["https://other.example.com"],
+    },
+  };
+  await provider.saveCodeVerifier(VALID_VERIFIER);
+  await assert.rejects(
+    () => provider.discoveryState(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+
+  storage.values.discovery = {
+    authorizationServerUrl: ISSUER,
+    resourceMetadata: {
       resource: "https://evil.example.com/mcp",
       authorization_servers: [ISSUER],
     },

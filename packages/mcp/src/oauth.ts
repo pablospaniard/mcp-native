@@ -625,6 +625,16 @@ function parseDiscoveryState(state: OAuthDiscoveryState, resourceUrl: URL): OAut
       "Stored protected-resource metadata identifies a different MCP server",
     );
   }
+  if (
+    resourceMetadataResult?.success &&
+    resourceMetadataResult.data.authorization_servers !== undefined &&
+    !resourceMetadataResult.data.authorization_servers.includes(authorizationServerUrl)
+  ) {
+    throw new McpNativeOAuthError(
+      "invalid-storage",
+      "Stored protected-resource metadata does not advertise the selected authorization server",
+    );
+  }
   const resourceMetadataUrl =
     state.resourceMetadataUrl === undefined
       ? undefined
