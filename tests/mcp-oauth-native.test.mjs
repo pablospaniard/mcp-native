@@ -100,6 +100,15 @@ test("platform OAuth storage serializes state consumption and bounds corrupt sec
   await storage.clearOAuthState(owner);
 
   await assert.rejects(
+    () => storage.saveOAuthState({ toString: () => VALID_STATE }, owner),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  await assert.rejects(
+    () => storage.saveCodeVerifier({ toString: () => VALID_VERIFIER }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+
+  await assert.rejects(
     () => storage.saveTokens(ISSUER, { access_token: "x".repeat(40_000) }),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
   );
@@ -118,6 +127,14 @@ test("platform OAuth storage serializes state consumption and bounds corrupt sec
     () =>
       createMcpNativeOAuthPlatformSecureStore({
         namespace: "server supplied/unsafe",
+        backend: secrets.backend,
+      }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  assert.throws(
+    () =>
+      createMcpNativeOAuthPlatformSecureStore({
+        namespace: undefined,
         backend: secrets.backend,
       }),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
@@ -427,6 +444,21 @@ test("OS authorization-session adapter rejects cancellation, overlap, and callba
       }),
     /duplicate query parameter names/,
   );
+  for (const redirectUrl of [
+    `${REDIRECT_URL}?${"n".repeat(129)}=value`,
+    `${REDIRECT_URL}?tenant=${"x".repeat(4_097)}`,
+    `${REDIRECT_URL}?${Array.from({ length: 15 }, (_, index) => `p${index}=x`).join("&")}`,
+    `mcp-native://oauth/${"p".repeat(3_600)}`,
+  ]) {
+    assert.throws(
+      () =>
+        createMcpNativeOAuthAuthorizationSession({
+          redirectUrl,
+          open: () => ({ type: "cancel" }),
+        }),
+      (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+    );
+  }
 
   const cancelled = createMcpNativeOAuthAuthorizationSession({
     redirectUrl: REDIRECT_URL,
@@ -477,6 +509,14 @@ test("OS authorization-session adapter rejects cancellation, overlap, and callba
     () => malformed.openAuthorization(new URL(`${ISSUER}/authorize`)),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-callback",
   );
+  const malformedUrl = createMcpNativeOAuthAuthorizationSession({
+    redirectUrl: REDIRECT_URL,
+    open: () => ({ type: "success", url: "not an absolute URL" }),
+  });
+  await assert.rejects(
+    () => malformedUrl.openAuthorization(new URL(`${ISSUER}/authorize`)),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-callback",
+  );
   await assert.rejects(
     () =>
       cancelled.openAuthorization(
@@ -504,6 +544,55 @@ test("OS authorization-session adapter rejects cancellation, overlap, and callba
   );
   complete();
   await first;
+});
+
+test("OS authorization session stays exclusive through callback completion", async () => {
+  const session = createMcpNativeOAuthAuthorizationSession({
+    redirectUrl: REDIRECT_URL,
+    open: () => ({
+      type: "success",
+      url: `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}`,
+    }),
+  });
+  const { storage } = createPlatformStore();
+  const provider = createMcpNativeOAuthProvider({
+    serverUrl: SERVER_URL,
+    redirectUrl: REDIRECT_URL,
+    clientMetadata: { client_name: "Native host", redirect_uris: [REDIRECT_URL] },
+    storage,
+    createState: () => VALID_STATE,
+    openAuthorization: session.openAuthorization,
+  });
+  await provider.state();
+  await provider.saveCodeVerifier(VALID_VERIFIER);
+  await session.openAuthorization(new URL(`${ISSUER}/authorize`));
+
+  let completionStarted;
+  const started = new Promise((resolve) => {
+    completionStarted = resolve;
+  });
+  let releaseCompletion;
+  const blocked = new Promise((resolve) => {
+    releaseCompletion = resolve;
+  });
+  const completion = session.finishAuthorization(provider, {
+    async finishAuth() {
+      completionStarted();
+      await blocked;
+    },
+  });
+  await started;
+  await assert.rejects(
+    () => session.openAuthorization(new URL(`${ISSUER}/authorize`)),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  await assert.rejects(
+    () => session.finishAuthorization(provider, { finishAuth: () => undefined }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-callback",
+  );
+
+  releaseCompletion();
+  await completion;
 });
 
 test("cancelled OS authorization sessions clear durable state and PKCE material", async () => {

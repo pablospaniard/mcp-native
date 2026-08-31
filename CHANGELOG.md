@@ -51,6 +51,26 @@ their minor release line.
 - Reject empty and non-empty fragments on fetched or cached protected-resource metadata URLs.
 - Bound server-controlled protected-resource identifiers before URL parsing and serialize OAuth
   authorization cleanup so overlapping cancellation cannot erase a newly started attempt.
+- Reject configured redirects that cannot fit bounded OAuth callback names, values, required
+  response fields, or total URL size.
+- Bind each reserved authorization attempt to one PKCE verifier and one browser handoff, require
+  both state and verifier before that handoff, and reject callback completion while state/verifier
+  setup or the browser handoff is still active.
+- Fail closed with controlled OAuth errors when a custom secure store returns a non-object
+  registration, token response, or discovery-state root.
+- Validate the complete host storage/callback contract and reject non-string state, verifier, and
+  secure-store namespace values without JavaScript regular-expression coercion.
+- Apply the reference store's issuer-length limit in the provider before issuer URL parsing,
+  persistence, or reuse.
+- Classify malformed or insecure issuers and discovery endpoints from OAuth storage as storage
+  failures instead of host configuration failures.
+- Convert malformed protected-resource identifiers into controlled OAuth storage errors before
+  they reach URL matching.
+- Classify malformed platform and process-recovery callback URLs as `invalid-callback` rather than
+  host configuration failures.
+- Resolve the public `@mcp-native/mcp/oauth` subpath through its ESM export condition from the
+  packed consumer during package smoke verification.
+- Keep the OS authorization-session adapter exclusive until callback token exchange finishes.
 - Reserve one authorization attempt before state persistence so overlapping flows cannot replace its
   state or verifier, and apply total, count, name, and value limits to both native-session and direct
   process-recovery callbacks before code redemption. Direct recovery also reserves the persisted

@@ -47,14 +47,16 @@ consent, retry, and shutdown. For protected Streamable HTTP, `@mcp-native/mcp` a
 an issuer-bound official SDK OAuth provider and transport factory. They pin one protected resource,
 validate bounded stored registrations, tokens, discovery, every registered redirect URI, issuer
 URLs, and callback state before parsing, persistence, or reuse; reject duplicate registered redirect
-query names and literal fragment delimiters on server, redirect, authorization, and callback URLs;
+query names, insufficient configured callback capacity, and literal fragment delimiters on server,
+redirect, authorization, and callback URLs;
 require every actionable discovery endpoint to use HTTPS or an HTTP loopback address without a
 fragment; reject manual credential headers; and require a host-owned secure store and
 browser/authentication-session handoff. Dependency-neutral reference adapters provide bounded
 fixed-slot persistence with cross-instance namespaced state serialization over a native secret
 backend and a closed ASWebAuthenticationSession/Custom Tab result boundary without importing React
 Native. A claimed callback keeps that namespace reserved through verifier cleanup. One provider
-owns one interactive attempt, rejects cancellation during setup, handoff, or completion, prevents a
+owns one interactive attempt, requires reserved state and exactly one saved verifier before handoff,
+rejects cancellation during setup, handoff, or completion, prevents a
 second provider from cancelling the live attempt, and applies callback budgets to both native-session
 and process-recovery entry points. All 25 scored pinned
 `2026-07-28` authorization client scenarios pass. The evidence validator counts a row only when all

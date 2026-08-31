@@ -2,7 +2,6 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 
 const packages = [
   "@mcp-native/core",
@@ -167,24 +166,27 @@ try {
     },
   );
 
-  const importPromises = packages.map((packageName) => {
+  for (const packageName of packages) {
     const packageJsonPath = join(consumerDirectory, "node_modules", packageName, "package.json");
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
     if (packageJson.version !== expectedVersion) {
       throw new Error(`${packageName} has unexpected version ${packageJson.version}`);
     }
-    const entryPoint = join(consumerDirectory, "node_modules", packageName, "dist", "index.js");
-    return import(pathToFileURL(entryPoint).href);
-  });
-  importPromises.push(
-    import(
-      pathToFileURL(
-        join(consumerDirectory, "node_modules", "@mcp-native", "mcp", "dist", "oauth-native.js"),
-      ).href
-    ),
+  }
+  const smokeEntryPoint = join(consumerDirectory, "smoke.mjs");
+  writeFileSync(
+    smokeEntryPoint,
+    `await Promise.all(${JSON.stringify(packages)}.map((specifier) => import(specifier)));
+const oauthEntryPoint = import.meta.resolve("@mcp-native/mcp/oauth");
+if (!oauthEntryPoint.endsWith("/dist/oauth.js")) {
+  throw new Error(\`Unexpected @mcp-native/mcp/oauth entry point: \${oauthEntryPoint}\`);
+}\n`,
   );
-
-  await Promise.all(importPromises);
+  execFileSync(process.execPath, [smokeEntryPoint], {
+    cwd: consumerDirectory,
+    env: npmEnvironment,
+    stdio: "inherit",
+  });
 
   console.log(`Verified ${packages.length} installable package tarballs.`);
 } finally {

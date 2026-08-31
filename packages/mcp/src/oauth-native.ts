@@ -6,7 +6,13 @@ import type {
 } from "@modelcontextprotocol/client";
 
 import { McpNativeOAuthError } from "./oauth-error.js";
-import { isLoopbackHostname, MAX_AUTHORIZATION_URL_CODE_UNITS } from "./oauth-url.js";
+import {
+  assertOAuthRedirectParameterBudget,
+  isLoopbackHostname,
+  MAX_AUTHORIZATION_URL_CODE_UNITS,
+  MAX_CALLBACK_CODE_UNITS,
+  MAX_OAUTH_ISSUER_CODE_UNITS,
+} from "./oauth-url.js";
 import type {
   McpNativeOAuthClientProvider,
   McpNativeOAuthCredentialScope,
@@ -14,8 +20,6 @@ import type {
 } from "./oauth.js";
 
 const MAX_SECRET_CODE_UNITS = 32_768;
-const MAX_CALLBACK_CODE_UNITS = 8_192;
-const MAX_ISSUER_CODE_UNITS = 2_048;
 const NAMESPACE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
 const PKCE_VERIFIER_PATTERN = /^[A-Za-z0-9._~-]{43,128}$/u;
 const OAUTH_STATE_PATTERN = /^[A-Za-z0-9._~-]{32,512}$/u;
@@ -86,7 +90,7 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
   readonly #services: Readonly<Record<SecretSlot, string>>;
 
   constructor(options: McpNativeOAuthPlatformSecureStoreOptions) {
-    if (!NAMESPACE_PATTERN.test(options.namespace)) {
+    if (typeof options.namespace !== "string" || !NAMESPACE_PATTERN.test(options.namespace)) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
         "OAuth secure-store namespace must contain 1 to 64 safe app-owned characters",
@@ -147,7 +151,7 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
   }
 
   async saveCodeVerifier(verifier: string): Promise<void> {
-    if (!PKCE_VERIFIER_PATTERN.test(verifier)) {
+    if (typeof verifier !== "string" || !PKCE_VERIFIER_PATTERN.test(verifier)) {
       throw new McpNativeOAuthError("invalid-storage", "OAuth PKCE verifier is invalid");
     }
     await this.#backend.write(this.#services.verifier, verifier);
@@ -169,7 +173,7 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
 
   async saveOAuthState(state: string, owner: object): Promise<void> {
     assertAttemptOwner(owner);
-    if (!OAUTH_STATE_PATTERN.test(state)) {
+    if (typeof state !== "string" || !OAUTH_STATE_PATTERN.test(state)) {
       throw new McpNativeOAuthError("invalid-storage", "OAuth state is invalid");
     }
     await this.#withStateLock(async () => {
@@ -221,7 +225,7 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
 
   async consumeOAuthState(state: string, owner: object): Promise<boolean> {
     assertAttemptOwner(owner);
-    if (!OAUTH_STATE_PATTERN.test(state)) return false;
+    if (typeof state !== "string" || !OAUTH_STATE_PATTERN.test(state)) return false;
     return this.#withStateLock(async () => {
       const service = this.#services.state;
       const currentOwner = STATE_OWNERS.get(service);
@@ -407,6 +411,7 @@ export class McpNativeOAuthAuthorizationSession {
   readonly #redirectUrl: URL;
   readonly #open: McpNativeOAuthAuthorizationSessionOptions["open"];
   #callbackUrl: URL | undefined;
+  #finishing = false;
   #running = false;
 
   constructor(options: McpNativeOAuthAuthorizationSessionOptions) {
@@ -421,7 +426,7 @@ export class McpNativeOAuthAuthorizationSession {
   }
 
   readonly openAuthorization = async (authorizationUrl: URL): Promise<void> => {
-    if (this.#running || this.#callbackUrl !== undefined) {
+    if (this.#running || this.#finishing || this.#callbackUrl !== undefined) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
         "Another OAuth authorization session or callback is already pending",
@@ -481,14 +486,19 @@ export class McpNativeOAuthAuthorizationSession {
     finisher: OAuthFinisher,
   ): Promise<void> {
     const callback = this.#callbackUrl;
-    if (callback === undefined) {
+    if (callback === undefined || this.#finishing) {
       throw new McpNativeOAuthError(
         "invalid-callback",
         "No platform authorization callback is pending",
       );
     }
+    this.#finishing = true;
     this.#callbackUrl = undefined;
-    await provider.finishAuthorization(finisher, callback);
+    try {
+      await provider.finishAuthorization(finisher, callback);
+    } finally {
+      this.#finishing = false;
+    }
   }
 }
 
@@ -505,7 +515,11 @@ function assertAttemptOwner(owner: object): void {
 }
 
 function assertIssuer(issuer: string): void {
-  if (typeof issuer !== "string" || issuer.length === 0 || issuer.length > MAX_ISSUER_CODE_UNITS) {
+  if (
+    typeof issuer !== "string" ||
+    issuer.length === 0 ||
+    issuer.length > MAX_OAUTH_ISSUER_CODE_UNITS
+  ) {
     throw new McpNativeOAuthError("invalid-storage", "OAuth issuer is invalid or too large");
   }
   let url: URL;
@@ -567,6 +581,7 @@ function parseRedirectUrl(value: string | URL): URL {
       );
     }
   }
+  assertOAuthRedirectParameterBudget(url);
   return url;
 }
 
@@ -604,7 +619,14 @@ function parseSecureUrl(value: string | URL, label: string): URL {
 }
 
 function parseCallbackUrl(value: string, redirectUrl: URL): URL {
-  const callback = parseUrl(value, "OAuth callback URL");
+  let callback: URL;
+  try {
+    callback = new URL(value);
+  } catch (error) {
+    throw new McpNativeOAuthError("invalid-callback", "OAuth callback must be an absolute URL", {
+      cause: error,
+    });
+  }
   if (
     callback.href.includes("#") ||
     callback.protocol !== redirectUrl.protocol ||

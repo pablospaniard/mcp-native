@@ -135,7 +135,8 @@ across store objects using the same namespace in one JS runtime over a narrow na
 it cannot make AsyncStorage or a plain file secure. The provider validates stored values
 before returning them to the SDK, bounds complete registration, discovery, and token structures—including
 token extension fields—before schema parsing, persistence, or reuse, validates every registered redirect URI,
-rejects duplicate registered redirect query names and literal fragment delimiters on server,
+rejects duplicate registered redirect query names, redirects without enough bounded callback
+capacity, and literal fragment delimiters on server,
 redirect, authorization, and callback URLs, requires every actionable discovery endpoint to use
 HTTPS or an HTTP loopback address and contain no fragment before caching or reuse, refreshes
 discovery after the callback so authorization-server migrations cannot reuse old credentials, pins
@@ -150,6 +151,7 @@ pending state and PKCE material without deleting registrations or tokens; direct
 cancellation is rejected while the system handoff, state setup, or callback completion is active. The
 provider reserves one interactive attempt before state persistence, the store rejects a second
 reservation for the same namespace, and only that provider can cancel or clear the live attempt.
+The browser handoff requires that reservation and exactly one saved PKCE verifier.
 After a process restart, when no live owner remains, cancellation can claim and release the stale
 reservation. Callback validation claims rather than deletes the state, keeping the namespace occupied
 until verifier cleanup succeeds. Full and verifier credential invalidation observe the same

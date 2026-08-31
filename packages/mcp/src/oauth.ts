@@ -27,7 +27,16 @@ import {
 } from "@modelcontextprotocol/core";
 
 import { McpNativeOAuthError } from "./oauth-error.js";
-import { isLoopbackHostname, MAX_AUTHORIZATION_URL_CODE_UNITS } from "./oauth-url.js";
+import {
+  assertOAuthRedirectParameterBudget,
+  isLoopbackHostname,
+  MAX_AUTHORIZATION_URL_CODE_UNITS,
+  MAX_CALLBACK_CODE_UNITS,
+  MAX_CALLBACK_PARAMETERS,
+  MAX_CALLBACK_PARAMETER_NAME_CODE_UNITS,
+  MAX_CALLBACK_PARAMETER_VALUE_CODE_UNITS,
+  MAX_OAUTH_ISSUER_CODE_UNITS,
+} from "./oauth-url.js";
 export { McpNativeOAuthError } from "./oauth-error.js";
 export type { McpNativeOAuthErrorCode } from "./oauth-error.js";
 export {
@@ -76,10 +85,6 @@ const RESERVED_REDIRECT_SCHEMES = new Set([
 ]);
 const MAX_SCOPE_CODE_UNITS = 2_048;
 const MAX_SCOPE_TOKENS = 64;
-const MAX_CALLBACK_CODE_UNITS = 8_192;
-const MAX_CALLBACK_PARAMETERS = 16;
-const MAX_CALLBACK_PARAMETER_NAME_CODE_UNITS = 128;
-const MAX_CALLBACK_PARAMETER_VALUE_CODE_UNITS = 4_096;
 const MAX_RESOURCE_IDENTIFIER_CODE_UNITS = 4_096;
 const CALLBACK_VALUE_LIMITS = Object.freeze({
   code: 4_096,
@@ -265,11 +270,25 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   #pendingAuthorizationUrl: string | undefined;
   #authorizationAttemptReserved = false;
   #authorizationCleanupRunning = false;
+  #authorizationCodeVerifierSaved = false;
+  #authorizationCodeVerifierSetupRunning = false;
   #authorizationStateSetupRunning = false;
   #authorizationCompletionRunning = false;
   #authorizationHandoffRunning = false;
 
   constructor(options: McpNativeOAuthProviderOptions) {
+    assertSecureStore(options.storage);
+    if (
+      typeof options.createState !== "function" ||
+      typeof options.openAuthorization !== "function" ||
+      (options.approveReauthorization !== undefined &&
+        typeof options.approveReauthorization !== "function")
+    ) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth provider callbacks must be functions",
+      );
+    }
     this.#resourceUrl = resourceUrlFromServerUrl(parseProtectedServerUrl(options.serverUrl));
     this.redirectUrl = parseRedirectUrl(options.redirectUrl);
     validateClientMetadataUrl(options.clientMetadataUrl);
@@ -316,13 +335,14 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       );
     }
     this.#authorizationAttemptReserved = true;
+    this.#authorizationCodeVerifierSaved = false;
     this.#authorizationStateSetupRunning = true;
     let storageReserved = false;
     try {
       await this.#storage.reserveOAuthState(this.#authorizationOwner);
       storageReserved = true;
       const state = await this.#createState();
-      if (!STATE_PATTERN.test(state)) {
+      if (typeof state !== "string" || !STATE_PATTERN.test(state)) {
         throw new McpNativeOAuthError(
           "invalid-configuration",
           "OAuth state must contain 32 to 512 URL-safe characters",
@@ -343,6 +363,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         );
       } finally {
         this.#authorizationAttemptReserved = false;
+        this.#authorizationCodeVerifierSaved = false;
       }
       throw error;
     } finally {
@@ -418,14 +439,31 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         "OAuth authorization URL must not contain a fragment",
       );
     }
-    if (this.#authorizationCleanupRunning) {
+    if (
+      this.#authorizationStateSetupRunning ||
+      this.#authorizationCodeVerifierSetupRunning ||
+      this.#authorizationCleanupRunning ||
+      this.#authorizationCompletionRunning
+    ) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
-        "OAuth authorization cleanup is already running",
+        "OAuth authorization setup, callback completion, or cleanup is already running",
+      );
+    }
+    if (!this.#authorizationAttemptReserved || !this.#authorizationCodeVerifierSaved) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth authorization handoff requires reserved state and one saved PKCE verifier",
       );
     }
     if (this.#pendingAuthorizationUrl === url.href) {
       return;
+    }
+    if (this.#pendingAuthorizationUrl !== undefined) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "Another OAuth authorization URL is already pending",
+      );
     }
     if (this.#authorizationHandoffRunning) {
       throw new McpNativeOAuthError(
@@ -468,7 +506,28 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
 
   async saveCodeVerifier(verifier: string): Promise<void> {
     assertCodeVerifier(verifier);
-    await this.#storage.saveCodeVerifier(verifier);
+    if (
+      !this.#authorizationAttemptReserved ||
+      this.#authorizationCodeVerifierSaved ||
+      this.#authorizationStateSetupRunning ||
+      this.#authorizationCodeVerifierSetupRunning ||
+      this.#authorizationCleanupRunning ||
+      this.#authorizationCompletionRunning ||
+      this.#authorizationHandoffRunning ||
+      this.#pendingAuthorizationUrl !== undefined
+    ) {
+      throw new McpNativeOAuthError(
+        "invalid-configuration",
+        "OAuth PKCE verifier must belong to one reserved authorization attempt",
+      );
+    }
+    this.#authorizationCodeVerifierSetupRunning = true;
+    try {
+      await this.#storage.saveCodeVerifier(verifier);
+      this.#authorizationCodeVerifierSaved = true;
+    } finally {
+      this.#authorizationCodeVerifierSetupRunning = false;
+    }
   }
 
   async codeVerifier(): Promise<string> {
@@ -495,12 +554,20 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
           "Protected resource identifier is invalid or exceeds the supported size",
         );
       }
-      if (
-        !checkResourceAllowed({
+      let allowed: boolean;
+      try {
+        allowed = checkResourceAllowed({
           requestedResource: this.#resourceUrl,
           configuredResource: resource,
-        })
-      ) {
+        });
+      } catch (error) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "Protected resource metadata contains an invalid resource identifier",
+          { cause: error },
+        );
+      }
+      if (!allowed) {
         throw new McpNativeOAuthError(
           "resource-mismatch",
           "Protected resource metadata does not identify the configured MCP server",
@@ -536,13 +603,14 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     if (clearsAuthorizationAttempt) {
       if (
         this.#authorizationStateSetupRunning ||
+        this.#authorizationCodeVerifierSetupRunning ||
         this.#authorizationCleanupRunning ||
         this.#authorizationCompletionRunning ||
         this.#authorizationHandoffRunning
       ) {
         throw new McpNativeOAuthError(
           "invalid-configuration",
-          "OAuth authorization state setup, handoff, callback completion, or cleanup is already running",
+          "OAuth authorization state/verifier setup, handoff, callback completion, or cleanup is already running",
         );
       }
       this.#authorizationCleanupRunning = true;
@@ -556,6 +624,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         await this.#storage.clearOAuthState(this.#authorizationOwner);
         this.#pendingAuthorizationUrl = undefined;
         this.#authorizationAttemptReserved = false;
+        this.#authorizationCodeVerifierSaved = false;
       }
       if (scope === "all" || scope === "discovery") {
         this.#activeIssuer = undefined;
@@ -563,6 +632,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       if (scope === "all") {
         this.#pendingAuthorizationUrl = undefined;
         this.#authorizationAttemptReserved = false;
+        this.#authorizationCodeVerifierSaved = false;
       }
     } finally {
       if (clearsAuthorizationAttempt) {
@@ -579,13 +649,14 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   async cancelAuthorization(): Promise<void> {
     if (
       this.#authorizationStateSetupRunning ||
+      this.#authorizationCodeVerifierSetupRunning ||
       this.#authorizationCleanupRunning ||
       this.#authorizationCompletionRunning ||
       this.#authorizationHandoffRunning
     ) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
-        "OAuth authorization state setup, handoff, callback completion, or cleanup is already running",
+        "OAuth authorization state/verifier setup, handoff, callback completion, or cleanup is already running",
       );
     }
     await this.#discardPendingAuthorization();
@@ -596,10 +667,16 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
    * OAuth state is consumed before token exchange, so the callback cannot be replayed.
    */
   async finishAuthorization(finisher: OAuthFinisher, callbackUrl: string | URL): Promise<void> {
-    if (this.#authorizationCompletionRunning || this.#authorizationCleanupRunning) {
+    if (
+      this.#authorizationStateSetupRunning ||
+      this.#authorizationCodeVerifierSetupRunning ||
+      this.#authorizationHandoffRunning ||
+      this.#authorizationCompletionRunning ||
+      this.#authorizationCleanupRunning
+    ) {
       throw new McpNativeOAuthError(
         "invalid-callback",
-        "OAuth callback completion or authorization cleanup is already running",
+        "OAuth authorization setup, handoff, callback completion, or cleanup is already running",
       );
     }
     this.#authorizationCompletionRunning = true;
@@ -637,6 +714,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
           await this.#storage.clearOAuthState(this.#authorizationOwner);
         } finally {
           this.#authorizationAttemptReserved = false;
+          this.#authorizationCodeVerifierSaved = false;
         }
       }
     } finally {
@@ -677,6 +755,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       await this.#storage.clearOAuthState(this.#authorizationOwner);
     } finally {
       this.#authorizationAttemptReserved = false;
+      this.#authorizationCodeVerifierSaved = false;
       this.#authorizationCleanupRunning = false;
     }
   }
@@ -779,6 +858,7 @@ function parseRedirectUrl(value: string | URL): URL {
       );
     }
   }
+  assertOAuthRedirectParameterBudget(url);
   return url;
 }
 
@@ -834,10 +914,14 @@ function isSupportedRedirectLocation(url: URL): boolean {
 }
 
 function parseIssuer(value: unknown, label: string): string {
-  if (typeof value !== "string") {
-    throw new McpNativeOAuthError("invalid-storage", `${label} is missing`);
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > MAX_OAUTH_ISSUER_CODE_UNITS
+  ) {
+    throw new McpNativeOAuthError("invalid-storage", `${label} is missing, invalid, or too large`);
   }
-  const url = parseSecureEndpoint(value, label);
+  const url = parseStoredSecureEndpoint(value, label);
   if (url.href.includes("?") || url.href.includes("#")) {
     throw new McpNativeOAuthError(
       "invalid-storage",
@@ -873,6 +957,7 @@ function requireMatchingIssuer(actual: string | undefined, expected: string, lab
 
 function parseStoredTokens(value: StoredOAuthTokens): StoredOAuthTokens {
   assertBoundedOAuthJson(value, "Stored OAuth token response", TOKEN_INFORMATION_BUDGET);
+  assertOAuthRecord(value, "Stored OAuth token response");
   assertBoundedTokenValues(value);
   const result = OAuthTokensSchema.safeParse(value);
   if (!result.success) {
@@ -912,6 +997,7 @@ function parseStoredClientInformation(
   value: StoredOAuthClientInformation,
 ): StoredOAuthClientInformation {
   assertBoundedOAuthJson(value, "Stored OAuth client information", CLIENT_INFORMATION_BUDGET);
+  assertOAuthRecord(value, "Stored OAuth client information");
   if (
     typeof value.client_id === "string" &&
     value.client_id.length > MAX_CLIENT_IDENTIFIER_CODE_UNITS
@@ -946,6 +1032,7 @@ function parseStoredClientInformation(
 
 function parseDiscoveryState(state: OAuthDiscoveryState, resourceUrl: URL): OAuthDiscoveryState {
   assertBoundedOAuthJson(state, "Stored OAuth discovery state", DISCOVERY_STATE_BUDGET);
+  assertOAuthRecord(state, "Stored OAuth discovery state");
   const authorizationServerUrl = parseIssuer(
     state.authorizationServerUrl,
     "discovery authorization-server issuer",
@@ -973,17 +1060,26 @@ function parseDiscoveryState(state: OAuthDiscoveryState, resourceUrl: URL): OAut
       { cause: resourceMetadataResult.error },
     );
   }
-  if (
-    resourceMetadataResult?.success &&
-    !checkResourceAllowed({
-      requestedResource: resourceUrl,
-      configuredResource: resourceMetadataResult.data.resource,
-    })
-  ) {
-    throw new McpNativeOAuthError(
-      "resource-mismatch",
-      "Stored protected-resource metadata identifies a different MCP server",
-    );
+  if (resourceMetadataResult?.success) {
+    let allowed: boolean;
+    try {
+      allowed = checkResourceAllowed({
+        requestedResource: resourceUrl,
+        configuredResource: resourceMetadataResult.data.resource,
+      });
+    } catch (error) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        "Stored protected-resource metadata contains an invalid resource identifier",
+        { cause: error },
+      );
+    }
+    if (!allowed) {
+      throw new McpNativeOAuthError(
+        "resource-mismatch",
+        "Stored protected-resource metadata identifies a different MCP server",
+      );
+    }
   }
   if (
     resourceMetadataResult?.success &&
@@ -997,7 +1093,7 @@ function parseDiscoveryState(state: OAuthDiscoveryState, resourceUrl: URL): OAut
   }
   let resourceMetadataUrl: string | undefined;
   if (state.resourceMetadataUrl !== undefined) {
-    const parsedResourceMetadataUrl = parseSecureEndpoint(
+    const parsedResourceMetadataUrl = parseStoredSecureEndpoint(
       state.resourceMetadataUrl,
       "protected-resource metadata URL",
     );
@@ -1015,6 +1111,15 @@ function parseDiscoveryState(state: OAuthDiscoveryState, resourceUrl: URL): OAut
     ...(resourceMetadataResult?.success ? { resourceMetadata: resourceMetadataResult.data } : {}),
     ...(resourceMetadataUrl === undefined ? {} : { resourceMetadataUrl }),
   };
+}
+
+function assertOAuthRecord(
+  value: unknown,
+  label: string,
+): asserts value is Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new McpNativeOAuthError("invalid-storage", `${label} must be a JSON object`);
+  }
 }
 
 function assertBoundedOAuthJson(value: unknown, label: string, budget: OAuthJsonBudget): void {
@@ -1167,7 +1272,7 @@ function assertSecureAuthorizationServerMetadataEndpoints(metadata: Record<strin
     ) {
       continue;
     }
-    const endpoint = parseSecureEndpoint(value, `authorization-server metadata ${field}`);
+    const endpoint = parseStoredSecureEndpoint(value, `authorization-server metadata ${field}`);
     if (endpoint.href.includes("#")) {
       throw new McpNativeOAuthError(
         "invalid-storage",
@@ -1177,11 +1282,48 @@ function assertSecureAuthorizationServerMetadataEndpoints(metadata: Record<strin
   }
 }
 
+function parseStoredSecureEndpoint(value: string | URL, label: string): URL {
+  try {
+    return parseSecureEndpoint(value, label);
+  } catch (error) {
+    throw new McpNativeOAuthError("invalid-storage", `${label} is invalid`, { cause: error });
+  }
+}
+
 function assertCodeVerifier(verifier: string): void {
-  if (!PKCE_VERIFIER_PATTERN.test(verifier)) {
+  if (typeof verifier !== "string" || !PKCE_VERIFIER_PATTERN.test(verifier)) {
     throw new McpNativeOAuthError(
       "invalid-storage",
       "OAuth PKCE verifier must contain 43 to 128 RFC 7636 unreserved characters",
+    );
+  }
+}
+
+function assertSecureStore(storage: McpNativeOAuthSecureStore): void {
+  const methods = [
+    "loadClientInformation",
+    "saveClientInformation",
+    "loadTokens",
+    "saveTokens",
+    "loadCodeVerifier",
+    "saveCodeVerifier",
+    "reserveOAuthState",
+    "saveOAuthState",
+    "consumeOAuthState",
+    "claimOAuthStateForCleanup",
+    "clearOAuthState",
+    "loadDiscoveryState",
+    "saveDiscoveryState",
+    "invalidate",
+  ] as const;
+  if (
+    storage === null ||
+    (typeof storage !== "object" && typeof storage !== "function") ||
+    methods.some((method) => typeof storage[method] !== "function")
+  ) {
+    throw new McpNativeOAuthError(
+      "invalid-configuration",
+      "OAuth secure store must implement the complete persistence contract",
     );
   }
 }
@@ -1194,7 +1336,14 @@ function parseCallbackUrl(value: string | URL, redirectUrl: URL): URL {
       "OAuth callback URL exceeds the supported size",
     );
   }
-  const callback = parseUrl(value, "OAuth callback URL");
+  let callback: URL;
+  try {
+    callback = new URL(serialized);
+  } catch (error) {
+    throw new McpNativeOAuthError("invalid-callback", "OAuth callback must be an absolute URL", {
+      cause: error,
+    });
+  }
   if (callback.href.includes("#")) {
     throw new McpNativeOAuthError("invalid-callback", "OAuth callback must not contain a fragment");
   }

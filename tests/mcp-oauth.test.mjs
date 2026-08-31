@@ -132,11 +132,28 @@ function createProvider(overrides = {}) {
   return { opened, provider, storage };
 }
 
+async function reserveAuthorizationAttempt(provider) {
+  await provider.state();
+  await provider.saveCodeVerifier(VALID_VERIFIER);
+}
+
 test("OAuth provider validates metadata and supplies native registration defaults", () => {
   const { provider } = createProvider();
   assert.equal(provider.redirectUrl.href, REDIRECT_URL);
   assert.equal(provider.clientMetadata.application_type, "native");
   assert.deepEqual(provider.clientMetadata.grant_types, ["authorization_code", "refresh_token"]);
+
+  for (const overrides of [
+    { storage: {} },
+    { createState: null },
+    { openAuthorization: null },
+    { approveReauthorization: true },
+  ]) {
+    assert.throws(
+      () => createProvider(overrides),
+      (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+    );
+  }
 
   assert.throws(
     () =>
@@ -183,6 +200,21 @@ test("OAuth provider validates metadata and supplies native registration default
     /duplicate query parameter names/,
   );
   for (const redirectUrl of [
+    `${REDIRECT_URL}?${"n".repeat(129)}=value`,
+    `${REDIRECT_URL}?tenant=${"x".repeat(4_097)}`,
+    `${REDIRECT_URL}?${Array.from({ length: 15 }, (_, index) => `p${index}=x`).join("&")}`,
+    `mcp-native://oauth/${"p".repeat(3_600)}`,
+  ]) {
+    assert.throws(
+      () =>
+        createProvider({
+          redirectUrl,
+          clientMetadata: { redirect_uris: [redirectUrl] },
+        }),
+      (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+    );
+  }
+  for (const redirectUrl of [
     "javascript:alert(1)",
     "data:text/html,callback",
     "file:///tmp/oauth-callback",
@@ -207,18 +239,39 @@ test("OAuth provider validates metadata and supplies native registration default
 
 test("OAuth provider persists and validates state and PKCE material", async () => {
   const { provider, storage } = createProvider();
+  await assert.rejects(
+    () => provider.saveCodeVerifier(VALID_VERIFIER),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
   assert.equal(await provider.state(), VALID_STATE);
   assert.equal(storage.values.state, VALID_STATE);
 
+  await assert.rejects(
+    () => provider.redirectToAuthorization(new URL(`${ISSUER}/authorize`)),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+
   await provider.saveCodeVerifier(VALID_VERIFIER);
   assert.equal(await provider.codeVerifier(), VALID_VERIFIER);
+  await assert.rejects(
+    () => provider.saveCodeVerifier(VALID_VERIFIER),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
 
   await assert.rejects(
     () => provider.saveCodeVerifier("short"),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
   );
   await assert.rejects(
+    () => provider.saveCodeVerifier({ toString: () => VALID_VERIFIER }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  await assert.rejects(
     () => createProvider({ createState: () => "predictable" }).provider.state(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  await assert.rejects(
+    () => createProvider({ createState: () => ({ toString: () => VALID_STATE }) }).provider.state(),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
   );
 
@@ -360,6 +413,29 @@ test("OAuth token values are bounded before parsing, persistence, and reuse", as
   );
 });
 
+test("malformed OAuth storage roots fail with controlled errors", async () => {
+  const invalidClient = createProvider();
+  invalidClient.storage.values.clientInformation.set(ISSUER, null);
+  await assert.rejects(
+    () => invalidClient.provider.clientInformation({ issuer: ISSUER }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+
+  const invalidTokens = createProvider();
+  invalidTokens.storage.loadTokens = async () => [];
+  await assert.rejects(
+    () => invalidTokens.provider.tokens({ issuer: ISSUER }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+
+  const invalidDiscovery = createProvider();
+  invalidDiscovery.storage.values.discovery = null;
+  await assert.rejects(
+    () => invalidDiscovery.provider.discoveryState(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+});
+
 test("OAuth resource indicators are pinned to the configured MCP server", async () => {
   const { provider } = createProvider();
   assert.equal((await provider.validateResourceURL(SERVER_URL)).href, SERVER_URL);
@@ -378,6 +454,10 @@ test("OAuth resource indicators are pinned to the configured MCP server", async 
   await assert.rejects(
     () =>
       provider.validateResourceURL(SERVER_URL, `https://mcp.example.com/${"resource".repeat(513)}`),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  await assert.rejects(
+    () => provider.validateResourceURL(SERVER_URL, "not an absolute URL"),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
   );
 });
@@ -405,7 +485,7 @@ test("OAuth discovery cache rejects issuer and protected-resource substitution",
       authorization_servers: ["https://other.example.com"],
     },
   };
-  await provider.saveCodeVerifier(VALID_VERIFIER);
+  storage.values.verifier = VALID_VERIFIER;
   await assert.rejects(
     () => provider.discoveryState(),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
@@ -424,13 +504,26 @@ test("OAuth discovery cache rejects issuer and protected-resource substitution",
   );
 
   await Promise.all(
-    [`${ISSUER}?tenant=x`, `${ISSUER}#tenant-x`].map(async (authorizationServerUrl) => {
-      const invalid = createProvider();
-      invalid.storage.values.discovery = { authorizationServerUrl };
-      await assert.rejects(
-        () => invalid.provider.discoveryState(),
-        (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
-      );
+    [
+      `${ISSUER}?tenant=x`,
+      `${ISSUER}#tenant-x`,
+      "http://remote.example.com",
+      "not an absolute URL",
+      `https://auth.example.com/${"i".repeat(2_049)}`,
+    ].flatMap((authorizationServerUrl) => {
+      const persisted = createProvider();
+      const cached = createProvider();
+      cached.storage.values.discovery = { authorizationServerUrl };
+      return [
+        assert.rejects(
+          () => persisted.provider.saveDiscoveryState({ authorizationServerUrl }),
+          (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+        ),
+        assert.rejects(
+          () => cached.provider.discoveryState(),
+          (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+        ),
+      ];
     }),
   );
 
@@ -475,7 +568,7 @@ test("OAuth discovery state is reusable only across the pending PKCE callback", 
   };
 
   assert.equal(await provider.discoveryState(), undefined);
-  await provider.saveCodeVerifier(VALID_VERIFIER);
+  storage.values.verifier = VALID_VERIFIER;
   assert.equal((await provider.discoveryState()).authorizationServerUrl, ISSUER);
 });
 
@@ -529,7 +622,7 @@ test("OAuth discovery metadata is bounded before parsing, caching, and reuse", a
 
   const corrupted = createProvider();
   corrupted.storage.values.discovery = oversizedStates[0];
-  await corrupted.provider.saveCodeVerifier(VALID_VERIFIER);
+  corrupted.storage.values.verifier = VALID_VERIFIER;
   await assert.rejects(
     () => corrupted.provider.discoveryState(),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
@@ -568,9 +661,7 @@ test("OAuth discovery metadata rejects insecure or fragmented endpoints before c
               authorizationServerUrl: ISSUER,
               authorizationServerMetadata: { ...baseMetadata, [field]: value },
             }),
-          (error) =>
-            error instanceof McpNativeOAuthError &&
-            (error.code === "invalid-configuration" || error.code === "invalid-storage"),
+          (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
         );
         assert.equal(invalid.storage.values.discovery, undefined);
       }),
@@ -584,10 +675,10 @@ test("OAuth discovery metadata rejects insecure or fragmented endpoints before c
         authorizationServerUrl: ISSUER,
         authorizationServerMetadata: { ...baseMetadata, token_endpoint: tokenEndpoint },
       };
-      await corrupted.provider.saveCodeVerifier(VALID_VERIFIER);
+      corrupted.storage.values.verifier = VALID_VERIFIER;
       await assert.rejects(
         () => corrupted.provider.discoveryState(),
-        (error) => error instanceof McpNativeOAuthError,
+        (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
       );
     }),
   );
@@ -648,6 +739,7 @@ test("OAuth callback completion validates redirect, state, duplicates, and consu
 test("OAuth recovery callbacks are bounded before URL parsing and code redemption", async () => {
   await Promise.all(
     [
+      "not an absolute URL",
       `${REDIRECT_URL}?code=${"c".repeat(4_097)}&state=${VALID_STATE}`,
       `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}&extension=${"x".repeat(64)}`,
       `${REDIRECT_URL}?error=access_denied&error_description=${"x".repeat(8_193)}&state=${VALID_STATE}`,
@@ -712,7 +804,7 @@ test("OAuth recovery completion reserves persisted state against a new attempt",
 });
 
 test("OAuth cancellation cannot race an in-flight state reservation", async () => {
-  const storage = createStorage();
+  const storage = createStorage({ verifier: VALID_VERIFIER });
   const save = storage.saveOAuthState.bind(storage);
   let release;
   const blocked = new Promise((resolve) => {
@@ -723,8 +815,6 @@ test("OAuth cancellation cannot race an in-flight state reservation", async () =
     await save(state, owner);
   };
   const { provider } = createProvider({ storage });
-  await provider.saveCodeVerifier(VALID_VERIFIER);
-
   const pending = provider.state();
   await assert.rejects(
     () => provider.cancelAuthorization(),
@@ -815,9 +905,17 @@ test("OAuth callback errors do not expose attacker-controlled descriptions", asy
 
 test("OAuth authorization handoff and transport reject credential bypasses", async () => {
   const { opened, provider } = createProvider();
+  await reserveAuthorizationAttempt(provider);
   await provider.redirectToAuthorization(new URL("https://auth.example.com/authorize?client_id=x"));
   await provider.redirectToAuthorization(new URL("https://auth.example.com/authorize?client_id=x"));
   assert.deepEqual(opened, ["https://auth.example.com/authorize?client_id=x"]);
+  await assert.rejects(
+    () =>
+      provider.redirectToAuthorization(
+        new URL("https://auth.example.com/authorize?client_id=different"),
+      ),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
   await assert.rejects(
     () => provider.redirectToAuthorization(new URL("http://auth.example.com/authorize")),
     /HTTPS or an HTTP loopback address/,
@@ -851,6 +949,47 @@ test("OAuth authorization handoff and transport reject credential bypasses", asy
   );
 });
 
+test("OAuth callback completion cannot race an authorization handoff", async () => {
+  let handoffStarted;
+  const started = new Promise((resolve) => {
+    handoffStarted = resolve;
+  });
+  let releaseHandoff;
+  const blocked = new Promise((resolve) => {
+    releaseHandoff = resolve;
+  });
+  const { provider, storage } = createProvider({
+    async openAuthorization() {
+      handoffStarted();
+      await blocked;
+    },
+  });
+  await provider.state();
+  await provider.saveCodeVerifier(VALID_VERIFIER);
+
+  const handoff = provider.redirectToAuthorization(new URL(`${ISSUER}/authorize?client_id=x`));
+  await started;
+  await assert.rejects(
+    () =>
+      provider.finishAuthorization(
+        { finishAuth: () => assert.fail("must not redeem") },
+        `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}`,
+      ),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-callback",
+  );
+  assert.equal(storage.values.state, VALID_STATE);
+  assert.equal(storage.values.verifier, VALID_VERIFIER);
+
+  releaseHandoff();
+  await handoff;
+  await provider.finishAuthorization(
+    { finishAuth: () => undefined },
+    `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}`,
+  );
+  assert.equal(storage.values.state, undefined);
+  assert.equal(storage.values.verifier, undefined);
+});
+
 test("OAuth reauthorization requires an exact host approval decision", async () => {
   const decisions = [];
   const { opened, provider } = createProvider({
@@ -869,6 +1008,7 @@ test("OAuth reauthorization requires an exact host approval decision", async () 
     { issuer: ISSUER },
   );
 
+  await reserveAuthorizationAttempt(provider);
   await provider.redirectToAuthorization(
     new URL("https://auth.example.com/authorize?scope=mcp%3Aread%20mcp%3Awrite"),
   );
@@ -883,6 +1023,8 @@ test("OAuth reauthorization requires an exact host approval decision", async () 
   assert.ok(Object.isFrozen(decisions[0].addedScopes));
   assert.equal(opened.length, 1);
 
+  await provider.cancelAuthorization();
+  await reserveAuthorizationAttempt(provider);
   await provider.redirectToAuthorization(
     new URL("https://auth.example.com/authorize?scope=mcp%3Aread"),
   );
@@ -894,6 +1036,7 @@ test("OAuth reauthorization requires an exact host approval decision", async () 
     { access_token: "access", token_type: "Bearer", scope: "mcp:read", issuer: ISSUER },
     { issuer: ISSUER },
   );
+  await reserveAuthorizationAttempt(denied.provider);
   await assert.rejects(
     () =>
       denied.provider.redirectToAuthorization(
@@ -911,6 +1054,7 @@ test("OAuth reauthorization is fail-closed and bounded", async () => {
     { issuer: ISSUER },
   );
 
+  await reserveAuthorizationAttempt(provider);
   await assert.rejects(
     () =>
       provider.redirectToAuthorization(
@@ -918,6 +1062,7 @@ test("OAuth reauthorization is fail-closed and bounded", async () => {
       ),
     (error) => error instanceof McpNativeOAuthError && error.code === "reauthorization-denied",
   );
+  await reserveAuthorizationAttempt(provider);
   await assert.rejects(
     () =>
       provider.redirectToAuthorization(
@@ -925,6 +1070,7 @@ test("OAuth reauthorization is fail-closed and bounded", async () => {
       ),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
   );
+  await reserveAuthorizationAttempt(provider);
   await assert.rejects(
     () =>
       provider.redirectToAuthorization(

@@ -246,7 +246,8 @@ The provider rejects cross-issuer stored credentials, issuer query/fragment comp
 protected-resource mismatch, insecure endpoints, any unsafe URI in the registered redirect list,
 duplicate registered redirect query names, literal fragment delimiters on server, redirect,
 authorization, and callback URLs, redirect/state/parameter substitution, duplicate callback fields,
-oversized individual or cumulative registration, discovery, and token data, and raw
+configured redirects that leave insufficient callback parameter or URL capacity, oversized
+individual or cumulative registration, discovery, and token data, and raw
 `Authorization`, `Cookie`, or `Proxy-Authorization` transport headers. These budgets apply before
 schema parsing, persistence, or reuse, including to complete token-response extension structures,
 and every actionable discovery endpoint must use HTTPS or an
@@ -263,7 +264,9 @@ replace the verifier during token exchange. The reservation is bound to its live
 second provider sharing the namespace also cannot cancel or clear the first provider's attempt;
 full and verifier credential invalidation follow the same guard. Stale cleanup remains available after process
 restart. Authorization URLs are bounded before browser handoff, and both native-session and direct
-process-recovery callbacks have total and per-parameter budgets before code redemption. All 25 scored official
+process-recovery callbacks have total and per-parameter budgets before code redemption. A handoff
+is allowed only after the provider has reserved state and saved exactly one PKCE verifier for the
+attempt. All 25 scored official
 authorization scenarios pass.
 The [native OAuth plan](docs/native-oauth-testing.md) and strict evidence gate are implemented. A
 platform row can count as passing only when all required cases pass, but both required rows remain
