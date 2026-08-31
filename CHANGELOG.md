@@ -12,7 +12,10 @@ their minor release line.
   storage, persisted PKCE/state/discovery data, exact callback validation, canonical RFC 8707
   resource pinning, and issuer-scoped client registrations and tokens.
 - A protected Streamable HTTP factory that rejects manual credential headers and surfaces
-  insufficient-scope challenges to the host before any step-up authorization.
+  insufficient-scope challenges to the host by default, with an opt-in host-approved
+  reauthorization path capped to one SDK retry per request.
+- A headless native-host authorization driver that passes all 25 scored official MCP `2026-07-28`
+  authorization client scenarios; the full pinned gate now covers 32 scenarios and 386 checks.
 
 ### Security
 
@@ -21,6 +24,9 @@ their minor release line.
   reuse, mismatched authorization-server metadata, and protected-resource substitution.
 - Keep OAuth callback error descriptions out of host-visible errors and require credential, PKCE,
   state, and discovery persistence behind an explicit keychain/keystore-grade host contract.
+- Require an exact host approval decision for every interactive reauthorization while credentials
+  exist, including repeated same-scope challenges, and refresh protected-resource discovery after
+  callback completion so authorization-server migrations cannot reuse old credentials.
 
 ## 0.5.0 - 2026-08-28
 

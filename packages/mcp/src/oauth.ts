@@ -36,6 +36,9 @@ const CALLBACK_PARAMETER_NAMES = new Set([
 ]);
 const STATE_PATTERN = /^[A-Za-z0-9._~-]{32,512}$/u;
 const PKCE_VERIFIER_PATTERN = /^[A-Za-z0-9._~-]{43,128}$/u;
+const SCOPE_TOKEN_PATTERN = /^[\u0021\u0023-\u005b\u005d-\u007e]{1,256}$/u;
+const MAX_SCOPE_CODE_UNITS = 2_048;
+const MAX_SCOPE_TOKENS = 64;
 
 export type McpNativeOAuthCredentialScope = "all" | "client" | "discovery" | "tokens" | "verifier";
 
@@ -80,6 +83,21 @@ export interface McpNativeOAuthProviderOptions {
   readonly createState: () => string | Promise<string>;
   /** Host-owned browser or authentication-session handoff. */
   readonly openAuthorization: (authorizationUrl: URL) => void | Promise<void>;
+  /**
+   * Required before the SDK may open a new authorization request while credentials exist.
+   * `addedScopes` identifies an actual scope increase and may be empty on a repeated challenge.
+   * Return exactly `true` only after the host has applied its user-decision and retry policy.
+   */
+  readonly approveReauthorization?: (
+    request: McpNativeOAuthReauthorizationRequest,
+  ) => boolean | Promise<boolean>;
+}
+
+export interface McpNativeOAuthReauthorizationRequest {
+  readonly issuer: string | undefined;
+  readonly currentScopes: readonly string[];
+  readonly requestedScopes: readonly string[];
+  readonly addedScopes: readonly string[];
 }
 
 export interface McpNativeOAuthTransportOptions {
@@ -88,6 +106,11 @@ export interface McpNativeOAuthTransportOptions {
   readonly fetch?: FetchLike;
   readonly reconnectionOptions?: StreamableHTTPReconnectionOptions;
   readonly reconnectionScheduler?: ReconnectionScheduler;
+  /**
+   * `host-approved` enables the SDK's bounded step-up retry only when the provider has
+   * an `approveReauthorization` callback. The default surfaces `InsufficientScopeError`.
+   */
+  readonly scopeEscalation?: "throw" | "host-approved";
 }
 
 export type McpNativeOAuthErrorCode =
@@ -97,6 +120,7 @@ export type McpNativeOAuthErrorCode =
   | "invalid-configuration"
   | "invalid-storage"
   | "resource-mismatch"
+  | "reauthorization-denied"
   | "state-mismatch";
 
 export class McpNativeOAuthError extends Error {
@@ -125,7 +149,11 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   readonly #storage: McpNativeOAuthSecureStore;
   readonly #createState: () => string | Promise<string>;
   readonly #openAuthorization: (authorizationUrl: URL) => void | Promise<void>;
+  readonly #approveReauthorization:
+    | ((request: McpNativeOAuthReauthorizationRequest) => boolean | Promise<boolean>)
+    | undefined;
   #activeIssuer: string | undefined;
+  #pendingAuthorizationUrl: string | undefined;
 
   constructor(options: McpNativeOAuthProviderOptions) {
     this.#resourceUrl = resourceUrlFromServerUrl(parseProtectedServerUrl(options.serverUrl));
@@ -160,6 +188,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     this.#storage = options.storage;
     this.#createState = options.createState;
     this.#openAuthorization = options.openAuthorization;
+    this.#approveReauthorization = options.approveReauthorization;
   }
 
   async state(): Promise<string> {
@@ -229,7 +258,32 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
 
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
     const url = parseSecureEndpoint(authorizationUrl, "authorization URL");
+    if (this.#pendingAuthorizationUrl === url.href) {
+      return;
+    }
+    const requestedScopes = parseScope(url.searchParams.get("scope"));
+    const storedTokens = await this.#storage.loadTokens(this.#activeIssuer);
+    if (storedTokens !== undefined) {
+      const currentScopes = parseScope(parseStoredTokens(storedTokens).scope ?? null);
+      const currentScopeSet = new Set(currentScopes);
+      const addedScopes = requestedScopes.filter((scope) => !currentScopeSet.has(scope));
+      const approved = await this.#approveReauthorization?.(
+        Object.freeze({
+          issuer: this.#activeIssuer,
+          currentScopes: Object.freeze([...currentScopes]),
+          requestedScopes: Object.freeze([...requestedScopes]),
+          addedScopes: Object.freeze([...addedScopes]),
+        }),
+      );
+      if (approved !== true) {
+        throw new McpNativeOAuthError(
+          "reauthorization-denied",
+          "OAuth reauthorization requires explicit host approval",
+        );
+      }
+    }
     await this.#openAuthorization(new URL(url.href));
+    this.#pendingAuthorizationUrl = url.href;
   }
 
   async saveCodeVerifier(verifier: string): Promise<void> {
@@ -278,6 +332,11 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       return undefined;
     }
     const parsed = parseDiscoveryState(state, this.#resourceUrl);
+    const verifier = await this.#storage.loadCodeVerifier();
+    if (verifier === undefined) {
+      return undefined;
+    }
+    assertCodeVerifier(verifier);
     this.#activeIssuer = parsed.authorizationServerUrl;
     return parsed;
   }
@@ -301,20 +360,20 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       throw new McpNativeOAuthError("state-mismatch", "OAuth callback state did not match");
     }
 
-    if (parameters.has("error")) {
-      throw new McpNativeOAuthError(
-        "authorization-denied",
-        "The authorization server did not grant access",
-      );
-    }
-    requireSingleParameter(parameters, "code");
-    if (parameters.has("iss")) {
-      requireSingleParameter(parameters, "iss");
-    }
-
     try {
+      if (parameters.has("error")) {
+        throw new McpNativeOAuthError(
+          "authorization-denied",
+          "The authorization server did not grant access",
+        );
+      }
+      requireSingleParameter(parameters, "code");
+      if (parameters.has("iss")) {
+        requireSingleParameter(parameters, "iss");
+      }
       await finisher.finishAuth(parameters);
     } finally {
+      this.#pendingAuthorizationUrl = undefined;
       await this.#storage.invalidate("verifier", this.#activeIssuer);
     }
   }
@@ -328,6 +387,10 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       );
     }
     return parsed;
+  }
+
+  hasReauthorizationApproval(): boolean {
+    return this.#approveReauthorization !== undefined;
   }
 }
 
@@ -348,9 +411,17 @@ export function createMcpNativeOAuthTransport(
 ): StreamableHTTPClientTransport {
   const url = provider.assertServerUrl(serverUrl);
   const headers = parseNonCredentialHeaders(options.headers);
+  const scopeEscalation = options.scopeEscalation ?? "throw";
+  if (scopeEscalation === "host-approved" && !provider.hasReauthorizationApproval()) {
+    throw new McpNativeOAuthError(
+      "invalid-configuration",
+      "Host-approved OAuth reauthorization requires an approval callback",
+    );
+  }
   return new StreamableHTTPClientTransport(url, {
     authProvider: provider,
-    onInsufficientScope: "throw",
+    onInsufficientScope: scopeEscalation === "host-approved" ? "reauthorize" : "throw",
+    maxStepUpRetries: 1,
     ...(headers === undefined ? {} : { requestInit: { headers } }),
     ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     ...(options.reconnectionOptions === undefined
@@ -360,6 +431,30 @@ export function createMcpNativeOAuthTransport(
       ? {}
       : { reconnectionScheduler: options.reconnectionScheduler }),
   });
+}
+
+function parseScope(value: string | null): readonly string[] {
+  if (value === null || value === "") {
+    return [];
+  }
+  if (value.length > MAX_SCOPE_CODE_UNITS) {
+    throw new McpNativeOAuthError(
+      "invalid-configuration",
+      "OAuth authorization scope exceeds the supported size",
+    );
+  }
+  const scopes = value.split(" ");
+  if (
+    scopes.length > MAX_SCOPE_TOKENS ||
+    scopes.some((scope) => !SCOPE_TOKEN_PATTERN.test(scope)) ||
+    new Set(scopes).size !== scopes.length
+  ) {
+    throw new McpNativeOAuthError(
+      "invalid-configuration",
+      "OAuth authorization scope is invalid or exceeds the supported limits",
+    );
+  }
+  return scopes;
 }
 
 function parseProtectedServerUrl(value: string | URL): URL {

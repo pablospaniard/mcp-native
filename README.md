@@ -137,7 +137,8 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - An issuer-bound interactive OAuth provider for protected Streamable HTTP with official SDK
   discovery/PKCE, exact resource indicators, secure-storage hooks, safe callback completion, and
   host-gated scope escalation
-- Seven pinned official MCP client scenarios covering the implemented modern HTTP boundary
+- Thirty-two pinned official MCP client scenarios, including every scored `2026-07-28`
+  authorization scenario, covering the implemented modern HTTP boundary
 - Frozen official requirement accounting and shared-cache isolation tests across principals
 - Explicit MCP extension settings and mutual negotiation without MIME or metadata inference
 - A project-owned, exact-match [A2UI-over-MCP transport binding](docs/a2ui-mcp-binding.md) with ordinary MCP fallback
@@ -178,10 +179,10 @@ adapter supports only the documented component subset, absolute and dynamic-list
 bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks
 for supported text fields and buttons, pure boolean functions, `@index`, action events returned to
 a host callback, and press-time host-policy-gated HTTP(S) `openUrl`. The pinned native fixture has
-passing Android/iOS evidence, but renderer behavior outside that matrix remains unclaimed. Complete
-authorization conformance, consent and tool-risk UX, production connection lifecycle and
-observability, action transport delivery, and the tested end-to-end mobile integration PoC remain
-Milestone 6 work.
+passing Android/iOS evidence, but renderer behavior outside that matrix remains unclaimed.
+Real-platform OAuth storage/session evidence, broader consent and tool-risk UX, production
+connection lifecycle and observability, action transport delivery, and the tested end-to-end mobile
+integration PoC remain Milestone 6 work.
 
 ## Protected Streamable HTTP OAuth
 
@@ -206,13 +207,16 @@ const provider = createMcpNativeOAuthProvider({
   storage: secureOAuthStore, // OS keychain/keystore-backed; never AsyncStorage or a plain file
   createState: () => createCryptographicallyRandomState(),
   openAuthorization: (url) => openPlatformAuthenticationSession(url, redirectUrl),
+  approveReauthorization: (request) => consentAndCheckRetryBudget(request),
 });
 
 const client = new Client(
   { name: "my-native-host", version: "1.0.0" },
   createMcpNativeClientOptions("modern-only"),
 );
-const transport = createMcpNativeOAuthTransport(serverUrl, provider);
+const transport = createMcpNativeOAuthTransport(serverUrl, provider, {
+  scopeEscalation: "host-approved",
+});
 
 try {
   await client.connect(transport);
@@ -226,11 +230,13 @@ try {
 
 The provider rejects cross-issuer stored credentials, a protected-resource mismatch, insecure
 non-loopback endpoints, redirect/state/parameter substitution, duplicate callback fields, and raw
-`Authorization`, `Cookie`, or `Proxy-Authorization` transport headers. Runtime `insufficient_scope`
-challenges are surfaced to the host so a user-facing consent decision happens before step-up
-reauthorization. The callback error path never renders attacker-controlled OAuth descriptions.
-Protected HTTP remains a scoped foundation—not a complete conformance claim—until the pinned
-official authorization scenarios and the remaining host controls pass.
+`Authorization`, `Cookie`, or `Proxy-Authorization` transport headers. By default, runtime
+`insufficient_scope` challenges are surfaced to the host. The opt-in `host-approved` path calls
+`approveReauthorization` for every authorization retry while credentials exist—including repeated
+same-scope challenges—and permits at most one SDK retry per request. The callback error path never
+renders attacker-controlled OAuth descriptions. All 25 scored official authorization scenarios
+pass; production readiness still requires real-platform secure-storage/authentication-session
+evidence and the remaining host controls.
 
 ## A2UI v1 Candidate host flow
 
@@ -473,7 +479,8 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Execute the supported iOS/Android fixture and accessibility matrix in generated real hosts
 - [x] Implement stable MCP Apps `2026-01-26` discovery, native sandboxing, and bridge compatibility
 - [x] Add the issuer-bound MCP HTTP OAuth provider, secure-storage seam, and safe callback boundary
-- [ ] Pass the pinned official authorization scenarios and add consent, tool-risk, and host permission controls
+- [x] Pass every scored pinned official `2026-07-28` authorization client scenario
+- [ ] Add broader consent, tool-risk, privacy, and host permission controls
 - [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
 - [ ] Ship one small, tested React Native integration PoC without a committed host-app scaffold
 - [ ] Expand protocol coverage through reviewed RFCs and tests

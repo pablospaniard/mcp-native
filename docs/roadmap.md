@@ -137,21 +137,24 @@ and platform controls. See [the exact compatibility profile](mcp-apps-compatibil
 
 ## Milestone 6: remote authorization and release readiness
 
-Status: in progress. The issuer-bound interactive OAuth host boundary is implemented; official
-authorization conformance, broader host controls, lifecycle/operability, and the integration PoC
-remain open.
+Status: in progress. The issuer-bound interactive OAuth host boundary and every scored official
+`2026-07-28` authorization client scenario are implemented; real-platform credential/session
+evidence, broader host controls, lifecycle/operability, and the integration PoC remain open.
 
 - [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
       and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
-      discovery cache, and an exact RFC 8707 resource indicator.
+      redirect-bound discovery state with post-callback refresh, and an exact RFC 8707 resource
+      indicator.
 - [x] Add the protected Streamable HTTP factory without issuer-validation opt-outs or manual
       credential headers, and surface `insufficient_scope` to the host before step-up authorization.
-- [ ] Pass and pin every applicable official MCP `2026-07-28` authorization client scenario before
+- [x] Pass and pin every applicable official MCP `2026-07-28` authorization client scenario before
       claiming the complete protected Streamable HTTP profile.
 - [ ] Integrate platform keychain/keystore reference adapters and authentication-session evidence;
       the library contract deliberately cannot treat AsyncStorage or plain files as secure storage.
-- [ ] Add consent, tool-risk review, capability approval, privacy controls, and bounded cross-request
-      scope-upgrade tracking in the host layer.
+- [ ] Add broader consent, tool-risk review, capability approval, privacy controls, and host
+      integration guidance for persistent cross-request scope-upgrade tracking. The transport now
+      defaults to throwing on `insufficient_scope`; its opt-in retry path requires a host approval
+      callback and caps SDK work to one retry per request.
 - [ ] Define production connection lifecycle behavior for timeouts, cancellation, bounded retry and
       backoff, reconnection, offline transitions, and graceful shutdown while leaving wire behavior
       to the official SDK.

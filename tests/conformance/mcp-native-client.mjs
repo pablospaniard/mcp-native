@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import {
   MCP_NATIVE_PROTOCOL_REVISION,
   McpSdkClientAdapter,
   createMcpNativeClientOptions,
 } from "../../packages/mcp/dist/index.js";
+import {
+  createMcpNativeOAuthProvider,
+  createMcpNativeOAuthTransport,
+} from "../../packages/mcp/dist/oauth.js";
 
 const scenario = process.env.MCP_CONFORMANCE_SCENARIO;
 const protocolVersion = process.env.MCP_CONFORMANCE_PROTOCOL_VERSION;
@@ -25,6 +30,132 @@ const parseContext = () => {
   const value = JSON.parse(raw);
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
   return value;
+};
+
+const createOAuthStore = (preRegisteredClient) => {
+  const clientInformation = new Map();
+  const tokens = new Map();
+  let latestTokenIssuer;
+  let verifier;
+  let state;
+  let discoveryState;
+
+  return {
+    async loadClientInformation(issuer) {
+      return (
+        clientInformation.get(issuer) ??
+        (preRegisteredClient === undefined ? undefined : { ...preRegisteredClient, issuer })
+      );
+    },
+    async saveClientInformation(issuer, information) {
+      clientInformation.set(issuer, structuredClone(information));
+    },
+    async loadTokens(issuer) {
+      const resolvedIssuer = issuer ?? latestTokenIssuer;
+      return resolvedIssuer === undefined ? undefined : structuredClone(tokens.get(resolvedIssuer));
+    },
+    async saveTokens(issuer, value) {
+      tokens.set(issuer, structuredClone(value));
+      latestTokenIssuer = issuer;
+    },
+    async loadCodeVerifier() {
+      return verifier;
+    },
+    async saveCodeVerifier(value) {
+      verifier = value;
+    },
+    async saveOAuthState(value) {
+      state = value;
+    },
+    async consumeOAuthState(value) {
+      if (state !== value) return false;
+      state = undefined;
+      return true;
+    },
+    async loadDiscoveryState() {
+      return discoveryState === undefined ? undefined : structuredClone(discoveryState);
+    },
+    async saveDiscoveryState(value) {
+      discoveryState = structuredClone(value);
+    },
+    async invalidate(scope, issuer) {
+      if (scope === "all" || scope === "client") {
+        if (issuer === undefined) clientInformation.clear();
+        else clientInformation.delete(issuer);
+      }
+      if (scope === "all" || scope === "tokens") {
+        if (issuer === undefined) tokens.clear();
+        else tokens.delete(issuer);
+        if (issuer === undefined || latestTokenIssuer === issuer) latestTokenIssuer = undefined;
+      }
+      if (scope === "all" || scope === "verifier") verifier = undefined;
+      if (scope === "all" || scope === "discovery") discoveryState = undefined;
+      if (scope === "all") state = undefined;
+    },
+  };
+};
+
+const createOAuthConformanceSession = () => {
+  const context = parseContext();
+  const redirectUrl = "http://127.0.0.1/oauth/callback";
+  const preRegisteredClient =
+    scenario === "auth/pre-registration"
+      ? {
+          client_id: context.client_id,
+          client_secret: context.client_secret,
+          token_endpoint_auth_method: "client_secret_basic",
+        }
+      : undefined;
+  if (preRegisteredClient !== undefined) {
+    assert.equal(typeof preRegisteredClient.client_id, "string");
+    assert.equal(typeof preRegisteredClient.client_secret, "string");
+  }
+
+  const storage = createOAuthStore(preRegisteredClient);
+  let pendingAuthorization;
+  let lastAuthorizationUrl;
+  let approvedReauthorizations = 0;
+  const provider = createMcpNativeOAuthProvider({
+    serverUrl,
+    redirectUrl,
+    clientMetadata: {
+      client_name: "MCP Native conformance host",
+      redirect_uris: [redirectUrl],
+    },
+    ...(scenario === "auth/basic-cimd"
+      ? { clientMetadataUrl: "https://conformance-test.local/client-metadata.json" }
+      : {}),
+    storage,
+    createState: () => randomBytes(32).toString("base64url"),
+    async openAuthorization(authorizationUrl) {
+      if (authorizationUrl.href === lastAuthorizationUrl && pendingAuthorization !== undefined) {
+        return;
+      }
+      const response = await fetch(authorizationUrl, { redirect: "manual" });
+      assert.ok(response.status >= 300 && response.status < 400);
+      const location = response.headers.get("location");
+      assert.ok(location, "Authorization endpoint did not return a callback redirect");
+      lastAuthorizationUrl = authorizationUrl.href;
+      pendingAuthorization = new URL(location, authorizationUrl);
+    },
+    approveReauthorization() {
+      if (scenario === "auth/scope-retry-limit" && approvedReauthorizations >= 2) {
+        return false;
+      }
+      approvedReauthorizations += 1;
+      return true;
+    },
+  });
+
+  return {
+    provider,
+    takePendingAuthorization() {
+      const value = pendingAuthorization;
+      pendingAuthorization = undefined;
+      lastAuthorizationUrl = undefined;
+      return value;
+    },
+  };
 };
 
 const handlers = {
@@ -90,18 +221,56 @@ const handlers = {
 };
 
 const handler = handlers[scenario];
-assert.ok(handler, `Unsupported pinned conformance scenario: ${scenario}`);
+if (handler !== undefined) {
+  const client = new Client(
+    { name: "mcp-native-conformance-client", version: "0.0.0" },
+    createMcpNativeClientOptions("modern-only"),
+  );
+  const transport = new StreamableHTTPClientTransport(new URL(serverUrl));
 
-const client = new Client(
-  { name: "mcp-native-conformance-client", version: "0.0.0" },
-  createMcpNativeClientOptions("modern-only"),
-);
-const transport = new StreamableHTTPClientTransport(new URL(serverUrl));
+  try {
+    await client.connect(transport);
+    assert.equal(client.getNegotiatedProtocolVersion(), MCP_NATIVE_PROTOCOL_REVISION);
+    await handler(new McpSdkClientAdapter(client));
+  } finally {
+    await client.close();
+  }
+} else {
+  assert.ok(scenario.startsWith("auth/"), `Unsupported pinned conformance scenario: ${scenario}`);
+  const session = createOAuthConformanceSession();
+  const runOAuthScenario = async (authorizationRound = 0) => {
+    assert.ok(
+      authorizationRound < 5,
+      "OAuth scenario exceeded the bounded authorization round limit",
+    );
+    const client = new Client(
+      { name: "mcp-native-conformance-client", version: "0.0.0" },
+      createMcpNativeClientOptions("modern-only"),
+    );
+    const transport = createMcpNativeOAuthTransport(serverUrl, session.provider, {
+      scopeEscalation: "host-approved",
+    });
+    let retry = false;
 
-try {
-  await client.connect(transport);
-  assert.equal(client.getNegotiatedProtocolVersion(), MCP_NATIVE_PROTOCOL_REVISION);
-  await handler(new McpSdkClientAdapter(client));
-} finally {
-  await client.close();
+    try {
+      await client.connect(transport);
+      assert.equal(client.getNegotiatedProtocolVersion(), MCP_NATIVE_PROTOCOL_REVISION);
+      const adapter = new McpSdkClientAdapter(client);
+      await adapter.listTools();
+      if (scenario === "auth/scope-step-up" || scenario === "auth/scope-retry-limit") {
+        await adapter.callTool("test-tool", {});
+      } else if (scenario === "auth/authorization-server-migration") {
+        await adapter.listTools();
+      }
+    } catch (error) {
+      const callbackUrl = session.takePendingAuthorization();
+      if (callbackUrl === undefined) throw error;
+      await session.provider.finishAuthorization(transport, callbackUrl);
+      retry = true;
+    } finally {
+      await client.close();
+    }
+    if (retry) return runOAuthScenario(authorizationRound + 1);
+  };
+  await runOAuthScenario();
 }

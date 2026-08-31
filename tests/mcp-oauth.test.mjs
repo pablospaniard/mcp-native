@@ -197,6 +197,27 @@ test("OAuth discovery cache rejects issuer and protected-resource substitution",
   );
 });
 
+test("OAuth discovery state is reusable only across the pending PKCE callback", async () => {
+  const { provider, storage } = createProvider();
+  storage.values.discovery = {
+    authorizationServerUrl: ISSUER,
+    authorizationServerMetadata: {
+      issuer: ISSUER,
+      authorization_endpoint: `${ISSUER}/authorize`,
+      token_endpoint: `${ISSUER}/token`,
+      response_types_supported: ["code"],
+    },
+    resourceMetadata: {
+      resource: SERVER_URL,
+      authorization_servers: [ISSUER],
+    },
+  };
+
+  assert.equal(await provider.discoveryState(), undefined);
+  await provider.saveCodeVerifier(VALID_VERIFIER);
+  assert.equal((await provider.discoveryState()).authorizationServerUrl, ISSUER);
+});
+
 test("OAuth callback completion validates redirect, state, duplicates, and consumes secrets", async () => {
   const { provider, storage } = createProvider();
   await provider.state();
@@ -250,8 +271,9 @@ test("OAuth callback completion validates redirect, state, duplicates, and consu
 });
 
 test("OAuth callback errors do not expose attacker-controlled descriptions", async () => {
-  const { provider } = createProvider();
+  const { provider, storage } = createProvider();
   await provider.state();
+  await provider.saveCodeVerifier(VALID_VERIFIER);
   const callback = `${REDIRECT_URL}?error=access_denied&error_description=render-me&state=${VALID_STATE}`;
   await assert.rejects(
     () =>
@@ -263,10 +285,12 @@ test("OAuth callback errors do not expose attacker-controlled descriptions", asy
       return true;
     },
   );
+  assert.equal(storage.values.verifier, undefined);
 });
 
 test("OAuth authorization handoff and transport reject credential bypasses", async () => {
   const { opened, provider } = createProvider();
+  await provider.redirectToAuthorization(new URL("https://auth.example.com/authorize?client_id=x"));
   await provider.redirectToAuthorization(new URL("https://auth.example.com/authorize?client_id=x"));
   assert.deepEqual(opened, ["https://auth.example.com/authorize?client_id=x"]);
   await assert.rejects(
@@ -288,5 +312,103 @@ test("OAuth authorization handoff and transport reject credential bypasses", asy
   assert.throws(
     () => createMcpNativeOAuthTransport("https://other.example.com/mcp", provider),
     (error) => error instanceof McpNativeOAuthError && error.code === "resource-mismatch",
+  );
+});
+
+test("OAuth reauthorization requires an exact host approval decision", async () => {
+  const decisions = [];
+  const { opened, provider } = createProvider({
+    approveReauthorization(request) {
+      decisions.push(request);
+      return true;
+    },
+  });
+  await provider.saveTokens(
+    {
+      access_token: "access",
+      token_type: "Bearer",
+      scope: "mcp:read",
+      issuer: ISSUER,
+    },
+    { issuer: ISSUER },
+  );
+
+  await provider.redirectToAuthorization(
+    new URL("https://auth.example.com/authorize?scope=mcp%3Aread%20mcp%3Awrite"),
+  );
+  assert.equal(decisions.length, 1);
+  assert.deepEqual(decisions[0], {
+    issuer: ISSUER,
+    currentScopes: ["mcp:read"],
+    requestedScopes: ["mcp:read", "mcp:write"],
+    addedScopes: ["mcp:write"],
+  });
+  assert.ok(Object.isFrozen(decisions[0]));
+  assert.ok(Object.isFrozen(decisions[0].addedScopes));
+  assert.equal(opened.length, 1);
+
+  await provider.redirectToAuthorization(
+    new URL("https://auth.example.com/authorize?scope=mcp%3Aread"),
+  );
+  assert.deepEqual(decisions[1].addedScopes, []);
+  assert.equal(opened.length, 2);
+
+  const denied = createProvider({ approveReauthorization: () => false });
+  await denied.provider.saveTokens(
+    { access_token: "access", token_type: "Bearer", scope: "mcp:read", issuer: ISSUER },
+    { issuer: ISSUER },
+  );
+  await assert.rejects(
+    () =>
+      denied.provider.redirectToAuthorization(
+        new URL("https://auth.example.com/authorize?scope=mcp%3Aread%20mcp%3Awrite"),
+      ),
+    (error) => error instanceof McpNativeOAuthError && error.code === "reauthorization-denied",
+  );
+  assert.deepEqual(denied.opened, []);
+});
+
+test("OAuth reauthorization is fail-closed and bounded", async () => {
+  const { opened, provider } = createProvider();
+  await provider.saveTokens(
+    { access_token: "access", token_type: "Bearer", scope: "mcp:read", issuer: ISSUER },
+    { issuer: ISSUER },
+  );
+
+  await assert.rejects(
+    () =>
+      provider.redirectToAuthorization(
+        new URL("https://auth.example.com/authorize?scope=mcp%3Aread%20mcp%3Awrite"),
+      ),
+    (error) => error instanceof McpNativeOAuthError && error.code === "reauthorization-denied",
+  );
+  await assert.rejects(
+    () =>
+      provider.redirectToAuthorization(
+        new URL("https://auth.example.com/authorize?scope=mcp%3Aread%20mcp%3Aread"),
+      ),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  await assert.rejects(
+    () =>
+      provider.redirectToAuthorization(
+        new URL(`https://auth.example.com/authorize?scope=${"a".repeat(2_049)}`),
+      ),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  assert.deepEqual(opened, []);
+
+  assert.throws(
+    () =>
+      createMcpNativeOAuthTransport(SERVER_URL, provider, {
+        scopeEscalation: "host-approved",
+      }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  const approved = createProvider({ approveReauthorization: () => true });
+  assert.ok(
+    createMcpNativeOAuthTransport(SERVER_URL, approved.provider, {
+      scopeEscalation: "host-approved",
+    }) instanceof StreamableHTTPClientTransport,
   );
 });

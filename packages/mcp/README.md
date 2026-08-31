@@ -96,12 +96,15 @@ const provider = createMcpNativeOAuthProvider({
   storage: secureOAuthStore,
   createState: () => createCryptographicallyRandomState(),
   openAuthorization: (url) => openPlatformAuthenticationSession(url, redirectUrl),
+  approveReauthorization: (request) => consentAndCheckRetryBudget(request),
 });
 const client = new Client(
   { name: "my-app", version: "1.0.0" },
   createMcpNativeClientOptions("modern-only"),
 );
-const transport = createMcpNativeOAuthTransport(serverUrl, provider);
+const transport = createMcpNativeOAuthTransport(serverUrl, provider, {
+  scopeEscalation: "host-approved",
+});
 
 try {
   await client.connect(transport);
@@ -114,14 +117,19 @@ try {
 
 `McpNativeOAuthSecureStore` must be implemented with OS keychain/keystore-grade encrypted storage.
 It persists issuer-bound client registrations and tokens plus the PKCE verifier, OAuth state, and
-validated discovery state. The provider validates stored values before returning them to the SDK,
-pins RFC 8707 resource indicators to one MCP endpoint, compares callback location and state before
-code redemption, and never exposes attacker-controlled callback error descriptions.
+validated redirect-bound discovery state. The provider validates stored values before returning
+them to the SDK, refreshes discovery after the callback so authorization-server migrations cannot
+reuse old credentials, pins RFC 8707 resource indicators to one MCP endpoint, compares callback
+location and state before code redemption, and never exposes attacker-controlled callback error
+descriptions.
 
 `createMcpNativeOAuthTransport()` rejects manual credential headers and configures
-`insufficient_scope` to throw. The host must present and record an explicit consent decision before
-driving SDK step-up authorization. Complete protected-HTTP conformance remains pending until the
-pinned official authorization scenarios pass.
+`insufficient_scope` to throw by default. Setting `scopeEscalation: "host-approved"` is accepted only
+when the provider has an `approveReauthorization` callback. That callback runs for every new
+authorization request while credentials exist, even when a hostile resource repeats the same scope;
+the transport permits at most one SDK step-up retry per request. The host must maintain any stricter
+cross-request budget. All 25 scored pinned official `2026-07-28` authorization client scenarios
+pass; real-platform secure-storage and authentication-session evidence remains a Milestone 6 gate.
 
 ## Mapping
 
@@ -168,6 +176,7 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `McpNativeOAuthClientProvider`, `createMcpNativeOAuthProvider` | Issuer-bound official SDK OAuth provider with native host seams.                |
 | `McpNativeOAuthSecureStore`                                    | Host keychain/keystore persistence contract for credentials and redirect state. |
+| `McpNativeOAuthReauthorizationRequest`                         | Frozen host decision input for bounded interactive reauthorization.             |
 | `createMcpNativeOAuthTransport`                                | Protected HTTP transport with resource pinning and host-gated scope escalation. |
 | `McpNativeOAuthError`                                          | Fail-closed categories without attacker-controlled callback details.            |
 
@@ -175,7 +184,10 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 
 - Official SDK client v2 integration only.
 - Integration tests pin `2026-07-28` through the official SDK HTTP handler/fetch path and verify `auto` fallback to exactly `2025-11-25` through the linked in-memory transport.
-- Seven applicable official client scenarios cover tool calls, request metadata and version retry, standard and custom HTTP headers, invalid header annotations, safe `$ref` handling, and JSON Schema 2020-12 preservation. See the [pinned coverage report](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-conformance.md).
+- Thirty-two applicable official client scenarios cover every scored `2026-07-28` authorization
+  client scenario plus tool calls, request metadata and version retry, standard and custom HTTP
+  headers, invalid header annotations, safe `$ref` handling, and JSON Schema 2020-12 preservation.
+  See the [pinned coverage report](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-conformance.md).
 - The conformance gate accounts for every scored client requirement in the pinned official fixture, while shared-store tests verify that private cache entries stay principal-partitioned and public entries are reused only for the same server identity and request.
 - Hosts retain connection lifecycle, consent, platform authentication-session presentation,
   secure-storage implementation, retries, and shutdown. The protected-HTTP helper owns only the
