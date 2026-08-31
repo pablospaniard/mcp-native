@@ -50,8 +50,12 @@ their minor release line.
   attempt while it atomically consumes state and clears its verifier.
 - Serialize state save, consume, and full invalidation across reference-store objects using the same
   fixed namespace in one JS runtime, so duplicate instances cannot both accept one callback state.
-- Reject direct cancellation while a system authorization handoff or callback completion is active,
-  preventing cleanup from racing the attempt's state and PKCE verifier.
+- Make the store state reservation exclusive per namespace so a second provider, or a duplicate
+  store object over one backend, cannot overwrite a live attempt's redirect state. Cancellation
+  releases the reserved slot even when an earlier process persisted it, without deleting
+  registrations or tokens.
+- Reject direct cancellation while state setup, a system authorization handoff, or callback
+  completion is active, preventing cleanup from racing the attempt's state and PKCE verifier.
 - Reject native OAuth evidence rows that declare `pass` while any required case is still `fail` or
   `not-run`, including during the ordinary non-release structure check.
 

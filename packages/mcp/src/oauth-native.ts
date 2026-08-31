@@ -75,7 +75,8 @@ interface IssuerRecord<T> {
 /**
  * Bounded reference implementation of the OAuth store contract over a native secret backend.
  * One namespace represents one protected-resource authorization context. State operations are
- * serialized across store objects using the same fixed namespaced service in this JS runtime.
+ * serialized across store objects using the same fixed namespaced service in this JS runtime,
+ * and a reserved state is exclusive until it is consumed or cleared.
  */
 export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureStore {
   readonly #backend: McpNativeOAuthSecretBackend;
@@ -154,7 +155,19 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
       throw new McpNativeOAuthError("invalid-storage", "OAuth state is invalid");
     }
     await this.#withStateLock(async () => {
+      if ((await this.#backend.read(this.#services.state)) !== undefined) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "Another OAuth authorization state is already reserved for this namespace",
+        );
+      }
       await this.#backend.write(this.#services.state, state);
+    });
+  }
+
+  async clearOAuthState(): Promise<void> {
+    await this.#withStateLock(async () => {
+      await this.#backend.remove(this.#services.state);
     });
   }
 

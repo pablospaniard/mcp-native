@@ -158,9 +158,16 @@ export interface McpNativeOAuthSecureStore {
   saveTokens(issuer: string, tokens: StoredOAuthTokens): void | Promise<void>;
   loadCodeVerifier(): string | undefined | Promise<string | undefined>;
   saveCodeVerifier(verifier: string): void | Promise<void>;
+  /**
+   * Atomically reserves the single pending-state slot for one interactive attempt. It must
+   * fail when a state is already reserved so concurrent providers sharing a namespace cannot
+   * overwrite each other's redirect state.
+   */
   saveOAuthState(state: string): void | Promise<void>;
   /** Atomically compares and deletes the stored state to prevent concurrent callback replay. */
   consumeOAuthState(state: string): boolean | Promise<boolean>;
+  /** Releases the reservation without a value, including one left by a terminated process. */
+  clearOAuthState(): void | Promise<void>;
   loadDiscoveryState(): OAuthDiscoveryState | undefined | Promise<OAuthDiscoveryState | undefined>;
   saveDiscoveryState(state: OAuthDiscoveryState): void | Promise<void>;
   invalidate(scope: McpNativeOAuthCredentialScope, issuer?: string): void | Promise<void>;
@@ -229,8 +236,8 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     | undefined;
   #activeIssuer: string | undefined;
   #pendingAuthorizationUrl: string | undefined;
-  #pendingState: string | undefined;
   #authorizationAttemptReserved = false;
+  #authorizationStateSetupRunning = false;
   #authorizationCompletionRunning = false;
   #authorizationHandoffRunning = false;
 
@@ -281,6 +288,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       );
     }
     this.#authorizationAttemptReserved = true;
+    this.#authorizationStateSetupRunning = true;
     try {
       const state = await this.#createState();
       if (!STATE_PATTERN.test(state)) {
@@ -290,11 +298,12 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         );
       }
       await this.#storage.saveOAuthState(state);
-      this.#pendingState = state;
       return state;
     } catch (error) {
       this.#authorizationAttemptReserved = false;
       throw error;
+    } finally {
+      this.#authorizationStateSetupRunning = false;
     }
   }
 
@@ -463,20 +472,24 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     }
     if (scope === "all") {
       this.#pendingAuthorizationUrl = undefined;
-      this.#pendingState = undefined;
       this.#authorizationAttemptReserved = false;
     }
   }
 
   /**
-   * Clears an abandoned interactive attempt after the platform handoff has settled.
-   * Active handoff and callback completion cannot be cancelled through this method.
+   * Clears an abandoned interactive attempt after the platform handoff has settled, including a
+   * reservation persisted by an earlier process. Active state setup, handoff, and callback
+   * completion cannot be cancelled through this method.
    */
   async cancelAuthorization(): Promise<void> {
-    if (this.#authorizationCompletionRunning || this.#authorizationHandoffRunning) {
+    if (
+      this.#authorizationStateSetupRunning ||
+      this.#authorizationCompletionRunning ||
+      this.#authorizationHandoffRunning
+    ) {
       throw new McpNativeOAuthError(
         "invalid-configuration",
-        "OAuth authorization handoff or callback completion is already running",
+        "OAuth authorization state setup, handoff, or callback completion is already running",
       );
     }
     await this.#discardPendingAuthorization();
@@ -506,7 +519,6 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         throw new McpNativeOAuthError("state-mismatch", "OAuth callback state did not match");
       }
       stateConsumed = true;
-      this.#pendingState = undefined;
 
       try {
         if (parameters.has("error")) {
@@ -553,10 +565,8 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
 
   async #discardPendingAuthorization(): Promise<void> {
     this.#pendingAuthorizationUrl = undefined;
-    const state = this.#pendingState;
-    this.#pendingState = undefined;
     try {
-      if (state !== undefined) await this.#storage.consumeOAuthState(state);
+      await this.#storage.clearOAuthState();
     } finally {
       try {
         await this.#storage.invalidate("verifier", this.#activeIssuer);

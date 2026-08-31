@@ -140,6 +140,54 @@ test("platform OAuth storage serializes state consumption across store instances
   assert.deepEqual(results.sort(), [false, true]);
 });
 
+test("platform OAuth storage reserves state exclusively across provider instances", async () => {
+  const secrets = createSecretBackend();
+  const createStore = () =>
+    createMcpNativeOAuthPlatformSecureStore({
+      namespace: "com.example.host.shared",
+      backend: secrets.backend,
+    });
+  const createHostProvider = (storage, state) =>
+    createMcpNativeOAuthProvider({
+      serverUrl: SERVER_URL,
+      redirectUrl: REDIRECT_URL,
+      clientMetadata: { client_name: "Native host", redirect_uris: [REDIRECT_URL] },
+      storage,
+      createState: () => state,
+      openAuthorization: () => {},
+    });
+
+  const firstStore = createStore();
+  const secondStore = createStore();
+  const firstState = `state_${"a".repeat(40)}`;
+  const secondState = `state_${"b".repeat(40)}`;
+
+  const results = await Promise.allSettled([
+    createHostProvider(firstStore, firstState).state(),
+    createHostProvider(secondStore, secondState).state(),
+  ]);
+  const reserved = results.filter((result) => result.status === "fulfilled");
+  const rejected = results.filter((result) => result.status === "rejected");
+  assert.equal(reserved.length, 1);
+  assert.equal(rejected.length, 1);
+  assert.ok(
+    rejected[0].reason instanceof McpNativeOAuthError &&
+      rejected[0].reason.code === "invalid-storage",
+  );
+
+  // The attempt that won the reservation keeps a usable callback state.
+  assert.equal(await firstStore.consumeOAuthState(reserved[0].value), true);
+
+  await firstStore.saveOAuthState(firstState);
+  await assert.rejects(
+    () => secondStore.saveOAuthState(secondState),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  await secondStore.clearOAuthState();
+  await secondStore.saveOAuthState(secondState);
+  assert.equal(await firstStore.consumeOAuthState(secondState), true);
+});
+
 test("platform OAuth storage removes corrupt issuer records during invalidation", async () => {
   const { secrets, storage } = createPlatformStore();
   await storage.saveTokens(ISSUER, {

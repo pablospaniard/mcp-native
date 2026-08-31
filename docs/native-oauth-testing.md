@@ -105,12 +105,16 @@ process is recreated and receives the registered deep link directly, call
 material remain in the platform store for that recovery path. Both paths enforce the same total,
 parameter-count, parameter-name, and parameter-value callback budgets before code redemption. One
 provider reserves one interactive attempt before persisting state; a concurrent attempt fails
-without replacing the first attempt's state or verifier. Process recovery makes the same reservation
-before consuming persisted state, so a concurrent new flow cannot lose its verifier during old-flow
-cleanup. A reported platform cancellation is fail-closed and clears the pending state and verifier
-without deleting registrations or tokens. Call `provider.cancelAuthorization()` only to abandon an
-attempt after the platform handoff has settled; it is rejected while the opener or callback
-completion is active so cleanup cannot race the attempt's state and verifier.
+without replacing the first attempt's state or verifier. The store reservation is exclusive per
+namespace, so duplicate providers or store objects sharing one backend cannot overwrite each other's
+redirect state. Process recovery makes the same reservation before consuming persisted state, so a
+concurrent new flow cannot lose its verifier during old-flow cleanup. A reported platform
+cancellation is fail-closed and clears the pending state and verifier without deleting registrations
+or tokens. Call `provider.cancelAuthorization()` only to abandon an attempt after the platform
+handoff has settled; it is rejected while state setup, the opener, or callback completion is active
+so cleanup cannot race the attempt's state and verifier. Because a namespace is one authorization
+context, cancellation releases the reserved state slot even when the reservation was persisted by a
+terminated process, without deleting registrations or tokens.
 
 ## Required matrix
 

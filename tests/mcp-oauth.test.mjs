@@ -45,12 +45,21 @@ function createStorage(initial = {}) {
       values.verifier = verifier;
     },
     async saveOAuthState(state) {
+      if (values.state !== undefined) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "Another OAuth authorization state is already reserved",
+        );
+      }
       values.state = state;
     },
     async consumeOAuthState(state) {
       if (values.state !== state) return false;
       values.state = undefined;
       return true;
+    },
+    async clearOAuthState() {
+      values.state = undefined;
     },
     async loadDiscoveryState() {
       return values.discovery;
@@ -575,6 +584,55 @@ test("OAuth recovery completion reserves persisted state against a new attempt",
   assert.equal(code, "code-1");
   assert.equal(storage.values.state, undefined);
   assert.equal(storage.values.verifier, undefined);
+});
+
+test("OAuth cancellation cannot race an in-flight state reservation", async () => {
+  const storage = createStorage();
+  const save = storage.saveOAuthState.bind(storage);
+  let release;
+  const blocked = new Promise((resolve) => {
+    release = resolve;
+  });
+  storage.saveOAuthState = async (state) => {
+    await blocked;
+    await save(state);
+  };
+  const { provider } = createProvider({ storage });
+  await provider.saveCodeVerifier(VALID_VERIFIER);
+
+  const pending = provider.state();
+  await assert.rejects(
+    () => provider.cancelAuthorization(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+  assert.equal(storage.values.verifier, VALID_VERIFIER);
+
+  release();
+  assert.equal(await pending, VALID_STATE);
+  assert.equal(storage.values.state, VALID_STATE);
+
+  // The reservation survived the rejected cancellation, so no attempt can replace it.
+  await assert.rejects(
+    () => provider.state(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
+  );
+
+  await provider.cancelAuthorization();
+  assert.equal(storage.values.state, undefined);
+  assert.equal(storage.values.verifier, undefined);
+});
+
+test("OAuth cancellation releases a reservation persisted by an earlier process", async () => {
+  const storage = createStorage({ state: VALID_STATE, verifier: VALID_VERIFIER });
+  const { provider } = createProvider({ storage });
+
+  // A restarted host has no in-memory pending attempt to consume.
+  await provider.cancelAuthorization();
+  assert.equal(storage.values.state, undefined);
+  assert.equal(storage.values.verifier, undefined);
+
+  assert.equal(await provider.state(), VALID_STATE);
+  assert.equal(storage.values.state, VALID_STATE);
 });
 
 test("OAuth callback errors do not expose attacker-controlled descriptions", async () => {

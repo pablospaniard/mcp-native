@@ -65,12 +65,18 @@ const createOAuthStore = (preRegisteredClient) => {
       verifier = value;
     },
     async saveOAuthState(value) {
+      if (state !== undefined) {
+        throw new Error("Another OAuth authorization state is already reserved");
+      }
       state = value;
     },
     async consumeOAuthState(value) {
       if (state !== value) return false;
       state = undefined;
       return true;
+    },
+    async clearOAuthState() {
+      state = undefined;
     },
     async loadDiscoveryState() {
       return discoveryState === undefined ? undefined : structuredClone(discoveryState);

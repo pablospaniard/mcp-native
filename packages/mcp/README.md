@@ -130,9 +130,9 @@ try {
 
 `McpNativeOAuthSecureStore` must be implemented with OS keychain/keystore-grade encrypted storage.
 `createMcpNativeOAuthPlatformSecureStore()` supplies the bounded serialization, fixed app-owned
-service slots, exact issuer binding, and state consumption serialized across store objects using the
-same namespace in one JS runtime over a narrow native secret backend; it cannot make AsyncStorage or
-a plain file secure. The provider validates stored values
+service slots, exact issuer binding, and exclusive state reservation and consumption serialized
+across store objects using the same namespace in one JS runtime over a narrow native secret backend;
+it cannot make AsyncStorage or a plain file secure. The provider validates stored values
 before returning them to the SDK, bounds individual and cumulative registration, discovery, and
 token data before schema parsing, persistence, or reuse, validates every registered redirect URI,
 rejects literal fragment delimiters on server, redirect, authorization, and callback URLs, requires
@@ -146,9 +146,10 @@ error descriptions.
 `ASWebAuthenticationSession`/Android Custom Tab bridge into one exact callback. It rejects overlap,
 callback substitution, oversized or malformed results, and reuse. A cancellation result clears
 pending state and PKCE material without deleting registrations or tokens; direct provider
-cancellation is rejected while the system handoff or callback completion is active. The provider
-reserves one interactive attempt before state persistence, and applies the same total and
-per-parameter callback budgets to the direct process-recovery path. See the [native integration and
+cancellation is rejected while the system handoff, state setup, or callback completion is active. The
+provider reserves one interactive attempt before state persistence, the store rejects a second
+reservation for the same namespace, and cancellation releases a reservation persisted by an earlier
+process. The same total and per-parameter callback budgets apply to the direct process-recovery path. See the [native integration and
 evidence plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md)
 for a React Native Keychain/Keystore mapping and the required platform matrix.
 
