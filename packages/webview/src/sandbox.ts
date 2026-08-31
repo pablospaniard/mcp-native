@@ -356,7 +356,7 @@ function findCspInsertionOffset(html: string): number | undefined {
 }
 
 function skipAsciiWhitespace(value: string, offset: number): number {
-  while (offset < value.length && /[\t\n\f\r ]/u.test(value[offset]!)) offset += 1;
+  while (offset < value.length && isAsciiWhitespace(value[offset]!)) offset += 1;
   return offset;
 }
 
@@ -367,28 +367,52 @@ function findOpeningTagEnd(
 ): number | undefined {
   const prefix = `<${expectedName}`;
   if (html.slice(offset, offset + prefix.length).toLowerCase() !== prefix) return undefined;
-  const boundary = html[offset + prefix.length];
-  if (boundary !== ">" && boundary !== undefined && !/[\t\n\f\r ]/u.test(boundary)) {
-    return undefined;
-  }
+  let index = offset + prefix.length;
+  if (html[index] === ">") return index + 1;
+  if (!isAsciiWhitespace(html[index])) return undefined;
 
-  let quote: '"' | "'" | undefined;
-  for (let index = offset + prefix.length; index < html.length; index += 1) {
-    const character = html[index]!;
-    if (quote !== undefined) {
-      if (character === quote) quote = undefined;
-      continue;
+  while (index < html.length) {
+    index = skipAsciiWhitespace(html, index);
+    if (html[index] === ">") return index + 1;
+    if (!isAttributeNameCharacter(html[index])) return undefined;
+
+    while (index < html.length && isAttributeNameCharacter(html[index])) index += 1;
+    const nameEnd = index;
+    index = skipAsciiWhitespace(html, index);
+    if (html[index] === "=") {
+      index = skipAsciiWhitespace(html, index + 1);
+      const quote = html[index];
+      if (quote === '"' || quote === "'") {
+        index += 1;
+        while (index < html.length && html[index] !== quote) index += 1;
+        if (html[index] !== quote) return undefined;
+        index += 1;
+      } else {
+        const valueStart = index;
+        while (index < html.length && html[index] !== ">" && !isAsciiWhitespace(html[index])) {
+          if (!isUnquotedAttributeValueCharacter(html[index]!)) return undefined;
+          index += 1;
+        }
+        if (index === valueStart) return undefined;
+      }
+    } else {
+      index = nameEnd;
     }
-    if (character === '"' || character === "'") {
-      quote = character;
-      continue;
-    }
-    if (character !== ">") continue;
-    let previous = index - 1;
-    while (previous >= offset && /[\t\n\f\r ]/u.test(html[previous]!)) previous -= 1;
-    return html[previous] === "/" ? undefined : index + 1;
+    if (html[index] !== ">" && !isAsciiWhitespace(html[index])) return undefined;
   }
   return undefined;
+}
+
+function isAsciiWhitespace(value: string | undefined): boolean {
+  return value !== undefined && /[\t\n\f\r ]/u.test(value);
+}
+
+function isAttributeNameCharacter(value: string | undefined): boolean {
+  return value !== undefined && /[A-Za-z0-9_.:-]/u.test(value);
+}
+
+function isUnquotedAttributeValueCharacter(value: string): boolean {
+  return !['"', "'", "<", "=", "`"].includes(value);
 }
 
 function escapeHtmlAttribute(value: string): string {

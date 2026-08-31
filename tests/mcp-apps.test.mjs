@@ -460,6 +460,14 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
     quotedFakeHead.source.html.lastIndexOf('<meta http-equiv="Content-Security-Policy"'),
   );
   assert.throws(
+    () =>
+      createMcpAppsNativeSandbox({
+        ...resource,
+        html: '<!doctype html><html a"><head><script>alert(1)</script></head><body x="><head>',
+      }),
+    /HTML5 doctype, html element, and head element/,
+  );
+  assert.throws(
     () => createMcpAppsNativeSandbox(createResolvedResource({ domain: "view.example.com" })),
     /sandbox domain is unsupported/,
   );
