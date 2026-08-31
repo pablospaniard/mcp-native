@@ -114,8 +114,9 @@ cancellation is fail-closed and clears the pending state and verifier without de
 or tokens. Call `provider.cancelAuthorization()` only to abandon an attempt after the platform
 handoff has settled; it is rejected while state setup, the opener, or callback completion is active
 so cleanup cannot race the attempt's state and verifier. Because a namespace is one authorization
-context, cancellation releases the reserved state slot even when the reservation was persisted by a
-terminated process, without deleting registrations or tokens.
+context, the live provider owns its reservation: another provider sharing that namespace cannot
+cancel the handoff or clear its verifier. When the process is recreated and no live owner remains,
+a new provider may claim and release the stale reservation without deleting registrations or tokens.
 
 ## Required matrix
 

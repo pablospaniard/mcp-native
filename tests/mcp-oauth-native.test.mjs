@@ -89,12 +89,15 @@ test("platform OAuth storage uses fixed app-owned slots and exact issuer binding
 
 test("platform OAuth storage serializes state consumption and bounds corrupt secrets", async () => {
   const { secrets, storage } = createPlatformStore();
-  await storage.saveOAuthState(VALID_STATE);
+  const owner = {};
+  const competingOwner = {};
+  await storage.saveOAuthState(VALID_STATE, owner);
   const results = await Promise.all([
-    storage.consumeOAuthState(VALID_STATE),
-    storage.consumeOAuthState(VALID_STATE),
+    storage.consumeOAuthState(VALID_STATE, owner),
+    storage.consumeOAuthState(VALID_STATE, competingOwner),
   ]);
   assert.deepEqual(results.sort(), [false, true]);
+  await storage.clearOAuthState(owner);
 
   await assert.rejects(
     () => storage.saveTokens(ISSUER, { access_token: "x".repeat(40_000) }),
@@ -131,13 +134,16 @@ test("platform OAuth storage serializes state consumption across store instances
     namespace: "com.example.host.shared",
     backend: secrets.backend,
   });
-  await first.saveOAuthState(VALID_STATE);
+  const owner = {};
+  const competingOwner = {};
+  await first.saveOAuthState(VALID_STATE, owner);
 
   const results = await Promise.all([
-    first.consumeOAuthState(VALID_STATE),
-    second.consumeOAuthState(VALID_STATE),
+    first.consumeOAuthState(VALID_STATE, owner),
+    second.consumeOAuthState(VALID_STATE, competingOwner),
   ]);
   assert.deepEqual(results.sort(), [false, true]);
+  await second.clearOAuthState(owner);
 });
 
 test("platform OAuth storage reserves state exclusively across provider instances", async () => {
@@ -162,10 +168,9 @@ test("platform OAuth storage reserves state exclusively across provider instance
   const firstState = `state_${"a".repeat(40)}`;
   const secondState = `state_${"b".repeat(40)}`;
 
-  const results = await Promise.allSettled([
-    createHostProvider(firstStore, firstState).state(),
-    createHostProvider(secondStore, secondState).state(),
-  ]);
+  const firstProvider = createHostProvider(firstStore, firstState);
+  const secondProvider = createHostProvider(secondStore, secondState);
+  const results = await Promise.allSettled([firstProvider.state(), secondProvider.state()]);
   const reserved = results.filter((result) => result.status === "fulfilled");
   const rejected = results.filter((result) => result.status === "rejected");
   assert.equal(reserved.length, 1);
@@ -176,22 +181,30 @@ test("platform OAuth storage reserves state exclusively across provider instance
   );
 
   // The attempt that won the reservation keeps a usable callback state.
-  assert.equal(await firstStore.consumeOAuthState(reserved[0].value), true);
-  await assert.rejects(
-    () => firstStore.saveOAuthState(firstState),
-    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  const winner = results[0].status === "fulfilled" ? firstProvider : secondProvider;
+  await winner.finishAuthorization(
+    { finishAuth: () => undefined },
+    `${REDIRECT_URL}?code=code-1&state=${reserved[0].value}`,
   );
-  await firstStore.clearOAuthState();
 
-  await firstStore.saveOAuthState(firstState);
+  const firstOwner = {};
+  const secondOwner = {};
+  await firstStore.reserveOAuthState(firstOwner);
+  await firstStore.saveOAuthState(firstState, firstOwner);
   await assert.rejects(
-    () => secondStore.saveOAuthState(secondState),
+    () => secondStore.reserveOAuthState(secondOwner),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
   );
-  await secondStore.clearOAuthState();
-  await secondStore.saveOAuthState(secondState);
-  assert.equal(await firstStore.consumeOAuthState(secondState), true);
-  await firstStore.clearOAuthState();
+  await assert.rejects(
+    () => secondStore.clearOAuthState(secondOwner),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  await firstStore.clearOAuthState(firstOwner);
+
+  await secondStore.reserveOAuthState(secondOwner);
+  await secondStore.saveOAuthState(secondState, secondOwner);
+  assert.equal(await firstStore.consumeOAuthState(secondState, secondOwner), true);
+  await firstStore.clearOAuthState(secondOwner);
 });
 
 test("platform OAuth storage holds a claimed state through verifier cleanup", async () => {
@@ -258,7 +271,7 @@ test("platform OAuth storage holds a claimed state through verifier cleanup", as
   releaseCleanup();
   await completion;
   assert.equal(await firstStore.loadCodeVerifier(), undefined);
-  assert.equal(await firstStore.consumeOAuthState(firstState), false);
+  assert.equal(await firstStore.consumeOAuthState(firstState, {}), false);
 
   assert.equal(await second.state(), secondState);
   await second.saveCodeVerifier(secondVerifier);
@@ -305,17 +318,18 @@ test("platform OAuth storage retains a claimed state when verifier cleanup fails
     /verifier cleanup failed/,
   );
 
-  assert.equal(await secondStore.consumeOAuthState(VALID_STATE), false);
+  assert.equal(await secondStore.consumeOAuthState(VALID_STATE, {}), false);
+  const secondOwner = {};
   await assert.rejects(
-    () => secondStore.saveOAuthState(secondState),
+    () => secondStore.saveOAuthState(secondState, secondOwner),
     (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
   );
 
   failVerifierCleanup = false;
   await provider.cancelAuthorization();
-  await secondStore.saveOAuthState(secondState);
-  assert.equal(await firstStore.consumeOAuthState(secondState), true);
-  await firstStore.clearOAuthState();
+  await secondStore.saveOAuthState(secondState, secondOwner);
+  assert.equal(await firstStore.consumeOAuthState(secondState, secondOwner), true);
+  await firstStore.clearOAuthState(secondOwner);
 });
 
 test("platform OAuth storage removes corrupt issuer records during invalidation", async () => {
@@ -496,7 +510,7 @@ test("cancelled OS authorization sessions clear durable state and PKCE material"
     (error) => error instanceof McpNativeOAuthError && error.code === "authorization-denied",
   );
   assert.equal(await storage.loadCodeVerifier(), undefined);
-  assert.equal(await storage.consumeOAuthState(VALID_STATE), false);
+  assert.equal(await storage.consumeOAuthState(VALID_STATE, {}), false);
 });
 
 test("overlapping authorization attempts leave the first state and verifier usable", async () => {
@@ -550,7 +564,60 @@ test("overlapping authorization attempts leave the first state and verifier usab
   });
   assert.equal(code, "code-1");
   assert.equal(await storage.loadCodeVerifier(), undefined);
-  assert.equal(await storage.consumeOAuthState(VALID_STATE), false);
+  assert.equal(await storage.consumeOAuthState(VALID_STATE, {}), false);
+});
+
+test("a second provider cannot cancel another provider's authorization handoff", async () => {
+  const secrets = createSecretBackend();
+  const createStore = () =>
+    createMcpNativeOAuthPlatformSecureStore({
+      namespace: "com.example.host.handoff-ownership",
+      backend: secrets.backend,
+    });
+  let handoffStarted;
+  const started = new Promise((resolve) => {
+    handoffStarted = resolve;
+  });
+  let releaseHandoff;
+  const blocked = new Promise((resolve) => {
+    releaseHandoff = resolve;
+  });
+  const createHostProvider = (storage, openAuthorization) =>
+    createMcpNativeOAuthProvider({
+      serverUrl: SERVER_URL,
+      redirectUrl: REDIRECT_URL,
+      clientMetadata: { client_name: "Native host", redirect_uris: [REDIRECT_URL] },
+      storage,
+      createState: () => VALID_STATE,
+      openAuthorization,
+    });
+  const firstStore = createStore();
+  const secondStore = createStore();
+  const first = createHostProvider(firstStore, async () => {
+    handoffStarted();
+    await blocked;
+  });
+  const second = createHostProvider(secondStore, () => undefined);
+
+  await first.state();
+  await first.saveCodeVerifier(VALID_VERIFIER);
+  const handoff = first.redirectToAuthorization(new URL(`${ISSUER}/authorize?client_id=client`));
+  await started;
+
+  await assert.rejects(
+    () => second.cancelAuthorization(),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+  assert.equal(await firstStore.loadCodeVerifier(), VALID_VERIFIER);
+
+  releaseHandoff();
+  await handoff;
+  await first.finishAuthorization(
+    { finishAuth: () => undefined },
+    `${REDIRECT_URL}?code=code-1&state=${VALID_STATE}`,
+  );
+  assert.equal(await firstStore.loadCodeVerifier(), undefined);
+  assert.equal(await secondStore.consumeOAuthState(VALID_STATE, {}), false);
 });
 
 test("authorization cancellation attempts verifier cleanup when state deletion fails", async () => {

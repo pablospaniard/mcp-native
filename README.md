@@ -258,7 +258,9 @@ renders attacker-controlled OAuth descriptions. A cancelled OS session clears pe
 PKCE material without deleting registrations or tokens; direct cancellation is rejected until an
 active state setup, system handoff, or callback completion has settled. A claimed callback state
 keeps the shared namespace reserved until verifier cleanup succeeds, so another provider cannot
-replace the verifier during token exchange. Both native-session and direct process-recovery
+replace the verifier during token exchange. The reservation is bound to its live provider, so a
+second provider sharing the namespace also cannot cancel or clear the first provider's attempt;
+stale cleanup remains available after process restart. Both native-session and direct process-recovery
 callbacks have total and per-parameter budgets before code redemption. All 25 scored official
 authorization scenarios pass.
 The [native OAuth plan](docs/native-oauth-testing.md) and strict evidence gate are implemented. A

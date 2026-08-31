@@ -38,6 +38,7 @@ const createOAuthStore = (preRegisteredClient) => {
   let latestTokenIssuer;
   let verifier;
   let state;
+  let stateOwner;
   let discoveryState;
 
   return {
@@ -64,19 +65,38 @@ const createOAuthStore = (preRegisteredClient) => {
     async saveCodeVerifier(value) {
       verifier = value;
     },
-    async saveOAuthState(value) {
-      if (state !== undefined) {
+    async reserveOAuthState(owner) {
+      if (stateOwner !== undefined || state !== undefined) {
+        throw new Error("Another OAuth authorization state is already reserved");
+      }
+      stateOwner = owner;
+    },
+    async saveOAuthState(value, owner) {
+      if ((stateOwner !== undefined && stateOwner !== owner) || state !== undefined) {
         throw new Error("Another OAuth authorization state is already reserved");
       }
       state = value;
+      stateOwner = owner;
     },
-    async consumeOAuthState(value) {
+    async consumeOAuthState(value, owner) {
       if (state !== value) return false;
+      if (stateOwner !== undefined && stateOwner !== owner) return false;
       state = "mcp-native:claimed";
+      stateOwner = owner;
       return true;
     },
-    async clearOAuthState() {
+    async claimOAuthStateForCleanup(owner) {
+      if (stateOwner !== undefined && stateOwner !== owner) {
+        throw new Error("Another OAuth provider owns the authorization state reservation");
+      }
+      stateOwner = owner;
+    },
+    async clearOAuthState(owner) {
+      if (stateOwner !== owner) {
+        throw new Error("OAuth state reservation is not owned by this provider");
+      }
       state = undefined;
+      stateOwner = undefined;
     },
     async loadDiscoveryState() {
       return discoveryState === undefined ? undefined : structuredClone(discoveryState);
@@ -96,7 +116,10 @@ const createOAuthStore = (preRegisteredClient) => {
       }
       if (scope === "all" || scope === "verifier") verifier = undefined;
       if (scope === "all" || scope === "discovery") discoveryState = undefined;
-      if (scope === "all") state = undefined;
+      if (scope === "all") {
+        state = undefined;
+        stateOwner = undefined;
+      }
     },
   };
 };

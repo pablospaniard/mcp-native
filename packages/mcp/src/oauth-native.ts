@@ -48,6 +48,7 @@ const CALLBACK_PARAMETER_NAMES = new Set([
 ]);
 const CLAIMED_STATE_MARKER = "mcp-native:claimed";
 const STATE_LOCKS = new Map<string, Promise<void>>();
+const STATE_OWNERS = new Map<string, object>();
 
 type OAuthFinisher = Pick<StreamableHTTPClientTransport, "finishAuth">;
 type SecretSlot = "client" | "discovery" | "state" | "tokens" | "verifier";
@@ -151,33 +152,83 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
     await this.#backend.write(this.#services.verifier, verifier);
   }
 
-  async saveOAuthState(state: string): Promise<void> {
-    if (!OAUTH_STATE_PATTERN.test(state)) {
-      throw new McpNativeOAuthError("invalid-storage", "OAuth state is invalid");
-    }
+  async reserveOAuthState(owner: object): Promise<void> {
+    assertAttemptOwner(owner);
     await this.#withStateLock(async () => {
-      if ((await this.#read("state")) !== undefined) {
+      const service = this.#services.state;
+      if (STATE_OWNERS.has(service) || (await this.#read("state")) !== undefined) {
         throw new McpNativeOAuthError(
           "invalid-storage",
           "Another OAuth authorization state is already reserved for this namespace",
         );
       }
-      await this.#backend.write(this.#services.state, state);
+      STATE_OWNERS.set(service, owner);
     });
   }
 
-  async clearOAuthState(): Promise<void> {
+  async saveOAuthState(state: string, owner: object): Promise<void> {
+    assertAttemptOwner(owner);
+    if (!OAUTH_STATE_PATTERN.test(state)) {
+      throw new McpNativeOAuthError("invalid-storage", "OAuth state is invalid");
+    }
     await this.#withStateLock(async () => {
-      await this.#backend.remove(this.#services.state);
+      const service = this.#services.state;
+      const currentOwner = STATE_OWNERS.get(service);
+      if (
+        (currentOwner !== undefined && currentOwner !== owner) ||
+        (await this.#read("state")) !== undefined
+      ) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "Another OAuth authorization state is already reserved for this namespace",
+        );
+      }
+      await this.#backend.write(service, state);
+      STATE_OWNERS.set(service, owner);
     });
   }
 
-  async consumeOAuthState(state: string): Promise<boolean> {
+  async claimOAuthStateForCleanup(owner: object): Promise<void> {
+    assertAttemptOwner(owner);
+    await this.#withStateLock(async () => {
+      const service = this.#services.state;
+      const currentOwner = STATE_OWNERS.get(service);
+      if (currentOwner !== undefined && currentOwner !== owner) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "Another OAuth provider owns the authorization state reservation",
+        );
+      }
+      STATE_OWNERS.set(service, owner);
+    });
+  }
+
+  async clearOAuthState(owner: object): Promise<void> {
+    assertAttemptOwner(owner);
+    await this.#withStateLock(async () => {
+      const service = this.#services.state;
+      if (STATE_OWNERS.get(service) !== owner) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "OAuth state reservation is not owned by this provider",
+        );
+      }
+      await this.#backend.remove(service);
+      STATE_OWNERS.delete(service);
+    });
+  }
+
+  async consumeOAuthState(state: string, owner: object): Promise<boolean> {
+    assertAttemptOwner(owner);
     if (!OAUTH_STATE_PATTERN.test(state)) return false;
     return this.#withStateLock(async () => {
+      const service = this.#services.state;
+      const currentOwner = STATE_OWNERS.get(service);
+      if (currentOwner !== undefined && currentOwner !== owner) return false;
       const stored = await this.#read("state");
       if (stored !== state) return false;
-      await this.#backend.write(this.#services.state, CLAIMED_STATE_MARKER);
+      await this.#backend.write(service, CLAIMED_STATE_MARKER);
+      STATE_OWNERS.set(service, owner);
       return true;
     });
   }
@@ -201,6 +252,7 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
               this.#backend.remove(this.#services[slot]),
             ),
           );
+          STATE_OWNERS.delete(this.#services.state);
         });
         return;
       case "client":
@@ -436,6 +488,12 @@ export function createMcpNativeOAuthAuthorizationSession(
   options: McpNativeOAuthAuthorizationSessionOptions,
 ): McpNativeOAuthAuthorizationSession {
   return new McpNativeOAuthAuthorizationSession(options);
+}
+
+function assertAttemptOwner(owner: object): void {
+  if (typeof owner !== "object" || owner === null) {
+    throw new McpNativeOAuthError("invalid-storage", "OAuth state owner is invalid");
+  }
 }
 
 function assertIssuer(issuer: string): void {

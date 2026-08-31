@@ -20,6 +20,7 @@ function createStorage(initial = {}) {
     tokens: undefined,
     verifier: undefined,
     state: undefined,
+    stateOwner: undefined,
     discovery: undefined,
     invalidations: [],
     ...initial,
@@ -45,22 +46,53 @@ function createStorage(initial = {}) {
     async saveCodeVerifier(verifier) {
       values.verifier = verifier;
     },
-    async saveOAuthState(state) {
-      if (values.state !== undefined) {
+    async reserveOAuthState(owner) {
+      if (values.stateOwner !== undefined || values.state !== undefined) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "Another OAuth authorization state is already reserved",
+        );
+      }
+      values.stateOwner = owner;
+    },
+    async saveOAuthState(state, owner) {
+      if (
+        (values.stateOwner !== undefined && values.stateOwner !== owner) ||
+        values.state !== undefined
+      ) {
         throw new McpNativeOAuthError(
           "invalid-storage",
           "Another OAuth authorization state is already reserved",
         );
       }
       values.state = state;
+      values.stateOwner = owner;
     },
-    async consumeOAuthState(state) {
+    async consumeOAuthState(state, owner) {
       if (values.state !== state) return false;
+      if (values.stateOwner !== undefined && values.stateOwner !== owner) return false;
       values.state = CLAIMED_STATE_MARKER;
+      values.stateOwner = owner;
       return true;
     },
-    async clearOAuthState() {
+    async claimOAuthStateForCleanup(owner) {
+      if (values.stateOwner !== undefined && values.stateOwner !== owner) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "Another OAuth provider owns the authorization state reservation",
+        );
+      }
+      values.stateOwner = owner;
+    },
+    async clearOAuthState(owner) {
+      if (values.stateOwner !== owner) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "OAuth state reservation is not owned by this provider",
+        );
+      }
       values.state = undefined;
+      values.stateOwner = undefined;
     },
     async loadDiscoveryState() {
       return values.discovery;
@@ -70,7 +102,10 @@ function createStorage(initial = {}) {
     },
     async invalidate(scope, issuer) {
       values.invalidations.push([scope, issuer]);
-      if (scope === "all") values.state = undefined;
+      if (scope === "all") {
+        values.state = undefined;
+        values.stateOwner = undefined;
+      }
       if (scope === "all" || scope === "verifier") values.verifier = undefined;
       if (scope === "all" || scope === "tokens") values.tokens = undefined;
       if (scope === "all" || scope === "discovery") values.discovery = undefined;
@@ -573,9 +608,9 @@ test("OAuth recovery completion reserves persisted state against a new attempt",
   const blocked = new Promise((resolve) => {
     release = resolve;
   });
-  storage.consumeOAuthState = async (state) => {
+  storage.consumeOAuthState = async (state, owner) => {
     await blocked;
-    return consume(state);
+    return consume(state, owner);
   };
   const { provider } = createProvider({ storage });
   let code;
@@ -610,9 +645,9 @@ test("OAuth cancellation cannot race an in-flight state reservation", async () =
   const blocked = new Promise((resolve) => {
     release = resolve;
   });
-  storage.saveOAuthState = async (state) => {
+  storage.saveOAuthState = async (state, owner) => {
     await blocked;
-    await save(state);
+    await save(state, owner);
   };
   const { provider } = createProvider({ storage });
   await provider.saveCodeVerifier(VALID_VERIFIER);

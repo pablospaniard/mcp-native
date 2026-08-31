@@ -57,6 +57,9 @@ their minor release line.
   registrations or tokens.
 - Reject direct cancellation while state setup, a system authorization handoff, or callback
   completion is active, preventing cleanup from racing the attempt's state and PKCE verifier.
+- Bind each live state reservation to its provider so another provider sharing the namespace cannot
+  cancel the active handoff or delete its PKCE verifier; allow stale cleanup only when no live owner
+  remains after process restart.
 - Reject registered redirect URIs with duplicate query parameter names instead of accepting a
   configuration that no callback could satisfy.
 - Reject native OAuth evidence rows that declare `pass` while any required case is still `fail` or

@@ -158,19 +158,23 @@ export interface McpNativeOAuthSecureStore {
   saveTokens(issuer: string, tokens: StoredOAuthTokens): void | Promise<void>;
   loadCodeVerifier(): string | undefined | Promise<string | undefined>;
   saveCodeVerifier(verifier: string): void | Promise<void>;
+  /** Reserves this authorization context for one live provider before state generation begins. */
+  reserveOAuthState(owner: object): void | Promise<void>;
   /**
    * Atomically reserves the single pending-state slot for one interactive attempt. It must
    * fail when a state is already reserved so concurrent providers sharing a namespace cannot
    * overwrite each other's redirect state.
    */
-  saveOAuthState(state: string): void | Promise<void>;
+  saveOAuthState(state: string, owner: object): void | Promise<void>;
   /**
    * Atomically compares and claims the stored state to prevent callback replay while retaining
-   * the reservation until verifier cleanup finishes and `clearOAuthState()` releases it.
+   * the reservation until verifier cleanup finishes and `clearOAuthState(owner)` releases it.
    */
-  consumeOAuthState(state: string): boolean | Promise<boolean>;
-  /** Releases the reservation without a value, including one left by a terminated process. */
-  clearOAuthState(): void | Promise<void>;
+  consumeOAuthState(state: string, owner: object): boolean | Promise<boolean>;
+  /** Acquires cleanup ownership, including for a reservation left by a terminated process. */
+  claimOAuthStateForCleanup(owner: object): void | Promise<void>;
+  /** Releases a reservation owned by the calling provider. */
+  clearOAuthState(owner: object): void | Promise<void>;
   loadDiscoveryState(): OAuthDiscoveryState | undefined | Promise<OAuthDiscoveryState | undefined>;
   saveDiscoveryState(state: OAuthDiscoveryState): void | Promise<void>;
   invalidate(scope: McpNativeOAuthCredentialScope, issuer?: string): void | Promise<void>;
@@ -237,6 +241,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   readonly #approveReauthorization:
     | ((request: McpNativeOAuthReauthorizationRequest) => boolean | Promise<boolean>)
     | undefined;
+  readonly #authorizationOwner = Object.freeze({});
   #activeIssuer: string | undefined;
   #pendingAuthorizationUrl: string | undefined;
   #authorizationAttemptReserved = false;
@@ -292,7 +297,10 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     }
     this.#authorizationAttemptReserved = true;
     this.#authorizationStateSetupRunning = true;
+    let storageReserved = false;
     try {
+      await this.#storage.reserveOAuthState(this.#authorizationOwner);
+      storageReserved = true;
       const state = await this.#createState();
       if (!STATE_PATTERN.test(state)) {
         throw new McpNativeOAuthError(
@@ -300,10 +308,22 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
           "OAuth state must contain 32 to 512 URL-safe characters",
         );
       }
-      await this.#storage.saveOAuthState(state);
+      await this.#storage.saveOAuthState(state, this.#authorizationOwner);
       return state;
     } catch (error) {
-      this.#authorizationAttemptReserved = false;
+      try {
+        if (storageReserved) {
+          await this.#storage.clearOAuthState(this.#authorizationOwner);
+        }
+      } catch (cleanupError) {
+        throw new McpNativeOAuthError(
+          "invalid-storage",
+          "OAuth state setup failed and its reservation could not be released",
+          { cause: new AggregateError([error, cleanupError]) },
+        );
+      } finally {
+        this.#authorizationAttemptReserved = false;
+      }
       throw error;
     } finally {
       this.#authorizationStateSetupRunning = false;
@@ -518,7 +538,9 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       const callback = parseCallbackUrl(callbackUrl, this.redirectUrl);
       const parameters = callback.searchParams;
       requireSingleParameter(parameters, "state");
-      if (!(await this.#storage.consumeOAuthState(parameters.get("state")!))) {
+      if (
+        !(await this.#storage.consumeOAuthState(parameters.get("state")!, this.#authorizationOwner))
+      ) {
         throw new McpNativeOAuthError("state-mismatch", "OAuth callback state did not match");
       }
       stateClaimed = true;
@@ -539,7 +561,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         this.#pendingAuthorizationUrl = undefined;
         try {
           await this.#storage.invalidate("verifier", this.#activeIssuer);
-          await this.#storage.clearOAuthState();
+          await this.#storage.clearOAuthState(this.#authorizationOwner);
         } finally {
           this.#authorizationAttemptReserved = false;
         }
@@ -570,8 +592,9 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
   async #discardPendingAuthorization(): Promise<void> {
     this.#pendingAuthorizationUrl = undefined;
     try {
+      await this.#storage.claimOAuthStateForCleanup(this.#authorizationOwner);
       await this.#storage.invalidate("verifier", this.#activeIssuer);
-      await this.#storage.clearOAuthState();
+      await this.#storage.clearOAuthState(this.#authorizationOwner);
     } finally {
       this.#authorizationAttemptReserved = false;
     }

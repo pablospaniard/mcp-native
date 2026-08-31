@@ -54,8 +54,9 @@ browser/authentication-session handoff. Dependency-neutral reference adapters pr
 fixed-slot persistence with cross-instance namespaced state serialization over a native secret
 backend and a closed ASWebAuthenticationSession/Custom Tab result boundary without importing React
 Native. A claimed callback keeps that namespace reserved through verifier cleanup. One provider
-reserves one interactive attempt, rejects cancellation during setup, handoff, or completion, and
-applies callback budgets to both native-session and process-recovery entry points. All 25 scored pinned
+owns one interactive attempt, rejects cancellation during setup, handoff, or completion, prevents a
+second provider from cancelling the live attempt, and applies callback budgets to both native-session
+and process-recovery entry points. All 25 scored pinned
 `2026-07-28` authorization client scenarios pass. The evidence validator counts a row only when all
 of its required cases pass, and the strict native evidence gate exists, but its two required
 real-platform rows are still `not-run`.

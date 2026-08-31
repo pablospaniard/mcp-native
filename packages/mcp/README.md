@@ -148,8 +148,9 @@ callback substitution, oversized or malformed results, and reuse. A cancellation
 pending state and PKCE material without deleting registrations or tokens; direct provider
 cancellation is rejected while the system handoff, state setup, or callback completion is active. The
 provider reserves one interactive attempt before state persistence, the store rejects a second
-reservation for the same namespace, and cancellation releases a reservation persisted by an earlier
-process. Callback validation claims rather than deletes the state, keeping the namespace occupied
+reservation for the same namespace, and only that provider can cancel or clear the live attempt.
+After a process restart, when no live owner remains, cancellation can claim and release the stale
+reservation. Callback validation claims rather than deletes the state, keeping the namespace occupied
 until verifier cleanup succeeds. The same total and per-parameter callback budgets apply to the
 direct process-recovery path. See the [native integration and evidence
 plan](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-oauth-testing.md) for a React
