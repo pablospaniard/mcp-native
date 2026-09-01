@@ -98,11 +98,13 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                       |
 
 The packages are intentionally separated so the core runtime does not depend on the official SDK,
-React Native, or any single declarative UI protocol. Release `0.5.0` adds the stable MCP Apps
-`2026-01-26` native host-adapter profile with strict discovery, bounded bridge handling, and a
-closed WebView sandbox contract. Release `0.4.0` completed the feature-scoped A2UI v1 Candidate
-adapter and its automated native host-boundary coverage. Package versions are independent of
-the internal A2UI proof-of-concept surface value `"0.1"`.
+React Native, or any single declarative UI protocol. Release `0.6.0` completes the Milestone 6
+package boundary with issuer-bound protected-HTTP OAuth, explicit consent gates and persistent
+host-owned grants, bounded connection lifecycle coordination, actionable host states, redacted
+operations, and production integration guidance. Release `0.5.0` added the stable MCP Apps
+`2026-01-26` native host-adapter profile, while `0.4.0` completed the feature-scoped A2UI v1
+Candidate adapter. Package versions are independent of the internal A2UI proof-of-concept surface
+value `"0.1"`.
 
 ## Installation
 
@@ -181,7 +183,7 @@ adapter supports only the documented component subset, absolute and dynamic-list
 bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks
 for supported text fields and buttons, pure boolean functions, `@index`, action events returned to
 a host callback, and press-time host-policy-gated HTTP(S) `openUrl`. Renderer behavior outside the
-automated native fixture remains unclaimed. Milestone 6 package work now includes policy gates at all
+automated native fixture remains unclaimed. Release `0.6.0` includes policy gates at all
 current action boundaries, persistent expiring/revocable consent grants and OAuth scope history,
 bounded connection lifecycle coordination, actionable host states, redacted operational events, and
 a [production host checklist](docs/host-integration-checklist.md). Separate Expo Go integration PoCs
@@ -189,9 +191,9 @@ remain non-blocking evidence and are not a package release criterion.
 
 ## Protected Streamable HTTP OAuth
 
-Milestone 6 package work is complete. `@mcp-native/mcp` provides the interactive OAuth host boundary while
-the official SDK owns protected-resource and authorization-server discovery, PKCE, scope selection,
-issuer validation, token exchange, refresh, and bearer attachment:
+Release `0.6.0` completes the Milestone 6 package work. `@mcp-native/mcp` provides the interactive
+OAuth host boundary while the official SDK owns protected-resource and authorization-server
+discovery, PKCE, scope selection, issuer validation, token exchange, refresh, and bearer attachment:
 
 ```ts
 import { Client, UnauthorizedError } from "@modelcontextprotocol/client";

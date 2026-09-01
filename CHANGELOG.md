@@ -6,6 +6,12 @@ their minor release line.
 
 ## Unreleased
 
+## 0.6.0 - 2026-09-01
+
+Completes Milestone 6 with an issuer-bound protected-HTTP OAuth host boundary, explicit consent
+gates and persistent host-owned grants, bounded connection lifecycle coordination, actionable
+host states, redacted operations, and production integration guidance.
+
 ### Added
 
 - A bounded consent policy for core `McpNativeRuntime.dispatch()` tool actions with explicit

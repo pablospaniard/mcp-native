@@ -188,7 +188,7 @@ A production host must still verify:
 
 See the repository's [security policy](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md) before expanding this boundary. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
 
-The planned compatibility work and the differences between browser iframe isolation and native WebView isolation are tracked in [Standards and compatibility](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+The exact stable compatibility profile and the differences between browser iframe isolation and native WebView isolation are documented in [Standards and compatibility](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 ## License
 
