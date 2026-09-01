@@ -2,7 +2,7 @@
 
 This roadmap replaces feature-first growth with standards-first milestones. MCP Native is still pre-1.0, so protocol-facing APIs may change rather than preserving an incompatible proof-of-concept wire format.
 
-## Path from `0.7.0` to `1.0.0`
+## Path from `0.8.0` to `1.0.0`
 
 The `1.0.0` target is a production-ready React Native host library, not a universal native UI
 runtime. It will render the pinned A2UI basic catalog through components compiled into the host
@@ -282,7 +282,7 @@ remain entirely application-owned.
 
 ## Milestone 8: media and host extensions (`0.8.0`)
 
-Status: implementation complete; release packaging remains separate.
+Status: released in `0.8.0`.
 
 - [x] Implement `Video` and `AudioPlayer` with explicit source, redirect, origin, MIME, size,
       autoplay, background playback, external-route, and user-activation policies. Unsupported
@@ -309,10 +309,9 @@ Status: implementation complete; release packaging remains separate.
 - [x] Publish an [extension-author guide and compatibility manifest format](media-and-host-extensions.md) that clearly assigns
       implementation, versioning, security, and accessibility responsibility to the host author.
 
-Exit criterion: met by the `0.8.0` implementation candidate. The full pinned basic catalog is
-implemented, and an application can safely expose
-one locally compiled semantic component without giving the server a code-resolution, native-command,
-unchecked-prop, or capability-escalation path.
+Exit criterion: met by the `0.8.0` release. The full pinned basic catalog is implemented, and an
+application can safely expose one locally compiled semantic component without giving the server a
+code-resolution, native-command, unchecked-prop, or capability-escalation path.
 
 ## Milestone 9: mixed hosting and API freeze (`0.9.0`)
 

@@ -139,9 +139,9 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - pinned current-protocol integration coverage through the SDK HTTP handler/fetch path;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-The Milestone 8 implementation adds policy-gated `Video` and `AudioPlayer`, completes the pinned
-A2UI basic catalog, and adds exact namespaced manifests and local registration for compiled host
-extensions. Package versions remain `0.7.0` until release preparation. Release `0.7.0` added the
+Release `0.8.0` adds policy-gated `Video` and `AudioPlayer`, completes the pinned A2UI basic catalog,
+and adds exact namespaced manifests and local registration for compiled host extensions. Release
+`0.7.0` added the
 non-media catalog, typed renderer-local bindings, bounded formatting and validation, host-callback
 actions, required image grants, policy-gated HTTP(S) `openUrl`, and exact installed-subset
 discovery. Release `0.6.0` added bounded consent, expiring/revocable host-owned grants, interactive
