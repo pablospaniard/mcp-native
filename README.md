@@ -557,8 +557,8 @@ post-stable deliverables.
       UIKit/Android View fixtures
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
-- [x] Generate pinned latest/minimum RN 0.87.1/0.86.0 hosts and exercise automated bundle and
-      host-boundary checks
+- [x] Generate pinned latest/minimum RN 0.87.1/0.86.0 hosts and exercise automated bundle,
+      host-boundary, Android-build, and iOS-build checks on pull requests
 - [x] Complete the documented real-platform accessibility behavior
 - [x] Execute the supported iOS/Android fixture and accessibility matrix in generated real hosts
 - [x] Implement stable MCP Apps `2026-01-26` discovery, native sandboxing, and bridge compatibility

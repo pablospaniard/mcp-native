@@ -11,7 +11,7 @@
       {
         "id": "heading",
         "component": "Text",
-        "text": { "literalString": "Media and local Fabric extension" },
+        "text": "Media and local Fabric extension",
         "variant": "body"
       },
       {

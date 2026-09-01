@@ -116,6 +116,17 @@ test("host-extension manifests require namespaced identity and closed local sche
   const parsed = parseA2uiV1HostExtensionManifest(manifest());
   assert.equal(parsed.componentName, componentName);
   assert.equal(Object.isFrozen(parsed), true);
+  assert.equal(Object.isFrozen(parsed.propsSchema), true);
+  assert.equal(Object.isFrozen(parsed.propsSchema.properties), true);
+  assert.equal(Object.isFrozen(parsed.events[0].payloadSchema), true);
+  assert.equal(Object.isFrozen(parsed.events[0].payloadSchema.properties.selected), true);
+  assert.throws(() => {
+    parsed.events[0].payloadSchema.properties.selected.type = "string";
+  }, TypeError);
+  assert.throws(
+    () => validateA2uiV1HostExtensionEvent(parsed, eventName, { selected: "forged" }, true),
+    /event schema validation failed/,
+  );
   assert.throws(
     () =>
       parseA2uiV1HostExtensionManifest(
@@ -408,6 +419,24 @@ test("only an opaque negotiated registry admits schema-valid extension leaf comp
   assert.throws(() => parseA2uiV1Envelope(extensionEnvelope()), /schema validation failed/);
   const envelope = parseA2uiV1Envelope(extensionEnvelope(), { hostExtensions: registry });
   assert.equal(envelope.createSurface.components[1].component, componentName);
+  const validated = validateA2uiV1HostExtensionComponent(
+    registry,
+    extensionEnvelope().createSurface.components[1],
+  );
+  assert.equal(Object.isFrozen(validated.props), true);
+  assert.throws(() => {
+    validated.props.injected = "unchecked";
+  }, TypeError);
+
+  for (const forbidden of ["action", "child", "children", "tabs"]) {
+    assert.throws(
+      () =>
+        parseA2uiV1Envelope(extensionEnvelope({ [forbidden]: {} }), {
+          hostExtensions: registry,
+        }),
+      new RegExp(`cannot declare \\"${forbidden}\\"`),
+    );
+  }
 
   const store = new A2uiSurfaceStore({ hostExtensions: registry });
   store.apply(envelope);

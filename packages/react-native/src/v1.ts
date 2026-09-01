@@ -850,12 +850,12 @@ function authorizeImageResource(
   path: string,
   context: AdapterContext,
 ): NativeImageResourcePolicy {
-  const request: A2uiV1NativeImageRequest = {
+  const request: A2uiV1NativeImageRequest = Object.freeze({
     url,
     surfaceId: context.surface.surfaceId,
     sourceComponentId: componentId,
     instanceKey: key,
-  };
+  });
   if (context.imagePolicy === undefined) {
     throw new A2uiParseError(
       `A2UI image resource ${JSON.stringify(componentId)} requires an explicit host image policy`,
@@ -985,14 +985,14 @@ function authorizeMediaResource(
     );
   }
   const sourceOrigin = parseHttpUrlOrigin(url, `components.${componentId}.url`);
-  const request: A2uiV1NativeMediaRequest = {
+  const request: A2uiV1NativeMediaRequest = Object.freeze({
     kind,
     url,
     sourceOrigin,
     surfaceId: context.surface.surfaceId,
     sourceComponentId: componentId,
     instanceKey: key,
-  };
+  });
   let decision: A2uiV1NativeMediaGrant | false;
   try {
     decision = context.mediaPolicy(request);
@@ -1063,7 +1063,7 @@ function adaptHostExtension(
         `Host extension ${JSON.stringify(manifest.componentName)} requires an explicit capability policy`,
       );
     }
-    const request: A2uiV1NativeHostExtensionRequest = {
+    const request: A2uiV1NativeHostExtensionRequest = Object.freeze({
       extensionId: manifest.extensionId,
       catalogId: manifest.catalogId,
       schemaVersion: manifest.schemaVersion,
@@ -1075,7 +1075,7 @@ function adaptHostExtension(
       semanticProps: validated.props,
       permissionNeeds: manifest.permissionNeeds,
       resourceNeeds: manifest.resourceNeeds,
-    };
+    });
     let decision: NativeHostExtensionCapabilityGrant | false;
     try {
       decision = context.hostExtensionPolicy(request);

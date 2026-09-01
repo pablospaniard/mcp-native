@@ -81,7 +81,8 @@ The safe end-to-end flow is:
 
 The server sends only the component's declared semantic props. Structural children, imports,
 module or class names, raw styles, generic actions, commands, and unchecked prop bags are reserved
-and rejected.
+and rejected. Parsed schemas and validated semantic props are recursively frozen, and policy
+requests are immutable snapshots.
 
 ## Compatibility manifest
 

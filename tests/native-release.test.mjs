@@ -5,6 +5,13 @@ import test from "node:test";
 import { parse as parseYaml } from "yaml";
 
 import {
+  A2uiSurfaceStore,
+  createA2uiV1HostExtensionCapabilitySettings,
+  createA2uiV1HostExtensionRegistry,
+  negotiateA2uiV1HostExtensions,
+} from "../packages/a2ui/dist/index.js";
+
+import {
   addNativeHostFabricIosSources,
   createNativeHostPackageJson,
   enableNativeHostPhoneOrientations,
@@ -164,7 +171,26 @@ test("native fixture includes Codegen, UIKit, and Android View implementations",
   assert.match(android, /SimpleViewManager<McpNativeStatusBadgeView>/);
 });
 
-test("CI pins the latest and minimum React Native boundaries without gating releases on app results", () => {
+test("the Milestone 8 native fixture parses with its exact negotiated local extension", () => {
+  const manifest = JSON.parse(
+    readFileSync("tests/fixtures/a2ui-v1/status-badge-extension-manifest.json", "utf8"),
+  );
+  const fixture = JSON.parse(
+    readFileSync("tests/fixtures/a2ui-v1/milestone-8-surface.json", "utf8"),
+  );
+  const settings = createA2uiV1HostExtensionCapabilitySettings([manifest], "ios");
+  const negotiation = negotiateA2uiV1HostExtensions(settings, settings);
+  const registry = createA2uiV1HostExtensionRegistry({
+    platform: "ios",
+    manifests: [manifest],
+    negotiation,
+  });
+  const store = new A2uiSurfaceStore({ hostExtensions: registry });
+  store.apply(fixture);
+  assert.equal(store.get("milestone-8")?.components.size, 5);
+});
+
+test("CI pins and automatically builds the latest and minimum React Native boundaries", () => {
   const ci = parseYaml(readFileSync(".github/workflows/ci.yml", "utf8"));
   const platform = parseYaml(readFileSync(".github/workflows/native-platform.yml", "utf8"));
   assert.deepEqual(ci.jobs["native-host-bundle"].strategy.matrix["react-native"], [
@@ -173,6 +199,8 @@ test("CI pins the latest and minimum React Native boundaries without gating rele
   ]);
   assert.deepEqual(platform.jobs.android.strategy.matrix["react-native"], ["0.87.1", "0.86.0"]);
   assert.deepEqual(platform.jobs.ios.strategy.matrix["react-native"], ["0.87.1", "0.86.0"]);
+  assert.equal(Object.hasOwn(platform.on, "pull_request"), true);
+  assert.equal(Object.hasOwn(platform.on, "workflow_dispatch"), true);
   const reactNativePackage = JSON.parse(readFileSync("packages/react-native/package.json", "utf8"));
   const umbrellaPackage = JSON.parse(readFileSync("packages/mcp-native/package.json", "utf8"));
   assert.equal(reactNativePackage.peerDependencies["react-native"], ">=0.86.0 <1");
@@ -183,8 +211,4 @@ test("CI pins the latest and minimum React Native boundaries without gating rele
   assert.match(androidSdkStep.run, /ANDROID_HOME.*cmdline-tools\/latest\/bin\/sdkmanager/);
   assert.match(androidSdkStep.run, /platforms;android-37\.0/);
   assert.match(androidSdkStep.run, /build-tools;37\.0\.0/);
-
-  const rootPackage = JSON.parse(readFileSync("package.json", "utf8"));
-  assert.doesNotMatch(rootPackage.scripts.check, /evidence/);
-  assert.doesNotMatch(rootPackage.scripts["release:verify"], /evidence/);
 });

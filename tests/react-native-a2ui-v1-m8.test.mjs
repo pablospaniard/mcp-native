@@ -102,6 +102,10 @@ test("Video and AudioPlayer require complete host media grants in the trusted pl
   const plan = createA2uiV1NativeRenderPlan(mediaSurface(), mediaPolicy(), {
     imagePolicy: () => imageGrant,
     mediaPolicy(request) {
+      assert.equal(Object.isFrozen(request), true);
+      assert.throws(() => {
+        request.sourceOrigin = "https://attacker.example";
+      }, TypeError);
       requests.push(request);
       return mediaGrant(request.kind);
     },
@@ -373,7 +377,12 @@ test("a locally registered extension receives only validated props and an exact 
         components: { ...baseComponents, hostExtensions: [registration] },
         hostExtensionPolicy(request) {
           assert.equal(request.platform, "ios");
+          assert.equal(Object.isFrozen(request), true);
+          assert.equal(Object.isFrozen(request.semanticProps), true);
           assert.deepEqual(request.semanticProps, { label: "Connected", tone: "positive" });
+          assert.throws(() => {
+            request.semanticProps.injected = "unchecked";
+          }, TypeError);
           return { permissions: [], resources: ["network.status"] };
         },
         onHostExtensionEvent(event) {

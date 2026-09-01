@@ -147,6 +147,7 @@ const RESERVED_PROP_NAMES = new Set([
   "tabs",
   "weight",
 ]);
+const FORBIDDEN_EXTENSION_COMPONENT_FIELDS = new Set(["action", "child", "children", "tabs"]);
 const STABLE_VERSION_PATTERN = /^(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){0,2}$/;
 const NEED_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 
@@ -537,6 +538,11 @@ export function validateA2uiV1HostExtensionComponent(
   }
   const props: Record<string, JsonValue> = {};
   for (const [name, value] of Object.entries(component)) {
+    if (FORBIDDEN_EXTENSION_COMPONENT_FIELDS.has(name)) {
+      throw new A2uiParseError(
+        `Host-extension components are leaves and cannot declare ${JSON.stringify(name)} at ${path}`,
+      );
+    }
     if (!RESERVED_PROP_NAMES.has(name)) {
       Object.defineProperty(props, name, {
         value,
@@ -560,9 +566,10 @@ export function validateA2uiV1HostExtensionComponent(
       `Host-extension props schema validation failed at ${path}: ${formatAjvErrors(compiled.propsValidator)}`,
     );
   }
+  const frozenProps = deepFreezeJson(parsedProps);
   return Object.freeze({
     manifest: compiled.manifest,
-    props: parsedProps,
+    props: frozenProps,
     manifestFingerprint: compiled.fingerprint,
   });
 }
@@ -751,7 +758,7 @@ function parseClosedSchema(value: unknown, path: string, rejectReservedProps: bo
   assertClosedObjectSchemas(schema, path);
   rejectRemoteReferences(schema, path);
   compileSchema(schema, path);
-  return schema;
+  return deepFreezeJson(schema);
 }
 
 function assertClosedObjectSchemas(value: JsonValue, path: string): void {
@@ -1045,6 +1052,25 @@ function measureJson(value: JsonValue): { readonly values: number; readonly stri
     }
   }
   return { values, strings };
+}
+
+function deepFreezeJson<T extends JsonValue>(value: T): T {
+  const pending: JsonValue[] = [value];
+  const seen = new WeakSet<object>();
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    if (current === null || typeof current !== "object" || seen.has(current)) {
+      continue;
+    }
+    seen.add(current);
+    if (Array.isArray(current)) {
+      pending.push(...current);
+    } else {
+      pending.push(...Object.values(current));
+    }
+    Object.freeze(current);
+  }
+  return value;
 }
 
 function canonicalizeJson(value: JsonValue): string {

@@ -296,11 +296,13 @@ Status: implementation complete; release packaging remains separate.
 - [x] Provide typed registration helpers that map validated semantic props and events to a locally
       imported React Native or Fabric component. Do not accept module paths, component classes,
       generic command dispatch, arbitrary children, or raw prop/style passthrough from wire data.
+      Parsed schemas, semantic props, and policy requests are immutable snapshots.
 - [x] Keep imperative native commands host-only unless a specific command is separately modeled as
       a validated, policy-gated semantic action with user activation where required.
 - [x] Add one UIKit-backed iOS fixture and one Android View-backed fixture through Fabric. A
       SwiftUI- or Compose-backed wrapper may be demonstrated, but it is not a direct renderer or a
-      portability guarantee.
+      portability guarantee. Both the minimum and latest supported React Native boundaries compile
+      these native fixtures automatically on pull requests.
 - [x] Add negative and amplification tests for unknown extension IDs and versions, malformed props,
       forged events, unavailable platforms, oversized graphs and values, excessive updates, and
       permission or resource-policy bypass attempts.

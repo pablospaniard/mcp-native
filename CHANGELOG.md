@@ -33,11 +33,16 @@ preparation.
 
 - Raise the tested React Native peer minimum from `0.76.0` to `0.86.0`; generated-host CI now tests
   the exact `0.86.0` minimum and current `0.87.1` latest boundary instead of adjacent patch lines.
+- Run generated Android and iOS native builds for both React Native boundaries on pull requests,
+  while retaining manual dispatch for independent preflight runs.
+- Deep-freeze parsed host-extension schemas, validated semantic props, and host policy requests so
+  compatibility fingerprints and authorization decisions cannot diverge through callback mutation.
 
 ### Security
 
 - Reject unknown or mismatched extension identities and versions, forged registry and registration
-  objects, open or externally referenced schemas, undeclared fields/events, unavailable platforms,
+  objects, open or externally referenced schemas, structural children or generic actions on leaf
+  extensions, undeclared fields/events, unavailable platforms,
   over-granted capabilities, contradictory playback controls, unsafe origins or MIME types, and
   cumulative media/extension amplification before mounting.
 - Keep native imperative commands host-only and require declared user activation for sensitive

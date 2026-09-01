@@ -243,6 +243,10 @@ test("the complete non-media catalog becomes a closed trusted native plan", () =
   const requests = [];
   const plan = createA2uiV1NativeRenderPlan(milestone7Surface(), policy(), {
     imagePolicy(request) {
+      assert.equal(Object.isFrozen(request), true);
+      assert.throws(() => {
+        request.url = "https://attacker.example/image.png";
+      }, TypeError);
       requests.push(request);
       return request.url.startsWith("https://images.example.com/") ? imageGrant : false;
     },
