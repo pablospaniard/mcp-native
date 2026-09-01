@@ -29,8 +29,8 @@ their minor release line.
 - Optional policy review for direct core `callTool()` operations plus bounded, host-keyed,
   persistent consent grants with expiry and explicit revocation.
 - Persistent resource/issuer-bound OAuth scope history for cross-request step-up decisions.
-  Token responses that omit their optional scope inherit the pending authorization request or the
-  previously granted scope instead of erasing that history.
+  A durable state-bound pending-authorization record preserves omitted callback scopes across
+  process recovery, while refreshes inherit only previously granted scopes.
 - A bounded official-SDK connection lifecycle coordinator with timeout, cancellation, exponential
   backoff, offline/reconnection/shutdown behavior, actionable host states, and fixed data-free
   operational events for logs, metrics, and traces.
@@ -42,12 +42,14 @@ their minor release line.
 - Deny unknown tool/argument consent profiles, incomplete privacy declarations, overlapping consent
   reviews, malformed host descriptors, and non-boolean decisions without trusting server
   annotations; grants are retained only through the explicit bounded host-owned wrapper.
-- Treat persisted consent grants and OAuth scope history as untrusted, bind them to host-authored
-  keys or exact resources/issuers, and reject malformed, substituted, oversized, or expired state.
+- Treat persisted consent grants, OAuth scope history, and pending authorization records as
+  untrusted, bind them to host-authored keys or exact resources/issuers, and reject malformed,
+  substituted, oversized, or expired state. Consent revocation serializes with grant persistence.
 - Keep lifecycle diagnostics free of raw errors, URLs, credentials, tokens, server payloads, user
   payloads, and arbitrary labels.
 - Bound complete MCP SDK results, downstream A2UI result collections, decoded JSON string/key
-  totals, A2UI lifecycle batches, and cumulative state retained by one surface store.
+  totals, sequential cumulative A2UI lifecycle-batch work, and cumulative state retained by one
+  surface store; overlapping action delivery is rejected before parsing.
 - Validate complete MCP Apps content annotations, icons, sizes, metadata objects, and resource-link
   fields before host callbacks, and make CSP insertion scan quoted start-tag attributes correctly.
 - Apply A2UI component updates without repeatedly reconstructing every retained component.

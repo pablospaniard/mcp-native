@@ -56,6 +56,9 @@ owned by the host.
   process restart. Partition it by the exact protected resource, validate issuer continuity, review
   every reauthorization, cap cross-request attempts, and clear scope history on logout/full
   credential invalidation.
+- Implement both pending-authorization methods on `McpNativeOAuthSecureStore`. Persist the exact
+  resource/issuer/requested-scope record with the state/verifier attempt, and remove it on
+  `verifier` or `all` invalidation so refreshes cannot adopt scopes from an unrelated browser flow.
 - Keep SDK `insufficient_scope` retry at its package maximum of one per request. Apply a stricter
   application budget and rate limit interactive authentication.
 
@@ -67,7 +70,7 @@ owned by the host.
 - Classify failures into stable non-sensitive retryable or terminal codes. Tune timeout, attempt,
   and exponential-backoff bounds for the platform; do not retry authorization denial, validation
   rejection, policy denial, or incompatible protocol/catalog errors as transient network failures.
-- Feed network reachability into `setOnline()`. On backgrounding, account/server removal, logout,
+- Feed network reachability into `setOnline()`; rapid transitions are serialized in call order. On backgrounding, account/server removal, logout,
   or host teardown, cancel work and await `shutdown()`; also tear down MCP Apps bridges and browser
   sessions.
 - Map fixed `McpNativeOperationalEvent` values to structured logs, metrics, and traces. Do not add

@@ -259,7 +259,9 @@ default, runtime
 `approveReauthorization` for every authorization retry while credentials exist—including repeated
 same-scope challenges—and permits at most one SDK retry per request. An optional durable scope store
 keeps exact protected-resource/issuer-bound scope history across provider instances and token
-invalidation; full invalidation clears it. The callback error path never
+invalidation; full invalidation clears it. The secure store also retains the exact pending
+authorization scopes for the lifetime of the reserved state/verifier attempt, including process
+recovery, while ordinary refreshes continue to inherit only previously granted scopes. The callback error path never
 renders attacker-controlled OAuth descriptions. A cancelled OS session clears pending state and
 PKCE material without deleting registrations or tokens; direct cancellation is rejected until an
 active state setup, system handoff, or callback completion has settled. A claimed callback state

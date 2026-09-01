@@ -178,10 +178,11 @@ Go integration PoCs remain open as non-blocking evidence and are reported indepe
       revocable grants and persistent cross-request scope-upgrade tracking. The transport defaults
       to throwing on `insufficient_scope`; its opt-in retry path requires a host approval callback and
       caps SDK work to one retry per request. MCP Apps tool review/delivery is single-flight, and
-      OAuth responses that omit scope preserve the pending or previously granted scope history.
+      OAuth responses that omit scope preserve durable state-bound authorization scopes during
+      callback completion, including process recovery, or previously granted scopes during refresh.
 - [x] Define production connection lifecycle behavior for timeouts, cancellation, bounded retry and
-      backoff, reconnection, offline transitions, and graceful shutdown while leaving wire behavior
-      to the official SDK.
+      backoff, reconnection, serialized offline/online/shutdown transitions, and graceful shutdown
+      while leaving wire behavior to the official SDK.
 - [x] Add structured logs, metrics, and traces with explicit credential, token, server-data, and
       user-data redaction rules.
 - [x] Provide actionable loading, empty, denied, disconnected, retryable, and terminal error states

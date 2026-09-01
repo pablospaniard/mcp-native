@@ -906,6 +906,42 @@ test("expiring consent grants fail closed for overlap and untrusted persisted va
   );
 });
 
+test("consent revocation is linearizable with an in-flight grant save", async () => {
+  const records = new Map();
+  let releaseSave;
+  let markSaveStarted;
+  const saveStarted = new Promise((resolve) => {
+    markSaveStarted = resolve;
+  });
+  const saveGate = new Promise((resolve) => {
+    releaseSave = resolve;
+  });
+  const store = {
+    load: (key) => records.get(key),
+    async save(record) {
+      markSaveStarted();
+      await saveGate;
+      records.set(record.key, record);
+    },
+    remove: (key) => records.delete(key),
+  };
+  const policy = createExpiringGrantActionPolicy({
+    store,
+    now: () => 100,
+    grantKey: () => "grant",
+    grantDurationMs: () => 500,
+    authorize: () => true,
+  });
+
+  const approval = policy({ type: "tool", name: "save" });
+  await saveStarted;
+  const revocation = revokeMcpNativeConsentGrant(store, "grant");
+  releaseSave();
+  assert.equal(await approval, true);
+  await revocation;
+  assert.equal(records.has("grant"), false);
+});
+
 test("the core runtime delegates every client operation", async () => {
   const calls = [];
   const tools = { tools: [{ name: "save", inputSchema: { type: "object" } }] };

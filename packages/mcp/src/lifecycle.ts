@@ -119,6 +119,7 @@ export class McpNativeConnectionLifecycle {
   #abort: AbortController | undefined;
   #connection: McpNativeManagedConnection | undefined;
   #generation = 0;
+  #transitionTail: Promise<void> = Promise.resolve();
 
   constructor(options: McpNativeConnectionLifecycleOptions) {
     if (
@@ -225,37 +226,46 @@ export class McpNativeConnectionLifecycle {
     await this.start();
   }
 
-  async setOnline(online: boolean): Promise<void> {
+  setOnline(online: boolean): Promise<void> {
     if (typeof online !== "boolean") {
       throw new TypeError("Online state must be a boolean");
     }
-    if (this.#shutdown || this.#online === online) {
-      return;
-    }
-    this.#online = online;
-    if (online) {
-      await this.start();
-      return;
-    }
-    const run = this.#run;
-    this.#generation += 1;
-    this.#abort?.abort();
-    await this.#closeCurrent("offline");
-    await run;
-    this.#setState({ kind: "disconnected", reason: "offline" });
+    return this.#serializeTransition(async () => {
+      if (this.#shutdown || this.#online === online) return;
+      this.#online = online;
+      if (online) {
+        await this.start();
+        return;
+      }
+      const run = this.#run;
+      this.#generation += 1;
+      this.#abort?.abort();
+      await this.#closeCurrent("offline");
+      await run;
+      this.#setState({ kind: "disconnected", reason: "offline" });
+    });
   }
 
-  async shutdown(): Promise<void> {
-    if (this.#shutdown) {
-      return;
-    }
-    this.#shutdown = true;
-    const run = this.#run;
-    this.#generation += 1;
-    this.#abort?.abort();
-    await this.#closeCurrent("shutdown");
-    await run;
-    this.#setState({ kind: "disconnected", reason: "shutdown" });
+  shutdown(): Promise<void> {
+    return this.#serializeTransition(async () => {
+      if (this.#shutdown) return;
+      this.#shutdown = true;
+      const run = this.#run;
+      this.#generation += 1;
+      this.#abort?.abort();
+      await this.#closeCurrent("shutdown");
+      await run;
+      this.#setState({ kind: "disconnected", reason: "shutdown" });
+    });
+  }
+
+  #serializeTransition(operation: () => void | Promise<void>): Promise<void> {
+    const result = this.#transitionTail.then(operation, operation);
+    this.#transitionTail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
   }
 
   async #connectLoop(generation: number, signal: AbortSignal): Promise<void> {

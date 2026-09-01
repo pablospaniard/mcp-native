@@ -104,12 +104,15 @@ export class A2uiSurfaceStore {
         `A2UI v1 batch exceeds maximum of ${A2UI_V1_MAX_ENVELOPES} envelopes`,
       );
     }
-    const validated = envelopes.map((envelope) => parseA2uiV1Envelope(envelope));
     const snapshot = cloneSurfaces(this.#surfaces);
     const retainedValues = this.#retainedValues;
     const retainedStringCodeUnits = this.#retainedStringCodeUnits;
+    let batchBudget = EMPTY_BUDGET;
     try {
-      for (const envelope of validated) {
+      for (const input of envelopes) {
+        const envelope = parseA2uiV1Envelope(input);
+        batchBudget = addBudgets(batchBudget, measureJson(envelope));
+        assertBatchBudget(batchBudget);
         this.#applyValidated(envelope);
       }
     } catch (error) {
@@ -349,6 +352,19 @@ function cloneSurfaces(surfaces: ReadonlyMap<string, MutableSurface>): Map<strin
 }
 
 const EMPTY_BUDGET: JsonBudget = Object.freeze({ values: 0, stringCodeUnits: 0 });
+
+function assertBatchBudget(budget: JsonBudget): void {
+  if (budget.values > A2UI_V1_MAX_STORE_VALUES) {
+    throw new A2uiParseError(
+      `A2UI v1 batch exceeds maximum of ${A2UI_V1_MAX_STORE_VALUES} cumulative JSON values`,
+    );
+  }
+  if (budget.stringCodeUnits > A2UI_V1_MAX_STORE_STRING_CODE_UNITS) {
+    throw new A2uiParseError(
+      `A2UI v1 batch exceeds maximum of ${A2UI_V1_MAX_STORE_STRING_CODE_UNITS} cumulative string code units`,
+    );
+  }
+}
 
 function measureJson(value: JsonValue): JsonBudget {
   let values = 0;

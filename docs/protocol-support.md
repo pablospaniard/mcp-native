@@ -63,6 +63,8 @@ second provider from cancelling the live attempt, and applies callback budgets t
 and process-recovery entry points. All 25 scored pinned
 `2026-07-28` authorization client scenarios pass. Persistent resource/issuer-bound scope history is
 available through a host `McpNativeOAuthScopeStore`, and full invalidation removes that history.
+The secure-store contract binds requested scopes to the pending state/verifier attempt so a
+scope-less callback survives process recovery without changing unrelated refresh scopes.
 Native-library integration is demonstrated
 separately through non-blocking application PoCs.
 

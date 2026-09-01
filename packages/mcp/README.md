@@ -132,6 +132,11 @@ try {
 ```
 
 `McpNativeOAuthSecureStore` must be implemented with OS keychain/keystore-grade encrypted storage.
+Its contract includes a pending-authorization record bound to the protected resource, the issuer
+when known, and the exact requested scopes. The record lives only for the reserved state/verifier
+attempt; `verifier` and `all` invalidation must remove it. This lets a process-recovery callback
+retain an omitted token-response scope without letting an unrelated refresh inherit browser-requested
+scopes.
 `createMcpNativeOAuthPlatformSecureStore()` supplies the bounded serialization, fixed app-owned
 service slots, exact issuer binding, and exclusive state reservation, claim, and release serialized
 across store objects using the same namespace in one JS runtime over a narrow native secret backend;

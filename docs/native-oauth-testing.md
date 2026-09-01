@@ -28,6 +28,12 @@ issuer across provider instances or token invalidation. Treat returned records a
 the storage partition app-owned, and clear it through full credential invalidation/logout. It must
 never contain tokens, account data, authorization URLs, or callback values.
 
+`McpNativeOAuthSecureStore` separately persists one pending-authorization record containing only
+the exact protected resource, issuer when known, and requested scopes. It is secret-store material
+because it is bound to the live state/verifier attempt. Both `verifier` and `all` invalidation must
+remove it. A recovery callback may use it when a successful token response omits `scope`; refreshes
+outside callback completion must use the previously granted token/scope history instead.
+
 Apple documents `ASWebAuthenticationSession` as the OS authentication flow that returns the
 callback only to the calling app. Android recommends Custom Tabs for third-party authentication
 instead of a WebView. The Expo Go PoC uses Expo's included secure-store and browser modules, pinned
