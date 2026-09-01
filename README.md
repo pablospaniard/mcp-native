@@ -490,6 +490,28 @@ package gates.
 
 The detailed [standards-first roadmap](docs/roadmap.md) records retained architecture, milestone exit criteria, and deferred optional extensions.
 
+Release `0.6.0` completes the original six pre-stable milestones. The remaining path is:
+
+- `0.7.0`: the non-media pinned A2UI basic catalog and closed design-system mappings;
+- `0.8.0`: policy-gated media and namespaced, schema-validated, locally compiled host extensions;
+- `0.9.0`: host-owned mixed native/WebView composition, a production-shaped reference host, and a
+  frozen `1.0.0` release-candidate API;
+- `1.0.0`: independent review, full documented-profile gates, stable compatibility policy, complete
+  human and technical documentation, and coordinated provenance publishing.
+
+The `1.0.0` scope remains a React Native host library. It does not expose server-selected React
+Native packages, native classes, arbitrary props or styles, or direct SwiftUI/Compose renderers.
+Applications may use locally compiled Fabric components through the planned closed host-extension
+boundary. By `0.9.0`, native A2UI and isolated MCP Apps WebView regions may share a host screen, but
+neither protocol will configure or escape the other's policy boundary.
+
+After `1.0.0`, development continues with first-class SwiftUI and Jetpack Compose renderers and a
+universal native-capability provider framework. “Universal” means any current or future platform
+capability can be integrated through a typed, versioned, advertised, host-owned, policy-gated
+provider—not that every device API is automatically exposed to a server. The detailed roadmap keeps
+renderer parity, common capability profiles, security gates, and exact platform matrices as explicit
+post-stable deliverables.
+
 - [x] Define protocol-independent runtime and action contracts
 - [x] Validate a minimal declarative UI surface
 - [x] Produce a trusted native render plan

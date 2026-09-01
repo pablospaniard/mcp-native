@@ -2,6 +2,51 @@
 
 This roadmap replaces feature-first growth with standards-first milestones. MCP Native is still pre-1.0, so protocol-facing APIs may change rather than preserving an incompatible proof-of-concept wire format.
 
+## Path from `0.6.0` to `1.0.0`
+
+The `1.0.0` target is a production-ready React Native host library, not a universal native UI
+runtime. It will render the pinned A2UI basic catalog through components compiled into the host
+application, keep MCP Apps HTML inside its separate WebView policy boundary, and provide an
+explicit extension contract for application-owned semantic components. A server will never select
+an import, native class, React Native module, arbitrary style object, or unchecked prop map.
+
+The product boundary is:
+
+| Layer                  | Server may describe                                                       | Host application owns                                                                               |
+| ---------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| A2UI surface           | Negotiated catalog components, bindings, validation, and declared actions | Component implementations, semantic variants, theme tokens, accessibility, and action delivery      |
+| Host shell             | Content intended for a host-selected region                               | Screens, safe areas, navigation, status and keyboard UI, placement, and surface lifecycle           |
+| Sensitive capabilities | A validated request supported by the negotiated profile                   | Origin and resource policy, permissions, consent, user activation, and platform APIs                |
+| Host extensions        | A namespaced, versioned semantic component already advertised by the host | Registration, schema, implementation, prop/event mapping, limits, fallback, and platform support    |
+| MCP Apps               | A validated `ui://` MCP App resource                                      | Isolated WebView creation, placement, bridge policy, navigation, storage, permissions, and teardown |
+
+The release sequence is intentionally cumulative:
+
+| Release      | Outcome                                                                                          | Release gate                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0.7.0`      | Complete the non-media A2UI basic-catalog renderer and stable design-system boundary             | Every supported component passes schema, hostile-input, interaction, accessibility, and iOS/Android fixture coverage                                                      |
+| `0.8.0`      | Add policy-gated media and compiled host-extension components                                    | The complete pinned basic catalog is covered, and no server value can resolve code, native classes, commands, or unchecked props                                          |
+| `0.9.0`      | Prove mixed native/WebView hosting and freeze the proposed public API                            | One production-shaped reference host passes lifecycle, isolation, accessibility, performance, migration, and package-consumer tests                                       |
+| `1.0.0`      | Publish the reviewed stable contract and compatibility guarantees                                | No unresolved release-blocking security, compatibility, documentation, or conformance gaps remain                                                                         |
+| Post-`1.0.0` | Add first-class SwiftUI and Jetpack Compose renderers plus universal native-capability providers | Both native renderers share the trusted protocol boundary, and any additional native capability can be integrated through a typed, advertised, policy-gated host provider |
+
+The following are explicit non-goals for `1.0.0`:
+
+- a server-controlled catalog of React Native packages or platform class names;
+- arbitrary React Native props, styles, commands, JavaScript, imports, or downloaded components;
+- direct standalone SwiftUI or Jetpack Compose renderers within the `1.0.0` release scope;
+- treating navigation, safe areas, status bars, or application screens as server-owned primitives;
+- embedding an MCP Apps WebView as an unrestricted A2UI component;
+- claiming support for every React Native library or unqualified conformance with a moving A2UI,
+  MCP, React Native, iOS, or Android version.
+
+UIKit, Android View, SwiftUI, and Compose implementations may still be used when the application
+deliberately exposes them to React Native through a locally compiled Fabric component and maps that
+component through the host-extension boundary. That is host integration, not server-selected native
+resolution. First-class SwiftUI and Jetpack Compose renderers are a committed post-`1.0.0` track;
+they must reuse the protocol-independent core and trusted semantic boundary rather than introducing
+React Native dependencies into `@mcp-native/core`.
+
 ## What remains valid
 
 The standards review does not require starting over. Keep and evolve:
@@ -14,7 +59,10 @@ The standards review does not require starting over. Keep and evolve:
 - isolated HTML policy primitives;
 - CI, protected-branch workflow, package smoke tests, and npm provenance.
 
-The custom `@mcp-native/a2ui` `0.1` object remains useful as a proof and test fixture, but it must not grow into a competing public protocol. Only security and correctness fixes should land on that wire shape while the conforming adapter is built.
+The custom `@mcp-native/a2ui` `0.1` object remains useful as a proof and test fixture, but it must
+not grow into a competing public protocol. It is deprecated and frozen except for security and
+correctness fixes until Milestone 9 decides whether `1.0.0` removes it or isolates it as legacy
+support.
 
 ## Integration PoC policy
 
@@ -199,3 +247,207 @@ independently.
 Exit criterion: met by the `0.6.0` package candidate, which passes protocol, security,
 accessibility, performance, reliability, operability, package, and end-to-end interoperability
 gates. Expo Go PoC status is reported separately and is not an exit criterion.
+
+## Milestone 7: non-media A2UI catalog and design systems (`0.7.0`)
+
+Status: planned.
+
+- [ ] Implement trusted render-plan and React Native mappings for `Image`, `Icon`, `Divider`,
+      `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, and `Modal` from the pinned basic
+      catalog. Continue rejecting every undeclared component and property.
+- [ ] Define deny-by-default image resource policy: accepted schemes, exact origins, redirects,
+      credentials, maximum URI and decoded dimensions, caching responsibility, and failure
+      placeholders remain host-controlled.
+- [ ] Use host-owned icon identifiers or exact mappings. Never treat an agent value as an import,
+      glyph font name, SVG payload, or arbitrary platform symbol.
+- [ ] Add renderer-local state, validation, event reconstruction, and dispatch-time revalidation for
+      every new interactive component, with cumulative work and output limits.
+- [ ] Specify focus, dismissal, escape/back behavior, focus restoration, and accessibility semantics
+      for tabs, modals, inputs, images, and icon-only controls.
+- [ ] Generalize the existing typed component adapters and closed variant slots to the new semantic
+      components. Permit design-system components and semantic theme tokens, but not server-supplied
+      React Native style objects or unchecked prop spreading.
+- [ ] Advertise only the component and function subset for which the host installed complete
+      implementations and policies; missing optional adapters must fail capability negotiation or
+      surface validation before mounting.
+- [ ] Add generated iOS and Android host fixtures using built-in React Native mappings where they
+      exist, explicit host adapters for the remaining controls, and at least one representative
+      design-system mapping. Keep Expo Go library demonstrations informative and non-blocking.
+- [ ] Update the A2UI conformance profile, standards matrix, human-oriented capability guide,
+      package READMEs, migration notes, and changelog with exact supported and excluded fields.
+
+Exit criterion: a host can render every non-media component in the pinned A2UI basic catalog with
+closed props and documented native behavior, while component implementations and visual design
+remain entirely application-owned.
+
+## Milestone 8: media and host extensions (`0.8.0`)
+
+Status: planned.
+
+- [ ] Implement `Video` and `AudioPlayer` with explicit source, redirect, origin, MIME, size,
+      autoplay, background playback, external-route, and user-activation policies. Unsupported
+      platform controls fail closed.
+- [ ] Define a project-owned, versioned host-extension profile without enabling server-provided
+      inline catalogs. An extension identity must be namespaced and must match an exact catalog and
+      schema version advertised by both host and server.
+- [ ] Require each extension to declare closed JSON schemas for inputs and emitted events, platform
+      availability, accessibility behavior, resource and permission needs, complexity limits,
+      fallback behavior, and compatibility ownership.
+- [ ] Provide typed registration helpers that map validated semantic props and events to a locally
+      imported React Native or Fabric component. Do not accept module paths, component classes,
+      generic command dispatch, arbitrary children, or raw prop/style passthrough from wire data.
+- [ ] Keep imperative native commands host-only unless a specific command is separately modeled as
+      a validated, policy-gated semantic action with user activation where required.
+- [ ] Add one UIKit-backed iOS fixture and one Android View-backed fixture through Fabric. A
+      SwiftUI- or Compose-backed wrapper may be demonstrated, but it is not a direct renderer or a
+      portability guarantee.
+- [ ] Add negative and amplification tests for unknown extension IDs and versions, malformed props,
+      forged events, unavailable platforms, oversized graphs and values, excessive updates, and
+      permission or resource-policy bypass attempts.
+- [ ] Publish an extension-author guide and compatibility manifest format that clearly assigns
+      implementation, versioning, security, and accessibility responsibility to the host author.
+
+Exit criterion: the full pinned basic catalog is implemented, and an application can safely expose
+one locally compiled semantic component without giving the server a code-resolution, native-command,
+unchecked-prop, or capability-escalation path.
+
+## Milestone 9: mixed hosting and API freeze (`0.9.0`)
+
+Status: planned.
+
+- [ ] Define a host-owned surface coordinator that can place native A2UI and isolated MCP Apps
+      WebView surfaces in the same application screen as sibling regions. A2UI content cannot create,
+      configure, navigate, or send raw bridge messages to a WebView.
+- [ ] Specify lifecycle ownership for creation, visibility, backgrounding, focus transfer, back
+      handling, cancellation, crash recovery, teardown, and memory pressure across mixed surfaces.
+- [ ] Preserve the existing MCP Apps origin, navigation, bridge-message, storage, download, external
+      link, permission, and teardown isolation for every WebView region.
+- [ ] Add cross-surface accessibility order, focus, reduced-motion, dynamic-type, orientation, and
+      keyboard scenarios without implying one shared accessibility tree where platforms cannot
+      provide it.
+- [ ] Build one production-shaped reference host demonstrating React Native primitives, a mapped
+      design system, a Fabric-backed host extension, and native plus MCP Apps regions together.
+- [ ] Publish a short human-oriented guide covering what the packages do, the end-to-end server/host
+      flow, component and styling ownership, supported renderers, WebView tradeoffs, and safe extension
+      examples before the API reference.
+- [ ] Audit all public exports, package boundaries, dependency directions, declaration output,
+      error types, wire names, defaults, and deprecations. Publish the proposed `1.0.0` compatibility
+      and migration policy and freeze the release-candidate API.
+- [ ] Decide and document removal or isolation of the deprecated custom A2UI `0.1` proof surface;
+      it must not remain ambiguous with the supported A2UI v1 Candidate profile in `1.0.0`.
+- [ ] Run package-consumer fixtures against the supported React Native, React, TypeScript, Node.js,
+      iOS, Android, New Architecture, and JavaScript-engine matrix, with exact version ranges recorded.
+
+Exit criterion: the release-candidate API is frozen, the reference host proves the promised native,
+extension, and mixed-WebView flows, and adopters can understand and integrate the package without
+reading its implementation.
+
+## Milestone 10: stable release (`1.0.0`)
+
+Status: planned.
+
+- [ ] Resolve every release-blocking result from independent security review, public-API review,
+      protocol/schema diff review, accessibility audit, and native WebView isolation review.
+- [ ] Pass the pinned MCP, A2UI, and MCP Apps conformance suites for the exact documented profiles,
+      plus unit, integration, hostile-input, fuzz, performance, memory, generated-host, package smoke,
+      and end-to-end tests.
+- [ ] Enforce the documented support matrix in CI and verify clean installation, declarations,
+      exports, peer dependencies, source maps, licenses, provenance, and upgrade behavior from the
+      latest `0.9.x` release candidate.
+- [ ] Remove or isolate the deprecated custom A2UI `0.1` public surface according to the published
+      migration decision, with no silent wire-format reinterpretation.
+- [ ] Publish stable documentation: human introduction, host integration guide, component matrix,
+      styling and design-system guide, host-extension guide, mixed-surface guide, security model,
+      compatibility policy, migration guide, API reference, examples, and release notes.
+- [ ] Freeze the `1.x` compatibility promise: breaking public API, wire, schema pin, default policy,
+      or behavior changes require an explicit major-version migration plan.
+- [ ] Publish all coordinated packages at `1.0.0` through the existing protected OIDC/provenance
+      workflow and verify registry contents, tags, signatures/provenance, and installability.
+
+Exit criterion: the documented product contract is implemented and verified, the `1.x` stability
+policy is published, and no required work is deferred behind an unqualified compatibility or
+security claim.
+
+## Committed post-`1.0.0` direction
+
+The stable React Native release is a foundation, not the end of native-platform development. Work
+immediately after `1.0.0` has two parallel tracks: first-class SwiftUI and Jetpack Compose renderers,
+and a universal framework for host-owned native capabilities. These tracks are deliberately not
+`1.0.0` exit criteria, but they must remain visible in the roadmap and release planning after the
+stable contract ships.
+
+Post-`1.0.0` release numbers will be assigned after the `1.0.0` API and compatibility policy are
+frozen. The implementation order is fixed even if individual items move between minor releases:
+
+1. Extract and freeze the platform-neutral semantic render-plan and capability-provider contracts.
+2. Publish preview SwiftUI and Jetpack Compose renderers with shared conformance fixtures.
+3. Reach non-media A2UI catalog parity on both renderers and ship the first common capability
+   profiles.
+4. Reach media, extension, mixed-surface, accessibility, performance, and lifecycle parity.
+5. Expand built-in capability profiles while keeping the provider contract open to new and
+   platform-specific OS capabilities.
+
+### First-class SwiftUI and Jetpack Compose renderers
+
+- [ ] Define platform-neutral renderer inputs, state transitions, actions, errors, limits, and
+      conformance fixtures without moving SwiftUI, Compose, React Native, A2UI, or WebView
+      implementations into `@mcp-native/core`.
+- [ ] Build a SwiftUI renderer and Apple-platform host integration with native view lifecycle,
+      bindings, focus, navigation handoff, accessibility, Dynamic Type, reduced motion, localization,
+      RTL, resources, media, and extension adapters.
+- [ ] Build a Jetpack Compose renderer and Android host integration with equivalent lifecycle,
+      state, focus, back handling, accessibility, font scaling, reduced motion, localization, RTL,
+      resources, media, and extension adapters.
+- [ ] Reach behavioral parity for the pinned A2UI basic catalog and documented functions rather than
+      merely matching component names. Platform-specific presentation may differ while semantic
+      actions, validation, policies, and failure behavior remain compatible.
+- [ ] Support application-owned UIKit, AppKit, Android View, SwiftUI, and Compose components through
+      the same namespaced, versioned, schema-validated host-extension model.
+- [ ] Run shared positive, hostile-input, lifecycle, accessibility, performance, memory, and
+      conformance fixtures across React Native, SwiftUI, and Compose, with exact OS and toolchain
+      support matrices.
+- [ ] Preserve host ownership of application navigation and shell on every renderer. Native renderer
+      support must not turn routes, view-controller classes, activities, fragments, or composable
+      function names into server-controlled values.
+
+Exit criterion: SwiftUI and Jetpack Compose are first-class renderers for the documented semantic
+profile, with the same fail-closed security boundary and published platform-specific compatibility
+limits as the React Native renderer.
+
+### Universal native-capability framework
+
+“Support all native capabilities” means that any native capability can be integrated through a
+stable typed provider contract without modifying protocol-independent core or allowing arbitrary
+native invocation. It does not mean every operating-system API is automatically installed,
+available on every platform, or safe for a server to invoke.
+
+- [ ] Define a namespaced and versioned capability manifest containing exact request, result, event,
+      and error schemas; supported platforms and OS versions; permission and entitlement needs; user
+      activation and consent requirements; foreground/background behavior; data sensitivity;
+      resource limits; cancellation; cleanup; and fallback behavior.
+- [ ] Add explicit capability negotiation so a server may request only a capability and version that
+      the host has installed, advertised, and authorized. Metadata alone never grants access.
+- [ ] Add a host capability broker that validates every request, enforces cumulative limits, obtains
+      policy or user approval, invokes a locally registered provider, validates its output, and
+      records redacted lifecycle and audit events.
+- [ ] Provide built-in profiles and reference adapters, prioritized by risk and demand, for media
+      capture and libraries; files, documents, sharing, and clipboard; location and maps; haptics,
+      motion, sensors, Bluetooth, and NFC; biometrics, credentials, and secure storage; contacts,
+      calendar, notifications, and communication intents; payments and wallets; and background or
+      system-integrated experiences.
+- [ ] Allow applications to add platform-specific or future capabilities through the same provider
+      contract when no built-in profile exists. Unknown identities, versions, schemas, permissions,
+      events, and outputs must fail closed.
+- [ ] Require capability-specific threat models and tests for permission bypass, confused-deputy
+      behavior, sensitive-data disclosure, replay, background execution, resource amplification,
+      cancellation, process death, and unavailable or revoked platform state.
+- [ ] Publish an exact capability matrix per renderer, platform, OS range, provider, and package
+      version. A capability is never implied merely because the underlying device exposes a related
+      API.
+- [ ] Prohibit generic reflection, selector or method invocation, arbitrary native commands, raw
+      intent construction, class/module names, downloaded code, and unchecked prop or payload
+      forwarding.
+
+Exit criterion: new native capabilities, including future platform APIs, can be added as audited
+host providers without weakening protocol validation or shipping a new core abstraction, while
+users and servers can determine exact availability through negotiation and the published matrix.
