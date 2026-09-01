@@ -7,8 +7,9 @@ device memory use.
 
 The maximum-node timing fixture uses inexpensive text nodes so results remain stable. Component-
 specific amplification is covered separately by negative tests: cumulative choice-option count and
-output, image URL and redirect-origin output, image resource budgets, validation output, and typed
-binding reconstruction all fail before unbounded host work can be created.
+output, image count, URL and redirect-origin output, total granted transfer bytes and decoded
+pixels, validation output, and typed binding reconstruction all fail before unbounded host work can
+be created.
 
 ## Performance method and budgets
 

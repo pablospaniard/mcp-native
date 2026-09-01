@@ -48,7 +48,8 @@ HTTP(S) `openUrl` action. `Video` and `AudioPlayer` are scheduled for `0.8.0`.
 Support is not automatic merely because a name appears above. A host advertises only the exact
 subset for which it installed complete components and policies. Missing optional slots fail closed.
 An image-capable host must additionally provide a loader that enforces the exact origin, redirect,
-byte, decoded-size, and cache grant supplied with every request.
+byte, decoded-size, and cache grant supplied with every request. The renderer also caps the complete
+surface at 64 images, 100 MiB of granted transfer bytes, and 268,435,456 granted decoded pixels.
 
 ## Components, libraries, and styling
 

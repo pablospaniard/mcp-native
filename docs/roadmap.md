@@ -256,8 +256,8 @@ Status: complete in the `0.7.0` package candidate.
       `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, and `Modal` from the pinned basic
       catalog. Continue rejecting every undeclared component and property.
 - [x] Define deny-by-default image resource policy: accepted schemes, exact origins, redirects,
-      credentials, maximum URI and decoded dimensions, caching responsibility, and failure
-      placeholders remain host-controlled.
+      credentials, maximum URI and decoded dimensions, per-surface image/byte/pixel totals, caching
+      responsibility, and failure placeholders remain host-controlled.
 - [x] Use host-owned icon identifiers or exact mappings. Never treat an agent value as an import,
       glyph font name, SVG payload, or arbitrary platform symbol.
 - [x] Add renderer-local state, validation, event reconstruction, and dispatch-time revalidation for

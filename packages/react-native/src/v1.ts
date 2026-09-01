@@ -58,6 +58,12 @@ export const A2UI_V1_NATIVE_MAX_IMAGE_BYTES = 104_857_600;
 export const A2UI_V1_NATIVE_MAX_IMAGE_DIMENSION = 16_384;
 export const A2UI_V1_NATIVE_MAX_IMAGE_PIXELS = 268_435_456;
 export const A2UI_V1_NATIVE_MAX_IMAGE_REDIRECTS = 10;
+/** Maximum reachable Image instances in one expanded surface. Checked before host policy calls. */
+export const A2UI_V1_NATIVE_MAX_IMAGES = 64;
+/** Maximum sum of host-granted transfer bytes across one expanded render plan. */
+export const A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES = A2UI_V1_NATIVE_MAX_IMAGE_BYTES;
+/** Maximum sum of host-granted decoded pixels across one expanded render plan. */
+export const A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS = A2UI_V1_NATIVE_MAX_IMAGE_PIXELS;
 
 export interface A2uiV1NativeImageRequest {
   readonly url: string;
@@ -139,6 +145,9 @@ interface AdapterContext {
   formattedStringLength: number;
   openUrlLength: number;
   imageUrlLength: number;
+  imageCount: number;
+  imageMaximumBytes: number;
+  imageMaximumDecodedPixels: number;
   imageRedirectOriginCount: number;
   imageResourcePolicyOutputLength: number;
   renderNodeCount: number;
@@ -355,6 +364,9 @@ function createAdapterContext(
     formattedStringLength: 0,
     openUrlLength: 0,
     imageUrlLength: 0,
+    imageCount: 0,
+    imageMaximumBytes: 0,
+    imageMaximumDecodedPixels: 0,
     imageRedirectOriginCount: 0,
     imageResourcePolicyOutputLength: 0,
     renderNodeCount: 0,
@@ -682,6 +694,12 @@ function adaptImage(
   context: AdapterContext,
   scope: BindingScope | undefined,
 ): NativeElement {
+  context.imageCount += 1;
+  if (context.imageCount > A2UI_V1_NATIVE_MAX_IMAGES) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum of ${A2UI_V1_NATIVE_MAX_IMAGES} images`,
+    );
+  }
   const path = `components.${component.id}.url`;
   const url = normalizeHttpUrl(
     resolveDynamicString(component.url, path, context, scope),
@@ -725,11 +743,24 @@ function adaptImage(
         `A2UI Image ${JSON.stringify(component.id)} URL is denied by host policy`,
       );
     }
-    props.resourcePolicy = parseImageResourcePolicy(
+    const resourcePolicy = parseImageResourcePolicy(
       decision,
       `components.${component.id}.imagePolicy`,
       context,
     );
+    context.imageMaximumBytes += resourcePolicy.maximumBytes;
+    if (context.imageMaximumBytes > A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES) {
+      throw new A2uiParseError(
+        `Expanded A2UI native plan exceeds maximum total image transfer budget of ${A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES} bytes`,
+      );
+    }
+    context.imageMaximumDecodedPixels += resourcePolicy.maximumDecodedPixels;
+    if (context.imageMaximumDecodedPixels > A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS) {
+      throw new A2uiParseError(
+        `Expanded A2UI native plan exceeds maximum total decoded image budget of ${A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS} pixels`,
+      );
+    }
+    props.resourcePolicy = resourcePolicy;
   }
   if (component.description !== undefined) {
     props.description = resolveDynamicString(

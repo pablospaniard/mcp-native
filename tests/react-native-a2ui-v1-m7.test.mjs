@@ -12,6 +12,9 @@ import {
   A2UI_V1_NATIVE_MAX_IMAGE_DIMENSION,
   A2UI_V1_NATIVE_MAX_IMAGE_REDIRECT_ORIGINS,
   A2UI_V1_NATIVE_MAX_IMAGE_REDIRECTS,
+  A2UI_V1_NATIVE_MAX_IMAGES,
+  A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES,
+  A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS,
   A2uiV1NativeSurface,
   createA2uiV1NativeRenderPlan,
   createNativeCheckBoxAdapter,
@@ -74,6 +77,16 @@ const imageGrant = Object.freeze({
   maximumDecodedPixels: 16_777_216,
   maximumDecodedWidth: 4_096,
   maximumRedirects: 2,
+});
+
+const minimumImageGrant = Object.freeze({
+  allowedRedirectOrigins: Object.freeze([]),
+  cacheMode: "no-store",
+  maximumBytes: 1,
+  maximumDecodedHeight: 1,
+  maximumDecodedPixels: 1,
+  maximumDecodedWidth: 1,
+  maximumRedirects: 0,
 });
 
 function createSurface(components, dataModel = {}) {
@@ -186,6 +199,19 @@ function milestone7Surface() {
       day: "2026-09-01",
     },
   );
+}
+
+function surfaceWithImages(count) {
+  const imageIds = Array.from({ length: count }, (_, index) => `image-${index}`);
+  return createSurface([
+    { id: "root", component: "Column", children: imageIds },
+    ...imageIds.map((id, index) => ({
+      id,
+      component: "Image",
+      url: `https://images.example.com/${index}.png`,
+      description: `Image ${index}`,
+    })),
+  ]);
 }
 
 test("installed host slots determine the exact advertisable native component subset", () => {
@@ -563,6 +589,44 @@ test("image loading is canonical, bounded, and denied without an affirmative hos
   assert.throws(
     () => createA2uiV1NativeRenderPlan(unsafe, policy(), { imagePolicy: () => imageGrant }),
     /Expected an HTTP\(S\) URL/,
+  );
+});
+
+test("expanded image resources are cumulatively bounded before host loading", () => {
+  let imagePolicyCalls = 0;
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(surfaceWithImages(A2UI_V1_NATIVE_MAX_IMAGES + 1), policy(), {
+        imagePolicy() {
+          imagePolicyCalls += 1;
+          return minimumImageGrant;
+        },
+      }),
+    /exceeds maximum.*images/,
+  );
+  assert.equal(imagePolicyCalls, A2UI_V1_NATIVE_MAX_IMAGES);
+
+  const excessiveBytes = Math.floor(A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES / 2) + 1;
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(surfaceWithImages(2), policy(), {
+        imagePolicy: () => ({ ...minimumImageGrant, maximumBytes: excessiveBytes }),
+      }),
+    /maximum total image transfer budget/,
+  );
+
+  const excessivePixels = Math.floor(A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS / 2) + 1;
+  assert.throws(
+    () =>
+      createA2uiV1NativeRenderPlan(surfaceWithImages(2), policy(), {
+        imagePolicy: () => ({
+          ...minimumImageGrant,
+          maximumDecodedHeight: A2UI_V1_NATIVE_MAX_IMAGE_DIMENSION,
+          maximumDecodedPixels: excessivePixels,
+          maximumDecodedWidth: A2UI_V1_NATIVE_MAX_IMAGE_DIMENSION,
+        }),
+      }),
+    /maximum total decoded image budget/,
   );
 });
 

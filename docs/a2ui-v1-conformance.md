@@ -57,17 +57,17 @@ component can mount.
 
 The component-specific native interpretations are closed:
 
-| Component       | Implemented semantic boundary                                                                                                                                                                              |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Image`         | Canonical HTTP(S) URL plus a required synchronous host grant for exact redirect origins, redirect count, bytes, decoded width/height/pixels, and cache mode. The installed loader must enforce that grant. |
-| `Icon`          | One pinned semantic name mapped by the host; `svgPath`, font names, imports, platform symbol strings, and arbitrary glyph payloads are rejected.                                                           |
-| `Divider`       | Horizontal or vertical decorative separator, excluded from accessibility focus.                                                                                                                            |
-| `CheckBox`      | Boolean value/binding, label, checks, and checkbox accessibility state.                                                                                                                                    |
-| `ChoicePicker`  | Unique closed options, valid string-array selection, single/multiple semantics, checks, and cumulative option/output limits.                                                                               |
-| `Slider`        | Finite bounded number, optional finite step partition, checks, and adjustable accessibility role.                                                                                                          |
-| `DateTimeInput` | Strict date-only, time-only, or RFC 3339/date-time string according to enabled fields, with compatible bounds and checks.                                                                                  |
-| `Tabs`          | Non-empty titled tabs and renderer-local selected index; only the selected host-owned content is presented.                                                                                                |
-| `Modal`         | A required `Button` trigger plus content and renderer-local open state; the host component owns focus trapping, platform escape/back dismissal, and focus restoration through `onRequestClose`.            |
+| Component       | Implemented semantic boundary                                                                                                                                                                                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Image`         | Canonical HTTP(S) URL plus a required synchronous host grant for exact redirect origins, redirect count, bytes, decoded width/height/pixels, and cache mode. Per-image grants are also bounded by surface-wide image-count, transfer-byte, and decoded-pixel totals. The installed loader must enforce that grant. |
+| `Icon`          | One pinned semantic name mapped by the host; `svgPath`, font names, imports, platform symbol strings, and arbitrary glyph payloads are rejected.                                                                                                                                                                   |
+| `Divider`       | Horizontal or vertical decorative separator, excluded from accessibility focus.                                                                                                                                                                                                                                    |
+| `CheckBox`      | Boolean value/binding, label, checks, and checkbox accessibility state.                                                                                                                                                                                                                                            |
+| `ChoicePicker`  | Unique closed options, valid string-array selection, single/multiple semantics, checks, and cumulative option/output limits.                                                                                                                                                                                       |
+| `Slider`        | Finite bounded number, optional finite step partition, checks, and adjustable accessibility role.                                                                                                                                                                                                                  |
+| `DateTimeInput` | Strict date-only, time-only, or RFC 3339/date-time string according to enabled fields, with compatible bounds and checks.                                                                                                                                                                                          |
+| `Tabs`          | Non-empty titled tabs and renderer-local selected index; only the selected host-owned content is presented.                                                                                                                                                                                                        |
+| `Modal`         | A required `Button` trigger plus content and renderer-local open state; the host component owns focus trapping, platform escape/back dismissal, and focus restoration through `onRequestClose`.                                                                                                                    |
 
 Hosts may map these semantics through typed adapters and closed `Image` or `ChoicePicker` variant
 slots. No raw React Native style, arbitrary native prop, component class, import, executable code,
@@ -106,6 +106,8 @@ non-blocking Expo Go PoCs and is not part of the declared protocol profile.
   grant authorizes a constrained load; it does not prove the component enforced it. URLs are
   canonicalized before authorization. Dispatch-time event and `openUrl` reconstruction revalidates
   their server-controlled values without invoking unrelated image authorization callbacks again.
+  One expanded plan is limited to 64 images, 100 MiB of total granted transfer bytes, and
+  268,435,456 total granted decoded pixels; image count fails before another policy call.
 
 ## Verification coverage
 

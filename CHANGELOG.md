@@ -17,7 +17,8 @@ their minor release line.
   validation and dispatch-time reconstruction.
 - A deny-by-default image grant covering canonical HTTP(S) URLs, exact redirect origins, redirect
   count, transfer bytes, decoded dimensions/pixels, and cache mode; the installed host loader owns
-  enforcement.
+  enforcement. Expanded plans additionally cap image count and the cumulative granted transfer-byte
+  and decoded-pixel budgets before host loading.
 - A complete non-media iOS/Android generated-host fixture and human-oriented capability guide.
 
 ### Changed
