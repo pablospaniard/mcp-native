@@ -2795,14 +2795,14 @@ test("mounted dynamic-list bindings and events retain their template instance", 
 test("the v1 native adapter rejects unsupported renderer semantics", async (t) => {
   const cases = [
     {
-      name: "unsupported component",
+      name: "missing media policy",
       surface: createSurface([
         { id: "root", component: "Video", url: "https://example.com/a.mp4" },
       ]),
       policy: createA2uiV1BasicCatalogPolicy({
         allowedComponentNames: A2UI_V1_BASIC_COMPONENT_NAMES,
       }),
-      message: /native adapter does not support/,
+      message: /requires an explicit host media policy/,
     },
     {
       name: "dynamic list with a non-array model",

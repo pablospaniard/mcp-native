@@ -127,16 +127,29 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - host-localized A2UI v1 plural selection and pure boolean functions;
 - bounded A2UI v1 validation functions and renderer-side field and button checks;
 - press-time, host-policy-gated A2UI v1 HTTP(S) `openUrl` actions;
-- trusted render plans for every non-media basic-catalog component, with closed host-owned variants;
+- trusted render plans for every basic-catalog component, with closed host-owned variants and
+  deny-by-default image/media grants;
 - mounting through host-provided components with action and typed-binding event translation;
-- typed adapters from trusted non-media semantics into locally bundled design-system components;
+- typed adapters from trusted semantics into locally bundled design-system components;
+- exact namespaced host-extension manifests, negotiation, opaque registries, local Fabric
+  registration, policy grants, and schema-valid events with inline catalogs disabled;
 - memoized render-plan and safely observed asynchronous action-dispatch hooks;
 - policy-gated inline and remote HTML document descriptions;
 - MCP `2026-07-28` tool/resource field preservation through the official SDK adapter;
 - pinned current-protocol integration coverage through the SDK HTTP handler/fetch path;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-Release `0.7.0` adds every non-media A2UI basic-catalog component, typed renderer-local absolute and dynamic-list-relative bindings, bounded formatting, validation functions and checks, pure boolean functions, template-instance action resolution, `@index` with offsets, host-callback action envelopes, required image grants, policy-gated HTTP(S) `openUrl`, exact installed-subset discovery, and closed catalog-capability metadata with inline catalogs disabled. `Video` and `AudioPlayer` remain planned for `0.8.0`. Release `0.6.0` added bounded consent over explicit host-authored risk, capability, sensitive-data, and external-sharing descriptors, plus expiring and revocable host-owned grants. Direct `callTool()` operations can use a separate trusted-tool policy; MCP Apps callbacks and A2UI v1 delivery use their own explicit host gates. The separately installed `@mcp-native/mcp` adapter provides issuer-bound interactive OAuth for protected HTTP, durable scope-upgrade history, bounded lifecycle coordination, actionable states, redacted operational events, and dependency-neutral platform reference adapters. It passes every scored pinned `2026-07-28` authorization client scenario. Complete MCP and A2UI conformance remain explicitly out of scope; full streaming host integration, transport placement for A2UI capability objects, and the separate non-blocking Expo Go integration PoCs remain future work. Follow the [roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/roadmap.md) for exact claim boundaries.
+The Milestone 8 implementation adds policy-gated `Video` and `AudioPlayer`, completes the pinned
+A2UI basic catalog, and adds exact namespaced manifests and local registration for compiled host
+extensions. Package versions remain `0.7.0` until release preparation. Release `0.7.0` added the
+non-media catalog, typed renderer-local bindings, bounded formatting and validation, host-callback
+actions, required image grants, policy-gated HTTP(S) `openUrl`, and exact installed-subset
+discovery. Release `0.6.0` added bounded consent, expiring/revocable host-owned grants, interactive
+OAuth, scope history, lifecycle coordination, actionable states, and redacted operations. Complete
+MCP and A2UI conformance, full streaming host integration, transport placement for A2UI capability
+objects, and separate non-blocking Expo Go integration PoCs remain future work. Follow the
+[roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/roadmap.md) for exact claim
+boundaries.
 
 ## Security model
 

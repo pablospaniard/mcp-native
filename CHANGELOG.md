@@ -6,6 +6,48 @@ their minor release line.
 
 ## Unreleased
 
+Completes the Milestone 8 implementation with the full pinned A2UI basic catalog and an exact,
+locally compiled host-extension boundary. Package versions remain unchanged until release
+preparation.
+
+### Added
+
+- Trusted-plan and mounted React Native support for `Video` and `AudioPlayer`, including typed host
+  adapters and installed/policy-ready capability discovery.
+- Deny-by-default media grants for exact source and redirect origins, MIME types, redirects,
+  transfer bytes, autoplay, background playback, external routes, and user activation, with
+  surface-wide instance and transfer budgets.
+- A project-owned `io.mcp-native/a2ui-host-extensions` profile with exact extension, catalog,
+  schema, and component negotiation; opaque registries; closed local prop/event schemas;
+  platform, accessibility, resource/permission, complexity, fallback, and owner declarations; and
+  inline catalogs disabled.
+- Typed local React Native/Fabric registration, exact capability grants, schema-valid local events,
+  and helper-derived advertisable extension catalogs without module, class, command, child, raw
+  prop, or style resolution from server data.
+- Generated Codegen/Fabric fixtures backed by UIKit and Android View, plus hostile-input,
+  unavailable-platform, forged-event, update, instance, and resource-policy amplification tests.
+- A [media and host-extension author guide](docs/media-and-host-extensions.md) and complete local
+  compatibility manifest fixture.
+
+### Changed
+
+- Raise the tested React Native peer minimum from `0.76.0` to `0.86.0`; generated-host CI now tests
+  the exact `0.86.0` minimum and current `0.87.1` latest boundary instead of adjacent patch lines.
+- Run generated Android and iOS native builds for both React Native boundaries on pull requests,
+  while retaining manual dispatch for independent preflight runs.
+- Deep-freeze parsed host-extension schemas, validated semantic props, and host policy requests so
+  compatibility fingerprints and authorization decisions cannot diverge through callback mutation.
+
+### Security
+
+- Reject unknown or mismatched extension identities and versions, forged registry and registration
+  objects, open or externally referenced schemas, structural children or generic actions on leaf
+  extensions, undeclared fields/events, unavailable platforms,
+  over-granted capabilities, contradictory playback controls, unsafe origins or MIME types, and
+  cumulative media/extension amplification before mounting.
+- Keep native imperative commands host-only and require declared user activation for sensitive
+  local extension events.
+
 ## 0.7.0 - 2026-09-01
 
 Completes Milestone 7 with every non-media component in the pinned A2UI basic catalog, typed

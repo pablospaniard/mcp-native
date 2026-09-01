@@ -2,6 +2,11 @@ import { parseJsonObject, parseJsonValue } from "@mcp-native/core";
 import type { JsonObject, JsonValue } from "@mcp-native/core";
 
 import { A2uiParseError } from "../errors.js";
+import {
+  getA2uiV1HostExtensionManifest,
+  isA2uiV1HostExtensionRegistry,
+} from "./host-extensions.js";
+import type { A2uiV1HostExtensionRegistry } from "./host-extensions.js";
 import { parseA2uiV1Envelope } from "./parse.js";
 import {
   A2UI_V1_MAX_COMPONENTS,
@@ -26,11 +31,17 @@ interface MutableSurface {
   metadata?: JsonObject;
   metadataBudget: JsonBudget;
   retainedBudget: JsonBudget;
+  extensionUpdateCounts: Map<string, number>;
 }
 
 interface JsonBudget {
   readonly values: number;
   readonly stringCodeUnits: number;
+}
+
+export interface A2uiSurfaceStoreOptions {
+  /** Exact local/negotiated extension registry. Omission retains basic-catalog-only parsing. */
+  readonly hostExtensions?: A2uiV1HostExtensionRegistry;
 }
 
 /**
@@ -39,8 +50,24 @@ interface JsonBudget {
  */
 export class A2uiSurfaceStore {
   readonly #surfaces = new Map<string, MutableSurface>();
+  readonly #hostExtensions: A2uiV1HostExtensionRegistry | undefined;
   #retainedValues = 0;
   #retainedStringCodeUnits = 0;
+
+  constructor(options: A2uiSurfaceStoreOptions = {}) {
+    if (options === null || typeof options !== "object" || Array.isArray(options)) {
+      throw new A2uiParseError("Expected A2UI surface store options to be an object");
+    }
+    if (
+      options.hostExtensions !== undefined &&
+      !isA2uiV1HostExtensionRegistry(options.hostExtensions)
+    ) {
+      throw new A2uiParseError(
+        "Expected an opaque host-extension registry in surface store options",
+      );
+    }
+    this.#hostExtensions = options.hostExtensions;
+  }
 
   get size(): number {
     return this.#surfaces.size;
@@ -69,7 +96,11 @@ export class A2uiSurfaceStore {
   }
 
   apply(envelope: unknown): void {
-    this.#applyValidated(parseA2uiV1Envelope(envelope));
+    this.#applyValidated(
+      parseA2uiV1Envelope(envelope, {
+        ...(this.#hostExtensions === undefined ? {} : { hostExtensions: this.#hostExtensions }),
+      }),
+    );
   }
 
   #applyValidated(envelope: A2uiV1Envelope): void {
@@ -110,7 +141,9 @@ export class A2uiSurfaceStore {
     let batchBudget = EMPTY_BUDGET;
     try {
       for (const input of envelopes) {
-        const envelope = parseA2uiV1Envelope(input);
+        const envelope = parseA2uiV1Envelope(input, {
+          ...(this.#hostExtensions === undefined ? {} : { hostExtensions: this.#hostExtensions }),
+        });
         batchBudget = addBudgets(batchBudget, measureJson(envelope));
         assertBatchBudget(batchBudget);
         this.#applyValidated(envelope);
@@ -146,6 +179,11 @@ export class A2uiSurfaceStore {
     const componentUpdate = parseComponentUpdates(new Map(), message.components ?? []);
     const components = componentUpdate.components;
     const componentBudgets = componentUpdate.budgets;
+    const extensionUpdateCounts = recordExtensionUpdates(
+      this.#hostExtensions,
+      new Map(),
+      components.values(),
+    );
 
     const dataModel =
       message.dataModel === undefined
@@ -182,6 +220,7 @@ export class A2uiSurfaceStore {
       dataModelBudget,
       metadataBudget,
       retainedBudget,
+      extensionUpdateCounts,
     };
     if (message.catalogId !== undefined) {
       surface.catalogId = message.catalogId;
@@ -199,6 +238,11 @@ export class A2uiSurfaceStore {
   }): void {
     const surface = this.#requireSurface(message.surfaceId, "updateComponents");
     const update = parseComponentUpdates(surface.components, message.components);
+    const extensionUpdateCounts = recordExtensionUpdates(
+      this.#hostExtensions,
+      new Map(surface.extensionUpdateCounts),
+      update.components.values(),
+    );
     let delta = EMPTY_BUDGET;
     for (const [id, budget] of update.budgets) {
       delta = addBudgets(delta, subtractBudgets(budget, surface.componentBudgets.get(id)));
@@ -209,6 +253,7 @@ export class A2uiSurfaceStore {
       surface.componentBudgets.set(id, update.budgets.get(id)!);
     }
     surface.retainedBudget = addBudgets(surface.retainedBudget, delta);
+    surface.extensionUpdateCounts = extensionUpdateCounts;
     this.#commitBudgetDelta(delta);
   }
 
@@ -346,9 +391,39 @@ function cloneSurfaces(surfaces: ReadonlyMap<string, MutableSurface>): Map<strin
       ...(surface.metadata === undefined ? {} : { metadata: surface.metadata }),
       metadataBudget: surface.metadataBudget,
       retainedBudget: surface.retainedBudget,
+      extensionUpdateCounts: new Map(surface.extensionUpdateCounts),
     });
   }
   return clone;
+}
+
+function recordExtensionUpdates(
+  registry: A2uiV1HostExtensionRegistry | undefined,
+  counts: Map<string, number>,
+  components: Iterable<A2uiV1Component>,
+): Map<string, number> {
+  if (registry === undefined) {
+    return counts;
+  }
+  for (const component of components) {
+    const manifest = getA2uiV1HostExtensionManifest(
+      registry,
+      component.catalogId,
+      component.component,
+    );
+    if (manifest === undefined) {
+      continue;
+    }
+    const key = `${manifest.catalogId}\u0000${manifest.componentName}`;
+    const next = (counts.get(key) ?? 0) + 1;
+    if (next > manifest.limits.maximumUpdatesPerSurface) {
+      throw new A2uiParseError(
+        `Host extension ${JSON.stringify(manifest.componentName)} exceeds maximum of ${manifest.limits.maximumUpdatesPerSurface} updates per surface`,
+      );
+    }
+    counts.set(key, next);
+  }
+  return counts;
 }
 
 const EMPTY_BUDGET: JsonBudget = Object.freeze({ values: 0, stringCodeUnits: 0 });

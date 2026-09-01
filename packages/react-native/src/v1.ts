@@ -3,6 +3,7 @@ import {
   A2UI_V1_MAX_SOURCE_LENGTH,
   A2uiParseError,
   evaluateA2uiV1FormatString,
+  validateA2uiV1HostExtensionComponent,
   validateA2uiV1SurfaceState,
 } from "@mcp-native/a2ui";
 import type {
@@ -20,10 +21,15 @@ import type { JsonObject, JsonValue } from "@mcp-native/core";
 
 import { ISO_4217_CURRENCY_CODES } from "./iso-4217.js";
 import { A2UI_V1_NATIVE_ICON_NAMES } from "./component-adapters.js";
-import type { NativeImageResourcePolicy } from "./component-adapters.js";
+import type {
+  NativeHostExtensionCapabilityGrant,
+  NativeImageResourcePolicy,
+  NativeMediaResourcePolicy,
+} from "./component-adapters.js";
 import type { NativeElement } from "./index.js";
 
 export const A2UI_V1_NATIVE_COMPONENT_NAMES = Object.freeze([
+  "AudioPlayer",
   "Button",
   "Card",
   "CheckBox",
@@ -40,6 +46,7 @@ export const A2UI_V1_NATIVE_COMPONENT_NAMES = Object.freeze([
   "Tabs",
   "Text",
   "TextField",
+  "Video",
 ]) as readonly string[];
 
 /** Maximum expanded native-plan nodes, including repeated component references. */
@@ -64,6 +71,13 @@ export const A2UI_V1_NATIVE_MAX_IMAGES = 64;
 export const A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES = A2UI_V1_NATIVE_MAX_IMAGE_BYTES;
 /** Maximum sum of host-granted decoded pixels across one expanded render plan. */
 export const A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS = A2UI_V1_NATIVE_MAX_IMAGE_PIXELS;
+export const A2UI_V1_NATIVE_MAX_MEDIA = 16;
+export const A2UI_V1_NATIVE_MAX_MEDIA_URL_LENGTH = 8_192;
+export const A2UI_V1_NATIVE_MAX_MEDIA_MIME_TYPES = 32;
+export const A2UI_V1_NATIVE_MAX_MEDIA_REDIRECT_ORIGINS = 64;
+export const A2UI_V1_NATIVE_MAX_MEDIA_REDIRECTS = 10;
+export const A2UI_V1_NATIVE_MAX_MEDIA_BYTES = 2_147_483_648;
+export const A2UI_V1_NATIVE_MAX_TOTAL_MEDIA_BYTES = 2_147_483_648;
 
 export interface A2uiV1NativeImageRequest {
   readonly url: string;
@@ -78,6 +92,40 @@ export type A2uiV1NativeImageGrant = NativeImageResourcePolicy;
 export type A2uiV1NativeImagePolicy = (
   request: A2uiV1NativeImageRequest,
 ) => A2uiV1NativeImageGrant | false;
+
+export type A2uiV1NativeMediaKind = "audio" | "video";
+
+export interface A2uiV1NativeMediaRequest {
+  readonly kind: A2uiV1NativeMediaKind;
+  readonly url: string;
+  readonly sourceOrigin: string;
+  readonly surfaceId: string;
+  readonly sourceComponentId: string;
+  readonly instanceKey: string;
+}
+
+export type A2uiV1NativeMediaGrant = NativeMediaResourcePolicy;
+export type A2uiV1NativeMediaPolicy = (
+  request: A2uiV1NativeMediaRequest,
+) => A2uiV1NativeMediaGrant | false;
+
+export interface A2uiV1NativeHostExtensionRequest {
+  readonly extensionId: string;
+  readonly catalogId: string;
+  readonly schemaVersion: string;
+  readonly componentName: string;
+  readonly surfaceId: string;
+  readonly sourceComponentId: string;
+  readonly instanceKey: string;
+  readonly platform: "android" | "ios";
+  readonly semanticProps: JsonObject;
+  readonly permissionNeeds: readonly string[];
+  readonly resourceNeeds: readonly string[];
+}
+
+export type A2uiV1NativeHostExtensionPolicy = (
+  request: A2uiV1NativeHostExtensionRequest,
+) => NativeHostExtensionCapabilityGrant | false;
 
 /** Resolved event data retained in a trusted plan until renderer-to-agent dispatch. */
 export interface A2uiV1NativeEventDescriptor {
@@ -106,6 +154,10 @@ export interface A2uiV1NativeRenderPlanOptions {
   readonly locale?: string;
   /** Required when the reachable surface contains an Image component. */
   readonly imagePolicy?: A2uiV1NativeImagePolicy;
+  /** Required when the reachable surface contains Video or AudioPlayer. */
+  readonly mediaPolicy?: A2uiV1NativeMediaPolicy;
+  /** Required when the reachable surface contains a negotiated host extension. */
+  readonly hostExtensionPolicy?: A2uiV1NativeHostExtensionPolicy;
 }
 
 export interface A2uiV1NativeEventResolutionOptions {
@@ -138,7 +190,10 @@ interface AdapterContext {
   readonly visiting: Set<string>;
   readonly tolerateInvalidLocalOpenUrls: boolean;
   readonly imagePolicy: A2uiV1NativeImagePolicy | undefined;
-  readonly authorizeImageResources: boolean;
+  readonly mediaPolicy: A2uiV1NativeMediaPolicy | undefined;
+  readonly hostExtensionPolicy: A2uiV1NativeHostExtensionPolicy | undefined;
+  readonly hostExtensions: A2uiV1SurfaceValidationPolicy["hostExtensions"];
+  readonly authorizeResources: boolean;
   choiceOptionCount: number;
   choiceOptionOutputLength: number;
   formatStringExpressionCount: number;
@@ -150,6 +205,13 @@ interface AdapterContext {
   imageMaximumDecodedPixels: number;
   imageRedirectOriginCount: number;
   imageResourcePolicyOutputLength: number;
+  mediaCount: number;
+  mediaUrlLength: number;
+  mediaMaximumBytes: number;
+  mediaMimeTypeCount: number;
+  mediaRedirectOriginCount: number;
+  mediaPolicyOutputLength: number;
+  hostExtensionCounts: Map<string, number>;
   renderNodeCount: number;
   validationCheckCount: number;
   validationOutputLength: number;
@@ -190,6 +252,8 @@ function createNativeRenderPlan(
     parsedOptions.locale,
     tolerateInvalidLocalOpenUrls,
     parsedOptions.imagePolicy,
+    parsedOptions.mediaPolicy,
+    parsedOptions.hostExtensionPolicy,
   );
   return adaptComponent("root", "root", context, undefined);
 }
@@ -212,6 +276,8 @@ export function resolveA2uiV1NativeEvent(
     dataModel,
     parsedOptions.locale,
     false,
+    undefined,
+    undefined,
     undefined,
     false,
   );
@@ -259,6 +325,8 @@ export function resolveA2uiV1NativeOpenUrl(
     dataModel,
     parsedOptions.locale,
     false,
+    undefined,
+    undefined,
     undefined,
     false,
   );
@@ -337,7 +405,9 @@ function createAdapterContext(
   locale: string | undefined,
   tolerateInvalidLocalOpenUrls = false,
   imagePolicy?: A2uiV1NativeImagePolicy,
-  authorizeImageResources = true,
+  mediaPolicy?: A2uiV1NativeMediaPolicy,
+  hostExtensionPolicy?: A2uiV1NativeHostExtensionPolicy,
+  authorizeResources = true,
 ): AdapterContext {
   const localDataModel =
     dataModel === undefined
@@ -357,7 +427,10 @@ function createAdapterContext(
     visiting: new Set<string>(),
     tolerateInvalidLocalOpenUrls,
     imagePolicy,
-    authorizeImageResources,
+    mediaPolicy,
+    hostExtensionPolicy,
+    hostExtensions: policy.hostExtensions,
+    authorizeResources,
     choiceOptionCount: 0,
     choiceOptionOutputLength: 0,
     formatStringExpressionCount: 0,
@@ -369,6 +442,13 @@ function createAdapterContext(
     imageMaximumDecodedPixels: 0,
     imageRedirectOriginCount: 0,
     imageResourcePolicyOutputLength: 0,
+    mediaCount: 0,
+    mediaUrlLength: 0,
+    mediaMaximumBytes: 0,
+    mediaMimeTypeCount: 0,
+    mediaRedirectOriginCount: 0,
+    mediaPolicyOutputLength: 0,
+    hostExtensionCounts: new Map<string, number>(),
     renderNodeCount: 0,
     validationCheckCount: 0,
     validationOutputLength: 0,
@@ -378,10 +458,20 @@ function createAdapterContext(
 function parseRenderPlanOptions(options: unknown): A2uiV1NativeRenderPlanOptions {
   const parsed = parseOptionsObject(options, "A2UI native render plan options", [
     "dataModel",
+    "hostExtensionPolicy",
     "imagePolicy",
     "locale",
+    "mediaPolicy",
   ]);
   const imagePolicy = parseOptionalImagePolicy(parsed.imagePolicy, "options.imagePolicy");
+  const mediaPolicy = parseOptionalPolicy<A2uiV1NativeMediaPolicy>(
+    parsed.mediaPolicy,
+    "options.mediaPolicy",
+  );
+  const hostExtensionPolicy = parseOptionalPolicy<A2uiV1NativeHostExtensionPolicy>(
+    parsed.hostExtensionPolicy,
+    "options.hostExtensionPolicy",
+  );
   return {
     ...(parsed.dataModel === undefined
       ? {}
@@ -390,6 +480,8 @@ function parseRenderPlanOptions(options: unknown): A2uiV1NativeRenderPlanOptions
       ? {}
       : { locale: parseLocale(parsed.locale, "options.locale") }),
     ...(imagePolicy === undefined ? {} : { imagePolicy }),
+    ...(mediaPolicy === undefined ? {} : { mediaPolicy }),
+    ...(hostExtensionPolicy === undefined ? {} : { hostExtensionPolicy }),
   };
 }
 
@@ -439,6 +531,13 @@ function parseOptionalImagePolicy(
     throw new A2uiParseError(`Expected a function at ${path}`);
   }
   return value as A2uiV1NativeImagePolicy | undefined;
+}
+
+function parseOptionalPolicy<Policy>(value: unknown, path: string): Policy | undefined {
+  if (value !== undefined && typeof value !== "function") {
+    throw new A2uiParseError(`Expected a function at ${path}`);
+  }
+  return value as Policy | undefined;
 }
 
 function parseOptionsObject(
@@ -519,6 +618,10 @@ function adaptComponent(
         return adaptText(component, key, context, scope);
       case "Image":
         return adaptImage(component, key, context, scope);
+      case "Video":
+        return adaptMedia(component, key, "video", context, scope);
+      case "AudioPlayer":
+        return adaptMedia(component, key, "audio", context, scope);
       case "Icon":
         return adaptIcon(component, key, context, scope);
       case "Divider":
@@ -540,9 +643,7 @@ function adaptComponent(
       case "Modal":
         return adaptModal(component, key, context, scope);
       default:
-        throw new A2uiParseError(
-          `A2UI component ${JSON.stringify(id)} uses ${JSON.stringify(component.component)}, which the native adapter does not support`,
-        );
+        return adaptHostExtension(component, key, context, scope);
     }
   } finally {
     context.visiting.delete(id);
@@ -718,49 +819,14 @@ function adaptImage(
     fit: component.fit ?? "fill",
     variant: component.variant ?? "mediumFeature",
   };
-  if (context.authorizeImageResources) {
-    const request: A2uiV1NativeImageRequest = {
+  if (context.authorizeResources) {
+    props.resourcePolicy = authorizeImageResource(
+      component.id,
+      key,
       url,
-      surfaceId: context.surface.surfaceId,
-      sourceComponentId: component.id,
-      instanceKey: key,
-    };
-    if (context.imagePolicy === undefined) {
-      throw new A2uiParseError(
-        `A2UI Image ${JSON.stringify(component.id)} requires an explicit host image policy`,
-      );
-    }
-    let decision: A2uiV1NativeImageGrant | false;
-    try {
-      decision = context.imagePolicy(request);
-    } catch (cause) {
-      throw new A2uiParseError(`A2UI Image ${JSON.stringify(component.id)} host policy failed`, {
-        cause,
-      });
-    }
-    if (decision === false) {
-      throw new A2uiParseError(
-        `A2UI Image ${JSON.stringify(component.id)} URL is denied by host policy`,
-      );
-    }
-    const resourcePolicy = parseImageResourcePolicy(
-      decision,
       `components.${component.id}.imagePolicy`,
       context,
     );
-    context.imageMaximumBytes += resourcePolicy.maximumBytes;
-    if (context.imageMaximumBytes > A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES) {
-      throw new A2uiParseError(
-        `Expanded A2UI native plan exceeds maximum total image transfer budget of ${A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES} bytes`,
-      );
-    }
-    context.imageMaximumDecodedPixels += resourcePolicy.maximumDecodedPixels;
-    if (context.imageMaximumDecodedPixels > A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS) {
-      throw new A2uiParseError(
-        `Expanded A2UI native plan exceeds maximum total decoded image budget of ${A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS} pixels`,
-      );
-    }
-    props.resourcePolicy = resourcePolicy;
   }
   if (component.description !== undefined) {
     props.description = resolveDynamicString(
@@ -775,6 +841,269 @@ function adaptImage(
     props.accessibilityLabel = props.description;
   }
   return { key, component: "Image", props };
+}
+
+function authorizeImageResource(
+  componentId: string,
+  key: string,
+  url: string,
+  path: string,
+  context: AdapterContext,
+): NativeImageResourcePolicy {
+  const request: A2uiV1NativeImageRequest = Object.freeze({
+    url,
+    surfaceId: context.surface.surfaceId,
+    sourceComponentId: componentId,
+    instanceKey: key,
+  });
+  if (context.imagePolicy === undefined) {
+    throw new A2uiParseError(
+      `A2UI image resource ${JSON.stringify(componentId)} requires an explicit host image policy`,
+    );
+  }
+  let decision: A2uiV1NativeImageGrant | false;
+  try {
+    decision = context.imagePolicy(request);
+  } catch (cause) {
+    throw new A2uiParseError(
+      `A2UI image resource ${JSON.stringify(componentId)} host policy failed`,
+      { cause },
+    );
+  }
+  if (decision === false) {
+    throw new A2uiParseError(
+      `A2UI image resource ${JSON.stringify(componentId)} URL is denied by host policy`,
+    );
+  }
+  const resourcePolicy = parseImageResourcePolicy(decision, path, context);
+  context.imageMaximumBytes += resourcePolicy.maximumBytes;
+  if (context.imageMaximumBytes > A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum total image transfer budget of ${A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES} bytes`,
+    );
+  }
+  context.imageMaximumDecodedPixels += resourcePolicy.maximumDecodedPixels;
+  if (context.imageMaximumDecodedPixels > A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum total decoded image budget of ${A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS} pixels`,
+    );
+  }
+  return resourcePolicy;
+}
+
+function adaptMedia(
+  component: A2uiV1Component,
+  key: string,
+  kind: A2uiV1NativeMediaKind,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  context.mediaCount += 1;
+  if (context.mediaCount > A2UI_V1_NATIVE_MAX_MEDIA) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum of ${A2UI_V1_NATIVE_MAX_MEDIA} media components`,
+    );
+  }
+  const path = `components.${component.id}.url`;
+  const url = normalizeHttpUrl(
+    resolveDynamicString(component.url, path, context, scope),
+    path,
+    kind,
+    A2UI_V1_NATIVE_MAX_MEDIA_URL_LENGTH,
+  );
+  context.mediaUrlLength += url.length;
+  if (context.mediaUrlLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds cumulative media URL length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
+    );
+  }
+  const props: Record<string, unknown> = { uri: url };
+  if (context.authorizeResources) {
+    props.resourcePolicy = authorizeMediaResource(component.id, key, kind, url, context);
+  }
+  if (kind === "video" && component.posterUrl !== undefined) {
+    const posterPath = `components.${component.id}.posterUrl`;
+    const posterUrl = normalizeHttpUrl(
+      resolveDynamicString(component.posterUrl, posterPath, context, scope),
+      posterPath,
+      "video poster",
+      A2UI_V1_NATIVE_MAX_IMAGE_URL_LENGTH,
+    );
+    context.imageCount += 1;
+    if (context.imageCount > A2UI_V1_NATIVE_MAX_IMAGES) {
+      throw new A2uiParseError(
+        `Expanded A2UI native plan exceeds maximum of ${A2UI_V1_NATIVE_MAX_IMAGES} image resources`,
+      );
+    }
+    context.imageUrlLength += posterUrl.length;
+    if (context.imageUrlLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+      throw new A2uiParseError(
+        `Expanded A2UI native plan exceeds cumulative image URL length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
+      );
+    }
+    props.posterUri = posterUrl;
+    if (context.authorizeResources) {
+      props.posterResourcePolicy = authorizeImageResource(
+        component.id,
+        `${key}:poster`,
+        posterUrl,
+        `components.${component.id}.posterPolicy`,
+        context,
+      );
+    }
+  }
+  if (kind === "audio" && component.description !== undefined) {
+    props.description = resolveDynamicString(
+      component.description,
+      `components.${component.id}.description`,
+      context,
+      scope,
+    );
+  }
+  addCommonProps(component, props, context, scope);
+  if (props.accessibilityLabel === undefined) {
+    props.accessibilityLabel =
+      kind === "audio" && typeof props.description === "string"
+        ? props.description
+        : kind === "audio"
+          ? "Audio"
+          : "Video";
+  }
+  return { key, component: kind === "video" ? "Video" : "AudioPlayer", props };
+}
+
+function authorizeMediaResource(
+  componentId: string,
+  key: string,
+  kind: A2uiV1NativeMediaKind,
+  url: string,
+  context: AdapterContext,
+): NativeMediaResourcePolicy {
+  if (context.mediaPolicy === undefined) {
+    throw new A2uiParseError(
+      `A2UI ${kind} ${JSON.stringify(componentId)} requires an explicit host media policy`,
+    );
+  }
+  const sourceOrigin = parseHttpUrlOrigin(url, `components.${componentId}.url`);
+  const request: A2uiV1NativeMediaRequest = Object.freeze({
+    kind,
+    url,
+    sourceOrigin,
+    surfaceId: context.surface.surfaceId,
+    sourceComponentId: componentId,
+    instanceKey: key,
+  });
+  let decision: A2uiV1NativeMediaGrant | false;
+  try {
+    decision = context.mediaPolicy(request);
+  } catch (cause) {
+    throw new A2uiParseError(`A2UI ${kind} ${JSON.stringify(componentId)} host policy failed`, {
+      cause,
+    });
+  }
+  if (decision === false) {
+    throw new A2uiParseError(
+      `A2UI ${kind} ${JSON.stringify(componentId)} URL is denied by host policy`,
+    );
+  }
+  const resourcePolicy = parseMediaResourcePolicy(
+    decision,
+    request,
+    `components.${componentId}.mediaPolicy`,
+    context,
+  );
+  context.mediaMaximumBytes += resourcePolicy.maximumBytes;
+  if (context.mediaMaximumBytes > A2UI_V1_NATIVE_MAX_TOTAL_MEDIA_BYTES) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum total media transfer budget of ${A2UI_V1_NATIVE_MAX_TOTAL_MEDIA_BYTES} bytes`,
+    );
+  }
+  return resourcePolicy;
+}
+
+function adaptHostExtension(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const hostExtensions = context.hostExtensions;
+  if (hostExtensions === undefined) {
+    throw new A2uiParseError(
+      `A2UI component ${JSON.stringify(component.id)} uses an unavailable host extension`,
+    );
+  }
+  const validated = validateA2uiV1HostExtensionComponent(
+    hostExtensions,
+    component,
+    `components.${component.id}`,
+  );
+  const manifest = validated.manifest;
+  const countKey = `${manifest.catalogId}\u0000${manifest.componentName}`;
+  const count = (context.hostExtensionCounts.get(countKey) ?? 0) + 1;
+  if (count > manifest.limits.maximumInstances) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum of ${manifest.limits.maximumInstances} instances for ${JSON.stringify(manifest.componentName)}`,
+    );
+  }
+  context.hostExtensionCounts.set(countKey, count);
+  const props: Record<string, unknown> = {
+    extensionId: manifest.extensionId,
+    catalogId: manifest.catalogId,
+    schemaVersion: manifest.schemaVersion,
+    componentName: manifest.componentName,
+    manifestFingerprint: validated.manifestFingerprint,
+    semanticProps: validated.props,
+    sourceComponentId: component.id,
+    surfaceId: context.surface.surfaceId,
+  };
+  if (context.authorizeResources) {
+    if (context.hostExtensionPolicy === undefined) {
+      throw new A2uiParseError(
+        `Host extension ${JSON.stringify(manifest.componentName)} requires an explicit capability policy`,
+      );
+    }
+    const request: A2uiV1NativeHostExtensionRequest = Object.freeze({
+      extensionId: manifest.extensionId,
+      catalogId: manifest.catalogId,
+      schemaVersion: manifest.schemaVersion,
+      componentName: manifest.componentName,
+      surfaceId: context.surface.surfaceId,
+      sourceComponentId: component.id,
+      instanceKey: key,
+      platform: hostExtensions.platform,
+      semanticProps: validated.props,
+      permissionNeeds: manifest.permissionNeeds,
+      resourceNeeds: manifest.resourceNeeds,
+    });
+    let decision: NativeHostExtensionCapabilityGrant | false;
+    try {
+      decision = context.hostExtensionPolicy(request);
+    } catch (cause) {
+      throw new A2uiParseError(
+        `Host extension ${JSON.stringify(manifest.componentName)} capability policy failed`,
+        { cause },
+      );
+    }
+    if (decision === false) {
+      throw new A2uiParseError(
+        `Host extension ${JSON.stringify(manifest.componentName)} is denied by capability policy`,
+      );
+    }
+    props.capabilityGrant = parseHostExtensionCapabilityGrant(
+      decision,
+      manifest.permissionNeeds,
+      manifest.resourceNeeds,
+      `components.${component.id}.hostExtensionPolicy`,
+    );
+  }
+  addCommonProps(component, props, context, scope);
+  if (manifest.accessibility.requiresLabel && props.accessibilityLabel === undefined) {
+    throw new A2uiParseError(
+      `Host extension ${JSON.stringify(manifest.componentName)} requires an accessibility label`,
+    );
+  }
+  return { key, component: "HostExtension", props };
 }
 
 function adaptIcon(
@@ -1703,6 +2032,193 @@ function parseImageResourcePolicy(
   });
 }
 
+function parseMediaResourcePolicy(
+  value: unknown,
+  request: A2uiV1NativeMediaRequest,
+  path: string,
+  context: AdapterContext,
+): NativeMediaResourcePolicy {
+  const policy = parseJsonObject(value, path);
+  const allowedKeys = new Set([
+    "allowedMimeTypes",
+    "allowedRedirectOrigins",
+    "allowsAutoplay",
+    "allowsBackgroundPlayback",
+    "allowsExternalRoutes",
+    "maximumBytes",
+    "maximumRedirects",
+    "requiresUserActivation",
+    "sourceOrigin",
+  ]);
+  for (const key of Object.keys(policy)) {
+    if (!allowedKeys.has(key)) {
+      throw new A2uiParseError(`Unexpected field ${JSON.stringify(key)} at ${path}`);
+    }
+  }
+  const sourceOrigin = parseExactHttpOrigin(policy.sourceOrigin, `${path}.sourceOrigin`);
+  if (sourceOrigin !== request.sourceOrigin) {
+    throw new A2uiParseError(`Expected ${path}.sourceOrigin to match the requested media origin`);
+  }
+  if (
+    !Array.isArray(policy.allowedRedirectOrigins) ||
+    policy.allowedRedirectOrigins.length > A2UI_V1_NATIVE_MAX_MEDIA_REDIRECT_ORIGINS
+  ) {
+    throw new A2uiParseError(
+      `Expected at most ${A2UI_V1_NATIVE_MAX_MEDIA_REDIRECT_ORIGINS} redirect origins at ${path}.allowedRedirectOrigins`,
+    );
+  }
+  context.mediaRedirectOriginCount += policy.allowedRedirectOrigins.length;
+  if (context.mediaRedirectOriginCount > JSON_MAX_VALUES) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum of ${JSON_MAX_VALUES} media redirect origins`,
+    );
+  }
+  const allowedRedirectOrigins = policy.allowedRedirectOrigins.map((origin, index) =>
+    parseExactHttpOrigin(origin, `${path}.allowedRedirectOrigins[${index}]`),
+  );
+  if (new Set(allowedRedirectOrigins).size !== allowedRedirectOrigins.length) {
+    throw new A2uiParseError(`Expected unique redirect origins at ${path}.allowedRedirectOrigins`);
+  }
+  if (
+    !Array.isArray(policy.allowedMimeTypes) ||
+    policy.allowedMimeTypes.length === 0 ||
+    policy.allowedMimeTypes.length > A2UI_V1_NATIVE_MAX_MEDIA_MIME_TYPES
+  ) {
+    throw new A2uiParseError(
+      `Expected one through ${A2UI_V1_NATIVE_MAX_MEDIA_MIME_TYPES} MIME types at ${path}.allowedMimeTypes`,
+    );
+  }
+  context.mediaMimeTypeCount += policy.allowedMimeTypes.length;
+  if (context.mediaMimeTypeCount > JSON_MAX_VALUES) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum of ${JSON_MAX_VALUES} media MIME types`,
+    );
+  }
+  const mimePrefix = request.kind === "video" ? "video/" : "audio/";
+  const allowedMimeTypes = policy.allowedMimeTypes.map((mimeType, index) => {
+    const parsed = expectString(mimeType, `${path}.allowedMimeTypes[${index}]`);
+    if (
+      parsed !== parsed.toLowerCase() ||
+      !parsed.startsWith(mimePrefix) ||
+      !/^(?:audio|video)\/[a-z0-9][a-z0-9!#$&^_.+-]*$/.test(parsed)
+    ) {
+      throw new A2uiParseError(
+        `Expected an exact lower-case ${request.kind} MIME type at ${path}.allowedMimeTypes[${index}]`,
+      );
+    }
+    return parsed;
+  });
+  if (new Set(allowedMimeTypes).size !== allowedMimeTypes.length) {
+    throw new A2uiParseError(`Expected unique MIME types at ${path}.allowedMimeTypes`);
+  }
+  context.mediaPolicyOutputLength +=
+    sourceOrigin.length +
+    allowedRedirectOrigins.reduce((total, origin) => total + origin.length, 0) +
+    allowedMimeTypes.reduce((total, mimeType) => total + mimeType.length, 0);
+  if (context.mediaPolicyOutputLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds media-policy output length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
+    );
+  }
+  const maximumBytes = parseBoundedPositiveInteger(
+    policy.maximumBytes,
+    A2UI_V1_NATIVE_MAX_MEDIA_BYTES,
+    `${path}.maximumBytes`,
+  );
+  const maximumRedirects = parseBoundedNonNegativeInteger(
+    policy.maximumRedirects,
+    A2UI_V1_NATIVE_MAX_MEDIA_REDIRECTS,
+    `${path}.maximumRedirects`,
+  );
+  const allowsAutoplay = parsePolicyBoolean(policy.allowsAutoplay, `${path}.allowsAutoplay`);
+  const allowsBackgroundPlayback = parsePolicyBoolean(
+    policy.allowsBackgroundPlayback,
+    `${path}.allowsBackgroundPlayback`,
+  );
+  const allowsExternalRoutes = parsePolicyBoolean(
+    policy.allowsExternalRoutes,
+    `${path}.allowsExternalRoutes`,
+  );
+  const requiresUserActivation = parsePolicyBoolean(
+    policy.requiresUserActivation,
+    `${path}.requiresUserActivation`,
+  );
+  if (allowsAutoplay && requiresUserActivation) {
+    throw new A2uiParseError(
+      `A2UI media policy cannot allow autoplay while requiring user activation at ${path}`,
+    );
+  }
+  return Object.freeze({
+    sourceOrigin,
+    allowedRedirectOrigins: Object.freeze(allowedRedirectOrigins),
+    allowedMimeTypes: Object.freeze(allowedMimeTypes),
+    maximumBytes,
+    maximumRedirects,
+    allowsAutoplay,
+    allowsBackgroundPlayback,
+    allowsExternalRoutes,
+    requiresUserActivation,
+  });
+}
+
+function parseHostExtensionCapabilityGrant(
+  value: unknown,
+  permissionNeeds: readonly string[],
+  resourceNeeds: readonly string[],
+  path: string,
+): NativeHostExtensionCapabilityGrant {
+  const grant = parseJsonObject(value, path);
+  const keys = Object.keys(grant);
+  if (keys.some((key) => key !== "permissions" && key !== "resources")) {
+    throw new A2uiParseError(`Unexpected host-extension capability grant field at ${path}`);
+  }
+  const permissions = parseExactGrantNames(
+    grant.permissions,
+    permissionNeeds,
+    `${path}.permissions`,
+  );
+  const resources = parseExactGrantNames(grant.resources, resourceNeeds, `${path}.resources`);
+  return Object.freeze({ permissions, resources });
+}
+
+function parseExactGrantNames(
+  value: JsonValue | undefined,
+  expected: readonly string[],
+  path: string,
+): readonly string[] {
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
+    throw new A2uiParseError(`Expected an array of capability identifiers at ${path}`);
+  }
+  const names = value as readonly string[];
+  if (new Set(names).size !== names.length) {
+    throw new A2uiParseError(`Expected unique capability identifiers at ${path}`);
+  }
+  const actualSet = new Set(names);
+  if (actualSet.size !== expected.length || expected.some((name) => !actualSet.has(name))) {
+    throw new A2uiParseError(`Expected ${path} to exactly grant the manifest-declared needs`);
+  }
+  return Object.freeze([...expected]);
+}
+
+function parsePolicyBoolean(value: JsonValue | undefined, path: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new A2uiParseError(`Expected a boolean at ${path}`);
+  }
+  return value;
+}
+
+function parseHttpUrlOrigin(value: string, path: string): string {
+  const UrlConstructor = (globalThis as unknown as { readonly URL?: UrlConstructorLike }).URL;
+  if (UrlConstructor === undefined) {
+    throw new A2uiParseError(`The host runtime cannot validate a media origin at ${path}`);
+  }
+  try {
+    return new UrlConstructor(value).origin;
+  } catch (cause) {
+    throw new A2uiParseError(`Expected an HTTP(S) media URL at ${path}`, { cause });
+  }
+}
+
 function parseExactHttpOrigin(value: JsonValue | undefined, path: string): string {
   const origin = expectString(value, path);
   if (/\s|\p{Cf}/u.test(origin) || hasAsciiControlCharacter(origin)) {
@@ -1710,7 +2226,7 @@ function parseExactHttpOrigin(value: JsonValue | undefined, path: string): strin
   }
   const UrlConstructor = (globalThis as unknown as { readonly URL?: UrlConstructorLike }).URL;
   if (UrlConstructor === undefined) {
-    throw new A2uiParseError(`The host runtime cannot validate an image origin at ${path}`);
+    throw new A2uiParseError(`The host runtime cannot validate a resource origin at ${path}`);
   }
   let parsed: UrlLike;
   try {

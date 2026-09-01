@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        react-native: ["0.87.1", "0.86.3"]
+        react-native: ["0.87.1", "0.86.0"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

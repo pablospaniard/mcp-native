@@ -11,14 +11,20 @@ owned by the host.
 - Advertise only extensions and A2UI catalog IDs the installed host fully implements. Require exact
   mutual negotiation; never infer support from MIME types, metadata, or content.
 - Derive native component names with
-  `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy })`. Supply the same
-  enforcing `imagePolicy` to discovery and mounting; do not advertise `Image` for a raw loader that
-  cannot enforce redirect, byte, decoded-size, and cache limits. Treat it as render-time resource
-  authorization; action and `openUrl` reconstruction will not invoke it again.
+  `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })`. Supply the same
+  enforcing policies to discovery and mounting; do not advertise `Image`, `Video`, or `AudioPlayer`
+  for a loader/player that cannot enforce its exact grant. Treat them as render-time resource
+  authorization; action and `openUrl` reconstruction will not invoke them again.
+- Parse local extension manifests, negotiate exact tuples, create the platform registry, and pass
+  that same opaque registry through parsing, storage, validation, discovery, and mounting. Derive
+  extension catalog IDs only with `getA2uiV1NativeSupportedHostExtensionCatalogIds` after installing
+  a helper-created local registration and exact capability policy.
 - Validate every SDK result through `McpSdkClientAdapter`, every A2UI lifecycle stream through the
   v1 parser/store, and every MCP Apps resource through the Apps loader and sandbox.
 - Keep renderer/component resolution in a closed app-owned allowlist. Do not load code, component
   names, WebView options, or native module options selected by a server.
+- Keep host-extension manifests, component imports, prop/event mappers, native commands, and
+  compatibility ownership in app code. Inline catalogs and generic commands remain disabled.
 
 ## Actions, consent, and permissions
 
@@ -47,6 +53,9 @@ owned by the host.
   semantics through loading, consent, retry, and error transitions.
 - Make installed tabs expose separate selectable items. Make installed modals trap focus, support
   platform escape/back dismissal, restore focus to their trigger, and tear down hidden content.
+- Make media controls honor user activation, backgrounding, external-route, interruption, teardown,
+  and accessibility policy. Exercise each local extension's manifest-declared behavior and platform
+  fallback.
 - Never display raw transport, OAuth callback, validation, or server error text as trusted UI.
 
 ## OAuth and transport

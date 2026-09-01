@@ -42,18 +42,18 @@ and the MCP placement of A2UI capability objects remain host-owned.
 The React Native adapter implements these basic-catalog components:
 
 - `Row`, `Column`, static and dynamic `List`, `Card`, `Text`, `Image`, `Icon`, `Divider`, `Button`,
-  `TextField`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, and `Modal`;
+  `TextField`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, `Modal`, `Video`, and
+  `AudioPlayer`;
 - absolute and dynamic-list-relative string, boolean, number, and string-array bindings with
   renderer-local updates;
 - bounded template expansion and template-scoped `@index`;
 - closed structural, style-variant, accessibility, event, and check fields documented by the
   package APIs.
 
-`Video` and `AudioPlayer` are the only pinned basic-catalog components not implemented by this
-profile. A host must advertise only the intersection returned by
-`getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy })` for its installed and policy-ready catalog. The nine Milestone 7 slots
-are optional at the TypeScript catalog boundary; a surface using an omitted slot fails before that
-component can mount.
+A host must advertise only the intersection returned by
+`getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })` for its installed
+and policy-ready catalog. Optional slots remain optional at the TypeScript catalog boundary; a
+surface using an omitted slot or required resource policy fails before that component can mount.
 
 The component-specific native interpretations are closed:
 
@@ -68,10 +68,22 @@ The component-specific native interpretations are closed:
 | `DateTimeInput` | Strict date-only, time-only, or RFC 3339/date-time string according to enabled fields, with compatible bounds and checks.                                                                                                                                                                                          |
 | `Tabs`          | Non-empty titled tabs and renderer-local selected index; only the selected host-owned content is presented.                                                                                                                                                                                                        |
 | `Modal`         | A required `Button` trigger plus content and renderer-local open state; the host component owns focus trapping, platform escape/back dismissal, and focus restoration through `onRequestClose`.                                                                                                                    |
+| `Video`         | Canonical HTTP(S) source plus exact host grant for source/redirect origins, MIME types, redirects, bytes, autoplay, background playback, external routes, and user activation. An optional poster independently requires the image grant.                                                                          |
+| `AudioPlayer`   | The same closed media grant as `Video`, restricted to exact audio MIME types and an optional semantic description.                                                                                                                                                                                                 |
 
 Hosts may map these semantics through typed adapters and closed `Image` or `ChoicePicker` variant
 slots. No raw React Native style, arbitrary native prop, component class, import, executable code,
-or imperative native command crosses the wire boundary.
+or imperative native command crosses the wire boundary. Media grants are additionally limited to
+16 instances and 2 GiB of cumulative granted transfer bytes per expanded plan; the installed
+player must enforce each grant.
+
+The project-owned host-extension profile is an explicitly negotiated extension to this pinned
+basic-catalog profile, not an upstream basic-catalog claim. It keeps inline catalogs disabled and
+admits only an exact namespaced extension/catalog/schema/component tuple from an opaque negotiated
+registry. Each locally authored manifest has closed prop and event schemas, platform,
+accessibility, resource/permission, complexity, fallback, and compatibility declarations.
+Extension components are leaves; arbitrary children, props, styles, modules, classes, commands,
+and executable code are rejected. See the [host-extension profile](media-and-host-extensions.md).
 
 The executable function subset is:
 
@@ -108,6 +120,10 @@ non-blocking Expo Go PoCs and is not part of the declared protocol profile.
   their server-controlled values without invoking unrelated image authorization callbacks again.
   One expanded plan is limited to 64 images, 100 MiB of total granted transfer bytes, and
   268,435,456 total granted decoded pixels; image count fails before another policy call.
+- The pinned media shapes name sources but do not define a native loader or complete playback
+  security policy. MCP Native requires a synchronous host grant before plan construction and passes
+  the exact grant to the installed component. A grant is not proof that a third-party player
+  enforced it.
 
 ## Verification coverage
 
@@ -118,6 +134,9 @@ non-blocking Expo Go PoCs and is not part of the declared protocol profile.
   message kind.
 - `tests/fixtures/a2ui-v1/milestone-7-surface.json` covers all nine non-media catalog additions in
   generated React Native iOS and Android hosts.
+- `tests/fixtures/a2ui-v1/milestone-8-surface.json` covers both media components and one locally
+  compiled extension; the generated host includes a Codegen spec, UIKit implementation, and Android
+  View implementation through Fabric.
 - Negative tests cover unknown versions and kinds, ambiguous envelopes, unsupported functions,
   malformed JSON Pointers, conflicting response/error forms, non-JSON input, and complexity limits.
 - Fixed-seed generated tests cover both envelope directions, ordered lifecycle state, bounded dynamic

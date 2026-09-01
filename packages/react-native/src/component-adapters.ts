@@ -1,4 +1,10 @@
-import { createElement, type ComponentType, type ReactNode } from "react";
+import {
+  getA2uiV1HostExtensionManifestFingerprint,
+  parseA2uiV1HostExtensionManifest,
+} from "@mcp-native/a2ui";
+import type { A2uiV1HostExtensionManifest } from "@mcp-native/a2ui";
+import type { JsonObject } from "@mcp-native/core";
+import { createElement, type ComponentType, type ReactElement, type ReactNode } from "react";
 
 export type NativeAccessibilityRole =
   | "adjustable"
@@ -102,6 +108,37 @@ export interface NativeImageComponentProps extends NativeAccessibilityProps {
   readonly fit: NativeImageFit;
   readonly resourcePolicy: NativeImageResourcePolicy;
   readonly uri: string;
+}
+
+export interface NativeMediaResourcePolicy {
+  readonly sourceOrigin: string;
+  readonly allowedRedirectOrigins: readonly string[];
+  readonly allowedMimeTypes: readonly string[];
+  readonly maximumBytes: number;
+  readonly maximumRedirects: number;
+  readonly allowsAutoplay: boolean;
+  readonly allowsBackgroundPlayback: boolean;
+  readonly allowsExternalRoutes: boolean;
+  readonly requiresUserActivation: boolean;
+}
+
+export interface NativeVideoComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly accessibilityLabel: string;
+  readonly accessibilityRole: "image";
+  readonly uri: string;
+  readonly posterUri?: string;
+  readonly posterResourcePolicy?: NativeImageResourcePolicy;
+  readonly resourcePolicy: NativeMediaResourcePolicy;
+}
+
+export interface NativeAudioPlayerComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly accessibilityLabel: string;
+  readonly accessibilityRole: "button";
+  readonly description?: string;
+  readonly uri: string;
+  readonly resourcePolicy: NativeMediaResourcePolicy;
 }
 
 export const A2UI_V1_NATIVE_ICON_NAMES = Object.freeze([
@@ -301,9 +338,47 @@ export interface NativeComponentCatalog {
   readonly DateTimeInput?: ComponentType<NativeDateTimeInputComponentProps>;
   readonly Tabs?: ComponentType<NativeTabsComponentProps>;
   readonly Modal?: ComponentType<NativeModalComponentProps>;
+  readonly Video?: ComponentType<NativeVideoComponentProps>;
+  readonly AudioPlayer?: ComponentType<NativeAudioPlayerComponentProps>;
+  /** Locally compiled semantic extensions created only by the registration helper below. */
+  readonly hostExtensions?: readonly NativeHostExtensionRegistration[];
   /** Optional semantic/style variants; omitted entries fall back to the base primitive. */
   readonly variants?: NativeComponentVariants;
 }
+
+export interface NativeHostExtensionCapabilityGrant {
+  readonly permissions: readonly string[];
+  readonly resources: readonly string[];
+}
+
+export interface NativeHostExtensionEventOptions {
+  readonly userActivated: boolean;
+}
+
+export interface NativeHostExtensionComponentProps extends NativeAccessibilityProps {
+  readonly semanticProps: JsonObject;
+  readonly capabilityGrant: NativeHostExtensionCapabilityGrant;
+  readonly onEvent: (
+    name: string,
+    payload: JsonObject,
+    options: NativeHostExtensionEventOptions,
+  ) => void;
+}
+
+/** Opaque registration for one locally imported React Native or Fabric component. */
+export interface NativeHostExtensionRegistration {
+  readonly manifest: A2uiV1HostExtensionManifest;
+  readonly manifestFingerprint: string;
+}
+
+interface NativeHostExtensionRegistrationState {
+  readonly render: (props: NativeHostExtensionComponentProps, key: string) => ReactElement;
+}
+
+const nativeHostExtensionRegistrationStates = new WeakMap<
+  NativeHostExtensionRegistration,
+  NativeHostExtensionRegistrationState
+>();
 
 /** Maps renderer-selected primitive props into one locally bundled host component. */
 export type NativeComponentPropMapper<TrustedProps extends object, HostProps extends object> = (
@@ -312,6 +387,7 @@ export type NativeComponentPropMapper<TrustedProps extends object, HostProps ext
 
 function createComponentAdapter<TrustedProps extends object, HostProps extends object>(
   primitiveName:
+    | "AudioPlayer"
     | "Button"
     | "CheckBox"
     | "ChoicePicker"
@@ -324,6 +400,7 @@ function createComponentAdapter<TrustedProps extends object, HostProps extends o
     | "Tabs"
     | "Text"
     | "TextInput"
+    | "Video"
     | "View",
   component: ComponentType<HostProps>,
   mapProps: NativeComponentPropMapper<TrustedProps, HostProps>,
@@ -374,6 +451,75 @@ export function createNativeImageAdapter<HostProps extends object>(
   mapProps: NativeComponentPropMapper<NativeImageComponentProps, HostProps>,
 ): ComponentType<NativeImageComponentProps> {
   return createComponentAdapter("Image", component, mapProps);
+}
+
+/** Adapts a complete, policy-bearing video source to one local media component. */
+export function createNativeVideoAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeVideoComponentProps, HostProps>,
+): ComponentType<NativeVideoComponentProps> {
+  return createComponentAdapter("Video", component, mapProps);
+}
+
+/** Adapts a complete, policy-bearing audio source to one local media component. */
+export function createNativeAudioPlayerAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeAudioPlayerComponentProps, HostProps>,
+): ComponentType<NativeAudioPlayerComponentProps> {
+  return createComponentAdapter("AudioPlayer", component, mapProps);
+}
+
+/**
+ * Registers one locally imported semantic native component. The mapper receives only validated
+ * semantic props, a closed capability grant, accessibility fields, and a validated event seam.
+ */
+export function createNativeHostExtensionRegistration<HostProps extends object>(
+  manifestInput: unknown,
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeHostExtensionComponentProps, HostProps>,
+): NativeHostExtensionRegistration {
+  const runtimeComponent: unknown = component;
+  if (
+    typeof runtimeComponent !== "function" &&
+    (runtimeComponent === null || typeof runtimeComponent !== "object")
+  ) {
+    throw new TypeError("Expected a locally imported host-extension component");
+  }
+  if (typeof mapProps !== "function") {
+    throw new TypeError("Expected a host-extension prop mapper");
+  }
+  const manifest = parseA2uiV1HostExtensionManifest(manifestInput);
+  const registration = Object.freeze({
+    manifest,
+    manifestFingerprint: getA2uiV1HostExtensionManifestFingerprint(manifest),
+  });
+  nativeHostExtensionRegistrationStates.set(registration, {
+    render: (props, key) => createElement(component, { ...mapProps(props), key }),
+  });
+  return registration;
+}
+
+export function isNativeHostExtensionRegistration(
+  value: unknown,
+): value is NativeHostExtensionRegistration {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    nativeHostExtensionRegistrationStates.has(value as NativeHostExtensionRegistration)
+  );
+}
+
+/** Internal renderer seam for an opaque, helper-created local registration. */
+export function renderNativeHostExtensionRegistration(
+  registration: NativeHostExtensionRegistration,
+  props: NativeHostExtensionComponentProps,
+  key: string,
+): ReactElement {
+  const state = nativeHostExtensionRegistrationStates.get(registration);
+  if (state === undefined) {
+    throw new TypeError("Expected an opaque host-extension registration created by this package");
+  }
+  return state.render(props, key);
 }
 
 /** Adapts a pinned semantic icon name to a host icon component. */

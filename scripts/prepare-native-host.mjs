@@ -4,7 +4,12 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const NATIVE_HOST_CLI_VERSION = "20.2.0";
-export const NATIVE_HOST_REACT_NATIVE_VERSIONS = Object.freeze(["0.87.1", "0.86.3"]);
+export const NATIVE_HOST_REACT_NATIVE_LATEST_VERSION = "0.87.1";
+export const NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION = "0.86.0";
+export const NATIVE_HOST_REACT_NATIVE_VERSIONS = Object.freeze([
+  NATIVE_HOST_REACT_NATIVE_LATEST_VERSION,
+  NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION,
+]);
 export const NATIVE_HOST_NAME = "McpNativeAccessibilityHost";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -68,6 +73,19 @@ export function createNativeHostPackageJson(source, tarballs) {
   return {
     ...source,
     private: true,
+    codegenConfig: {
+      name: "McpNativeFixtureSpec",
+      type: "components",
+      jsSrcsDir: "specs",
+      android: {
+        javaPackageName: "io.github.pablospaniard.mcpnativefixture.fabric",
+      },
+      ios: {
+        componentProvider: {
+          McpNativeStatusBadge: "RCTMcpNativeStatusBadge",
+        },
+      },
+    },
     dependencies,
     scripts: {
       ...source.scripts,
@@ -78,6 +96,56 @@ export function createNativeHostPackageJson(source, tarballs) {
       "mcp-native:typecheck": "tsc --noEmit",
     },
   };
+}
+
+export function registerNativeHostAndroidPackage(source) {
+  const importAnchor = "import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost";
+  const registrationAnchor = `          // Packages that cannot be autolinked yet can be added manually here, for example:
+          // add(MyReactNativePackage())`;
+  if (!source.includes(importAnchor) || !source.includes(registrationAnchor)) {
+    throw new Error("Generated native host MainApplication.kt does not match the pinned template");
+  }
+  return source
+    .replace(
+      importAnchor,
+      `${importAnchor}\nimport io.github.pablospaniard.mcpnativefixture.fabric.McpNativeStatusBadgePackage`,
+    )
+    .replace(registrationAnchor, "          add(McpNativeStatusBadgePackage())");
+}
+
+export function addNativeHostFabricIosSources(source) {
+  const replacements = [
+    [
+      "\t\t761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };",
+      `\t\t761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
+\t\t4D43504E0000000000000003 /* RCTMcpNativeStatusBadge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4D43504E0000000000000002 /* RCTMcpNativeStatusBadge.mm */; };`,
+    ],
+    [
+      '\t\t761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = McpNativeAccessibilityHost/AppDelegate.swift; sourceTree = "<group>"; };',
+      `\t\t761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = McpNativeAccessibilityHost/AppDelegate.swift; sourceTree = "<group>"; };
+\t\t4D43504E0000000000000001 /* RCTMcpNativeStatusBadge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RCTMcpNativeStatusBadge.h; path = McpNativeAccessibilityHost/RCTMcpNativeStatusBadge.h; sourceTree = "<group>"; };
+\t\t4D43504E0000000000000002 /* RCTMcpNativeStatusBadge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = RCTMcpNativeStatusBadge.mm; path = McpNativeAccessibilityHost/RCTMcpNativeStatusBadge.mm; sourceTree = "<group>"; };`,
+    ],
+    [
+      "\t\t\t\t761780EC2CA45674006654EE /* AppDelegate.swift */,",
+      `\t\t\t\t761780EC2CA45674006654EE /* AppDelegate.swift */,
+\t\t\t\t4D43504E0000000000000001 /* RCTMcpNativeStatusBadge.h */,
+\t\t\t\t4D43504E0000000000000002 /* RCTMcpNativeStatusBadge.mm */,`,
+    ],
+    [
+      "\t\t\t\t761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,",
+      `\t\t\t\t761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+\t\t\t\t4D43504E0000000000000003 /* RCTMcpNativeStatusBadge.mm in Sources */,`,
+    ],
+  ];
+  let updated = source;
+  for (const [anchor, replacement] of replacements) {
+    if (!updated.includes(anchor)) {
+      throw new Error("Generated native host Xcode project does not match the pinned template");
+    }
+    updated = updated.replace(anchor, replacement);
+  }
+  return updated;
 }
 
 export function enableNativeHostPhoneOrientations(source) {
@@ -165,6 +233,62 @@ export function prepareNativeHost({ output, reactNativeVersion, install = true, 
   cpSync(
     resolve(repositoryRoot, "tests/fixtures/a2ui-v1/milestone-7-surface.json"),
     resolve(resolvedOutput, "milestone-7-surface.json"),
+  );
+  cpSync(
+    resolve(repositoryRoot, "tests/fixtures/a2ui-v1/milestone-8-surface.json"),
+    resolve(resolvedOutput, "milestone-8-surface.json"),
+  );
+  cpSync(
+    resolve(repositoryRoot, "tests/fixtures/a2ui-v1/status-badge-extension-manifest.json"),
+    resolve(resolvedOutput, "status-badge-extension-manifest.json"),
+  );
+  const specDirectory = resolve(resolvedOutput, "specs");
+  mkdirSync(specDirectory);
+  cpSync(
+    resolve(repositoryRoot, "tests/native-host/specs/McpNativeStatusBadgeNativeComponent.ts"),
+    resolve(specDirectory, "McpNativeStatusBadgeNativeComponent.ts"),
+  );
+
+  const androidFabricDirectory = resolve(
+    resolvedOutput,
+    "android/app/src/main/java/io/github/pablospaniard/mcpnativefixture/fabric",
+  );
+  mkdirSync(androidFabricDirectory);
+  for (const filename of [
+    "McpNativeStatusBadgePackage.kt",
+    "McpNativeStatusBadgeView.kt",
+    "McpNativeStatusBadgeViewManager.kt",
+  ]) {
+    cpSync(
+      resolve(repositoryRoot, "tests/native-host/fabric/android", filename),
+      resolve(androidFabricDirectory, filename),
+    );
+  }
+  const mainApplicationPath = resolve(
+    resolvedOutput,
+    "android/app/src/main/java/io/github/pablospaniard/mcpnativefixture/MainApplication.kt",
+  );
+  writeFileSync(
+    mainApplicationPath,
+    registerNativeHostAndroidPackage(readFileSync(mainApplicationPath, "utf8")),
+  );
+
+  const iosApplicationDirectory = resolve(resolvedOutput, "ios", NATIVE_HOST_NAME);
+  for (const filename of ["RCTMcpNativeStatusBadge.h", "RCTMcpNativeStatusBadge.mm"]) {
+    cpSync(
+      resolve(repositoryRoot, "tests/native-host/fabric/ios", filename),
+      resolve(iosApplicationDirectory, filename),
+    );
+  }
+  const xcodeProjectPath = resolve(
+    resolvedOutput,
+    "ios",
+    `${NATIVE_HOST_NAME}.xcodeproj`,
+    "project.pbxproj",
+  );
+  writeFileSync(
+    xcodeProjectPath,
+    addNativeHostFabricIosSources(readFileSync(xcodeProjectPath, "utf8")),
   );
 
   const infoPlistPath = resolve(resolvedOutput, "ios", NATIVE_HOST_NAME, "Info.plist");

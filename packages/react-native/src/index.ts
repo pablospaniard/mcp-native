@@ -1,8 +1,15 @@
-import { createA2uiV1ActionEnvelope, validateA2uiV1SurfaceState } from "@mcp-native/a2ui";
+import {
+  createA2uiV1ActionEnvelope,
+  getA2uiV1HostExtensionManifestFingerprint,
+  isA2uiV1HostExtensionRegistry,
+  validateA2uiV1HostExtensionEvent,
+  validateA2uiV1SurfaceState,
+} from "@mcp-native/a2ui";
 import type {
   A2uiNode,
   A2uiSurface,
   A2uiV1ActionEnvelope,
+  A2uiV1HostExtensionRegistry,
   A2uiV1SurfaceState,
   A2uiV1SurfaceValidationPolicy,
 } from "@mcp-native/a2ui";
@@ -29,13 +36,20 @@ import type {
   NativeImageComponentProps,
   NativeImageResourcePolicy,
   NativeImageVariant,
+  NativeHostExtensionComponentProps,
+  NativeHostExtensionRegistration,
+  NativeMediaResourcePolicy,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
   NativeViewComponentProps,
   NativeViewStyle,
   NativeViewVariant,
 } from "./component-adapters.js";
-import { A2UI_V1_NATIVE_ICON_NAMES } from "./component-adapters.js";
+import {
+  A2UI_V1_NATIVE_ICON_NAMES,
+  isNativeHostExtensionRegistration,
+  renderNativeHostExtensionRegistration,
+} from "./component-adapters.js";
 
 import {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
@@ -47,30 +61,36 @@ import {
   validateA2uiV1NativeDateTimeInputChange,
   type A2uiV1NativeEventDescriptor,
   type A2uiV1NativeImagePolicy,
+  type A2uiV1NativeHostExtensionPolicy,
+  type A2uiV1NativeMediaPolicy,
   type A2uiV1NativeOpenUrlDescriptor,
 } from "./v1.js";
 
 export {
   A2UI_V1_NATIVE_ICON_NAMES,
   createNativeButtonAdapter,
+  createNativeAudioPlayerAdapter,
   createNativeCheckBoxAdapter,
   createNativeChoicePickerAdapter,
   createNativeDateTimeInputAdapter,
   createNativeDividerAdapter,
   createNativeIconAdapter,
   createNativeImageAdapter,
+  createNativeHostExtensionRegistration,
   createNativeModalAdapter,
   createNativeSliderAdapter,
   createNativeTabsAdapter,
   createNativeTextAdapter,
   createNativeTextInputAdapter,
   createNativeViewAdapter,
+  createNativeVideoAdapter,
 } from "./component-adapters.js";
 export type { NativeComponentPropMapper } from "./component-adapters.js";
 export type {
   NativeAccessibilityProps,
   NativeAccessibilityRole,
   NativeAccessibilityState,
+  NativeAudioPlayerComponentProps,
   NativeButtonComponentProps,
   NativeButtonVariant,
   NativeCheckBoxComponentProps,
@@ -88,6 +108,11 @@ export type {
   NativeImageFit,
   NativeImageResourcePolicy,
   NativeImageVariant,
+  NativeHostExtensionCapabilityGrant,
+  NativeHostExtensionComponentProps,
+  NativeHostExtensionEventOptions,
+  NativeHostExtensionRegistration,
+  NativeMediaResourcePolicy,
   NativeModalComponentProps,
   NativeSliderComponentProps,
   NativeTabItem,
@@ -99,9 +124,11 @@ export type {
   NativeViewComponentProps,
   NativeViewStyle,
   NativeViewVariant,
+  NativeVideoComponentProps,
 } from "./component-adapters.js";
 
 export type NativeComponentName =
+  | "AudioPlayer"
   | "Button"
   | "CheckBox"
   | "ChoicePicker"
@@ -109,11 +136,13 @@ export type NativeComponentName =
   | "Divider"
   | "Icon"
   | "Image"
+  | "HostExtension"
   | "Modal"
   | "Slider"
   | "Tabs"
   | "Text"
   | "TextInput"
+  | "Video"
   | "View";
 
 const A2UI_V1_NATIVE_BASE_COMPONENT_NAMES = Object.freeze([
@@ -127,6 +156,7 @@ const A2UI_V1_NATIVE_BASE_COMPONENT_NAMES = Object.freeze([
 ] as const);
 
 const A2UI_V1_NATIVE_OPTIONAL_COMPONENT_SLOTS = Object.freeze([
+  "AudioPlayer",
   "CheckBox",
   "ChoicePicker",
   "DateTimeInput",
@@ -136,11 +166,14 @@ const A2UI_V1_NATIVE_OPTIONAL_COMPONENT_SLOTS = Object.freeze([
   "Modal",
   "Slider",
   "Tabs",
+  "Video",
 ] as const);
 
 export interface A2uiV1NativeCatalogCapabilities {
   /** Required before Image can be advertised as an installed capability. */
   readonly imagePolicy?: A2uiV1NativeImagePolicy;
+  /** Required before Video or AudioPlayer can be advertised as installed capabilities. */
+  readonly mediaPolicy?: A2uiV1NativeMediaPolicy;
 }
 
 /** Returns the exact A2UI subset backed by one locally installed and policy-ready host catalog. */
@@ -152,12 +185,49 @@ export function getA2uiV1NativeSupportedComponentNames(
   for (const name of A2UI_V1_NATIVE_OPTIONAL_COMPONENT_SLOTS) {
     if (
       components[name] !== undefined &&
-      (name !== "Image" || capabilities.imagePolicy !== undefined)
+      (name !== "Image" || capabilities.imagePolicy !== undefined) &&
+      ((name !== "Video" && name !== "AudioPlayer") || capabilities.mediaPolicy !== undefined)
     ) {
       installed.add(name);
     }
   }
   return Object.freeze(A2UI_V1_NATIVE_COMPONENT_NAMES.filter((name) => installed.has(name)));
+}
+
+/**
+ * Returns only extension catalogs backed by an exact helper-created local registration and a host
+ * capability policy. These IDs can be combined with the basic catalog in renderer capabilities.
+ */
+export function getA2uiV1NativeSupportedHostExtensionCatalogIds(
+  components: NativeComponentCatalog,
+  registry: A2uiV1HostExtensionRegistry,
+  hostExtensionPolicy: A2uiV1NativeHostExtensionPolicy | undefined,
+): readonly string[] {
+  if (!isA2uiV1HostExtensionRegistry(registry)) {
+    throw new TypeError("Expected an opaque negotiated host-extension registry");
+  }
+  if (hostExtensionPolicy === undefined || typeof hostExtensionPolicy !== "function") {
+    return Object.freeze([]);
+  }
+  const catalogIds = new Set<string>();
+  for (const manifest of registry.manifests) {
+    const registrations =
+      components.hostExtensions?.filter(
+        (registration) =>
+          isNativeHostExtensionRegistration(registration) &&
+          registration.manifest.extensionId === manifest.extensionId &&
+          registration.manifest.catalogId === manifest.catalogId &&
+          registration.manifest.schemaVersion === manifest.schemaVersion &&
+          registration.manifest.componentName === manifest.componentName,
+      ) ?? [];
+    if (
+      registrations.length === 1 &&
+      registrations[0]!.manifestFingerprint === getA2uiV1HostExtensionManifestFingerprint(manifest)
+    ) {
+      catalogIds.add(manifest.catalogId);
+    }
+  }
+  return Object.freeze([...catalogIds]);
 }
 
 /**
@@ -196,6 +266,18 @@ export type A2uiV1NativeOpenUrlPolicy = (request: A2uiV1NativeOpenUrlDescriptor)
 /** Host-owned platform opener. The library never invokes a browser or URL handler directly. */
 export type A2uiV1NativeOpenUrlHandler = (request: A2uiV1NativeOpenUrlDescriptor) => void;
 
+export interface A2uiV1NativeHostExtensionEventDescriptor {
+  readonly extensionId: string;
+  readonly catalogId: string;
+  readonly schemaVersion: string;
+  readonly componentName: string;
+  readonly surfaceId: string;
+  readonly sourceComponentId: string;
+  readonly name: string;
+  readonly payload: JsonObject;
+  readonly userActivated: boolean;
+}
+
 export interface A2uiV1NativeSurfaceProps {
   readonly surface: A2uiV1SurfaceState;
   readonly policy: A2uiV1SurfaceValidationPolicy;
@@ -208,6 +290,12 @@ export interface A2uiV1NativeSurfaceProps {
   readonly onOpenUrl?: A2uiV1NativeOpenUrlHandler;
   /** Required when the reachable surface contains an Image component. */
   readonly imagePolicy?: A2uiV1NativeImagePolicy;
+  /** Required when the reachable surface contains Video or AudioPlayer. */
+  readonly mediaPolicy?: A2uiV1NativeMediaPolicy;
+  /** Required when the reachable surface contains a negotiated host extension. */
+  readonly hostExtensionPolicy?: A2uiV1NativeHostExtensionPolicy;
+  /** Receives only manifest-declared, schema-valid events from a local extension component. */
+  readonly onHostExtensionEvent?: (event: A2uiV1NativeHostExtensionEventDescriptor) => void;
   /** Observes renderer-local state changes without turning keystrokes into network calls. */
   readonly onDataModelChange?: (dataModel: JsonObject) => void;
   readonly actionMetadata?: JsonObject;
@@ -286,6 +374,9 @@ export function A2uiV1NativeSurface({
   openUrlPolicy,
   onOpenUrl,
   imagePolicy,
+  mediaPolicy,
+  hostExtensionPolicy,
+  onHostExtensionEvent,
   onDataModelChange,
   actionMetadata,
   locale,
@@ -334,8 +425,19 @@ export function A2uiV1NativeSurface({
         dataModel,
         ...(locale === undefined ? {} : { locale }),
         ...(imagePolicy === undefined ? {} : { imagePolicy }),
+        ...(mediaPolicy === undefined ? {} : { mediaPolicy }),
+        ...(hostExtensionPolicy === undefined ? {} : { hostExtensionPolicy }),
       }),
-    [dataModel, imagePolicy, locale, policy, tolerateInvalidLocalOpenUrls, validatedSurface],
+    [
+      dataModel,
+      hostExtensionPolicy,
+      imagePolicy,
+      locale,
+      mediaPolicy,
+      policy,
+      tolerateInvalidLocalOpenUrls,
+      validatedSurface,
+    ],
   );
   const handleBindingChange = useCallback(
     (binding: string, value: JsonValue) => {
@@ -407,6 +509,7 @@ export function A2uiV1NativeSurface({
     ...(openUrlPolicy === undefined || onOpenUrl === undefined
       ? {}
       : { onV1OpenUrl: handleOpenUrl }),
+    ...(onHostExtensionEvent === undefined ? {} : { onV1HostExtensionEvent: onHostExtensionEvent }),
   });
 }
 
@@ -489,6 +592,7 @@ interface NativeRenderHandlers {
   readonly onV1BindingChange?: (binding: string, value: JsonValue) => void;
   readonly onV1Event?: (event: A2uiV1NativeEventDescriptor) => void;
   readonly onV1OpenUrl?: (request: A2uiV1NativeOpenUrlDescriptor) => void;
+  readonly onV1HostExtensionEvent?: (event: A2uiV1NativeHostExtensionEventDescriptor) => void;
   readonly onElementActivate?: (key: string) => void;
 }
 
@@ -613,6 +717,93 @@ function renderElement(
           accessibilityRole: "image",
         },
       );
+    }
+    case "Video": {
+      const uri = expectStringProp(element, "uri");
+      const posterUri = optionalStringProp(element, "posterUri");
+      const accessible = accessibilityProps.accessibilityElementsHidden !== true;
+      return createElement(requireHostComponent(components.Video, "Video", element.key), {
+        key: element.key,
+        uri,
+        ...(posterUri === undefined ? {} : { posterUri }),
+        resourcePolicy: expectMediaResourcePolicy(element),
+        ...(posterUri === undefined
+          ? {}
+          : { posterResourcePolicy: expectImageResourcePolicy(element, "posterResourcePolicy") }),
+        ...accessibilityProps,
+        accessible,
+        accessibilityLabel: accessibilityProps.accessibilityLabel ?? "Video",
+        accessibilityRole: "image",
+      });
+    }
+    case "AudioPlayer": {
+      const uri = expectStringProp(element, "uri");
+      const description = optionalStringProp(element, "description");
+      const accessible = accessibilityProps.accessibilityElementsHidden !== true;
+      return createElement(
+        requireHostComponent(components.AudioPlayer, "AudioPlayer", element.key),
+        {
+          key: element.key,
+          uri,
+          resourcePolicy: expectMediaResourcePolicy(element),
+          ...(description === undefined ? {} : { description }),
+          ...accessibilityProps,
+          accessible,
+          accessibilityLabel: accessibilityProps.accessibilityLabel ?? description ?? "Audio",
+          accessibilityRole: "button",
+        },
+      );
+    }
+    case "HostExtension": {
+      const extensionId = expectStringProp(element, "extensionId");
+      const catalogId = expectStringProp(element, "catalogId");
+      const schemaVersion = expectStringProp(element, "schemaVersion");
+      const componentName = expectStringProp(element, "componentName");
+      const manifestFingerprint = expectStringProp(element, "manifestFingerprint");
+      const sourceComponentId = expectStringProp(element, "sourceComponentId");
+      const surfaceId = expectStringProp(element, "surfaceId");
+      const semanticProps = parseJsonObject(
+        element.props.semanticProps,
+        `native element ${element.key}.semanticProps`,
+      );
+      const capabilityGrant = expectHostExtensionCapabilityGrant(element);
+      const registration = requireHostExtensionRegistration(
+        components,
+        { extensionId, catalogId, schemaVersion, componentName, manifestFingerprint },
+        element.key,
+      );
+      const trustedProps: NativeHostExtensionComponentProps = {
+        semanticProps,
+        capabilityGrant,
+        ...accessibilityProps,
+        onEvent(name, payload, options) {
+          if (options === null || typeof options !== "object" || Array.isArray(options)) {
+            throw new TypeError("Expected closed host-extension event options");
+          }
+          const optionKeys = Object.keys(options);
+          if (optionKeys.length !== 1 || optionKeys[0] !== "userActivated") {
+            throw new TypeError("Expected only userActivated in host-extension event options");
+          }
+          const parsedPayload = validateA2uiV1HostExtensionEvent(
+            registration.manifest,
+            name,
+            payload,
+            options.userActivated,
+          );
+          handlers.onV1HostExtensionEvent?.({
+            extensionId,
+            catalogId,
+            schemaVersion,
+            componentName,
+            surfaceId,
+            sourceComponentId,
+            name,
+            payload: parsedPayload,
+            userActivated: options.userActivated,
+          });
+        },
+      };
+      return renderNativeHostExtensionRegistration(registration, trustedProps, element.key);
     }
     case "Icon": {
       const name = expectStringProp(element, "name");
@@ -977,9 +1168,12 @@ function expectChoicePickerOptions(element: NativeElement): readonly NativeChoic
   );
 }
 
-function expectImageResourcePolicy(element: NativeElement): NativeImageResourcePolicy {
-  const path = `native element ${element.key}.resourcePolicy`;
-  const value = parseJsonObject(element.props.resourcePolicy, path);
+function expectImageResourcePolicy(
+  element: NativeElement,
+  property = "resourcePolicy",
+): NativeImageResourcePolicy {
+  const path = `native element ${element.key}.${property}`;
+  const value = parseJsonObject(element.props[property], path);
   rejectObjectKeys(
     value,
     [
@@ -1021,6 +1215,131 @@ function expectImageResourcePolicy(element: NativeElement): NativeImageResourceP
     maximumDecodedWidth,
     maximumRedirects,
   });
+}
+
+function expectMediaResourcePolicy(element: NativeElement): NativeMediaResourcePolicy {
+  const path = `native element ${element.key}.resourcePolicy`;
+  const value = parseJsonObject(element.props.resourcePolicy, path);
+  rejectObjectKeys(
+    value,
+    [
+      "allowedMimeTypes",
+      "allowedRedirectOrigins",
+      "allowsAutoplay",
+      "allowsBackgroundPlayback",
+      "allowsExternalRoutes",
+      "maximumBytes",
+      "maximumRedirects",
+      "requiresUserActivation",
+      "sourceOrigin",
+    ],
+    path,
+  );
+  const sourceOrigin = expectObjectString(value, "sourceOrigin", path);
+  const allowedRedirectOrigins = expectObjectStringArray(value, "allowedRedirectOrigins", path);
+  const allowedMimeTypes = expectObjectStringArray(value, "allowedMimeTypes", path);
+  if (allowedMimeTypes.length === 0) {
+    throw new TypeError(`Expected at least one MIME type at ${path}.allowedMimeTypes`);
+  }
+  const maximumBytes = expectObjectPositiveInteger(value, "maximumBytes", path);
+  const maximumRedirects = expectObjectNonNegativeInteger(value, "maximumRedirects", path);
+  const allowsAutoplay = expectObjectBoolean(value, "allowsAutoplay", path);
+  const allowsBackgroundPlayback = expectObjectBoolean(value, "allowsBackgroundPlayback", path);
+  const allowsExternalRoutes = expectObjectBoolean(value, "allowsExternalRoutes", path);
+  const requiresUserActivation = expectObjectBoolean(value, "requiresUserActivation", path);
+  if (allowsAutoplay && requiresUserActivation) {
+    throw new TypeError(`Conflicting autoplay and activation controls at ${path}`);
+  }
+  return Object.freeze({
+    sourceOrigin,
+    allowedRedirectOrigins,
+    allowedMimeTypes,
+    maximumBytes,
+    maximumRedirects,
+    allowsAutoplay,
+    allowsBackgroundPlayback,
+    allowsExternalRoutes,
+    requiresUserActivation,
+  });
+}
+
+function expectHostExtensionCapabilityGrant(
+  element: NativeElement,
+): NativeHostExtensionComponentProps["capabilityGrant"] {
+  const path = `native element ${element.key}.capabilityGrant`;
+  const value = parseJsonObject(element.props.capabilityGrant, path);
+  rejectObjectKeys(value, ["permissions", "resources"], path);
+  return Object.freeze({
+    permissions: expectObjectStringArray(value, "permissions", path),
+    resources: expectObjectStringArray(value, "resources", path),
+  });
+}
+
+function requireHostExtensionRegistration(
+  components: NativeComponentCatalog,
+  identity: {
+    readonly extensionId: string;
+    readonly catalogId: string;
+    readonly schemaVersion: string;
+    readonly componentName: string;
+    readonly manifestFingerprint: string;
+  },
+  key: string,
+): NativeHostExtensionRegistration {
+  if (!Array.isArray(components.hostExtensions)) {
+    throw new TypeError(`Missing host-extension registrations for native element ${key}`);
+  }
+  const registrations = components.hostExtensions.filter((registration) => {
+    if (!isNativeHostExtensionRegistration(registration)) {
+      throw new TypeError("Host-extension catalogs accept only helper-created registrations");
+    }
+    const manifest = registration.manifest;
+    return (
+      manifest.extensionId === identity.extensionId &&
+      manifest.catalogId === identity.catalogId &&
+      manifest.schemaVersion === identity.schemaVersion &&
+      manifest.componentName === identity.componentName
+    );
+  });
+  if (registrations.length !== 1) {
+    throw new TypeError(
+      `Expected exactly one local registration for ${JSON.stringify(identity.componentName)} at native element ${key}`,
+    );
+  }
+  const registration = registrations[0]!;
+  if (registration.manifestFingerprint !== identity.manifestFingerprint) {
+    throw new TypeError(
+      `Local registration manifest mismatch for ${JSON.stringify(identity.componentName)} at native element ${key}`,
+    );
+  }
+  return registration;
+}
+
+function expectObjectStringArray(value: JsonObject, name: string, path: string): readonly string[] {
+  const field = value[name];
+  if (!Array.isArray(field) || field.some((entry) => typeof entry !== "string")) {
+    throw new TypeError(`Expected a string array at ${path}.${name}`);
+  }
+  if (new Set(field).size !== field.length) {
+    throw new TypeError(`Expected unique strings at ${path}.${name}`);
+  }
+  return Object.freeze([...field] as string[]);
+}
+
+function expectObjectBoolean(value: JsonObject, name: string, path: string): boolean {
+  const field = value[name];
+  if (typeof field !== "boolean") {
+    throw new TypeError(`Expected a boolean at ${path}.${name}`);
+  }
+  return field;
+}
+
+function expectObjectNonNegativeInteger(value: JsonObject, name: string, path: string): number {
+  const field = value[name];
+  if (typeof field !== "number" || !Number.isInteger(field) || field < 0) {
+    throw new TypeError(`Expected a non-negative integer at ${path}.${name}`);
+  }
+  return field;
 }
 
 function expectObjectPositiveInteger(value: JsonObject, name: string, path: string): number {
@@ -1648,10 +1967,17 @@ export {
   A2UI_V1_NATIVE_MAX_IMAGE_REDIRECTS,
   A2UI_V1_NATIVE_MAX_IMAGE_URL_LENGTH,
   A2UI_V1_NATIVE_MAX_IMAGES,
+  A2UI_V1_NATIVE_MAX_MEDIA,
+  A2UI_V1_NATIVE_MAX_MEDIA_BYTES,
+  A2UI_V1_NATIVE_MAX_MEDIA_MIME_TYPES,
+  A2UI_V1_NATIVE_MAX_MEDIA_REDIRECT_ORIGINS,
+  A2UI_V1_NATIVE_MAX_MEDIA_REDIRECTS,
+  A2UI_V1_NATIVE_MAX_MEDIA_URL_LENGTH,
   A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH,
   A2UI_V1_NATIVE_MAX_RENDER_NODES,
   A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES,
   A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS,
+  A2UI_V1_NATIVE_MAX_TOTAL_MEDIA_BYTES,
   createA2uiV1NativeRenderPlan,
   resolveA2uiV1NativeEvent,
   resolveA2uiV1NativeOpenUrl,
@@ -1662,6 +1988,12 @@ export type {
   A2uiV1NativeImagePolicy,
   A2uiV1NativeImageGrant,
   A2uiV1NativeImageRequest,
+  A2uiV1NativeHostExtensionPolicy,
+  A2uiV1NativeHostExtensionRequest,
+  A2uiV1NativeMediaGrant,
+  A2uiV1NativeMediaKind,
+  A2uiV1NativeMediaPolicy,
+  A2uiV1NativeMediaRequest,
   A2uiV1NativeOpenUrlDescriptor,
   A2uiV1NativeOpenUrlResolutionOptions,
   A2uiV1NativeRenderPlanOptions,

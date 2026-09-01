@@ -53,8 +53,41 @@ export {
   parseA2uiV1AgentCapabilities,
   parseA2uiV1RendererCapabilities,
 } from "./capabilities.js";
+export {
+  A2UI_V1_HOST_EXTENSION_MAX_EVENTS,
+  A2UI_V1_HOST_EXTENSION_MAX_INSTANCES,
+  A2UI_V1_HOST_EXTENSION_MAX_MANIFESTS,
+  A2UI_V1_HOST_EXTENSION_MAX_NEEDS,
+  A2UI_V1_HOST_EXTENSION_MAX_UPDATES,
+  A2UI_V1_HOST_EXTENSION_PROFILE_ID,
+  A2UI_V1_HOST_EXTENSION_PROFILE_VERSION,
+  createA2uiV1HostExtensionCapabilitySettings,
+  createA2uiV1HostExtensionRegistry,
+  getA2uiV1HostExtensionManifest,
+  getA2uiV1HostExtensionCatalogIds,
+  getA2uiV1HostExtensionManifestFingerprint,
+  isA2uiV1HostExtensionRegistry,
+  negotiateA2uiV1HostExtensions,
+  parseA2uiV1HostExtensionCapabilityValue,
+  parseA2uiV1HostExtensionManifest,
+  validateA2uiV1HostExtensionComponent,
+  validateA2uiV1HostExtensionEvent,
+} from "./host-extensions.js";
+export type {
+  A2uiV1HostExtensionCapabilityEntry,
+  A2uiV1HostExtensionCapabilitySettings,
+  A2uiV1HostExtensionEventManifest,
+  A2uiV1HostExtensionManifest,
+  A2uiV1HostExtensionNegotiation,
+  A2uiV1HostExtensionRegistry,
+  A2uiV1HostExtensionRegistryOptions,
+  A2uiV1HostPlatform,
+  A2uiV1ValidatedHostExtensionComponent,
+} from "./host-extensions.js";
 export { parseA2uiV1Envelope, parseA2uiV1Jsonl } from "./parse.js";
+export type { A2uiV1EnvelopeParseOptions } from "./parse.js";
 export { A2uiSurfaceStore } from "./store.js";
+export type { A2uiSurfaceStoreOptions } from "./store.js";
 export { resolveA2uiV1JsonlFromToolResult } from "./resolve.js";
 export type { ResolvedA2uiV1JsonlResource } from "./resolve.js";
 export {

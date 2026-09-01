@@ -5,6 +5,7 @@ import type { A2uiMcpBindingNegotiation } from "../binding.js";
 import { A2uiResourceError } from "../errors.js";
 import { A2UI_MIME_TYPE, type A2uiResourceReader } from "../mime.js";
 import { parseA2uiV1Jsonl } from "./parse.js";
+import type { A2uiV1EnvelopeParseOptions } from "./parse.js";
 import type { A2uiV1Envelope } from "./types.js";
 
 export interface ResolvedA2uiV1JsonlResource {
@@ -27,6 +28,7 @@ export async function resolveA2uiV1JsonlFromToolResult(
   reader: A2uiResourceReader,
   toolResult: McpToolCallResult,
   negotiation: A2uiMcpBindingNegotiation,
+  options: A2uiV1EnvelopeParseOptions = {},
 ): Promise<ResolvedA2uiV1JsonlResource> {
   if (!isA2uiMcpBindingGrant(negotiation)) {
     throw new A2uiResourceError(
@@ -66,7 +68,7 @@ export async function resolveA2uiV1JsonlFromToolResult(
   return {
     uri: link.uri,
     mimeType: A2UI_MIME_TYPE,
-    envelopes: parseA2uiV1Jsonl(resource.text),
+    envelopes: parseA2uiV1Jsonl(resource.text, options),
   };
 }
 

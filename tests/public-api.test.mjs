@@ -9,9 +9,11 @@ import {
   A2UI_MIME_TYPE,
   A2UI_V1_BASIC_CATALOG_ID,
   A2UI_V1_BASIC_COMPONENT_NAMES,
+  A2UI_V1_HOST_EXTENSION_PROFILE_ID,
   A2UI_V1_MAX_COMPONENTS,
   A2UI_V1_MAX_SURFACES,
   A2UI_V1_NATIVE_COMPONENT_NAMES,
+  A2UI_V1_NATIVE_MAX_MEDIA,
   A2UI_V1_NATIVE_MAX_RENDER_NODES,
   A2UI_VERSION,
   A2uiV1NativeSurface,
@@ -36,12 +38,16 @@ import {
   createA2uiV1ActionDeliveryHandler,
   createA2uiV1ActionEnvelope,
   createA2uiV1RendererCapabilities,
+  createA2uiV1HostExtensionRegistry,
   createA2uiV1NativeRenderPlan,
   createNativeRenderPlan,
   createNativeButtonAdapter,
+  createNativeAudioPlayerAdapter,
+  createNativeHostExtensionRegistration,
   createNativeTextAdapter,
   createNativeTextInputAdapter,
   createNativeViewAdapter,
+  createNativeVideoAdapter,
   createMcpAppsNativeSandbox,
   createMcpAppsReactNativeWebViewProps,
   createWebViewDocument,
@@ -52,12 +58,14 @@ import {
   negotiateMcpApps,
   negotiateA2uiMcpBinding,
   negotiateA2uiV1Capabilities,
+  negotiateA2uiV1HostExtensions,
   negotiateMcpExtension,
   parseA2uiV1Envelope,
   parseA2uiV1AgentCapabilities,
   parseA2uiV1Jsonl,
   parseA2uiV1RendererCapabilities,
   parseA2uiV1RendererToAgentEnvelope,
+  parseA2uiV1HostExtensionManifest,
   parseJsonObject,
   parseJsonValue,
   parseMcpExtensionSettings,
@@ -65,6 +73,7 @@ import {
   resolveA2uiResourceFromToolResult,
   resolveA2uiV1JsonlFromToolResult,
   resolveA2uiV1NativeEvent,
+  getA2uiV1NativeSupportedHostExtensionCatalogIds,
   validateA2uiV1SurfaceState,
   useMcpNativeActionDispatcher,
   useNativeRenderPlan,
@@ -80,7 +89,10 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(A2UI_V1_MAX_COMPONENTS, 1_024);
   assert.equal(A2UI_V1_MAX_SURFACES, 1_024);
   assert.equal(A2UI_V1_NATIVE_MAX_RENDER_NODES, 1_024);
+  assert.equal(A2UI_V1_NATIVE_MAX_MEDIA, 16);
   assert.equal(A2UI_V1_NATIVE_COMPONENT_NAMES.includes("TextField"), true);
+  assert.equal(A2UI_V1_NATIVE_COMPONENT_NAMES.includes("Video"), true);
+  assert.equal(A2UI_V1_HOST_EXTENSION_PROFILE_ID, "io.mcp-native/a2ui-host-extensions");
   assert.match(A2UI_V1_BASIC_CATALOG_ID, /catalogs\/basic\/catalog\.json$/);
   assert.equal(A2UI_V1_BASIC_COMPONENT_NAMES.includes("Text"), true);
   assert.equal(JSON_MAX_DEPTH, 64);
@@ -99,9 +111,12 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof McpNativeSurface, "function");
   assert.equal(typeof createNativeRenderPlan, "function");
   assert.equal(typeof createNativeButtonAdapter, "function");
+  assert.equal(typeof createNativeAudioPlayerAdapter, "function");
+  assert.equal(typeof createNativeHostExtensionRegistration, "function");
   assert.equal(typeof createNativeTextAdapter, "function");
   assert.equal(typeof createNativeTextInputAdapter, "function");
   assert.equal(typeof createNativeViewAdapter, "function");
+  assert.equal(typeof createNativeVideoAdapter, "function");
   assert.equal(typeof createMcpAppsNativeSandbox, "function");
   assert.equal(typeof createMcpAppsReactNativeWebViewProps, "function");
   assert.equal(typeof createAllowlistActionPolicy, "function");
@@ -110,8 +125,12 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof createA2uiV1ActionDeliveryHandler, "function");
   assert.equal(typeof createA2uiV1ActionEnvelope, "function");
   assert.equal(typeof createA2uiV1RendererCapabilities, "function");
+  assert.equal(typeof createA2uiV1HostExtensionRegistry, "function");
   assert.equal(typeof createA2uiV1NativeRenderPlan, "function");
   assert.equal(typeof evaluateA2uiV1FormatString, "function");
+  assert.equal(typeof negotiateA2uiV1HostExtensions, "function");
+  assert.equal(typeof parseA2uiV1HostExtensionManifest, "function");
+  assert.equal(typeof getA2uiV1NativeSupportedHostExtensionCatalogIds, "function");
   assert.equal(typeof A2uiV1NativeSurface, "function");
   assert.equal(typeof validateA2uiV1SurfaceState, "function");
   assert.equal(typeof createWebViewDocument, "function");
