@@ -317,6 +317,39 @@ export function parseMcpNativeAction(value: unknown, path = "action"): McpNative
 /** A host-owned policy deciding which validated tool actions may execute. */
 export type McpNativeActionPolicy = (action: McpNativeAction) => boolean | Promise<boolean>;
 
+/** Host-owned effect classification used when presenting one tool-action consent decision. */
+export type McpNativeToolRisk = "read-only" | "local-write" | "external-write" | "destructive";
+
+/**
+ * A host-authored consent profile for one exact tool/argument match.
+ *
+ * Capability and sensitive-data identifiers are opaque, app-owned keys. A host should map them to
+ * localized user-facing copy instead of displaying the identifiers or server-provided metadata.
+ */
+export type McpNativeToolConsentEntry = McpNativeToolAllowlistEntry & {
+  readonly risk: McpNativeToolRisk;
+  /** Explicit app-owned capability identifiers; use an empty array only after review. */
+  readonly capabilities: readonly string[];
+  /** Explicit app-owned sensitive-data identifiers; use an empty array only after review. */
+  readonly sensitiveData: readonly string[];
+  /** Must explicitly state whether the action sends any user or device data outside the app. */
+  readonly sharesDataExternally: boolean;
+};
+
+/** Immutable input supplied for every matching surface-driven action. */
+export interface McpNativeToolConsentRequest {
+  readonly action: McpNativeAction;
+  readonly risk: McpNativeToolRisk;
+  readonly capabilities: readonly string[];
+  readonly sensitiveData: readonly string[];
+  readonly sharesDataExternally: boolean;
+}
+
+/** A host-owned user-decision callback. Only an exact boolean `true` authorizes execution. */
+export type McpNativeToolConsentReviewer = (
+  request: McpNativeToolConsentRequest,
+) => boolean | Promise<boolean>;
+
 /**
  * An allowlist entry that authorizes a tool by name and either exact arguments
  * or a host-provided argument predicate. Name-only allowlists are intentionally
@@ -387,6 +420,169 @@ export function createAllowlistActionPolicy(
       }
     }
     return false;
+  };
+}
+
+const MCP_NATIVE_CONSENT_RISKS: ReadonlySet<McpNativeToolRisk> = new Set([
+  "read-only",
+  "local-write",
+  "external-write",
+  "destructive",
+]);
+const MCP_NATIVE_MAX_CONSENT_ENTRIES = 1_024;
+const MCP_NATIVE_MAX_CONSENT_LABELS = 64;
+const MCP_NATIVE_MAX_CONSENT_LABEL_CODE_UNITS = 128;
+
+/**
+ * Builds a fail-closed, per-dispatch consent policy from host-authored risk profiles.
+ *
+ * The first matching entry is reviewed. Unknown tools and arguments are denied without prompting,
+ * concurrent evaluations are denied instead of queuing dialogs, and no approval is retained. A
+ * server's tool annotations are intentionally absent from this boundary because they are untrusted
+ * hints rather than capability or consent grants.
+ */
+export function createConsentActionPolicy(
+  entries: readonly McpNativeToolConsentEntry[],
+  review: McpNativeToolConsentReviewer,
+): McpNativeActionPolicy {
+  if (!Array.isArray(entries) || entries.length > MCP_NATIVE_MAX_CONSENT_ENTRIES) {
+    throw new JsonValidationError(
+      `Expected at most ${MCP_NATIVE_MAX_CONSENT_ENTRIES} tool consent entries`,
+    );
+  }
+  if (typeof review !== "function") {
+    throw new JsonValidationError("Expected tool consent reviewer to be a function");
+  }
+
+  const profiles = entries.map((entry, index) => {
+    const profile = expectPlainObject(entry, `consent[${index}]`);
+    expectOnlyKeys(
+      profile,
+      [
+        "arguments",
+        "authorizeArguments",
+        "capabilities",
+        "name",
+        "risk",
+        "sensitiveData",
+        "sharesDataExternally",
+      ],
+      `consent[${index}]`,
+    );
+    for (const field of ["capabilities", "name", "risk", "sensitiveData", "sharesDataExternally"]) {
+      if (!Object.hasOwn(profile, field)) {
+        throw new JsonValidationError(
+          `Missing required field ${JSON.stringify(field)} at consent[${index}]`,
+        );
+      }
+    }
+    const hasAuthorizeArguments = Object.hasOwn(profile, "authorizeArguments");
+    const hasArguments = Object.hasOwn(profile, "arguments");
+    if (hasAuthorizeArguments && hasArguments) {
+      throw new JsonValidationError(
+        `Tool consent entry at consent[${index}] cannot declare both arguments and authorizeArguments`,
+      );
+    }
+    if (typeof entry.name !== "string" || entry.name.length === 0) {
+      throw new JsonValidationError(`Expected a non-empty tool name at consent[${index}]`);
+    }
+    if (entry.name.length > JSON_MAX_STRING_LENGTH) {
+      throw new JsonValidationError(
+        `Tool name at consent[${index}] exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
+      );
+    }
+    if (!MCP_NATIVE_CONSENT_RISKS.has(entry.risk)) {
+      throw new JsonValidationError(`Unsupported tool risk at consent[${index}]`);
+    }
+    if (typeof entry.sharesDataExternally !== "boolean") {
+      throw new JsonValidationError(
+        `Expected sharesDataExternally to be a boolean at consent[${index}]`,
+      );
+    }
+
+    const matcher = hasAuthorizeArguments
+      ? (() => {
+          if (typeof entry.authorizeArguments !== "function") {
+            throw new JsonValidationError(
+              `Expected authorizeArguments to be a function for tool ${entry.name}`,
+            );
+          }
+          return { authorizeArguments: entry.authorizeArguments } as const;
+        })()
+      : {
+          arguments:
+            !hasArguments || entry.arguments === undefined
+              ? undefined
+              : parseJsonObject(entry.arguments, `consent[${index}].arguments`),
+        };
+
+    return Object.freeze({
+      name: entry.name,
+      ...matcher,
+      risk: entry.risk,
+      capabilities: parseConsentLabels(entry.capabilities, `consent[${index}].capabilities`),
+      sensitiveData: parseConsentLabels(entry.sensitiveData, `consent[${index}].sensitiveData`),
+      sharesDataExternally: entry.sharesDataExternally,
+    });
+  });
+
+  let evaluationRunning = false;
+  return async (action) => {
+    if (evaluationRunning) {
+      return false;
+    }
+    evaluationRunning = true;
+    try {
+      for (const profile of profiles) {
+        if (profile.name !== action.name) {
+          continue;
+        }
+        let matches: boolean;
+        if ("authorizeArguments" in profile) {
+          const predicateArguments =
+            action.arguments === undefined
+              ? undefined
+              : parseJsonObject(action.arguments, "consent predicate arguments");
+          // Predicates run sequentially to preserve deterministic, first-match review behavior.
+          // eslint-disable-next-line no-await-in-loop -- intentional fail-closed short-circuit
+          const decision = await profile.authorizeArguments(predicateArguments);
+          if (decision !== true && decision !== false) {
+            throw new JsonValidationError(
+              `authorizeArguments for tool ${profile.name} must return a boolean`,
+            );
+          }
+          matches = decision;
+        } else {
+          matches = jsonArgumentsMatch(profile.arguments, action.arguments);
+        }
+        if (!matches) {
+          continue;
+        }
+
+        const parsedReviewAction = parseMcpNativeAction(action, "consent action");
+        if (parsedReviewAction.arguments !== undefined) {
+          freezeJsonValue(parsedReviewAction.arguments);
+        }
+        const reviewAction = Object.freeze(parsedReviewAction);
+        const request = Object.freeze({
+          action: reviewAction,
+          risk: profile.risk,
+          capabilities: profile.capabilities,
+          sensitiveData: profile.sensitiveData,
+          sharesDataExternally: profile.sharesDataExternally,
+        });
+        // Reviews are intentionally serialized with the first matching profile.
+        // eslint-disable-next-line no-await-in-loop -- consent prompts must never race
+        const decision = await review(request);
+        if (decision !== true && decision !== false) {
+          throw new JsonValidationError("Tool consent reviewer must return a boolean");
+        }
+        return decision;
+      }
+      return false;
+    } finally {
+      evaluationRunning = false;
+    }
   };
 }
 
@@ -476,6 +672,39 @@ function jsonArgumentsMatch(
   return jsonValuesEqual(expected, actual);
 }
 
+function parseConsentLabels(value: unknown, path: string): readonly string[] {
+  if (!Array.isArray(value)) {
+    throw new JsonValidationError(`Expected an array of consent identifiers at ${path}`);
+  }
+  if (value.length > MCP_NATIVE_MAX_CONSENT_LABELS) {
+    throw new JsonValidationError(
+      `Expected at most ${MCP_NATIVE_MAX_CONSENT_LABELS} consent identifiers at ${path}`,
+    );
+  }
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (let index = 0; index < value.length; index += 1) {
+    const label = value[index];
+    if (
+      typeof label !== "string" ||
+      label.length === 0 ||
+      label.length > MCP_NATIVE_MAX_CONSENT_LABEL_CODE_UNITS
+    ) {
+      throw new JsonValidationError(
+        `Expected a non-empty consent identifier of at most ${MCP_NATIVE_MAX_CONSENT_LABEL_CODE_UNITS} code units at ${path}[${index}]`,
+      );
+    }
+    if (seen.has(label)) {
+      throw new JsonValidationError(
+        `Duplicate consent identifier ${JSON.stringify(label)} at ${path}`,
+      );
+    }
+    seen.add(label);
+    result.push(label);
+  }
+  return Object.freeze(result);
+}
+
 function jsonValuesEqual(left: JsonValue, right: JsonValue): boolean {
   if (left === right) {
     return true;
@@ -507,6 +736,22 @@ function jsonValuesEqual(left: JsonValue, right: JsonValue): boolean {
     (key) =>
       Object.hasOwn(rightObject, key) && jsonValuesEqual(leftObject[key]!, rightObject[key]!),
   );
+}
+
+function freezeJsonValue(value: JsonValue): void {
+  if (value === null || typeof value !== "object") {
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const child of value) {
+      freezeJsonValue(child);
+    }
+  } else {
+    for (const child of Object.values(value)) {
+      freezeJsonValue(child);
+    }
+  }
+  Object.freeze(value);
 }
 
 function expectPlainObject(value: unknown, path: string): Record<string, unknown> {

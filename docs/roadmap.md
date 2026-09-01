@@ -144,8 +144,10 @@ and platform controls. See [the exact compatibility profile](mcp-apps-compatibil
 
 Status: in progress. The issuer-bound interactive OAuth host boundary, every scored official
 `2026-07-28` authorization client scenario, and dependency-neutral platform reference adapters are
-implemented. Broader host controls, lifecycle/operability, and the Expo Go integration PoCs remain
-open.
+implemented. The core runtime's `dispatch()` boundary now has a bounded per-action consent policy
+carrying explicit host-authored risk, capability, and privacy descriptors without trusting server
+annotations or retaining grants. Integration at other action boundaries, persistent host controls,
+lifecycle/operability, and the Expo Go integration PoCs remain open.
 
 - [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
       and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
@@ -168,10 +170,15 @@ open.
       library contract deliberately cannot treat AsyncStorage or plain files as secure storage or
       use an embedded WebView for authorization. Same-namespace store objects serialize state
       operations in one JS runtime so duplicate instances cannot both consume one callback state.
-- [ ] Add broader consent, tool-risk review, capability approval, privacy controls, and host
-      integration guidance for persistent cross-request scope-upgrade tracking. The transport now
-      defaults to throwing on `insufficient_scope`; its opt-in retry path requires a host approval
-      callback and caps SDK work to one retry per request.
+- [x] Add a bounded consent policy for core `McpNativeRuntime.dispatch()` tool actions with explicit
+      host-authored risk, capability, sensitive-data, and external-sharing descriptors. Unknown
+      tools and arguments, incomplete descriptors, non-boolean decisions, and overlapping review
+      prompts fail closed; server tool annotations remain non-authorizing and no approval is retained.
+- [ ] Integrate broader consent UX and policy guidance at direct trusted tool calls, MCP Apps host
+      callbacks, A2UI v1 action delivery, and other host action boundaries, including expiring,
+      revocable grants and persistent cross-request scope-upgrade tracking. The transport defaults
+      to throwing on `insufficient_scope`; its opt-in retry path requires a host approval callback and
+      caps SDK work to one retry per request.
 - [ ] Define production connection lifecycle behavior for timeouts, cancellation, bounded retry and
       backoff, reconnection, offline transitions, and graceful shutdown while leaving wire behavior
       to the official SDK.

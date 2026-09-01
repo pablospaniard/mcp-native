@@ -31,6 +31,7 @@ import {
   McpNativeSurface,
   McpNativeRuntime,
   createAllowlistActionPolicy,
+  createConsentActionPolicy,
   createA2uiV1BasicCatalogPolicy,
   createA2uiV1ActionEnvelope,
   createA2uiV1RendererCapabilities,
@@ -103,6 +104,7 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof createMcpAppsNativeSandbox, "function");
   assert.equal(typeof createMcpAppsReactNativeWebViewProps, "function");
   assert.equal(typeof createAllowlistActionPolicy, "function");
+  assert.equal(typeof createConsentActionPolicy, "function");
   assert.equal(typeof createA2uiV1BasicCatalogPolicy, "function");
   assert.equal(typeof createA2uiV1ActionEnvelope, "function");
   assert.equal(typeof createA2uiV1RendererCapabilities, "function");

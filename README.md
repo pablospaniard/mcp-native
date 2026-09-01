@@ -157,6 +157,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Host-localized CLDR plural selection and strict `and`, `or`, and `not` evaluation
 - A mounted v1 native surface with renderer-local string bindings, dispatch-time event resolution, and schema-validated renderer-to-agent action envelopes
 - Typed `tools/call` action routing with a fail-closed host policy
+- Core runtime `dispatch()` consent profiles for tool risk, capability use, sensitive data, and external sharing
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
 - Strict parsing of a deliberately small declarative UI subset
@@ -179,9 +180,10 @@ adapter supports only the documented component subset, absolute and dynamic-list
 bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks
 for supported text fields and buttons, pure boolean functions, `@index`, action events returned to
 a host callback, and press-time host-policy-gated HTTP(S) `openUrl`. Renderer behavior outside the
-automated native fixture remains unclaimed. Broader consent and tool-risk UX, production connection
-lifecycle and observability, action transport delivery, and the separate Expo Go integration PoCs
-remain Milestone 6 work.
+automated native fixture remains unclaimed. The core `dispatch()` tool-consent foundation is
+implemented; integration at other action boundaries, persistent consent and scope-upgrade tracking,
+production connection lifecycle and observability, action transport delivery, and the separate Expo
+Go integration PoCs remain Milestone 6 work.
 
 ## Protected Streamable HTTP OAuth
 
@@ -511,7 +513,8 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Add the issuer-bound MCP HTTP OAuth provider, secure-storage seam, and safe callback boundary
 - [x] Pass every scored pinned official `2026-07-28` authorization client scenario
 - [x] Add bounded Keychain/Keystore and OS authentication-session reference adapters
-- [ ] Add broader consent, tool-risk, privacy, and host permission controls
+- [x] Add bounded core `dispatch()` tool-risk, capability, and privacy consent descriptors
+- [ ] Integrate consent policy across current action boundaries and add persistent, expiring grants
 - [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
 - [ ] Maintain separate Expo Go PoCs for the primitives baseline and selected common component libraries
 - [ ] Expand protocol coverage through reviewed RFCs and tests

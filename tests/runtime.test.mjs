@@ -10,6 +10,7 @@ import {
   McpNativeActionDeniedError,
   McpNativeRuntime,
   createAllowlistActionPolicy,
+  createConsentActionPolicy,
   isMcpExtensionIdentifier,
   negotiateMcpExtension,
   parseJsonValue,
@@ -409,6 +410,288 @@ test("createAllowlistActionPolicy awaits async predicates and only treats true a
     JsonValidationError,
   );
   assert.deepEqual(calls, [{ name: "allowed_async", arguments: {} }]);
+});
+
+test("createConsentActionPolicy reviews host-owned risk, capability, and privacy descriptors", async () => {
+  const calls = [];
+  const reviews = [];
+  const runtime = new McpNativeRuntime(
+    {
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool(name, arguments_) {
+        calls.push({ name, arguments: arguments_ });
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    {
+      actionPolicy: createConsentActionPolicy(
+        [
+          {
+            name: "share_location",
+            risk: "external-write",
+            authorizeArguments: (arguments_) => arguments_?.precision === "city",
+            capabilities: ["device.location"],
+            sensitiveData: ["user.location"],
+            sharesDataExternally: true,
+          },
+        ],
+        (request) => {
+          reviews.push(request);
+          assert.equal(Object.isFrozen(request), true);
+          assert.equal(Object.isFrozen(request.action), true);
+          assert.equal(Object.isFrozen(request.action.arguments), true);
+          assert.equal(Object.isFrozen(request.action.arguments.context), true);
+          return true;
+        },
+      ),
+    },
+  );
+
+  await runtime.dispatch({
+    type: "tool",
+    name: "share_location",
+    arguments: { precision: "city", context: { purpose: "weather" } },
+  });
+
+  assert.deepEqual(reviews, [
+    {
+      action: {
+        type: "tool",
+        name: "share_location",
+        arguments: { precision: "city", context: { purpose: "weather" } },
+      },
+      risk: "external-write",
+      capabilities: ["device.location"],
+      sensitiveData: ["user.location"],
+      sharesDataExternally: true,
+    },
+  ]);
+  assert.deepEqual(calls, [
+    {
+      name: "share_location",
+      arguments: { precision: "city", context: { purpose: "weather" } },
+    },
+  ]);
+
+  await assert.rejects(
+    () =>
+      runtime.dispatch({
+        type: "tool",
+        name: "share_location",
+        arguments: { precision: "exact", context: { purpose: "weather" } },
+      }),
+    McpNativeActionDeniedError,
+  );
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "unknown" }),
+    McpNativeActionDeniedError,
+  );
+  assert.equal(reviews.length, 1);
+  assert.equal(calls.length, 1);
+});
+
+test("createConsentActionPolicy validates profiles and exact reviewer decisions", async () => {
+  const explicitPrivacy = {
+    capabilities: [],
+    sensitiveData: [],
+    sharesDataExternally: false,
+  };
+  assert.throws(
+    () =>
+      createConsentActionPolicy(
+        [{ name: "tool", risk: "unknown", ...explicitPrivacy }],
+        () => true,
+      ),
+    (error) => error instanceof JsonValidationError && /Unsupported tool risk/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      createConsentActionPolicy(
+        [
+          {
+            name: "tool",
+            risk: "read-only",
+            arguments: {},
+            authorizeArguments: () => true,
+            ...explicitPrivacy,
+          },
+        ],
+        () => true,
+      ),
+    (error) => error instanceof JsonValidationError && /cannot declare both/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      createConsentActionPolicy(
+        [
+          {
+            name: "tool",
+            risk: "read-only",
+            ...explicitPrivacy,
+            capabilities: ["camera", "camera"],
+          },
+        ],
+        () => true,
+      ),
+    (error) =>
+      error instanceof JsonValidationError && /Duplicate consent identifier/.test(error.message),
+  );
+  assert.throws(
+    () =>
+      createConsentActionPolicy(
+        [{ name: "tool", risk: "read-only", ...explicitPrivacy, unexpected: true }],
+        () => true,
+      ),
+    (error) => error instanceof JsonValidationError && /Unsupported field/.test(error.message),
+  );
+
+  for (const requiredField of ["capabilities", "sensitiveData", "sharesDataExternally"]) {
+    const incomplete = { name: "tool", risk: "read-only", ...explicitPrivacy };
+    delete incomplete[requiredField];
+    assert.throws(
+      () => createConsentActionPolicy([incomplete], () => true),
+      (error) =>
+        error instanceof JsonValidationError &&
+        new RegExp(`Missing required field "${requiredField}"`).test(error.message),
+    );
+  }
+
+  const calls = [];
+  const runtime = new McpNativeRuntime(
+    {
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool(name, arguments_) {
+        calls.push({ name, arguments: arguments_ });
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    {
+      actionPolicy: createConsentActionPolicy(
+        [{ name: "tool", risk: "read-only", ...explicitPrivacy }],
+        async () => "yes",
+      ),
+    },
+  );
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "tool" }),
+    (error) =>
+      error instanceof JsonValidationError && /reviewer must return a boolean/.test(error.message),
+  );
+  assert.deepEqual(calls, []);
+});
+
+test("createConsentActionPolicy denies explicit refusal and recovers after reviewer failure", async () => {
+  const calls = [];
+  let reviewAttempt = 0;
+  const runtime = new McpNativeRuntime(
+    {
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool(name) {
+        calls.push(name);
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    {
+      actionPolicy: createConsentActionPolicy(
+        [
+          {
+            name: "save",
+            risk: "local-write",
+            capabilities: [],
+            sensitiveData: [],
+            sharesDataExternally: false,
+          },
+        ],
+        () => {
+          reviewAttempt += 1;
+          if (reviewAttempt === 1) {
+            return false;
+          }
+          if (reviewAttempt === 2) {
+            throw new Error("review failed");
+          }
+          return true;
+        },
+      ),
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "save" }),
+    McpNativeActionDeniedError,
+  );
+  await assert.rejects(() => runtime.dispatch({ type: "tool", name: "save" }), /review failed/);
+  await runtime.dispatch({ type: "tool", name: "save" });
+  assert.deepEqual(calls, ["save"]);
+});
+
+test("createConsentActionPolicy denies concurrent reviews instead of queuing prompts", async () => {
+  let releaseReview;
+  let markReviewStarted;
+  const reviewGate = new Promise((resolve) => {
+    releaseReview = resolve;
+  });
+  const reviewStarted = new Promise((resolve) => {
+    markReviewStarted = resolve;
+  });
+  const calls = [];
+  const runtime = new McpNativeRuntime(
+    {
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool(name) {
+        calls.push(name);
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    {
+      actionPolicy: createConsentActionPolicy(
+        [
+          {
+            name: "delete",
+            risk: "destructive",
+            capabilities: [],
+            sensitiveData: [],
+            sharesDataExternally: false,
+          },
+        ],
+        async () => {
+          markReviewStarted();
+          await reviewGate;
+          return true;
+        },
+      ),
+    },
+  );
+
+  const first = runtime.dispatch({ type: "tool", name: "delete" });
+  await reviewStarted;
+  await assert.rejects(
+    () => runtime.dispatch({ type: "tool", name: "delete" }),
+    McpNativeActionDeniedError,
+  );
+  releaseReview();
+  await first;
+  assert.deepEqual(calls, ["delete"]);
 });
 
 test("action policies authorize only when they resolve to true", async () => {
