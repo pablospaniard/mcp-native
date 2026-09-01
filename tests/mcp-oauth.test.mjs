@@ -19,6 +19,7 @@ function createStorage(initial = {}) {
     clientInformation: new Map(),
     tokens: undefined,
     verifier: undefined,
+    pendingAuthorization: undefined,
     state: undefined,
     stateOwner: undefined,
     discovery: undefined,
@@ -45,6 +46,12 @@ function createStorage(initial = {}) {
     },
     async saveCodeVerifier(verifier) {
       values.verifier = verifier;
+    },
+    async loadPendingAuthorization() {
+      return values.pendingAuthorization;
+    },
+    async savePendingAuthorization(record) {
+      values.pendingAuthorization = structuredClone(record);
     },
     async reserveOAuthState(owner) {
       if (values.stateOwner !== undefined || values.state !== undefined) {
@@ -106,7 +113,10 @@ function createStorage(initial = {}) {
         values.state = undefined;
         values.stateOwner = undefined;
       }
-      if (scope === "all" || scope === "verifier") values.verifier = undefined;
+      if (scope === "all" || scope === "verifier") {
+        values.verifier = undefined;
+        values.pendingAuthorization = undefined;
+      }
       if (scope === "all" || scope === "tokens") values.tokens = undefined;
       if (scope === "all" || scope === "discovery") values.discovery = undefined;
       if (scope === "all" || scope === "client") values.clientInformation.clear();
@@ -1182,12 +1192,117 @@ test("OAuth token responses inherit omitted scopes without erasing durable histo
     new URL("https://auth.example.com/authorize?scope=mcp%3Aread%20mcp%3Awrite"),
   );
   await authorized.provider.saveTokens(
-    { access_token: "expanded", token_type: "Bearer", issuer: ISSUER },
+    { access_token: "refresh-during-browser", token_type: "Bearer", issuer: ISSUER },
     { issuer: ISSUER },
+  );
+  assert.equal(storage.values.tokens.scope, "mcp:read");
+  await authorized.provider.finishAuthorization(
+    {
+      finishAuth: () =>
+        authorized.provider.saveTokens(
+          { access_token: "expanded", token_type: "Bearer", issuer: ISSUER },
+          { issuer: ISSUER },
+        ),
+    },
+    `${REDIRECT_URL}?code=expanded&state=${VALID_STATE}`,
   );
   assert.equal(storage.values.tokens.scope, "mcp:read mcp:write");
   assert.deepEqual(scopeStore.record.scopes, ["mcp:read", "mcp:write"]);
-  await authorized.provider.cancelAuthorization();
+});
+
+test("OAuth callback recovery restores its durable pending authorization scopes", async () => {
+  const storage = createStorage();
+  const first = createProvider({ storage });
+  await first.provider.saveDiscoveryState({ authorizationServerUrl: ISSUER });
+  await reserveAuthorizationAttempt(first.provider);
+  await first.provider.redirectToAuthorization(
+    new URL("https://auth.example.com/authorize?scope=mcp%3Aread%20mcp%3Awrite"),
+  );
+
+  storage.values.stateOwner = undefined;
+  const recovered = createProvider({ storage });
+  await recovered.provider.finishAuthorization(
+    {
+      finishAuth: () =>
+        recovered.provider.saveTokens(
+          { access_token: "recovered", token_type: "Bearer", issuer: ISSUER },
+          { issuer: ISSUER },
+        ),
+    },
+    `${REDIRECT_URL}?code=recovered&state=${VALID_STATE}`,
+  );
+
+  assert.equal(storage.values.tokens.scope, "mcp:read mcp:write");
+  assert.equal(storage.values.pendingAuthorization, undefined);
+});
+
+test("OAuth authorization rejects substituted stored token issuers", async () => {
+  const storage = createStorage({
+    tokens: {
+      access_token: "substituted",
+      token_type: "Bearer",
+      scope: "mcp:read",
+      issuer: "https://evil.example.com",
+    },
+  });
+  storage.loadTokens = async () => storage.values.tokens;
+  const { provider } = createProvider({
+    storage,
+    approveReauthorization: () => true,
+  });
+  await provider.saveDiscoveryState({ authorizationServerUrl: ISSUER });
+  await reserveAuthorizationAttempt(provider);
+
+  await assert.rejects(
+    () => provider.redirectToAuthorization(new URL(`${ISSUER}/authorize?scope=mcp%3Awrite`)),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+  );
+});
+
+test("OAuth callback completion rejects substituted pending authorization records", async () => {
+  const oversizedScopes = Array(65).fill("mcp:read");
+  Object.defineProperty(oversizedScopes, 0, {
+    enumerable: true,
+    get() {
+      throw new Error("oversized pending scopes must be rejected before traversal");
+    },
+  });
+  await Promise.all(
+    [
+      { resource: "https://evil.example/mcp", issuer: ISSUER, scopes: ["mcp:read"] },
+      { resource: SERVER_URL, issuer: "https://evil.example.com", scopes: ["mcp:read"] },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: ["mcp:read", "mcp:read"] },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: ["bad scope"] },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: oversizedScopes },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: Array(64).fill("x".repeat(256)) },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: [], executable: true },
+      null,
+    ].map(async (record) => {
+      const storage = createStorage();
+      const { provider } = createProvider({ storage });
+      await provider.saveDiscoveryState({ authorizationServerUrl: ISSUER });
+      await reserveAuthorizationAttempt(provider);
+      await provider.redirectToAuthorization(new URL(`${ISSUER}/authorize?scope=mcp%3Aread`));
+      storage.values.pendingAuthorization = record;
+
+      await assert.rejects(
+        () =>
+          provider.finishAuthorization(
+            {
+              finishAuth: () =>
+                provider.saveTokens(
+                  { access_token: "unsafe", token_type: "Bearer", issuer: ISSUER },
+                  { issuer: ISSUER },
+                ),
+            },
+            `${REDIRECT_URL}?code=unsafe&state=${VALID_STATE}`,
+          ),
+        (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+      );
+      assert.equal(storage.values.tokens, undefined);
+      assert.equal(storage.values.pendingAuthorization, undefined);
+    }),
+  );
 });
 
 test("OAuth scope history fails closed for malformed or substituted records", async () => {

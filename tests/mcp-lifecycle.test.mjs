@@ -180,6 +180,77 @@ test("connection lifecycle reconnects from an unexpected close with a fresh unit
   await lifecycle.shutdown();
 });
 
+test("connection lifecycle preserves rapid offline then online transitions", async () => {
+  let attempts = 0;
+  let releaseClose;
+  let markCloseStarted;
+  const closeStarted = new Promise((resolve) => {
+    markCloseStarted = resolve;
+  });
+  const closeGate = new Promise((resolve) => {
+    releaseClose = resolve;
+  });
+  const lifecycle = createMcpNativeConnectionLifecycle({
+    createConnection() {
+      const attempt = ++attempts;
+      return {
+        connect() {},
+        async close() {
+          if (attempt === 1) {
+            markCloseStarted();
+            await closeGate;
+          }
+        },
+      };
+    },
+    classifyError: retryable,
+  });
+
+  await lifecycle.start();
+  const offline = lifecycle.setOnline(false);
+  const online = lifecycle.setOnline(true);
+  await closeStarted;
+  releaseClose();
+  await Promise.all([offline, online]);
+
+  assert.equal(attempts, 2);
+  assert.deepEqual(lifecycle.state, { kind: "ready" });
+  await lifecycle.shutdown();
+});
+
+test("connection shutdown preempts a pending online transition", async () => {
+  let observedAbort = false;
+  const lifecycle = createMcpNativeConnectionLifecycle({
+    initiallyOnline: false,
+    createConnection: () => ({
+      connect(signal) {
+        return new Promise((resolve) => {
+          signal.addEventListener(
+            "abort",
+            () => {
+              observedAbort = true;
+              resolve();
+            },
+            { once: true },
+          );
+        });
+      },
+      close() {},
+    }),
+    classifyError: retryable,
+    timeoutMs: 100,
+    maxAttempts: 1,
+  });
+
+  const online = lifecycle.setOnline(true);
+  await new Promise((resolve) => setImmediate(resolve));
+  await lifecycle.shutdown();
+  await online;
+
+  assert.equal(observedAbort, true);
+  assert.deepEqual(lifecycle.state, { kind: "disconnected", reason: "shutdown" });
+});
+
 test("connection lifecycle handles an already-closed first unit and contains observer failures", async () => {
   let attempts = 0;
   const lifecycle = createMcpNativeConnectionLifecycle({

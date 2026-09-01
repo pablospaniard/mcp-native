@@ -376,6 +376,10 @@ export interface McpNativeExpiringGrantPolicyOptions {
 
 const MCP_NATIVE_MAX_GRANT_KEY_CODE_UNITS = 512;
 const MCP_NATIVE_MAX_GRANT_DURATION_MS = 31 * 24 * 60 * 60 * 1_000;
+const consentGrantOperations = new WeakMap<
+  McpNativeConsentGrantStore,
+  Map<string, Promise<void>>
+>();
 
 /**
  * Wraps a per-action policy with bounded, expiring, host-keyed grants.
@@ -423,48 +427,53 @@ export function createExpiringGrantActionPolicy(
       const authorizationAction = parseFrozenAction(input, "grant authorization action");
       const durationAction = parseFrozenAction(input, "grant duration action");
       const key = parseGrantKey(await options.grantKey(keyAction));
-      const currentTime = now();
-      if (!Number.isSafeInteger(currentTime) || currentTime < 0) {
-        throw new JsonValidationError("Consent-grant clock must return a non-negative integer");
-      }
-      if (key !== undefined) {
-        const stored = await options.store.load(key);
-        if (stored !== undefined) {
-          const grant = parseConsentGrantRecord(stored, key);
-          if (grant.expiresAt - currentTime > maxDuration) {
-            throw new JsonValidationError(
-              "Stored consent-grant lifetime exceeds the configured maximum",
-            );
-          }
-          if (grant.expiresAt > currentTime) return true;
-          await options.store.remove(key);
-        }
-      }
-
-      const approved = await options.authorize(authorizationAction);
-      if (approved !== true && approved !== false) {
-        throw new JsonValidationError("Consent-grant authorization policy must return a boolean");
-      }
-      if (!approved) return false;
-
-      const duration = await options.grantDurationMs(durationAction);
-      if (!Number.isSafeInteger(duration) || duration < 0 || duration > maxDuration) {
-        throw new JsonValidationError(
-          `Consent-grant duration must be an integer from 0 to ${maxDuration}`,
-        );
-      }
-      if (key !== undefined && duration > 0) {
-        const approvedAt = now();
-        if (!Number.isSafeInteger(approvedAt) || approvedAt < 0) {
+      const evaluate = async (): Promise<boolean> => {
+        const currentTime = now();
+        if (!Number.isSafeInteger(currentTime) || currentTime < 0) {
           throw new JsonValidationError("Consent-grant clock must return a non-negative integer");
         }
-        const expiresAt = approvedAt + duration;
-        if (!Number.isSafeInteger(expiresAt)) {
-          throw new JsonValidationError("Consent-grant expiry exceeds the safe integer range");
+        if (key !== undefined) {
+          const stored = await options.store.load(key);
+          if (stored !== undefined) {
+            const grant = parseConsentGrantRecord(stored, key);
+            if (grant.expiresAt - currentTime > maxDuration) {
+              throw new JsonValidationError(
+                "Stored consent-grant lifetime exceeds the configured maximum",
+              );
+            }
+            if (grant.expiresAt > currentTime) return true;
+            await options.store.remove(key);
+          }
         }
-        await options.store.save(Object.freeze({ key, expiresAt }));
-      }
-      return true;
+
+        const approved = await options.authorize(authorizationAction);
+        if (approved !== true && approved !== false) {
+          throw new JsonValidationError("Consent-grant authorization policy must return a boolean");
+        }
+        if (!approved) return false;
+
+        const duration = await options.grantDurationMs(durationAction);
+        if (!Number.isSafeInteger(duration) || duration < 0 || duration > maxDuration) {
+          throw new JsonValidationError(
+            `Consent-grant duration must be an integer from 0 to ${maxDuration}`,
+          );
+        }
+        if (key !== undefined && duration > 0) {
+          const approvedAt = now();
+          if (!Number.isSafeInteger(approvedAt) || approvedAt < 0) {
+            throw new JsonValidationError("Consent-grant clock must return a non-negative integer");
+          }
+          const expiresAt = approvedAt + duration;
+          if (!Number.isSafeInteger(expiresAt)) {
+            throw new JsonValidationError("Consent-grant expiry exceeds the safe integer range");
+          }
+          await options.store.save(Object.freeze({ key, expiresAt }));
+        }
+        return true;
+      };
+      return key === undefined
+        ? await evaluate()
+        : await serializeConsentGrantOperation(options.store, key, evaluate);
     } finally {
       evaluationRunning = false;
     }
@@ -482,7 +491,30 @@ export async function revokeMcpNativeConsentGrant(
   if (parsedKey === undefined) {
     throw new JsonValidationError("Expected a consent-grant key");
   }
-  await store.remove(parsedKey);
+  await serializeConsentGrantOperation(store, parsedKey, () => store.remove(parsedKey));
+}
+
+function serializeConsentGrantOperation<T>(
+  store: McpNativeConsentGrantStore,
+  key: string,
+  operation: () => T | Promise<T>,
+): Promise<T> {
+  let operations = consentGrantOperations.get(store);
+  if (operations === undefined) {
+    operations = new Map();
+    consentGrantOperations.set(store, operations);
+  }
+  const previous = operations.get(key) ?? Promise.resolve();
+  const result = previous.then(operation, operation);
+  const tail = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  operations.set(key, tail);
+  void tail.then(() => {
+    if (operations?.get(key) === tail) operations.delete(key);
+  });
+  return result;
 }
 
 /**

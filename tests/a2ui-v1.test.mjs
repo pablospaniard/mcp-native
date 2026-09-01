@@ -234,8 +234,8 @@ test("A2UI v1 host delivery denies overlap and recovers after policy failure", a
 
   const first = handler(action);
   await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(await handler(action), "denied");
-  assert.deepEqual(denied, ["busy"]);
+  assert.equal(await handler({}), "denied");
+  assert.deepEqual(denied, []);
   release();
   await assert.rejects(first, /review failed/);
   assert.equal(await handler(action), "delivered");
@@ -654,24 +654,53 @@ test("surface store validates its public input even when callers bypass the pars
   );
 });
 
-test("surface store bounds cumulative retained strings and rolls back the batch", () => {
+test("surface store bounds cumulative batch strings and rolls back", () => {
   const store = new A2uiSurfaceStore();
   store.apply({ version: "v1.0", createSurface: { surfaceId: "keep" } });
   const text = "x".repeat(65_536);
   const count = Math.floor(A2UI_V1_MAX_STORE_STRING_CODE_UNITS / text.length) + 1;
-  const batch = Array.from({ length: count }, (_, index) => ({
-    version: "v1.0",
-    createSurface: {
-      surfaceId: `bounded-${index}`,
-      components: [{ id: "root", component: "Text", text }],
+  const batch = Array.from({ length: count }, (_, index) => [
+    {
+      version: "v1.0",
+      createSurface: {
+        surfaceId: `bounded-${index}`,
+        components: [{ id: "root", component: "Text", text }],
+      },
     },
-  }));
+    { version: "v1.0", deleteSurface: { surfaceId: `bounded-${index}` } },
+  ]).flat();
 
-  assert.throws(() => store.applyAll(batch), /maximum of 8388608 retained string code units/);
+  assert.throws(() => store.applyAll(batch), /maximum of 8388608 cumulative string code units/);
   assert.deepEqual(
     store.list().map((surface) => surface.surfaceId),
     ["keep"],
   );
+});
+
+test("surface store bounds cumulative retained strings across individual applies", () => {
+  const store = new A2uiSurfaceStore();
+  const text = "x".repeat(65_536);
+  const count = Math.floor(A2UI_V1_MAX_STORE_STRING_CODE_UNITS / text.length) + 1;
+  const create = (index) => ({
+    version: "v1.0",
+    createSurface: {
+      surfaceId: `retained-${index}`,
+      components: [{ id: "root", component: "Text", text }],
+    },
+  });
+
+  let rejectedIndex;
+  for (let index = 0; index < count; index += 1) {
+    try {
+      store.apply(create(index));
+    } catch (error) {
+      assert.match(error.message, /maximum of 8388608 retained string code units/);
+      rejectedIndex = index;
+      break;
+    }
+  }
+  assert.notEqual(rejectedIndex, undefined);
+  assert.equal(store.has(`retained-${rejectedIndex}`), false);
 });
 
 test("surface store owns component snapshots at ingress and egress", () => {

@@ -67,6 +67,13 @@ test("platform OAuth storage uses fixed app-owned slots and exact issuer binding
 
   await storage.saveCodeVerifier(VALID_VERIFIER);
   assert.equal(await storage.loadCodeVerifier(), VALID_VERIFIER);
+  const pendingAuthorization = {
+    resource: SERVER_URL,
+    issuer: ISSUER,
+    scopes: ["mcp:read"],
+  };
+  await storage.savePendingAuthorization(pendingAuthorization);
+  assert.deepEqual(await storage.loadPendingAuthorization(), pendingAuthorization);
   await storage.saveDiscoveryState({ authorizationServerUrl: ISSUER });
   assert.deepEqual(await storage.loadDiscoveryState(), { authorizationServerUrl: ISSUER });
 
@@ -78,6 +85,9 @@ test("platform OAuth storage uses fixed app-owned slots and exact issuer binding
   assert.deepEqual(await storage.loadTokens(ISSUER), tokens);
   await storage.invalidate("tokens", ISSUER);
   assert.equal(await storage.loadTokens(), undefined);
+  await storage.invalidate("verifier", ISSUER);
+  assert.equal(await storage.loadCodeVerifier(), undefined);
+  assert.equal(await storage.loadPendingAuthorization(), undefined);
 });
 
 test("platform OAuth storage serializes state consumption and bounds corrupt secrets", async () => {

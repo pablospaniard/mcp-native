@@ -37,6 +37,7 @@ const createOAuthStore = (preRegisteredClient) => {
   const tokens = new Map();
   let latestTokenIssuer;
   let verifier;
+  let pendingAuthorization;
   let state;
   let stateOwner;
   let discoveryState;
@@ -64,6 +65,12 @@ const createOAuthStore = (preRegisteredClient) => {
     },
     async saveCodeVerifier(value) {
       verifier = value;
+    },
+    async loadPendingAuthorization() {
+      return pendingAuthorization === undefined ? undefined : structuredClone(pendingAuthorization);
+    },
+    async savePendingAuthorization(value) {
+      pendingAuthorization = structuredClone(value);
     },
     async reserveOAuthState(owner) {
       if (stateOwner !== undefined || state !== undefined) {
@@ -114,7 +121,10 @@ const createOAuthStore = (preRegisteredClient) => {
         else tokens.delete(issuer);
         if (issuer === undefined || latestTokenIssuer === issuer) latestTokenIssuer = undefined;
       }
-      if (scope === "all" || scope === "verifier") verifier = undefined;
+      if (scope === "all" || scope === "verifier") {
+        verifier = undefined;
+        pendingAuthorization = undefined;
+      }
       if (scope === "all" || scope === "discovery") discoveryState = undefined;
       if (scope === "all") {
         state = undefined;

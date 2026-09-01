@@ -24,7 +24,10 @@ export interface A2uiV1ActionDeliveryOptions {
     envelope: A2uiV1ActionEnvelope,
     dataModel?: JsonObject,
   ) => void | Promise<void>;
-  /** Optional observation of policy refusal or a concurrent action denied before review. */
+  /**
+   * Optional observation of a validated action refused by host policy. The `busy` reason remains
+   * in the callback type for compatibility but is not emitted because overlapping input is not parsed.
+   */
   readonly onDenied?: (envelope: A2uiV1ActionEnvelope, reason: "busy" | "policy") => void;
 }
 
@@ -50,17 +53,15 @@ export function createA2uiV1ActionDeliveryHandler(
 
   let deliveryRunning = false;
   return async (envelope, dataModel) => {
-    const policyEnvelope = parseActionEnvelope(envelope);
-    const deliveryEnvelope = parseActionEnvelope(envelope);
-    const policyDataModel = parseOptionalDataModel(dataModel);
-    const deliveryDataModel = parseOptionalDataModel(dataModel);
-
     if (deliveryRunning) {
-      options.onDenied?.(policyEnvelope, "busy");
       return "denied";
     }
     deliveryRunning = true;
     try {
+      const policyEnvelope = parseActionEnvelope(envelope);
+      const deliveryEnvelope = parseActionEnvelope(envelope);
+      const policyDataModel = parseOptionalDataModel(dataModel);
+      const deliveryDataModel = parseOptionalDataModel(dataModel);
       const decision = await options.authorize(policyEnvelope, policyDataModel);
       if (decision !== true && decision !== false) {
         throw new A2uiParseError("A2UI action delivery policy must return a boolean");

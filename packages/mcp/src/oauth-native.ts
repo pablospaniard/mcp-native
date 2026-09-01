@@ -16,6 +16,7 @@ import {
 import type {
   McpNativeOAuthClientProvider,
   McpNativeOAuthCredentialScope,
+  McpNativeOAuthPendingAuthorizationRecord,
   McpNativeOAuthSecureStore,
 } from "./oauth.js";
 
@@ -56,7 +57,7 @@ const STATE_LOCKS = new Map<string, Promise<void>>();
 const STATE_OWNERS = new Map<string, object>();
 
 type OAuthFinisher = Pick<StreamableHTTPClientTransport, "finishAuth">;
-type SecretSlot = "client" | "discovery" | "state" | "tokens" | "verifier";
+type SecretSlot = "authorization" | "client" | "discovery" | "state" | "tokens" | "verifier";
 
 /**
  * Minimal bridge to an app-owned iOS Keychain / Android Keystore-backed module.
@@ -109,6 +110,7 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
     this.#backend = options.backend;
     const prefix = `${options.namespace}.mcp-native.oauth.v1`;
     this.#services = Object.freeze({
+      authorization: `${prefix}.authorization`,
       client: `${prefix}.client`,
       discovery: `${prefix}.discovery`,
       state: `${prefix}.state`,
@@ -155,6 +157,14 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
       throw new McpNativeOAuthError("invalid-storage", "OAuth PKCE verifier is invalid");
     }
     await this.#backend.write(this.#services.verifier, verifier);
+  }
+
+  async loadPendingAuthorization(): Promise<unknown> {
+    return this.#readJson("authorization");
+  }
+
+  async savePendingAuthorization(record: McpNativeOAuthPendingAuthorizationRecord): Promise<void> {
+    await this.#writeJson("authorization", record);
   }
 
   async reserveOAuthState(owner: object): Promise<void> {
@@ -253,8 +263,8 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
       case "all":
         await this.#withStateLock(async () => {
           await Promise.all(
-            (["client", "discovery", "state", "tokens", "verifier"] as const).map((slot) =>
-              this.#backend.remove(this.#services[slot]),
+            (["authorization", "client", "discovery", "state", "tokens", "verifier"] as const).map(
+              (slot) => this.#backend.remove(this.#services[slot]),
             ),
           );
           STATE_OWNERS.delete(this.#services.state);
@@ -268,7 +278,10 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
         await this.#removeDiscovery(issuer);
         return;
       case "verifier":
-        await this.#backend.remove(this.#services.verifier);
+        await Promise.all([
+          this.#backend.remove(this.#services.authorization),
+          this.#backend.remove(this.#services.verifier),
+        ]);
         return;
     }
   }
@@ -285,7 +298,7 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
   }
 
   async #readJson(
-    slot: "client" | "discovery" | "tokens",
+    slot: "authorization" | "client" | "discovery" | "tokens",
   ): Promise<Record<string, unknown> | undefined> {
     const serialized = await this.#read(slot);
     if (serialized === undefined) return undefined;
@@ -321,7 +334,10 @@ export class McpNativeOAuthPlatformSecureStore implements McpNativeOAuthSecureSt
     return { issuer: value.issuer, value: value.value as T };
   }
 
-  async #writeJson(slot: "client" | "discovery" | "tokens", value: object): Promise<void> {
+  async #writeJson(
+    slot: "authorization" | "client" | "discovery" | "tokens",
+    value: object,
+  ): Promise<void> {
     let serialized: string;
     try {
       serialized = JSON.stringify(value);
