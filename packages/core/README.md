@@ -81,6 +81,8 @@ await runtime.dispatch({
 | `ToolAction`, `McpNativeAction`                                                                   | Declarative actions that can be dispatched through the runtime.                             |
 | `McpNativeRuntimeOptions`, `McpNativeActionPolicy`                                                | Host policy controlling which validated surface actions `dispatch()` may execute.           |
 | `createAllowlistActionPolicy`, `McpNativeToolAllowlistEntry`                                      | Fail-closed helper that authorizes tools by name and exact or predicated arguments.         |
+| `createConsentActionPolicy`, `McpNativeToolConsentEntry`, `McpNativeToolConsentRequest`           | Core `dispatch()` consent over explicit risk, capability, and privacy descriptors.          |
+| `McpNativeToolRisk`, `McpNativeToolConsentReviewer`                                               | Closed risk vocabulary and exact-boolean host review callback.                              |
 | `McpNativeActionDeniedError`                                                                      | Fail-closed error for actions not explicitly allowed by the host.                           |
 | `parseMcpNativeAction`, `parseJsonObject`, `parseJsonValue`                                       | Strict validators that return safely reconstructed untrusted data.                          |
 | `JsonValidationOptions`                                                                           | Optional cumulative string/key budget for one reconstructed JSON graph.                     |
@@ -106,6 +108,34 @@ const result = negotiateMcpExtension(
 ```
 
 Only the two explicit maps participate. Metadata, MIME types, and tool results cannot grant support. `McpNativeRuntime.negotiateExtension()` reads both maps from the optional `McpClient.getClientExtensionSettings()` and `getServerExtensionSettings()` boundary, so callers cannot substitute an unadvertised client map, and returns a typed fallback result when either side is absent.
+
+## Per-action consent review
+
+Use `createConsentActionPolicy()` when a core `McpNativeRuntime.dispatch()` action needs an explicit user decision rather than a static allowlist:
+
+```ts
+import { McpNativeRuntime, createConsentActionPolicy } from "@mcp-native/core";
+
+const runtime = new McpNativeRuntime(client, {
+  actionPolicy: createConsentActionPolicy(
+    [
+      {
+        name: "share_location",
+        risk: "external-write",
+        authorizeArguments: (arguments_) => arguments_?.precision === "city",
+        capabilities: ["device.location"],
+        sensitiveData: ["user.location"],
+        sharesDataExternally: true,
+      },
+    ],
+    async (request) => presentLocalizedConsentSheet(request),
+  ),
+});
+```
+
+Profiles and their identifiers are host-authored. Every profile must explicitly provide `capabilities`, `sensitiveData`, and `sharesDataExternally`; use empty arrays or `false` only after the host has classified that dimension. Map identifiers to app-owned localized copy; do not display server tool names, descriptions, annotations, arguments, or metadata as trusted consent claims. Unknown tools and arguments are denied without prompting, the reviewer must return an exact boolean, and concurrent evaluations are denied instead of accumulating consent dialogs. Approval applies to one dispatch only. A host that retains grants must key, expire, revoke, and persist them outside this helper and re-evaluate them when tool arguments, capabilities, sensitive-data use, destination, or server identity changes.
+
+This helper is installed only on `McpNativeRuntime.dispatch()`. It does not automatically protect trusted direct `callTool()` operations, MCP Apps `callTool` handlers, or A2UI v1 renderer-to-agent envelope delivery. Hosts must either route a tool action through this policy explicitly at those boundaries or apply an equivalent host-owned policy suited to that protocol path.
 
 ## Pre-1.0 MCP result migration
 
@@ -142,6 +172,7 @@ Content blocks now use MCP's official discriminated fields. Replace `{ type: "te
 - Surface-driven `dispatch()` is denied unless the host's action policy explicitly allows it.
 - Direct `callTool()` is a lower-level API for trusted host code. It validates JSON arguments but does not apply the surface action policy.
 - Prefer `createAllowlistActionPolicy()` so surface authorization covers tool arguments, not only tool names.
+- Use `createConsentActionPolicy()` for explicit core `dispatch()` review; it never treats server annotations as risk classification or retains approval, and other tool/action paths require their own explicit integration.
 - Untrusted JSON is reconstructed without prototype mutation and rejects cycles, non-plain objects, non-finite numbers, excessive depth, excessive value counts, and oversized strings or object keys.
 - Declared actions reject fields outside the exact `{ type, name, arguments? }` contract.
 - Extension declarations require prefixed identifiers and JSON-object settings; server metadata never activates an extension.

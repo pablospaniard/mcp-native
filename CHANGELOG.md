@@ -8,6 +8,8 @@ their minor release line.
 
 ### Added
 
+- A bounded consent policy for core `McpNativeRuntime.dispatch()` tool actions with explicit
+  host-authored risk, capability, sensitive-data, and external-sharing descriptors.
 - An issuer-bound interactive OAuth provider for the official MCP SDK v2 with host-owned secure
   storage, persisted PKCE/state/discovery data, exact callback validation, canonical RFC 8707
   resource pinning, and issuer-scoped client registrations and tokens.
@@ -24,6 +26,9 @@ their minor release line.
 
 ### Security
 
+- Deny unknown tool/argument consent profiles, incomplete privacy declarations, overlapping consent
+  reviews, malformed host descriptors, and non-boolean decisions without trusting server
+  annotations or retaining grants.
 - Bound complete MCP SDK results, downstream A2UI result collections, decoded JSON string/key
   totals, A2UI lifecycle batches, and cumulative state retained by one surface store.
 - Validate complete MCP Apps content annotations, icons, sizes, metadata objects, and resource-link
