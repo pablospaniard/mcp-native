@@ -4,6 +4,11 @@ import type { JsonValue } from "@mcp-native/core";
 import { A2uiParseError } from "../errors.js";
 import basicCatalog from "./vendor/catalog.json" with { type: "json" };
 import { parseA2uiV1FormatString } from "./format-string.js";
+import {
+  isA2uiV1HostExtensionRegistry,
+  validateA2uiV1HostExtensionComponent,
+} from "./host-extensions.js";
+import type { A2uiV1HostExtensionRegistry } from "./host-extensions.js";
 import { parseA2uiV1EnvelopeWithStringBudget } from "./parse.js";
 import { formatAjvErrors, getA2uiV1FunctionCallValidator } from "./schemas.js";
 import {
@@ -38,12 +43,18 @@ export interface A2uiV1SurfaceValidationPolicy {
   readonly allowedEventNames?: readonly string[];
   /** Locally registered basic-catalog function names. Empty means deny all functions. */
   readonly allowedFunctionNames?: readonly string[];
+  /** Exact local/negotiated host-extension registry. */
+  readonly hostExtensions?: A2uiV1HostExtensionRegistry;
+  /** Explicit subset of registry component names allowed for this validation boundary. */
+  readonly allowedHostExtensionComponentNames?: readonly string[];
 }
 
 export interface A2uiV1BasicCatalogPolicyOptions {
   readonly allowedComponentNames: readonly string[];
   readonly allowedEventNames?: readonly string[];
   readonly allowedFunctionNames?: readonly string[];
+  readonly hostExtensions?: A2uiV1HostExtensionRegistry;
+  readonly allowedHostExtensionComponentNames?: readonly string[];
 }
 
 /** Creates an explicit host policy for the pinned basic catalog. */
@@ -53,10 +64,34 @@ export function createA2uiV1BasicCatalogPolicy(
   if (options === null || typeof options !== "object" || Array.isArray(options)) {
     throw new A2uiParseError("Expected A2UI basic catalog policy options to be an object");
   }
+  if (
+    options.hostExtensions !== undefined &&
+    !isA2uiV1HostExtensionRegistry(options.hostExtensions)
+  ) {
+    throw new A2uiParseError(
+      "Expected an opaque host-extension registry in catalog policy options",
+    );
+  }
+  const knownHostExtensionNames = new Set(
+    options.hostExtensions?.manifests.map((manifest) => manifest.componentName) ?? [],
+  );
+  const allowedHostExtensionComponentNames = freezeStrings(
+    options.allowedHostExtensionComponentNames ?? [],
+    "allowedHostExtensionComponentNames",
+  );
+  for (const name of allowedHostExtensionComponentNames) {
+    if (!knownHostExtensionNames.has(name)) {
+      throw new A2uiParseError(
+        `Unknown or unavailable host-extension component ${JSON.stringify(name)} in catalog policy`,
+      );
+    }
+  }
   return Object.freeze({
     allowedComponentNames: freezeStrings(options.allowedComponentNames, "allowedComponentNames"),
     allowedEventNames: freezeStrings(options.allowedEventNames ?? []),
     allowedFunctionNames: freezeStrings(options.allowedFunctionNames ?? []),
+    ...(options.hostExtensions === undefined ? {} : { hostExtensions: options.hostExtensions }),
+    allowedHostExtensionComponentNames,
   });
 }
 
@@ -85,8 +120,20 @@ export function validateA2uiV1SurfaceState(
     "policy.allowedFunctionNames",
     A2UI_V1_KNOWN_FUNCTION_NAMES,
   );
+  const hostExtensions = policy.hostExtensions;
+  if (hostExtensions !== undefined && !isA2uiV1HostExtensionRegistry(hostExtensions)) {
+    throw new A2uiParseError("Expected an opaque registry at policy.hostExtensions");
+  }
+  const knownHostExtensionNames = new Set(
+    hostExtensions?.manifests.map((manifest) => manifest.componentName) ?? [],
+  );
+  const allowedHostExtensionComponents = parseAllowedNames(
+    policy.allowedHostExtensionComponentNames ?? [],
+    "policy.allowedHostExtensionComponentNames",
+    knownHostExtensionNames,
+  );
 
-  const validatedSurface = reconstructSurfaceSnapshot(surface);
+  const validatedSurface = reconstructSurfaceSnapshot(surface, hostExtensions);
   validateCatalogId(validatedSurface.catalogId, "surface.catalogId");
   if (!validatedSurface.components.has("root")) {
     throw new A2uiParseError('A complete A2UI surface must define component "root"');
@@ -99,12 +146,27 @@ export function validateA2uiV1SurfaceState(
         `A2UI component map key ${JSON.stringify(id)} does not match component id ${JSON.stringify(component.id)}`,
       );
     }
-    if (!allowedComponents.has(component.component)) {
+    const isBasicComponent = (A2UI_V1_BASIC_COMPONENT_NAMES as readonly string[]).includes(
+      component.component,
+    );
+    if (isBasicComponent && !allowedComponents.has(component.component)) {
       throw new A2uiParseError(
         `A2UI component ${JSON.stringify(id)} uses host-denied component ${JSON.stringify(component.component)}`,
       );
     }
-    validateCatalogId(component.catalogId, `components.${id}.catalogId`);
+    if (isBasicComponent) {
+      validateCatalogId(component.catalogId, `components.${id}.catalogId`);
+    } else {
+      if (
+        hostExtensions === undefined ||
+        !allowedHostExtensionComponents.has(component.component)
+      ) {
+        throw new A2uiParseError(
+          `A2UI component ${JSON.stringify(id)} uses host-denied extension component ${JSON.stringify(component.component)}`,
+        );
+      }
+      validateA2uiV1HostExtensionComponent(hostExtensions, component, `components.${id}`);
+    }
     edges.set(id, getComponentEdges(component));
   }
 
@@ -135,6 +197,9 @@ export function validateA2uiV1SurfaceState(
     if (componentContexts === undefined) {
       continue;
     }
+    if (!(A2UI_V1_BASIC_COMPONENT_NAMES as readonly string[]).includes(component.component)) {
+      continue;
+    }
     for (const context of componentContexts) {
       validateComponentAction(component, id, context, semanticsPolicy);
       validateSemanticValue(component, `components.${id}`, context, semanticsPolicy);
@@ -158,7 +223,10 @@ interface SemanticsPolicy {
   formatStringSourceLength: number;
 }
 
-function reconstructSurfaceSnapshot(input: unknown): A2uiV1SurfaceState {
+function reconstructSurfaceSnapshot(
+  input: unknown,
+  hostExtensions: A2uiV1HostExtensionRegistry | undefined,
+): A2uiV1SurfaceState {
   if (input === null || typeof input !== "object" || Array.isArray(input)) {
     throw new A2uiParseError("Expected an A2UI surface snapshot object");
   }
@@ -221,6 +289,7 @@ function reconstructSurfaceSnapshot(input: unknown): A2uiV1SurfaceState {
   const envelope = parseA2uiV1EnvelopeWithStringBudget(
     { version: "v1.0", createSurface },
     A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
+    hostExtensions,
   );
   if (!("createSurface" in envelope)) {
     throw new A2uiParseError("Expected a validated createSurface snapshot");

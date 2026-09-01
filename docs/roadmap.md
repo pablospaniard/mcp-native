@@ -282,32 +282,33 @@ remain entirely application-owned.
 
 ## Milestone 8: media and host extensions (`0.8.0`)
 
-Status: planned.
+Status: implementation complete; release packaging remains separate.
 
-- [ ] Implement `Video` and `AudioPlayer` with explicit source, redirect, origin, MIME, size,
+- [x] Implement `Video` and `AudioPlayer` with explicit source, redirect, origin, MIME, size,
       autoplay, background playback, external-route, and user-activation policies. Unsupported
       platform controls fail closed.
-- [ ] Define a project-owned, versioned host-extension profile without enabling server-provided
+- [x] Define a project-owned, versioned host-extension profile without enabling server-provided
       inline catalogs. An extension identity must be namespaced and must match an exact catalog and
       schema version advertised by both host and server.
-- [ ] Require each extension to declare closed JSON schemas for inputs and emitted events, platform
+- [x] Require each extension to declare closed JSON schemas for inputs and emitted events, platform
       availability, accessibility behavior, resource and permission needs, complexity limits,
       fallback behavior, and compatibility ownership.
-- [ ] Provide typed registration helpers that map validated semantic props and events to a locally
+- [x] Provide typed registration helpers that map validated semantic props and events to a locally
       imported React Native or Fabric component. Do not accept module paths, component classes,
       generic command dispatch, arbitrary children, or raw prop/style passthrough from wire data.
-- [ ] Keep imperative native commands host-only unless a specific command is separately modeled as
+- [x] Keep imperative native commands host-only unless a specific command is separately modeled as
       a validated, policy-gated semantic action with user activation where required.
-- [ ] Add one UIKit-backed iOS fixture and one Android View-backed fixture through Fabric. A
+- [x] Add one UIKit-backed iOS fixture and one Android View-backed fixture through Fabric. A
       SwiftUI- or Compose-backed wrapper may be demonstrated, but it is not a direct renderer or a
       portability guarantee.
-- [ ] Add negative and amplification tests for unknown extension IDs and versions, malformed props,
+- [x] Add negative and amplification tests for unknown extension IDs and versions, malformed props,
       forged events, unavailable platforms, oversized graphs and values, excessive updates, and
       permission or resource-policy bypass attempts.
-- [ ] Publish an extension-author guide and compatibility manifest format that clearly assigns
+- [x] Publish an [extension-author guide and compatibility manifest format](media-and-host-extensions.md) that clearly assigns
       implementation, versioning, security, and accessibility responsibility to the host author.
 
-Exit criterion: the full pinned basic catalog is implemented, and an application can safely expose
+Exit criterion: met by the `0.8.0` implementation candidate. The full pinned basic catalog is
+implemented, and an application can safely expose
 one locally compiled semantic component without giving the server a code-resolution, native-command,
 unchecked-prop, or capability-escalation path.
 

@@ -3,6 +3,11 @@ import type { JsonValue } from "@mcp-native/core";
 
 import { A2uiParseError } from "../errors.js";
 import { formatAjvErrors, getA2uiV1EnvelopeValidator } from "./schemas.js";
+import {
+  isA2uiV1HostExtensionRegistry,
+  validateA2uiV1EnvelopeHostExtensions,
+} from "./host-extensions.js";
+import type { A2uiV1HostExtensionRegistry } from "./host-extensions.js";
 import type { A2uiV1Envelope, A2uiV1EnvelopeKind } from "./types.js";
 import {
   A2UI_V1_MAX_ENVELOPES,
@@ -19,18 +24,31 @@ const LIFECYCLE_KEYS = [
 
 const UNSUPPORTED_KEYS = ["callRendererFunction", "agentFunctionResponse"] as const;
 
+export interface A2uiV1EnvelopeParseOptions {
+  /** Opaque host-owned registry; omission keeps the exact pinned basic catalog only. */
+  readonly hostExtensions?: A2uiV1HostExtensionRegistry;
+}
+
 /**
  * Validates one official A2UI v1.0 agent-to-renderer lifecycle envelope.
  * Function-call envelopes are rejected in this milestone.
  */
-export function parseA2uiV1Envelope(input: string | unknown): A2uiV1Envelope {
-  return parseA2uiV1EnvelopeWithStringBudget(input, A2UI_V1_MAX_SOURCE_LENGTH);
+export function parseA2uiV1Envelope(
+  input: string | unknown,
+  options: A2uiV1EnvelopeParseOptions = {},
+): A2uiV1Envelope {
+  return parseA2uiV1EnvelopeWithStringBudget(
+    input,
+    A2UI_V1_MAX_SOURCE_LENGTH,
+    options.hostExtensions,
+  );
 }
 
 /** Internal snapshot path for state assembled from multiple individually bounded envelopes. */
 export function parseA2uiV1EnvelopeWithStringBudget(
   input: string | unknown,
   maxTotalStringCodeUnits: number,
+  hostExtensions?: A2uiV1HostExtensionRegistry,
 ): A2uiV1Envelope {
   let value: unknown = input;
 
@@ -85,7 +103,13 @@ export function parseA2uiV1EnvelopeWithStringBudget(
 
   const validate = getA2uiV1EnvelopeValidator();
   if (!validate(envelopeObject)) {
-    throw new A2uiParseError(`A2UI v1 schema validation failed: ${formatAjvErrors(validate)}`);
+    if (
+      hostExtensions === undefined ||
+      !isA2uiV1HostExtensionRegistry(hostExtensions) ||
+      !validateA2uiV1EnvelopeHostExtensions(envelopeObject, hostExtensions, validate)
+    ) {
+      throw new A2uiParseError(`A2UI v1 schema validation failed: ${formatAjvErrors(validate)}`);
+    }
   }
 
   return envelopeObject as A2uiV1Envelope;
@@ -95,7 +119,10 @@ export function parseA2uiV1EnvelopeWithStringBudget(
  * Parses a UTF-8 JSONL batch of agent-to-renderer envelopes.
  * Empty lines are skipped. Any invalid line rejects the entire batch.
  */
-export function parseA2uiV1Jsonl(text: string): readonly A2uiV1Envelope[] {
+export function parseA2uiV1Jsonl(
+  text: string,
+  options: A2uiV1EnvelopeParseOptions = {},
+): readonly A2uiV1Envelope[] {
   if (typeof text !== "string") {
     throw new A2uiParseError("Expected a string JSONL body");
   }
@@ -118,7 +145,7 @@ export function parseA2uiV1Jsonl(text: string): readonly A2uiV1Envelope[] {
       );
     }
     try {
-      envelopes.push(parseA2uiV1Envelope(line));
+      envelopes.push(parseA2uiV1Envelope(line, options));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid envelope";
       throw new A2uiParseError(`Invalid A2UI v1 JSONL at line ${index + 1}: ${message}`, {

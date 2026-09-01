@@ -1,0 +1,40 @@
+{
+  "version": "v1.0",
+  "createSurface": {
+    "surfaceId": "milestone-8",
+    "components": [
+      {
+        "id": "root",
+        "component": "Column",
+        "children": ["heading", "status", "video", "audio"]
+      },
+      {
+        "id": "heading",
+        "component": "Text",
+        "text": { "literalString": "Media and local Fabric extension" },
+        "variant": "body"
+      },
+      {
+        "id": "status",
+        "component": "io.github.pablospaniard/status-badge:StatusBadge",
+        "catalogId": "io.github.pablospaniard/status-badge@1",
+        "label": "Host extension ready",
+        "tone": "positive",
+        "accessibility": { "label": "Host extension status: ready" }
+      },
+      {
+        "id": "video",
+        "component": "Video",
+        "url": "https://media.example.com/fixture.mp4",
+        "posterUrl": "https://images.example.com/mcp-native-fixture.png",
+        "accessibility": { "label": "Policy-gated video fixture" }
+      },
+      {
+        "id": "audio",
+        "component": "AudioPlayer",
+        "url": "https://media.example.com/fixture.mp3",
+        "description": "Policy-gated audio fixture"
+      }
+    ]
+  }
+}

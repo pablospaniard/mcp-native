@@ -1,0 +1,39 @@
+{
+  "profileVersion": "1",
+  "extensionId": "io.github.pablospaniard/status-badge",
+  "catalogId": "io.github.pablospaniard/status-badge@1",
+  "catalogVersion": "1",
+  "schemaVersion": "1.0.0",
+  "componentName": "io.github.pablospaniard/status-badge:StatusBadge",
+  "propsSchema": {
+    "type": "object",
+    "properties": {
+      "label": { "type": "string", "minLength": 1, "maxLength": 64 },
+      "tone": { "enum": ["negative", "neutral", "positive"] }
+    },
+    "required": ["label", "tone"],
+    "additionalProperties": false
+  },
+  "events": [],
+  "platforms": ["android", "ios"],
+  "accessibility": {
+    "ownership": "host",
+    "requiresLabel": true,
+    "behavior": "Expose one static labeled status value."
+  },
+  "resourceNeeds": [],
+  "permissionNeeds": [],
+  "limits": {
+    "maximumInstances": 4,
+    "maximumEventPayloadValues": 8,
+    "maximumEventPayloadStringCodeUnits": 256,
+    "maximumPropsValues": 8,
+    "maximumPropsStringCodeUnits": 256,
+    "maximumUpdatesPerSurface": 16
+  },
+  "fallback": { "kind": "reject" },
+  "compatibility": {
+    "owner": "MCP Native maintainers",
+    "supportUrl": "https://github.com/pablospaniard/mcp-native"
+  }
+}

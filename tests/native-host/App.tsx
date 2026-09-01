@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Modal as ReactNativeModal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,10 +12,18 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-import { A2uiSurfaceStore, createA2uiV1BasicCatalogPolicy } from "@mcp-native/a2ui";
+import {
+  A2uiSurfaceStore,
+  createA2uiV1BasicCatalogPolicy,
+  createA2uiV1HostExtensionCapabilitySettings,
+  createA2uiV1HostExtensionRegistry,
+  negotiateA2uiV1HostExtensions,
+  parseA2uiV1HostExtensionManifest,
+} from "@mcp-native/a2ui";
 import {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
   A2uiV1NativeSurface,
+  createNativeHostExtensionRegistration,
   createNativeButtonAdapter,
   createNativeTextAdapter,
   createNativeTextInputAdapter,
@@ -22,6 +31,7 @@ import {
 } from "@mcp-native/react-native";
 import type {
   NativeButtonComponentProps,
+  NativeAudioPlayerComponentProps,
   NativeCheckBoxComponentProps,
   NativeChoicePickerComponentProps,
   NativeComponentCatalog,
@@ -34,18 +44,40 @@ import type {
   NativeTabsComponentProps,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
+  NativeVideoComponentProps,
   NativeViewComponentProps,
 } from "@mcp-native/react-native";
 
 import accessibilityFixture from "./accessibility-surface.json";
 import milestone7Fixture from "./milestone-7-surface.json";
+import milestone8Fixture from "./milestone-8-surface.json";
+import NativeStatusBadge from "./specs/McpNativeStatusBadgeNativeComponent";
+import statusBadgeManifestInput from "./status-badge-extension-manifest.json";
 
 type CatalogMode = "adapters" | "primitives" | "variants";
 
+const nativePlatform = Platform.OS === "android" ? "android" : "ios";
+const statusBadgeManifest = parseA2uiV1HostExtensionManifest(statusBadgeManifestInput);
+const hostExtensionSettings = createA2uiV1HostExtensionCapabilitySettings(
+  [statusBadgeManifest],
+  nativePlatform,
+);
+const hostExtensionNegotiation = negotiateA2uiV1HostExtensions(
+  hostExtensionSettings,
+  hostExtensionSettings,
+);
+const hostExtensionRegistry = createA2uiV1HostExtensionRegistry({
+  platform: nativePlatform,
+  manifests: [statusBadgeManifest],
+  negotiation: hostExtensionNegotiation,
+});
+
 const policy = createA2uiV1BasicCatalogPolicy({
   allowedComponentNames: A2UI_V1_NATIVE_COMPONENT_NAMES,
+  allowedHostExtensionComponentNames: [statusBadgeManifest.componentName],
   allowedEventNames: ["activate", "choose_item", "open_details", "submit"],
   allowedFunctionNames: ["@index", "email", "required"],
+  hostExtensions: hostExtensionRegistry,
 });
 
 const fixtureStore = new A2uiSurfaceStore();
@@ -69,6 +101,17 @@ function requireMilestone7Surface() {
   return surface;
 }
 const milestone7Surface = requireMilestone7Surface();
+
+const milestone8Store = new A2uiSurfaceStore({ hostExtensions: hostExtensionRegistry });
+milestone8Store.apply(milestone8Fixture);
+function requireMilestone8Surface() {
+  const surface = milestone8Store.get("milestone-8");
+  if (surface === undefined) {
+    throw new Error("The milestone 8 fixture did not create its declared surface");
+  }
+  return surface;
+}
+const milestone8Surface = requireMilestone8Surface();
 
 function PrimitiveView({ children, style, ...accessibility }: NativeViewComponentProps) {
   return (
@@ -129,6 +172,50 @@ function PrimitiveImage({ accessibilityLabel, fit, uri }: NativeImageComponentPr
       <ReactNativeText allowFontScaling style={styles.caption}>
         Network loading is intentionally disabled in this generated host. Install a loader that
         enforces the supplied resource policy before advertising Image in production.
+      </ReactNativeText>
+    </ReactNativeView>
+  );
+}
+
+function PrimitiveVideo({ accessibilityLabel, uri }: NativeVideoComponentProps) {
+  return (
+    <ReactNativeView
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="image"
+      accessible
+      style={styles.mediaPlaceholder}
+    >
+      <ReactNativeText allowFontScaling style={styles.imagePlaceholderTitle}>
+        Video host adapter fixture
+      </ReactNativeText>
+      <ReactNativeText allowFontScaling style={styles.caption}>
+        {uri}
+      </ReactNativeText>
+      <ReactNativeText allowFontScaling style={styles.caption}>
+        Playback is intentionally disabled. A production host must enforce the supplied media grant
+        before loading bytes or enabling a playback route.
+      </ReactNativeText>
+    </ReactNativeView>
+  );
+}
+
+function PrimitiveAudioPlayer({
+  accessibilityLabel,
+  description,
+  uri,
+}: NativeAudioPlayerComponentProps) {
+  return (
+    <ReactNativeView
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="summary"
+      accessible
+      style={styles.mediaPlaceholder}
+    >
+      <ReactNativeText allowFontScaling style={styles.imagePlaceholderTitle}>
+        Audio host adapter fixture
+      </ReactNativeText>
+      <ReactNativeText allowFontScaling style={styles.caption}>
+        {description ?? uri}
       </ReactNativeText>
     </ReactNativeView>
   );
@@ -334,12 +421,36 @@ const milestone7Components = {
   Modal: PrimitiveModal,
 } satisfies Partial<NativeComponentCatalog>;
 
+const statusBadgeRegistration = createNativeHostExtensionRegistration(
+  statusBadgeManifest,
+  NativeStatusBadge,
+  ({ accessibilityLabel, semanticProps }) => {
+    const { label, tone } = semanticProps;
+    if (typeof label !== "string" || typeof tone !== "string") {
+      throw new Error("The validated status-badge props do not match the local Fabric component");
+    }
+    return {
+      accessibilityLabel,
+      label,
+      style: styles.statusBadge,
+      tone,
+    };
+  },
+);
+
+const milestone8Components = {
+  AudioPlayer: PrimitiveAudioPlayer,
+  Video: PrimitiveVideo,
+  hostExtensions: [statusBadgeRegistration],
+} satisfies Partial<NativeComponentCatalog>;
+
 const primitiveCatalog: NativeComponentCatalog = {
   View: PrimitiveView,
   Text: PrimitiveText,
   Button: PrimitiveButton,
   TextInput: PrimitiveTextInput,
   ...milestone7Components,
+  ...milestone8Components,
 };
 
 interface DesignStackProps {
@@ -541,6 +652,7 @@ const adapterCatalog: NativeComponentCatalog = {
     }),
   ),
   ...milestone7Components,
+  ...milestone8Components,
 };
 
 function CardVariant(props: NativeViewComponentProps) {
@@ -753,6 +865,46 @@ export default function App() {
             policy={policy}
             surface={milestone7Surface}
           />
+          <ReactNativeText accessibilityRole="header" allowFontScaling style={styles.subheading}>
+            Milestone 8 policy and Fabric fixture
+          </ReactNativeText>
+          <A2uiV1NativeSurface
+            components={catalog}
+            hostExtensionPolicy={() => ({ permissions: [], resources: [] })}
+            imagePolicy={({ url }) =>
+              url === "https://images.example.com/mcp-native-fixture.png"
+                ? {
+                    allowedRedirectOrigins: [],
+                    cacheMode: "no-store",
+                    maximumBytes: 1_000_000,
+                    maximumDecodedHeight: 2_048,
+                    maximumDecodedPixels: 4_194_304,
+                    maximumDecodedWidth: 2_048,
+                    maximumRedirects: 0,
+                  }
+                : false
+            }
+            key={`milestone-8:${mode}`}
+            mediaPolicy={({ kind, sourceOrigin }) =>
+              sourceOrigin === "https://media.example.com"
+                ? {
+                    allowedMimeTypes: [kind === "video" ? "video/mp4" : "audio/mpeg"],
+                    allowedRedirectOrigins: [],
+                    allowsAutoplay: false,
+                    allowsBackgroundPlayback: false,
+                    allowsExternalRoutes: false,
+                    maximumBytes: 25_000_000,
+                    maximumRedirects: 0,
+                    requiresUserActivation: true,
+                    sourceOrigin,
+                  }
+                : false
+            }
+            now={() => new Date().toISOString()}
+            onAction={(envelope) => recordActionCallback(envelope.action.name)}
+            policy={policy}
+            surface={milestone8Surface}
+          />
         </ScrollView>
       </SafeAreaView>
     </SafeAreaProvider>
@@ -876,6 +1028,15 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalPanel: { backgroundColor: "#FFFFFF", borderRadius: 12, gap: 16, padding: 20, width: "100%" },
+  mediaPlaceholder: {
+    backgroundColor: "#F2F4F7",
+    borderColor: "#486581",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+    minHeight: 96,
+    padding: 12,
+  },
   primaryButton: { backgroundColor: "#174EA6", borderColor: "#174EA6" },
   primaryButtonLabel: { color: "#FFFFFF" },
   row: { flexDirection: "row", gap: 12 },
@@ -884,6 +1045,7 @@ const styles = StyleSheet.create({
   selectedModeButton: { backgroundColor: "#D9EAFD", borderWidth: 2 },
   selectedChoice: { backgroundColor: "#D9EAFD", borderWidth: 2 },
   status: { color: "#243B53", fontSize: 16, fontWeight: "600" },
+  statusBadge: { minHeight: 48, width: "100%" },
   subheading: { color: "#102A43", fontSize: 20, fontWeight: "700", marginTop: 8 },
   variantButton: {
     alignItems: "center",

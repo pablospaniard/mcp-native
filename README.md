@@ -18,7 +18,7 @@ language.
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-buy%20me%20a%20coffee-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/pablospaniard)
 
-[Architecture](docs/RFC-0001-architecture.md) · [Protocol support](docs/protocol-support.md) · [Standards status](docs/standards-compatibility.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
+[Architecture](docs/RFC-0001-architecture.md) · [Media and extensions](docs/media-and-host-extensions.md) · [Protocol support](docs/protocol-support.md) · [Standards status](docs/standards-compatibility.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
 
 </div>
 
@@ -102,8 +102,10 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                       |
 
 The packages are intentionally separated so the core runtime does not depend on the official SDK,
-React Native, or any single declarative UI protocol. Release `0.7.0` completes the non-media A2UI
-basic catalog and typed design-system boundary. Release `0.6.0` completed the Milestone 6 package
+React Native, or any single declarative UI protocol. The Milestone 8 implementation completes the
+pinned A2UI basic catalog with policy-gated media and adds exactly negotiated, locally compiled host
+extensions; package versions remain `0.7.0` until release preparation. Release `0.7.0` completed the
+non-media catalog and typed design-system boundary. Release `0.6.0` completed the Milestone 6 package
 boundary with issuer-bound protected-HTTP OAuth, explicit consent gates and persistent host-owned
 grants, bounded connection lifecycle coordination, actionable host states, redacted operations, and
 production integration guidance. Release `0.5.0` added the stable MCP Apps `2026-01-26` native
@@ -118,7 +120,8 @@ Install the runtime and UI APIs from the convenience package:
 npm install mcp-native react
 ```
 
-Add `react-native` when mounting native surfaces. It remains an optional peer because the host—not this package—selects the platform implementation.
+Add React Native `>=0.86.0 <1` when mounting native surfaces. It remains an optional peer because
+the host—not this package—selects the platform implementation.
 
 Or install only the layers your host needs:
 
@@ -155,13 +158,13 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Schema-validated v1 lifecycle JSONL with atomic, ordered create/update/delete surface state
 - Fail-closed parsing for every pinned renderer-to-agent message kind without implicit execution
 - A pre-render v1 validation boundary with explicit host component, event, and function allowlists plus bounded validation of literal `formatString` sources
-- A fail-closed adapter for every non-media basic-catalog component into the trusted native render plan
+- A fail-closed adapter for every basic-catalog component into the trusted native render plan
 - Bounded dynamic `List` template expansion with relative bindings, local edits, and `@index`
 - Bounded `formatString` interpolation over validated bindings, JSON values, and nested supported functions
 - Host-localized `formatNumber` and `formatCurrency` execution with bounded, validated options
 - Bounded `required`, `regex`, `length`, `numeric`, and `email` validation with renderer-side field and button checks
 - Host-localized CLDR plural selection and strict `and`, `or`, and `not` evaluation
-- A mounted v1 native surface covering every non-media basic-catalog component, with typed renderer-local bindings, dispatch-time event resolution, and schema-validated renderer-to-agent action envelopes
+- A mounted v1 native surface covering every basic-catalog component, with typed renderer-local bindings, dispatch-time event resolution, schema-validated renderer-to-agent action envelopes, and deny-by-default image/media grants
 - Typed `tools/call` action routing with a fail-closed host policy
 - Consent profiles across core dispatch/direct calls, MCP Apps callbacks, and A2UI delivery, with bounded expiring/revocable grants
 - Bounded SDK connection lifecycle coordination, actionable host states, and data-free operational events
@@ -169,8 +172,10 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Strict resolution of `application/a2ui+json` resource links from real tool results
 - Strict parsing of a deliberately small declarative UI subset
 - Conversion from a validated surface to a trusted native render plan
-- Mounting through a required four-primitive base plus optional host-provided non-media components
+- Mounting through a required four-primitive base plus optional host-provided components
 - Typed adapters from trusted semantic props into locally bundled design-system components
+- Exact namespaced host-extension manifests, negotiation, opaque registries, local Fabric
+  registration, capability grants, and schema-valid events with inline catalogs disabled
 - React hooks for memoized render plans and safely observed asynchronous action dispatch
 - Accessibility labels and controlled text-input binding events selected at the renderer boundary
 - Fail-closed behavior for unknown nodes, actions, protocol versions, and WebView MIME types
@@ -183,11 +188,11 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
 This is a foundation, not a complete MCP or A2UI implementation. The v1 native adapter supports
-every non-media basic-catalog component, typed absolute and dynamic-list-relative bindings, bounded
+every basic-catalog component, typed absolute and dynamic-list-relative bindings, bounded
 formatting and validation functions, pure boolean functions, `@index`, action events returned to a
-host callback, required host image grants, and press-time host-policy-gated HTTP(S) `openUrl`.
-`Video`, `AudioPlayer`, agent-initiated renderer functions, and behavior outside the automated native
-fixtures remain unclaimed. Release `0.6.0` includes policy gates at all
+host callback, required host image/media grants, press-time host-policy-gated HTTP(S) `openUrl`, and
+exactly negotiated local host extensions. Agent-initiated renderer functions and behavior outside
+the automated native fixtures remain unclaimed. Release `0.6.0` includes policy gates at all
 current action boundaries, persistent expiring/revocable consent grants and OAuth scope history,
 bounded connection lifecycle coordination, actionable host states, redacted operational events, and
 a [production host checklist](docs/host-integration-checklist.md). Separate Expo Go integration PoCs
@@ -498,10 +503,12 @@ package gates.
 
 The detailed [standards-first roadmap](docs/roadmap.md) records retained architecture, milestone exit criteria, and deferred optional extensions.
 
-Release `0.7.0` completes the non-media catalog and design-system boundary. The remaining path is:
+The Milestone 8 implementation completes the basic catalog and compiled-extension boundary. The
+remaining release path is:
 
 - `0.7.0`: released—the non-media pinned A2UI basic catalog and closed design-system mappings;
-- `0.8.0`: policy-gated media and namespaced, schema-validated, locally compiled host extensions;
+- `0.8.0`: implementation complete—policy-gated media and namespaced, schema-validated, locally
+  compiled host extensions; release preparation remains;
 - `0.9.0`: host-owned mixed native/WebView composition, a production-shaped reference host, and a
   frozen `1.0.0` release-candidate API;
 - `1.0.0`: independent review, full documented-profile gates, stable compatibility policy, complete
@@ -509,8 +516,8 @@ Release `0.7.0` completes the non-media catalog and design-system boundary. The 
 
 The `1.0.0` scope remains a React Native host library. It does not expose server-selected React
 Native packages, native classes, arbitrary props or styles, or direct SwiftUI/Compose renderers.
-Applications may use locally compiled Fabric components through the planned closed host-extension
-boundary. By `0.9.0`, native A2UI and isolated MCP Apps WebView regions may share a host screen, but
+Applications may use locally compiled Fabric components through the closed host-extension boundary.
+By `0.9.0`, native A2UI and isolated MCP Apps WebView regions may share a host screen, but
 neither protocol will configure or escape the other's policy boundary.
 
 After `1.0.0`, development continues with first-class SwiftUI and Jetpack Compose renderers and a
@@ -545,9 +552,13 @@ post-stable deliverables.
 - [x] Derive closed native text/button semantics and preserve text scaling at the host boundary
 - [x] Complete all non-media basic-catalog components with typed bindings and accessibility semantics
 - [x] Require bounded image grants, pinned icon mappings, and exact installed-subset advertising
+- [x] Add policy-gated `Video` and `AudioPlayer` with cumulative media budgets
+- [x] Add exact namespaced host-extension manifests, negotiation, local Fabric registration, and
+      UIKit/Android View fixtures
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
-- [x] Generate pinned RN 0.87/0.86 hosts and exercise automated bundle and host-boundary checks
+- [x] Generate pinned latest/minimum RN 0.87.1/0.86.0 hosts and exercise automated bundle and
+      host-boundary checks
 - [x] Complete the documented real-platform accessibility behavior
 - [x] Execute the supported iOS/Android fixture and accessibility matrix in generated real hosts
 - [x] Implement stable MCP Apps `2026-01-26` discovery, native sandboxing, and bridge compatibility

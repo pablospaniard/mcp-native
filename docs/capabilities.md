@@ -34,22 +34,30 @@ An end-to-end flow is:
 
 ## Current native catalog
 
-The React Native renderer covers every non-media component in the pinned A2UI v1.0 Candidate basic
-catalog:
+The React Native renderer covers every component in the pinned A2UI v1.0 Candidate basic catalog:
 
 - layout and content: `Row`, `Column`, `List`, `Card`, `Text`, `Image`, `Icon`, `Divider`;
 - controls: `Button`, `TextField`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`;
-- composition: `Tabs`, `Modal`.
+- composition: `Tabs`, `Modal`;
+- media: `Video`, `AudioPlayer`.
 
 The renderer also supports bounded dynamic lists, formatting, validation, absolute and repeated-item
 bindings, local form state, declared actions, explicit accessibility data, and a policy-gated local
-HTTP(S) `openUrl` action. `Video` and `AudioPlayer` are scheduled for `0.8.0`.
+HTTP(S) `openUrl` action.
 
 Support is not automatic merely because a name appears above. A host advertises only the exact
 subset for which it installed complete components and policies. Missing optional slots fail closed.
 An image-capable host must additionally provide a loader that enforces the exact origin, redirect,
 byte, decoded-size, and cache grant supplied with every request. The renderer also caps the complete
 surface at 64 images, 100 MiB of granted transfer bytes, and 268,435,456 granted decoded pixels.
+A media-capable host must provide a player and policy that enforce the exact origin, redirects,
+MIME types, transfer size, autoplay, background playback, external-route, and user-activation grant.
+The renderer caps a surface at 16 media instances and 2 GiB of total granted transfer bytes.
+
+Applications may also advertise namespaced, versioned semantic host extensions that were compiled
+and registered locally. Their manifests, props, events, platform support, accessibility, needs, and
+limits are validated exactly; inline catalogs and server-selected native code remain disabled. See
+the [media and host-extension guide](media-and-host-extensions.md).
 
 ## Components, libraries, and styling
 
@@ -90,7 +98,8 @@ will not be able to create, configure, navigate, or bridge a WebView from A2UI.
 
 ## What remains before `1.0.0`
 
-- `0.8.0`: policy-gated audio/video and a versioned model for locally compiled native extensions;
+- `0.8.0`: implementation complete—policy-gated audio/video and a versioned model for locally
+  compiled native extensions; release packaging remains;
 - `0.9.0`: mixed native/WebView hosting, production-shaped reference host, and proposed API freeze;
 - `1.0.0`: compatibility, migration, conformance, release, and long-term support gates.
 

@@ -226,14 +226,16 @@ test("installed host slots determine the exact advertisable native component sub
   ]);
   assert.deepEqual(
     getA2uiV1NativeSupportedComponentNames(milestone7Components),
-    A2UI_V1_NATIVE_COMPONENT_NAMES.filter((name) => name !== "Image"),
+    A2UI_V1_NATIVE_COMPONENT_NAMES.filter(
+      (name) => name !== "AudioPlayer" && name !== "Image" && name !== "Video",
+    ),
   );
   assert.deepEqual(
     getA2uiV1NativeSupportedComponentNames(milestone7Components, {
       imagePolicy: ({ url }) =>
         url.startsWith("https://images.example.com/") ? imageGrant : false,
     }),
-    A2UI_V1_NATIVE_COMPONENT_NAMES,
+    A2UI_V1_NATIVE_COMPONENT_NAMES.filter((name) => name !== "AudioPlayer" && name !== "Video"),
   );
 });
 
