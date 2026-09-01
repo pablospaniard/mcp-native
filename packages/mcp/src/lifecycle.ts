@@ -230,11 +230,12 @@ export class McpNativeConnectionLifecycle {
     if (typeof online !== "boolean") {
       throw new TypeError("Online state must be a boolean");
     }
-    return this.#serializeTransition(async () => {
+    let connectionRun: Promise<void> | undefined;
+    const transition = this.#serializeTransition(async () => {
       if (this.#shutdown || this.#online === online) return;
       this.#online = online;
       if (online) {
-        await this.start();
+        connectionRun = this.start();
         return;
       }
       const run = this.#run;
@@ -244,6 +245,7 @@ export class McpNativeConnectionLifecycle {
       await run;
       this.#setState({ kind: "disconnected", reason: "offline" });
     });
+    return transition.then(() => connectionRun);
   }
 
   shutdown(): Promise<void> {

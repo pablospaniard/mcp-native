@@ -1260,12 +1260,21 @@ test("OAuth authorization rejects substituted stored token issuers", async () =>
 });
 
 test("OAuth callback completion rejects substituted pending authorization records", async () => {
+  const oversizedScopes = Array(65).fill("mcp:read");
+  Object.defineProperty(oversizedScopes, 0, {
+    enumerable: true,
+    get() {
+      throw new Error("oversized pending scopes must be rejected before traversal");
+    },
+  });
   await Promise.all(
     [
       { resource: "https://evil.example/mcp", issuer: ISSUER, scopes: ["mcp:read"] },
       { resource: SERVER_URL, issuer: "https://evil.example.com", scopes: ["mcp:read"] },
       { resource: SERVER_URL, issuer: ISSUER, scopes: ["mcp:read", "mcp:read"] },
       { resource: SERVER_URL, issuer: ISSUER, scopes: ["bad scope"] },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: oversizedScopes },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: Array(64).fill("x".repeat(256)) },
       { resource: SERVER_URL, issuer: ISSUER, scopes: [], executable: true },
       null,
     ].map(async (record) => {

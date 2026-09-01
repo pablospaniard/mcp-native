@@ -954,13 +954,11 @@ function parseScopeRecord(
     !Object.hasOwn(record, "scopes") ||
     typeof record.resource !== "string" ||
     record.resource !== expectedResource ||
-    typeof record.issuer !== "string" ||
-    !Array.isArray(record.scopes) ||
-    Object.keys(record.scopes).length !== record.scopes.length ||
-    record.scopes.some((scope) => typeof scope !== "string")
+    typeof record.issuer !== "string"
   ) {
     throw new McpNativeOAuthError("invalid-storage", "Stored OAuth scope record is invalid");
   }
+  const storedScopes = parseStoredScopeArray(record.scopes, "Stored OAuth scopes");
   let issuer: string;
   try {
     issuer = parseIssuer(record.issuer, "stored scope issuer");
@@ -973,7 +971,6 @@ function parseScopeRecord(
     requireMatchingIssuer(issuer, expectedIssuer, "scope history");
   }
   let scopes: readonly string[];
-  const storedScopes = record.scopes as string[];
   try {
     scopes = parseScope(storedScopes.join(" "));
   } catch (error) {
@@ -1018,16 +1015,17 @@ function parsePendingAuthorizationRecord(
     !Object.hasOwn(record, "scopes") ||
     (keys.length === 3 && !Object.hasOwn(record, "issuer")) ||
     typeof record.resource !== "string" ||
-    record.resource !== expectedResource ||
-    !Array.isArray(record.scopes) ||
-    Object.keys(record.scopes).length !== record.scopes.length ||
-    record.scopes.some((scope) => typeof scope !== "string")
+    record.resource !== expectedResource
   ) {
     throw new McpNativeOAuthError(
       "invalid-storage",
       "Stored pending OAuth authorization record is invalid",
     );
   }
+  const storedScopes = parseStoredScopeArray(
+    record.scopes,
+    "Stored pending OAuth authorization scopes",
+  );
   let issuer: string | undefined;
   if (Object.hasOwn(record, "issuer")) {
     try {
@@ -1042,7 +1040,6 @@ function parsePendingAuthorizationRecord(
     }
   }
   let scopes: readonly string[];
-  const storedScopes = record.scopes as string[];
   try {
     scopes = parseScope(storedScopes.join(" "));
   } catch (error) {
@@ -1066,6 +1063,57 @@ function parsePendingAuthorizationRecord(
     ...(issuer === undefined ? {} : { issuer }),
     scopes: Object.freeze([...scopes]),
   });
+}
+
+function parseStoredScopeArray(value: unknown, label: string): readonly string[] {
+  if (!Array.isArray(value) || value.length > MAX_SCOPE_TOKENS) {
+    throw new McpNativeOAuthError(
+      "invalid-storage",
+      `${label} are invalid or exceed the supported limits`,
+    );
+  }
+  const scopes: string[] = [];
+  let totalCodeUnits = Math.max(0, value.length - 1);
+  for (let index = 0; index < value.length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, index);
+    if (
+      descriptor === undefined ||
+      !("value" in descriptor) ||
+      typeof descriptor.value !== "string" ||
+      descriptor.value.length > 256
+    ) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `${label} are invalid or exceed the supported limits`,
+      );
+    }
+    totalCodeUnits += descriptor.value.length;
+    if (totalCodeUnits > MAX_SCOPE_CODE_UNITS) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `${label} are invalid or exceed the supported limits`,
+      );
+    }
+    scopes.push(descriptor.value);
+  }
+  let enumerableProperties = 0;
+  for (const key in value) {
+    if (!Object.hasOwn(value, key)) continue;
+    enumerableProperties += 1;
+    if (enumerableProperties > value.length) {
+      throw new McpNativeOAuthError(
+        "invalid-storage",
+        `${label} are invalid or exceed the supported limits`,
+      );
+    }
+  }
+  if (enumerableProperties !== value.length) {
+    throw new McpNativeOAuthError(
+      "invalid-storage",
+      `${label} are invalid or exceed the supported limits`,
+    );
+  }
+  return scopes;
 }
 
 function parseProtectedServerUrl(value: string | URL): URL {
