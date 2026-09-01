@@ -6,6 +6,12 @@ their minor release line.
 
 ## Unreleased
 
+## 0.7.0 - 2026-09-01
+
+Completes Milestone 7 with every non-media component in the pinned A2UI basic catalog, typed
+design-system boundaries, exact installed-capability discovery, bounded image authorization, typed
+renderer-local state, generated iOS/Android host coverage, and human-oriented capability guidance.
+
 ### Added
 
 - Trusted-plan and mounted React Native support for the nine remaining non-media components in the

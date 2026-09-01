@@ -2,7 +2,7 @@
 
 This roadmap replaces feature-first growth with standards-first milestones. MCP Native is still pre-1.0, so protocol-facing APIs may change rather than preserving an incompatible proof-of-concept wire format.
 
-## Path from `0.6.0` to `1.0.0`
+## Path from `0.7.0` to `1.0.0`
 
 The `1.0.0` target is a production-ready React Native host library, not a universal native UI
 runtime. It will render the pinned A2UI basic catalog through components compiled into the host
@@ -250,7 +250,7 @@ gates. Expo Go PoC status is reported separately and is not an exit criterion.
 
 ## Milestone 7: non-media A2UI catalog and design systems (`0.7.0`)
 
-Status: complete in the `0.7.0` package candidate.
+Status: released in `0.7.0`.
 
 - [x] Implement trusted render-plan and React Native mappings for `Image`, `Icon`, `Divider`,
       `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, and `Modal` from the pinned basic
@@ -276,7 +276,7 @@ Status: complete in the `0.7.0` package candidate.
 - [x] Update the A2UI conformance profile, standards matrix, human-oriented capability guide,
       package READMEs, migration notes, and changelog with exact supported and excluded fields.
 
-Exit criterion: met by the `0.7.0` package candidate. A host can render every non-media component in the pinned A2UI basic catalog with
+Exit criterion: met by the `0.7.0` release. A host can render every non-media component in the pinned A2UI basic catalog with
 closed props and documented native behavior, while component implementations and visual design
 remain entirely application-owned.
 
