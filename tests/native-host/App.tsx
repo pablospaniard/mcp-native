@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
+  Modal as ReactNativeModal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,19 +22,29 @@ import {
 } from "@mcp-native/react-native";
 import type {
   NativeButtonComponentProps,
+  NativeCheckBoxComponentProps,
+  NativeChoicePickerComponentProps,
   NativeComponentCatalog,
+  NativeDateTimeInputComponentProps,
+  NativeDividerComponentProps,
+  NativeIconComponentProps,
+  NativeImageComponentProps,
+  NativeModalComponentProps,
+  NativeSliderComponentProps,
+  NativeTabsComponentProps,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
   NativeViewComponentProps,
 } from "@mcp-native/react-native";
 
 import accessibilityFixture from "./accessibility-surface.json";
+import milestone7Fixture from "./milestone-7-surface.json";
 
 type CatalogMode = "adapters" | "primitives" | "variants";
 
 const policy = createA2uiV1BasicCatalogPolicy({
   allowedComponentNames: A2UI_V1_NATIVE_COMPONENT_NAMES,
-  allowedEventNames: ["activate", "choose_item", "submit"],
+  allowedEventNames: ["activate", "choose_item", "open_details", "submit"],
   allowedFunctionNames: ["@index", "email", "required"],
 });
 
@@ -47,6 +58,17 @@ function requireFixtureSurface() {
   return surface;
 }
 const fixtureSurface = requireFixtureSurface();
+
+const milestone7Store = new A2uiSurfaceStore();
+milestone7Store.apply(milestone7Fixture);
+function requireMilestone7Surface() {
+  const surface = milestone7Store.get("milestone-7");
+  if (surface === undefined) {
+    throw new Error("The milestone 7 fixture did not create its declared surface");
+  }
+  return surface;
+}
+const milestone7Surface = requireMilestone7Surface();
 
 function PrimitiveView({ children, style, ...accessibility }: NativeViewComponentProps) {
   return (
@@ -90,11 +112,234 @@ function PrimitiveTextInput({
   );
 }
 
+function PrimitiveImage({ accessibilityLabel, fit, uri }: NativeImageComponentProps) {
+  return (
+    <ReactNativeView
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="image"
+      accessible
+      style={styles.imagePlaceholder}
+    >
+      <ReactNativeText allowFontScaling style={styles.imagePlaceholderTitle}>
+        Remote image policy fixture
+      </ReactNativeText>
+      <ReactNativeText allowFontScaling style={styles.caption}>
+        {`${fit}: ${uri}`}
+      </ReactNativeText>
+      <ReactNativeText allowFontScaling style={styles.caption}>
+        Network loading is intentionally disabled in this generated host. Install a loader that
+        enforces the supplied resource policy before advertising Image in production.
+      </ReactNativeText>
+    </ReactNativeView>
+  );
+}
+
+function PrimitiveIcon({ accessibilityLabel, name }: NativeIconComponentProps) {
+  return (
+    <ReactNativeText
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="image"
+      accessible
+      allowFontScaling
+      style={styles.icon}
+    >
+      {`[${name}]`}
+    </ReactNativeText>
+  );
+}
+
+function PrimitiveDivider({ axis }: NativeDividerComponentProps) {
+  return (
+    <ReactNativeView
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={axis === "vertical" ? styles.verticalDivider : styles.horizontalDivider}
+    />
+  );
+}
+
+function PrimitiveCheckBox({ label, onValueChange, value }: NativeCheckBoxComponentProps) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: value }}
+      onPress={() => onValueChange?.(!value)}
+      style={({ pressed }) => [styles.choice, pressed && styles.buttonPressed]}
+    >
+      <ReactNativeText allowFontScaling style={styles.body}>
+        {`${value ? "☑" : "☐"} ${label}`}
+      </ReactNativeText>
+    </Pressable>
+  );
+}
+
+function PrimitiveChoicePicker({
+  label,
+  onValueChange,
+  options,
+  value,
+  variant,
+}: NativeChoicePickerComponentProps) {
+  return (
+    <ReactNativeView style={styles.controlGroup}>
+      {label === undefined ? null : (
+        <ReactNativeText allowFontScaling style={styles.controlLabel}>
+          {label}
+        </ReactNativeText>
+      )}
+      <ReactNativeView style={styles.choiceRow}>
+        {options.map((option) => {
+          const selected = value.includes(option.value);
+          return (
+            <Pressable
+              accessibilityLabel={option.label}
+              accessibilityRole={variant === "mutuallyExclusive" ? "radio" : "checkbox"}
+              accessibilityState={{ checked: selected }}
+              key={option.value}
+              onPress={() => {
+                const next =
+                  variant === "mutuallyExclusive"
+                    ? [option.value]
+                    : selected
+                      ? value.filter((candidate) => candidate !== option.value)
+                      : [...value, option.value];
+                onValueChange?.(next);
+              }}
+              style={[styles.choice, selected && styles.selectedChoice]}
+            >
+              <ReactNativeText allowFontScaling style={styles.body}>
+                {option.label}
+              </ReactNativeText>
+            </Pressable>
+          );
+        })}
+      </ReactNativeView>
+    </ReactNativeView>
+  );
+}
+
+function PrimitiveSlider({
+  accessibilityLabel,
+  maximumValue,
+  minimumValue,
+  onValueChange,
+  step = 1,
+  value,
+}: NativeSliderComponentProps) {
+  const update = (direction: -1 | 1) =>
+    onValueChange?.(Math.min(maximumValue, Math.max(minimumValue, value + direction * step)));
+  return (
+    <Pressable
+      accessibilityActions={[{ name: "decrement" }, { name: "increment" }]}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="adjustable"
+      accessibilityValue={{ max: maximumValue, min: minimumValue, now: value }}
+      onAccessibilityAction={(event) =>
+        update(event.nativeEvent.actionName === "decrement" ? -1 : 1)
+      }
+      onPress={() => update(1)}
+      style={styles.choice}
+    >
+      <ReactNativeText allowFontScaling style={styles.body}>
+        {`${accessibilityLabel}: ${value}. Activate to increase.`}
+      </ReactNativeText>
+    </Pressable>
+  );
+}
+
+function PrimitiveDateTimeInput({
+  accessibilityLabel,
+  onValueChange,
+  value,
+}: NativeDateTimeInputComponentProps) {
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      onPress={() => onValueChange?.(value === "2026-09-01" ? "2026-09-02" : "2026-09-01")}
+      style={styles.choice}
+    >
+      <ReactNativeText allowFontScaling style={styles.body}>
+        {`${accessibilityLabel}: ${value}. Activate to change the fixture date.`}
+      </ReactNativeText>
+    </Pressable>
+  );
+}
+
+function PrimitiveTabs({ onSelect, selectedIndex, tabs }: NativeTabsComponentProps) {
+  return (
+    <ReactNativeView style={styles.controlGroup}>
+      <ReactNativeView style={styles.choiceRow}>
+        {tabs.map((tab, index) => (
+          <Pressable
+            accessibilityLabel={tab.title}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: index === selectedIndex }}
+            key={`${index}:${tab.title}`}
+            onPress={() => onSelect(index)}
+            style={[styles.choice, index === selectedIndex && styles.selectedChoice]}
+          >
+            <ReactNativeText allowFontScaling style={styles.body}>
+              {tab.title}
+            </ReactNativeText>
+          </Pressable>
+        ))}
+      </ReactNativeView>
+      {tabs[selectedIndex]?.content}
+    </ReactNativeView>
+  );
+}
+
+function PrimitiveModal({ content, onRequestClose, open, trigger }: NativeModalComponentProps) {
+  return (
+    <>
+      {trigger}
+      <ReactNativeModal
+        accessibilityViewIsModal
+        animationType="fade"
+        onRequestClose={onRequestClose}
+        transparent
+        visible={open}
+      >
+        <ReactNativeView style={styles.modalBackdrop}>
+          <ReactNativeView style={styles.modalPanel}>
+            {content}
+            <Pressable
+              accessibilityLabel="Close modal"
+              accessibilityRole="button"
+              onPress={onRequestClose}
+              style={styles.button}
+            >
+              <ReactNativeText allowFontScaling style={styles.buttonLabel}>
+                Close
+              </ReactNativeText>
+            </Pressable>
+          </ReactNativeView>
+        </ReactNativeView>
+      </ReactNativeModal>
+    </>
+  );
+}
+
+const milestone7Components = {
+  Image: PrimitiveImage,
+  Icon: PrimitiveIcon,
+  Divider: PrimitiveDivider,
+  CheckBox: PrimitiveCheckBox,
+  ChoicePicker: PrimitiveChoicePicker,
+  Slider: PrimitiveSlider,
+  DateTimeInput: PrimitiveDateTimeInput,
+  Tabs: PrimitiveTabs,
+  Modal: PrimitiveModal,
+} satisfies Partial<NativeComponentCatalog>;
+
 const primitiveCatalog: NativeComponentCatalog = {
   View: PrimitiveView,
   Text: PrimitiveText,
   Button: PrimitiveButton,
   TextInput: PrimitiveTextInput,
+  ...milestone7Components,
 };
 
 interface DesignStackProps {
@@ -264,7 +509,7 @@ const adapterCatalog: NativeComponentCatalog = {
     ({ accessibilityHint, accessibilityLabel, accessibilityState, disabled, onPress, title }) => ({
       assistiveHint: accessibilityHint,
       assistiveLabel: accessibilityLabel,
-      disabled: disabled === true || accessibilityState.disabled,
+      disabled: disabled === true || accessibilityState.disabled === true,
       onActivate: onPress,
       title,
     }),
@@ -295,6 +540,7 @@ const adapterCatalog: NativeComponentCatalog = {
       value,
     }),
   ),
+  ...milestone7Components,
 };
 
 function CardVariant(props: NativeViewComponentProps) {
@@ -424,7 +670,7 @@ export default function App() {
       <SafeAreaView edges={["top", "right", "bottom", "left"]} style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
           <ReactNativeText accessibilityRole="header" allowFontScaling style={styles.heading}>
-            MCP Native 0.4.0 platform fixture
+            MCP Native Milestone 7 platform fixture
           </ReactNativeText>
           <ReactNativeText allowFontScaling style={styles.instructions}>
             Run every catalog path with screen-reader navigation, larger text, both orientations,
@@ -480,6 +726,33 @@ export default function App() {
             policy={policy}
             surface={fixtureSurface}
           />
+          <ReactNativeText accessibilityRole="header" allowFontScaling style={styles.subheading}>
+            Complete non-media catalog
+          </ReactNativeText>
+          <A2uiV1NativeSurface
+            components={catalog}
+            imagePolicy={({ url }) =>
+              url === "https://images.example.com/mcp-native-fixture.png"
+                ? {
+                    allowedRedirectOrigins: [],
+                    cacheMode: "no-store",
+                    maximumBytes: 1_000_000,
+                    maximumDecodedHeight: 2_048,
+                    maximumDecodedPixels: 4_194_304,
+                    maximumDecodedWidth: 2_048,
+                    maximumRedirects: 0,
+                  }
+                : false
+            }
+            key={`milestone-7:${mode}`}
+            now={() => new Date().toISOString()}
+            onAction={(envelope) => recordActionCallback(envelope.action.name)}
+            onDataModelChange={() =>
+              setStatus("Renderer-local milestone 7 data changed without an agent action")
+            }
+            policy={policy}
+            surface={milestone7Surface}
+          />
         </ScrollView>
       </SafeAreaView>
     </SafeAreaProvider>
@@ -533,6 +806,17 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   column: { gap: 12 },
+  choice: {
+    borderColor: "#486581",
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  choiceRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  controlGroup: { gap: 8 },
+  controlLabel: { color: "#102A43", fontSize: 17, fontWeight: "600" },
   counterButton: {
     alignItems: "center",
     borderColor: "#486581",
@@ -557,6 +841,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   instructions: { color: "#243B53", fontSize: 17 },
+  horizontalDivider: { backgroundColor: "#9FB3C8", height: 1, width: "100%" },
+  icon: { color: "#174EA6", fontSize: 18, fontWeight: "700" },
+  imagePlaceholder: {
+    backgroundColor: "#E8EEF8",
+    borderColor: "#486581",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+    minHeight: 120,
+    padding: 12,
+  },
+  imagePlaceholderTitle: { color: "#102A43", fontSize: 17, fontWeight: "700" },
   invalidInput: { borderColor: "#B42318", borderWidth: 2 },
   list: { gap: 16 },
   modeButton: {
@@ -572,13 +868,23 @@ const styles = StyleSheet.create({
   modeButtonLabel: { color: "#102A43", fontSize: 16 },
   modeSelector: { flexDirection: "row", gap: 8 },
   multilineInput: { minHeight: 96, textAlignVertical: "top" },
+  modalBackdrop: {
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalPanel: { backgroundColor: "#FFFFFF", borderRadius: 12, gap: 16, padding: 20, width: "100%" },
   primaryButton: { backgroundColor: "#174EA6", borderColor: "#174EA6" },
   primaryButtonLabel: { color: "#FFFFFF" },
   row: { flexDirection: "row", gap: 12 },
   safeArea: { backgroundColor: "#F5F7FA", flex: 1 },
   screen: { backgroundColor: "#F5F7FA", gap: 16, padding: 20 },
   selectedModeButton: { backgroundColor: "#D9EAFD", borderWidth: 2 },
+  selectedChoice: { backgroundColor: "#D9EAFD", borderWidth: 2 },
   status: { color: "#243B53", fontSize: 16, fontWeight: "600" },
+  subheading: { color: "#102A43", fontSize: 20, fontWeight: "700", marginTop: 8 },
   variantButton: {
     alignItems: "center",
     borderColor: "#174EA6",
@@ -599,4 +905,5 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 12,
   },
+  verticalDivider: { alignSelf: "stretch", backgroundColor: "#9FB3C8", width: 1 },
 });

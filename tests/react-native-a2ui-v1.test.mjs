@@ -1060,7 +1060,7 @@ test("mounted v1 interactions reject malformed local values and timestamps", asy
   });
 
   const input = root.container.queryAll((element) => element.type === "TextInput")[0];
-  assert.throws(() => input.props.onChangeText(42), /string renderer binding value/);
+  assert.throws(() => input.props.onChangeText(42), /must preserve its string.*value type/);
   const button = root.container.queryAll((element) => element.type === "Button")[0];
   assert.throws(
     () => button.props.onPress(),
@@ -2797,7 +2797,7 @@ test("the v1 native adapter rejects unsupported renderer semantics", async (t) =
     {
       name: "unsupported component",
       surface: createSurface([
-        { id: "root", component: "Image", url: "https://example.com/a.png" },
+        { id: "root", component: "Video", url: "https://example.com/a.mp4" },
       ]),
       policy: createA2uiV1BasicCatalogPolicy({
         allowedComponentNames: A2UI_V1_BASIC_COMPONENT_NAMES,

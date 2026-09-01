@@ -29,10 +29,10 @@ Add `react-native` when mounting native surfaces. The package is ESM-only and in
 
 ## A2UI v1 Candidate path
 
-Version `0.4.0` re-exports the APIs needed to negotiate the project-owned binding, resolve official
+The package re-exports the APIs needed to negotiate the project-owned binding, resolve official
 v1 JSONL lifecycle envelopes, maintain bounded ordered surface state, apply explicit host
 component/event/function policies, and mount the supported native subset through
-`A2uiV1NativeSurface`. The mounted surface keeps string edits renderer-local and returns validated
+`A2uiV1NativeSurface`. The mounted surface keeps typed input edits renderer-local and returns validated
 official action envelopes to a host callback; it never selects a return transport. See the
 [complete v1 host-flow example](https://github.com/pablospaniard/mcp-native#a2ui-v1-candidate-host-flow)
 and the [`@mcp-native/react-native` adapter documentation](https://github.com/pablospaniard/mcp-native/tree/main/packages/react-native#a2ui-v1-render-plan-adapter).
@@ -127,17 +127,16 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - host-localized A2UI v1 plural selection and pure boolean functions;
 - bounded A2UI v1 validation functions and renderer-side field and button checks;
 - press-time, host-policy-gated A2UI v1 HTTP(S) `openUrl` actions;
-- trusted render plans for `View`, `Text`, `Button`, and `TextInput`, with closed host-owned
-  variants for supported A2UI structure and style hints;
-- mounting through host-provided components with action and text-binding event translation;
-- typed adapters from trusted native primitives into locally bundled design-system components;
+- trusted render plans for every non-media basic-catalog component, with closed host-owned variants;
+- mounting through host-provided components with action and typed-binding event translation;
+- typed adapters from trusted non-media semantics into locally bundled design-system components;
 - memoized render-plan and safely observed asynchronous action-dispatch hooks;
 - policy-gated inline and remote HTML document descriptions;
 - MCP `2026-07-28` tool/resource field preservation through the official SDK adapter;
 - pinned current-protocol integration coverage through the SDK HTTP handler/fetch path;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-The supported A2UI v1 native subset now includes renderer-local absolute and dynamic-list-relative string bindings, bounded `formatString`, host-localized number, currency, date, and plural formatting, validation functions and supported renderer checks, pure boolean functions, template-instance action resolution, `@index` with offsets, host-callback action envelopes, policy-gated HTTP(S) `openUrl`, and closed catalog-capability metadata with inline catalogs disabled. Release `0.6.0` adds bounded consent over explicit host-authored risk, capability, sensitive-data, and external-sharing descriptors, plus expiring and revocable host-owned grants. Direct `callTool()` operations can use a separate trusted-tool policy; MCP Apps callbacks and A2UI v1 delivery use their own explicit host gates. The separately installed `@mcp-native/mcp` adapter provides issuer-bound interactive OAuth for protected HTTP, durable scope-upgrade history, bounded lifecycle coordination, actionable states, redacted operational events, and dependency-neutral platform reference adapters. It passes every scored pinned `2026-07-28` authorization client scenario. Complete MCP and A2UI conformance remain explicitly out of scope; full streaming host integration, transport placement for A2UI capability objects, and the separate non-blocking Expo Go integration PoCs remain future work. Follow the [roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/roadmap.md) for exact claim boundaries.
+The supported A2UI v1 native subset now includes every non-media basic-catalog component, typed renderer-local absolute and dynamic-list-relative bindings, bounded formatting, validation functions and checks, pure boolean functions, template-instance action resolution, `@index` with offsets, host-callback action envelopes, required image grants, policy-gated HTTP(S) `openUrl`, exact installed-subset discovery, and closed catalog-capability metadata with inline catalogs disabled. `Video` and `AudioPlayer` remain planned for `0.8.0`. Release `0.6.0` adds bounded consent over explicit host-authored risk, capability, sensitive-data, and external-sharing descriptors, plus expiring and revocable host-owned grants. Direct `callTool()` operations can use a separate trusted-tool policy; MCP Apps callbacks and A2UI v1 delivery use their own explicit host gates. The separately installed `@mcp-native/mcp` adapter provides issuer-bound interactive OAuth for protected HTTP, durable scope-upgrade history, bounded lifecycle coordination, actionable states, redacted operational events, and dependency-neutral platform reference adapters. It passes every scored pinned `2026-07-28` authorization client scenario. Complete MCP and A2UI conformance remain explicitly out of scope; full streaming host integration, transport placement for A2UI capability objects, and the separate non-blocking Expo Go integration PoCs remain future work. Follow the [roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/roadmap.md) for exact claim boundaries.
 
 ## Security model
 

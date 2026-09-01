@@ -250,33 +250,33 @@ gates. Expo Go PoC status is reported separately and is not an exit criterion.
 
 ## Milestone 7: non-media A2UI catalog and design systems (`0.7.0`)
 
-Status: planned.
+Status: complete in the `0.7.0` package candidate.
 
-- [ ] Implement trusted render-plan and React Native mappings for `Image`, `Icon`, `Divider`,
+- [x] Implement trusted render-plan and React Native mappings for `Image`, `Icon`, `Divider`,
       `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, and `Modal` from the pinned basic
       catalog. Continue rejecting every undeclared component and property.
-- [ ] Define deny-by-default image resource policy: accepted schemes, exact origins, redirects,
-      credentials, maximum URI and decoded dimensions, caching responsibility, and failure
-      placeholders remain host-controlled.
-- [ ] Use host-owned icon identifiers or exact mappings. Never treat an agent value as an import,
+- [x] Define deny-by-default image resource policy: accepted schemes, exact origins, redirects,
+      credentials, maximum URI and decoded dimensions, per-surface image/byte/pixel totals, caching
+      responsibility, and failure placeholders remain host-controlled.
+- [x] Use host-owned icon identifiers or exact mappings. Never treat an agent value as an import,
       glyph font name, SVG payload, or arbitrary platform symbol.
-- [ ] Add renderer-local state, validation, event reconstruction, and dispatch-time revalidation for
+- [x] Add renderer-local state, validation, event reconstruction, and dispatch-time revalidation for
       every new interactive component, with cumulative work and output limits.
-- [ ] Specify focus, dismissal, escape/back behavior, focus restoration, and accessibility semantics
+- [x] Specify focus, dismissal, escape/back behavior, focus restoration, and accessibility semantics
       for tabs, modals, inputs, images, and icon-only controls.
-- [ ] Generalize the existing typed component adapters and closed variant slots to the new semantic
+- [x] Generalize the existing typed component adapters and closed variant slots to the new semantic
       components. Permit design-system components and semantic theme tokens, but not server-supplied
       React Native style objects or unchecked prop spreading.
-- [ ] Advertise only the component and function subset for which the host installed complete
+- [x] Advertise only the component and function subset for which the host installed complete
       implementations and policies; missing optional adapters must fail capability negotiation or
       surface validation before mounting.
-- [ ] Add generated iOS and Android host fixtures using built-in React Native mappings where they
+- [x] Add generated iOS and Android host fixtures using built-in React Native mappings where they
       exist, explicit host adapters for the remaining controls, and at least one representative
       design-system mapping. Keep Expo Go library demonstrations informative and non-blocking.
-- [ ] Update the A2UI conformance profile, standards matrix, human-oriented capability guide,
+- [x] Update the A2UI conformance profile, standards matrix, human-oriented capability guide,
       package READMEs, migration notes, and changelog with exact supported and excluded fields.
 
-Exit criterion: a host can render every non-media component in the pinned A2UI basic catalog with
+Exit criterion: met by the `0.7.0` package candidate. A host can render every non-media component in the pinned A2UI basic catalog with
 closed props and documented native behavior, while component implementations and visual design
 remain entirely application-owned.
 

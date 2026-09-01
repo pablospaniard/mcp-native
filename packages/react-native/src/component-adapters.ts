@@ -1,9 +1,19 @@
 import { createElement, type ComponentType, type ReactNode } from "react";
 
-export type NativeAccessibilityRole = "button" | "text";
+export type NativeAccessibilityRole =
+  | "adjustable"
+  | "button"
+  | "checkbox"
+  | "image"
+  | "radio"
+  | "tab"
+  | "text";
 
 export interface NativeAccessibilityState {
-  readonly disabled: boolean;
+  readonly checked?: boolean;
+  readonly disabled?: boolean;
+  readonly expanded?: boolean;
+  readonly selected?: boolean;
 }
 
 export interface NativeAccessibilityProps {
@@ -65,6 +75,192 @@ export interface NativeTextInputComponentProps extends NativeAccessibilityProps 
   readonly value?: string;
 }
 
+export type NativeImageFit = "contain" | "cover" | "fill" | "none" | "scaleDown";
+
+export type NativeImageVariant =
+  | "avatar"
+  | "header"
+  | "icon"
+  | "largeFeature"
+  | "mediumFeature"
+  | "smallFeature";
+
+export interface NativeImageResourcePolicy {
+  readonly allowedRedirectOrigins: readonly string[];
+  readonly cacheMode: "default" | "no-store";
+  readonly maximumBytes: number;
+  readonly maximumDecodedHeight: number;
+  readonly maximumDecodedPixels: number;
+  readonly maximumDecodedWidth: number;
+  readonly maximumRedirects: number;
+}
+
+export interface NativeImageComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly accessibilityLabel?: string;
+  readonly accessibilityRole: "image";
+  readonly fit: NativeImageFit;
+  readonly resourcePolicy: NativeImageResourcePolicy;
+  readonly uri: string;
+}
+
+export const A2UI_V1_NATIVE_ICON_NAMES = Object.freeze([
+  "accountCircle",
+  "add",
+  "arrowBack",
+  "arrowForward",
+  "attachFile",
+  "calendarToday",
+  "call",
+  "camera",
+  "check",
+  "close",
+  "delete",
+  "download",
+  "edit",
+  "event",
+  "error",
+  "fastForward",
+  "favorite",
+  "favoriteOff",
+  "folder",
+  "help",
+  "home",
+  "info",
+  "locationOn",
+  "lock",
+  "lockOpen",
+  "mail",
+  "menu",
+  "moreVert",
+  "moreHoriz",
+  "notificationsOff",
+  "notifications",
+  "pause",
+  "payment",
+  "person",
+  "phone",
+  "photo",
+  "play",
+  "print",
+  "refresh",
+  "rewind",
+  "search",
+  "send",
+  "settings",
+  "share",
+  "shoppingCart",
+  "skipNext",
+  "skipPrevious",
+  "star",
+  "starHalf",
+  "starOff",
+  "stop",
+  "upload",
+  "visibility",
+  "visibilityOff",
+  "volumeDown",
+  "volumeMute",
+  "volumeOff",
+  "volumeUp",
+  "warning",
+] as const);
+
+export type NativeIconName = (typeof A2UI_V1_NATIVE_ICON_NAMES)[number];
+
+export interface NativeIconComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly accessibilityLabel?: string;
+  readonly accessibilityRole: "image";
+  readonly name: NativeIconName;
+}
+
+export interface NativeDividerComponentProps extends NativeAccessibilityProps {
+  readonly accessible: false;
+  readonly axis: "horizontal" | "vertical";
+}
+
+export interface NativeCheckBoxComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly accessibilityLabel: string;
+  readonly accessibilityRole: "checkbox";
+  readonly accessibilityState: NativeAccessibilityState;
+  readonly invalid?: boolean;
+  readonly label: string;
+  readonly onValueChange?: (value: boolean) => void;
+  readonly validationMessages?: readonly string[];
+  readonly value: boolean;
+}
+
+export type NativeChoicePickerVariant = "multipleSelection" | "mutuallyExclusive";
+export type NativeChoicePickerDisplayStyle = "checkbox" | "chips";
+
+export interface NativeChoicePickerOption {
+  readonly label: string;
+  readonly value: string;
+}
+
+export interface NativeChoicePickerComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly accessibilityLabel: string;
+  readonly displayStyle: NativeChoicePickerDisplayStyle;
+  readonly filterable: boolean;
+  readonly invalid?: boolean;
+  readonly label?: string;
+  readonly onValueChange?: (value: readonly string[]) => void;
+  readonly options: readonly NativeChoicePickerOption[];
+  readonly validationMessages?: readonly string[];
+  readonly value: readonly string[];
+  readonly variant: NativeChoicePickerVariant;
+}
+
+export interface NativeSliderComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly accessibilityLabel: string;
+  readonly accessibilityRole: "adjustable";
+  readonly invalid?: boolean;
+  readonly label?: string;
+  readonly maximumValue: number;
+  readonly minimumValue: number;
+  readonly onValueChange?: (value: number) => void;
+  readonly step?: number;
+  readonly validationMessages?: readonly string[];
+  readonly value: number;
+}
+
+export interface NativeDateTimeInputComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly accessibilityLabel: string;
+  readonly enableDate: boolean;
+  readonly enableTime: boolean;
+  readonly invalid?: boolean;
+  readonly label?: string;
+  readonly maximum?: string;
+  readonly minimum?: string;
+  readonly onValueChange?: (value: string) => void;
+  readonly validationMessages?: readonly string[];
+  readonly value: string;
+}
+
+export interface NativeTabItem {
+  readonly content: ReactNode;
+  readonly title: string;
+}
+
+export interface NativeTabsComponentProps extends NativeAccessibilityProps {
+  readonly accessible: boolean;
+  readonly onSelect: (index: number) => void;
+  readonly selectedIndex: number;
+  readonly tabs: readonly NativeTabItem[];
+}
+
+export interface NativeModalComponentProps extends NativeAccessibilityProps {
+  readonly content: ReactNode;
+  readonly onRequestClose: () => void;
+  readonly open: boolean;
+  readonly trigger: ReactNode;
+}
+
 export type NativeViewVariant = "card" | "column" | "list" | "row";
 
 export type NativeTextVariant = "body" | "caption";
@@ -84,6 +280,10 @@ export interface NativeComponentVariants {
   readonly TextInput?: Partial<
     Record<NativeTextInputVariant, ComponentType<NativeTextInputComponentProps>>
   >;
+  readonly Image?: Partial<Record<NativeImageVariant, ComponentType<NativeImageComponentProps>>>;
+  readonly ChoicePicker?: Partial<
+    Record<NativeChoicePickerVariant, ComponentType<NativeChoicePickerComponentProps>>
+  >;
 }
 
 /** Locally bundled components chosen by the host application. */
@@ -92,6 +292,15 @@ export interface NativeComponentCatalog {
   readonly Text: ComponentType<NativeTextComponentProps>;
   readonly Button: ComponentType<NativeButtonComponentProps>;
   readonly TextInput: ComponentType<NativeTextInputComponentProps>;
+  readonly Image?: ComponentType<NativeImageComponentProps>;
+  readonly Icon?: ComponentType<NativeIconComponentProps>;
+  readonly Divider?: ComponentType<NativeDividerComponentProps>;
+  readonly CheckBox?: ComponentType<NativeCheckBoxComponentProps>;
+  readonly ChoicePicker?: ComponentType<NativeChoicePickerComponentProps>;
+  readonly Slider?: ComponentType<NativeSliderComponentProps>;
+  readonly DateTimeInput?: ComponentType<NativeDateTimeInputComponentProps>;
+  readonly Tabs?: ComponentType<NativeTabsComponentProps>;
+  readonly Modal?: ComponentType<NativeModalComponentProps>;
   /** Optional semantic/style variants; omitted entries fall back to the base primitive. */
   readonly variants?: NativeComponentVariants;
 }
@@ -102,7 +311,20 @@ export type NativeComponentPropMapper<TrustedProps extends object, HostProps ext
 ) => HostProps;
 
 function createComponentAdapter<TrustedProps extends object, HostProps extends object>(
-  primitiveName: "Button" | "Text" | "TextInput" | "View",
+  primitiveName:
+    | "Button"
+    | "CheckBox"
+    | "ChoicePicker"
+    | "DateTimeInput"
+    | "Divider"
+    | "Icon"
+    | "Image"
+    | "Modal"
+    | "Slider"
+    | "Tabs"
+    | "Text"
+    | "TextInput"
+    | "View",
   component: ComponentType<HostProps>,
   mapProps: NativeComponentPropMapper<TrustedProps, HostProps>,
 ): ComponentType<TrustedProps> {
@@ -144,4 +366,76 @@ export function createNativeTextInputAdapter<HostProps extends object>(
   mapProps: NativeComponentPropMapper<NativeTextInputComponentProps, HostProps>,
 ): ComponentType<NativeTextInputComponentProps> {
   return createComponentAdapter("TextInput", component, mapProps);
+}
+
+/** Adapts trusted MCP Native image props to a host image component. */
+export function createNativeImageAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeImageComponentProps, HostProps>,
+): ComponentType<NativeImageComponentProps> {
+  return createComponentAdapter("Image", component, mapProps);
+}
+
+/** Adapts a pinned semantic icon name to a host icon component. */
+export function createNativeIconAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeIconComponentProps, HostProps>,
+): ComponentType<NativeIconComponentProps> {
+  return createComponentAdapter("Icon", component, mapProps);
+}
+
+/** Adapts a trusted divider axis to a host divider component. */
+export function createNativeDividerAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeDividerComponentProps, HostProps>,
+): ComponentType<NativeDividerComponentProps> {
+  return createComponentAdapter("Divider", component, mapProps);
+}
+
+/** Adapts trusted checkbox props to a host checkbox component. */
+export function createNativeCheckBoxAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeCheckBoxComponentProps, HostProps>,
+): ComponentType<NativeCheckBoxComponentProps> {
+  return createComponentAdapter("CheckBox", component, mapProps);
+}
+
+/** Adapts trusted choice-picker props to a host selection component. */
+export function createNativeChoicePickerAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeChoicePickerComponentProps, HostProps>,
+): ComponentType<NativeChoicePickerComponentProps> {
+  return createComponentAdapter("ChoicePicker", component, mapProps);
+}
+
+/** Adapts trusted bounded slider props to a host slider component. */
+export function createNativeSliderAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeSliderComponentProps, HostProps>,
+): ComponentType<NativeSliderComponentProps> {
+  return createComponentAdapter("Slider", component, mapProps);
+}
+
+/** Adapts trusted ISO date/time props to a host date/time component. */
+export function createNativeDateTimeInputAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeDateTimeInputComponentProps, HostProps>,
+): ComponentType<NativeDateTimeInputComponentProps> {
+  return createComponentAdapter("DateTimeInput", component, mapProps);
+}
+
+/** Adapts trusted tab titles and rendered content to a host tabs component. */
+export function createNativeTabsAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeTabsComponentProps, HostProps>,
+): ComponentType<NativeTabsComponentProps> {
+  return createComponentAdapter("Tabs", component, mapProps);
+}
+
+/** Adapts trusted modal state and rendered regions to a host modal component. */
+export function createNativeModalAdapter<HostProps extends object>(
+  component: ComponentType<HostProps>,
+  mapProps: NativeComponentPropMapper<NativeModalComponentProps, HostProps>,
+): ComponentType<NativeModalComponentProps> {
+  return createComponentAdapter("Modal", component, mapProps);
 }

@@ -28,13 +28,16 @@ Every app should exercise the same representative fixture, including:
 - static and dynamic-list content;
 - enabled and disabled actions with observable single dispatch;
 - valid, invalid, multiline, numeric, and obscured text fields;
+- image allow/deny and failure-placeholder behavior, pinned icons, decorative dividers, checkboxes,
+  single and multiple choices, sliders, date/time input, tabs, and modal dismissal;
 - renderer-local edits that do not emit network actions;
 - visible and hidden text, labels, descriptions, live regions, and validation messages; and
 - portrait and landscape layouts at normal and large system text sizes.
 
 The server remains unable to choose native roles, accessibility state, font-scaling policy,
 component implementations, arbitrary props, or imported modules. Each adapter explicitly maps the
-trusted primitive props into its local component library. A mapping that drops required behavior is
+trusted semantic props into its local component library. Image demonstrations must not advertise
+`Image` unless their loader enforces the supplied resource grant. A mapping that drops required behavior is
 reported as a limitation of that PoC, not worked around by expanding the wire catalog.
 
 ## App structure

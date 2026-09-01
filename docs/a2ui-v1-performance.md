@@ -5,6 +5,12 @@ supported A2UI v1 Candidate profile. These are regression ceilings for protocol 
 state updates, and trusted render-plan construction; they are not claims about native frame time or
 device memory use.
 
+The maximum-node timing fixture uses inexpensive text nodes so results remain stable. Component-
+specific amplification is covered separately by negative tests: cumulative choice-option count and
+output, image count, URL and redirect-origin output, total granted transfer bytes and decoded
+pixels, validation output, and typed binding reconstruction all fail before unbounded host work can
+be created.
+
 ## Performance method and budgets
 
 `npm run test:performance` builds the packages and runs `scripts/run-a2ui-performance.mjs` with

@@ -10,6 +10,11 @@ owned by the host.
   protocol mode.
 - Advertise only extensions and A2UI catalog IDs the installed host fully implements. Require exact
   mutual negotiation; never infer support from MIME types, metadata, or content.
+- Derive native component names with
+  `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy })`. Supply the same
+  enforcing `imagePolicy` to discovery and mounting; do not advertise `Image` for a raw loader that
+  cannot enforce redirect, byte, decoded-size, and cache limits. Treat it as render-time resource
+  authorization; action and `openUrl` reconstruction will not invoke it again.
 - Validate every SDK result through `McpSdkClientAdapter`, every A2UI lifecycle stream through the
   v1 parser/store, and every MCP Apps resource through the Apps loader and sandbox.
 - Keep renderer/component resolution in a closed app-owned allowlist. Do not load code, component
@@ -40,6 +45,8 @@ owned by the host.
   error without leaking server or OAuth content.
 - Preserve focus, accessibility labels, text scaling, reduced-motion choices, and disabled/busy
   semantics through loading, consent, retry, and error transitions.
+- Make installed tabs expose separate selectable items. Make installed modals trap focus, support
+  platform escape/back dismissal, restore focus to their trigger, and tear down hidden content.
 - Never display raw transport, OAuth callback, validation, or server error text as trusted UI.
 
 ## OAuth and transport
