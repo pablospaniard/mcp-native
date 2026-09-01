@@ -73,6 +73,12 @@ concurrency limit before another host callback runs. Exactly-once tool lifecycle
 serialized and reserve their state before transport; an ambiguous transport failure is never
 retried because the View may already have received it.
 
+App-visible `tools/call` proxying is advertised only when the host supplies both an explicit action
+policy and a tool handler. The bridge validates visibility and bounded arguments, then requires the
+policy to return exactly `true` before the handler runs. Request `_meta`, tool annotations, and
+visibility remain non-authorizing. `createConsentActionPolicy()` can provide per-dispatch review;
+direct trusted host calls remain a separate boundary.
+
 The optional resource `domain` field is host-specific. It is rejected unless the host supplies a
 synchronous approval callback and its platform adapter can actually provide that dedicated origin.
 

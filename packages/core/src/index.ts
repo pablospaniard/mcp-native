@@ -350,6 +350,141 @@ export type McpNativeToolConsentReviewer = (
   request: McpNativeToolConsentRequest,
 ) => boolean | Promise<boolean>;
 
+export interface McpNativeConsentGrantRecord {
+  readonly key: string;
+  readonly expiresAt: number;
+}
+
+/** Host-owned durable storage for non-secret consent grants. */
+export interface McpNativeConsentGrantStore {
+  load(key: string): unknown | Promise<unknown>;
+  save(record: McpNativeConsentGrantRecord): void | Promise<void>;
+  remove(key: string): void | Promise<void>;
+}
+
+export interface McpNativeExpiringGrantPolicyOptions {
+  /** Per-action approval used when no unexpired grant exists. */
+  readonly authorize: McpNativeActionPolicy;
+  /** Host-authored key binding the grant to app policy revision, server, tool, and argument class. */
+  readonly grantKey: (action: McpNativeAction) => string | undefined | Promise<string | undefined>;
+  /** Host-selected lifetime after a fresh approval. Zero means allow once without persistence. */
+  readonly grantDurationMs: (action: McpNativeAction) => number | Promise<number>;
+  readonly store: McpNativeConsentGrantStore;
+  readonly now?: () => number;
+  readonly maxGrantDurationMs?: number;
+}
+
+const MCP_NATIVE_MAX_GRANT_KEY_CODE_UNITS = 512;
+const MCP_NATIVE_MAX_GRANT_DURATION_MS = 31 * 24 * 60 * 60 * 1_000;
+
+/**
+ * Wraps a per-action policy with bounded, expiring, host-keyed grants.
+ *
+ * Persisted values are treated as untrusted. Reviews and store operations are serialized, expired
+ * grants are removed, and a grant is saved only after exact approval. Revoke a grant at any time
+ * through `revokeMcpNativeConsentGrant`.
+ */
+export function createExpiringGrantActionPolicy(
+  options: McpNativeExpiringGrantPolicyOptions,
+): McpNativeActionPolicy {
+  if (
+    options === null ||
+    typeof options !== "object" ||
+    typeof options.authorize !== "function" ||
+    typeof options.grantKey !== "function" ||
+    typeof options.grantDurationMs !== "function" ||
+    options.store === null ||
+    typeof options.store !== "object" ||
+    typeof options.store.load !== "function" ||
+    typeof options.store.save !== "function" ||
+    typeof options.store.remove !== "function" ||
+    (options.now !== undefined && typeof options.now !== "function")
+  ) {
+    throw new JsonValidationError("Expected valid expiring consent-grant callbacks");
+  }
+  const now = options.now ?? Date.now;
+  const maxDuration = options.maxGrantDurationMs ?? MCP_NATIVE_MAX_GRANT_DURATION_MS;
+  if (
+    !Number.isSafeInteger(maxDuration) ||
+    maxDuration < 1 ||
+    maxDuration > MCP_NATIVE_MAX_GRANT_DURATION_MS
+  ) {
+    throw new JsonValidationError(
+      `Expected maximum consent-grant duration from 1 to ${MCP_NATIVE_MAX_GRANT_DURATION_MS}`,
+    );
+  }
+
+  let evaluationRunning = false;
+  return async (input) => {
+    if (evaluationRunning) return false;
+    evaluationRunning = true;
+    try {
+      const keyAction = parseFrozenAction(input, "grant key action");
+      const authorizationAction = parseFrozenAction(input, "grant authorization action");
+      const durationAction = parseFrozenAction(input, "grant duration action");
+      const key = parseGrantKey(await options.grantKey(keyAction));
+      const currentTime = now();
+      if (!Number.isSafeInteger(currentTime) || currentTime < 0) {
+        throw new JsonValidationError("Consent-grant clock must return a non-negative integer");
+      }
+      if (key !== undefined) {
+        const stored = await options.store.load(key);
+        if (stored !== undefined) {
+          const grant = parseConsentGrantRecord(stored, key);
+          if (grant.expiresAt - currentTime > maxDuration) {
+            throw new JsonValidationError(
+              "Stored consent-grant lifetime exceeds the configured maximum",
+            );
+          }
+          if (grant.expiresAt > currentTime) return true;
+          await options.store.remove(key);
+        }
+      }
+
+      const approved = await options.authorize(authorizationAction);
+      if (approved !== true && approved !== false) {
+        throw new JsonValidationError("Consent-grant authorization policy must return a boolean");
+      }
+      if (!approved) return false;
+
+      const duration = await options.grantDurationMs(durationAction);
+      if (!Number.isSafeInteger(duration) || duration < 0 || duration > maxDuration) {
+        throw new JsonValidationError(
+          `Consent-grant duration must be an integer from 0 to ${maxDuration}`,
+        );
+      }
+      if (key !== undefined && duration > 0) {
+        const approvedAt = now();
+        if (!Number.isSafeInteger(approvedAt) || approvedAt < 0) {
+          throw new JsonValidationError("Consent-grant clock must return a non-negative integer");
+        }
+        const expiresAt = approvedAt + duration;
+        if (!Number.isSafeInteger(expiresAt)) {
+          throw new JsonValidationError("Consent-grant expiry exceeds the safe integer range");
+        }
+        await options.store.save(Object.freeze({ key, expiresAt }));
+      }
+      return true;
+    } finally {
+      evaluationRunning = false;
+    }
+  };
+}
+
+export async function revokeMcpNativeConsentGrant(
+  store: McpNativeConsentGrantStore,
+  key: string,
+): Promise<void> {
+  if (store === null || typeof store !== "object" || typeof store.remove !== "function") {
+    throw new JsonValidationError("Expected a consent-grant store");
+  }
+  const parsedKey = parseGrantKey(key);
+  if (parsedKey === undefined) {
+    throw new JsonValidationError("Expected a consent-grant key");
+  }
+  await store.remove(parsedKey);
+}
+
 /**
  * An allowlist entry that authorizes a tool by name and either exact arguments
  * or a host-provided argument predicate. Name-only allowlists are intentionally
@@ -593,6 +728,8 @@ export interface McpNativeRuntimeOptions {
    * `callTool()` directly after JSON argument validation.
    */
   readonly actionPolicy?: McpNativeActionPolicy;
+  /** Optional policy for host-initiated `callTool()` calls. Omission preserves the trusted seam. */
+  readonly trustedToolPolicy?: McpNativeActionPolicy;
 }
 
 export class McpNativeActionDeniedError extends Error {
@@ -613,10 +750,18 @@ export class McpNativeActionDeniedError extends Error {
 export class McpNativeRuntime {
   readonly #client: McpClient;
   readonly #actionPolicy: McpNativeActionPolicy | undefined;
+  readonly #trustedToolPolicy: McpNativeActionPolicy | undefined;
 
   constructor(client: McpClient, options: McpNativeRuntimeOptions = {}) {
+    if (
+      (options.actionPolicy !== undefined && typeof options.actionPolicy !== "function") ||
+      (options.trustedToolPolicy !== undefined && typeof options.trustedToolPolicy !== "function")
+    ) {
+      throw new JsonValidationError("Runtime action policies must be functions");
+    }
     this.#client = client;
     this.#actionPolicy = options.actionPolicy;
+    this.#trustedToolPolicy = options.trustedToolPolicy;
   }
 
   listTools(): Promise<McpListToolsResult> {
@@ -629,6 +774,12 @@ export class McpNativeRuntime {
       name,
       arguments: arguments_,
     });
+    if (this.#trustedToolPolicy !== undefined) {
+      const allowed = await this.#trustedToolPolicy(validatedAction);
+      if (allowed !== true) {
+        throw new McpNativeActionDeniedError(validatedAction.name);
+      }
+    }
     return this.#client.callTool(validatedAction.name, validatedAction.arguments ?? {});
   }
 
@@ -657,6 +808,48 @@ export class McpNativeRuntime {
     }
     return this.#client.callTool(validatedAction.name, validatedAction.arguments ?? {});
   }
+}
+
+function parseGrantKey(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > MCP_NATIVE_MAX_GRANT_KEY_CODE_UNITS ||
+    containsControlCodeUnit(value)
+  ) {
+    throw new JsonValidationError(
+      `Consent-grant key must contain 1 to ${MCP_NATIVE_MAX_GRANT_KEY_CODE_UNITS} non-control code units`,
+    );
+  }
+  return value;
+}
+
+function containsControlCodeUnit(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
+function parseFrozenAction(value: unknown, path: string): McpNativeAction {
+  const action = parseMcpNativeAction(value, path);
+  if (action.arguments !== undefined) freezeJsonValue(action.arguments);
+  return Object.freeze(action);
+}
+
+function parseConsentGrantRecord(value: unknown, expectedKey: string): McpNativeConsentGrantRecord {
+  const record = expectPlainObject(value, "stored consent grant");
+  expectOnlyKeys(record, ["expiresAt", "key"], "stored consent grant");
+  const key = parseGrantKey(record.key);
+  if (key !== expectedKey) {
+    throw new JsonValidationError("Stored consent-grant key does not match its lookup key");
+  }
+  if (!Number.isSafeInteger(record.expiresAt) || (record.expiresAt as number) < 0) {
+    throw new JsonValidationError("Stored consent-grant expiry must be a non-negative integer");
+  }
+  return Object.freeze({ key, expiresAt: record.expiresAt as number });
 }
 
 function jsonArgumentsMatch(

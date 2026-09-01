@@ -616,6 +616,9 @@ function createBridgeFixture(overrides = {}) {
     resource,
     sandbox,
     handlers: {
+      authorizeToolCall() {
+        return true;
+      },
       async callTool(name, arguments_, requestMeta) {
         calls.push(["callTool", name, arguments_, requestMeta]);
         return { content: [{ type: "text", text: "fresh" }], structuredContent: { ok: true } };
@@ -895,6 +898,48 @@ test("bridge proxies only closed, app-visible methods after initialization", asy
   assert.equal(fixture.sent.at(-1).error.code, -32602);
 });
 
+test("bridge requires explicit host authorization before an app tool call", async () => {
+  const reviewed = [];
+  const deliveredArguments = [];
+  let handlerCalls = 0;
+  const fixture = createBridgeFixture({
+    handlers: {
+      authorizeToolCall(action) {
+        reviewed.push(action);
+        const allowed = action.arguments?.page === 1;
+        if (allowed) action.arguments.page = 99;
+        return allowed;
+      },
+      callTool(_name, arguments_) {
+        handlerCalls += 1;
+        deliveredArguments.push(arguments_);
+        return { content: [] };
+      },
+    },
+  });
+  await initializeBridge(fixture);
+
+  await fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 30,
+    method: "tools/call",
+    params: { name: "refresh", arguments: { page: 2 }, _meta: { untrusted: true } },
+  });
+  assert.equal(fixture.sent.at(-1).error.code, -32001);
+  assert.equal(handlerCalls, 0);
+  assert.deepEqual(reviewed, [{ type: "tool", name: "refresh", arguments: { page: 2 } }]);
+
+  await fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 31,
+    method: "tools/call",
+    params: { name: "refresh", arguments: { page: 1 } },
+  });
+  assert.equal(fixture.sent.at(-1).result !== undefined, true);
+  assert.equal(handlerCalls, 1);
+  assert.deepEqual(deliveredArguments, [{ page: 1 }]);
+});
+
 test("bridge rejects malformed, premature, unknown, and amplified input", async () => {
   const fixture = createBridgeFixture();
   await fixture.bridge.receive({
@@ -1054,6 +1099,28 @@ test("bridge covers lifecycle validation, downloads, modalities, and constructor
         tools: [modelTool, modelTool],
       }),
     /Duplicate bridge tool name/,
+  );
+  assert.throws(
+    () =>
+      new McpAppsBridge({
+        postMessage() {},
+        hostInfo: { name: "x", version: "1" },
+        resource,
+        sandbox,
+        handlers: { callTool: async () => ({ content: [] }) },
+      }),
+    /requires both authorizeToolCall and callTool/,
+  );
+  assert.throws(
+    () =>
+      new McpAppsBridge({
+        postMessage() {},
+        hostInfo: { name: "x", version: "1" },
+        resource,
+        sandbox,
+        handlers: { authorizeToolCall: () => true },
+      }),
+    /requires both authorizeToolCall and callTool/,
   );
 
   const protocolErrors = [];

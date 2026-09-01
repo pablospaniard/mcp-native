@@ -132,6 +132,24 @@ function createProvider(overrides = {}) {
   return { opened, provider, storage };
 }
 
+function createScopeStore(initial) {
+  let record = initial;
+  return {
+    get record() {
+      return record;
+    },
+    async load(resource) {
+      return record?.resource === resource ? record : undefined;
+    },
+    async save(value) {
+      record = value;
+    },
+    async remove(resource) {
+      if (record?.resource === resource) record = undefined;
+    },
+  };
+}
+
 async function reserveAuthorizationAttempt(provider) {
   await provider.state();
   await provider.saveCodeVerifier(VALID_VERIFIER);
@@ -1014,6 +1032,7 @@ test("OAuth reauthorization requires an exact host approval decision", async () 
   );
   assert.equal(decisions.length, 1);
   assert.deepEqual(decisions[0], {
+    resource: SERVER_URL,
     issuer: ISSUER,
     currentScopes: ["mcp:read"],
     requestedScopes: ["mcp:read", "mcp:write"],
@@ -1092,5 +1111,90 @@ test("OAuth reauthorization is fail-closed and bounded", async () => {
     createMcpNativeOAuthTransport(SERVER_URL, approved.provider, {
       scopeEscalation: "host-approved",
     }) instanceof StreamableHTTPClientTransport,
+  );
+});
+
+test("OAuth scope history persists across provider instances and is resource-bound", async () => {
+  const storage = createStorage();
+  const scopeStore = createScopeStore();
+  const first = createProvider({ storage, scopeStore });
+  await first.provider.saveTokens(
+    { access_token: "access", token_type: "Bearer", scope: "mcp:read", issuer: ISSUER },
+    { issuer: ISSUER },
+  );
+  assert.deepEqual(scopeStore.record, {
+    resource: SERVER_URL,
+    issuer: ISSUER,
+    scopes: ["mcp:read"],
+  });
+  await storage.invalidate("tokens", ISSUER);
+
+  const decisions = [];
+  const second = createProvider({
+    storage,
+    scopeStore,
+    approveReauthorization(request) {
+      decisions.push(request);
+      return true;
+    },
+  });
+  await reserveAuthorizationAttempt(second.provider);
+  await second.provider.redirectToAuthorization(
+    new URL("https://auth.example.com/authorize?scope=mcp%3Aread%20mcp%3Awrite"),
+  );
+  assert.deepEqual(decisions, [
+    {
+      resource: SERVER_URL,
+      issuer: ISSUER,
+      currentScopes: ["mcp:read"],
+      requestedScopes: ["mcp:read", "mcp:write"],
+      addedScopes: ["mcp:write"],
+    },
+  ]);
+
+  await second.provider.cancelAuthorization();
+  await second.provider.invalidateCredentials("all");
+  assert.equal(scopeStore.record, undefined);
+});
+
+test("OAuth scope history fails closed for malformed or substituted records", async () => {
+  await Promise.all(
+    [
+      { resource: "https://evil.example/mcp", issuer: ISSUER, scopes: ["mcp:read"] },
+      { resource: SERVER_URL, issuer: "http://remote.example", scopes: ["mcp:read"] },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: ["mcp:read", "mcp:read"] },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: ["bad scope"] },
+      { resource: SERVER_URL, issuer: ISSUER, scopes: [], extra: true },
+      null,
+      Object.assign(Object.create({ resource: SERVER_URL }), {
+        issuer: ISSUER,
+        scopes: ["mcp:read"],
+      }),
+      Object.assign(
+        { resource: SERVER_URL, issuer: ISSUER, scopes: ["mcp:read"] },
+        {
+          scopes: Object.assign(["mcp:read"], { extra: true }),
+        },
+      ),
+    ].map(async (record) => {
+      const { provider } = createProvider({
+        scopeStore: {
+          load: () => record,
+          save() {},
+          remove() {},
+        },
+        approveReauthorization: () => true,
+      });
+      await reserveAuthorizationAttempt(provider);
+      await assert.rejects(
+        () => provider.redirectToAuthorization(new URL(`${ISSUER}/authorize?scope=mcp%3Awrite`)),
+        (error) => error instanceof McpNativeOAuthError && error.code === "invalid-storage",
+      );
+    }),
+  );
+
+  assert.throws(
+    () => createProvider({ scopeStore: { load() {}, save() {} } }),
+    (error) => error instanceof McpNativeOAuthError && error.code === "invalid-configuration",
   );
 });

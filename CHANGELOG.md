@@ -23,12 +23,26 @@ their minor release line.
 - A non-blocking Expo Go integration policy with separate apps for the React Native primitives
   baseline and each selected common Expo Go-compatible component library. App results are reported
   independently from package and milestone gates.
+- Mandatory host authorization before MCP Apps tool callbacks and a serialized A2UI v1 action
+  delivery gate that isolates policy input from transport input.
+- Optional policy review for direct core `callTool()` operations plus bounded, host-keyed,
+  persistent consent grants with expiry and explicit revocation.
+- Persistent resource/issuer-bound OAuth scope history for cross-request step-up decisions.
+- A bounded official-SDK connection lifecycle coordinator with timeout, cancellation, exponential
+  backoff, offline/reconnection/shutdown behavior, actionable host states, and fixed data-free
+  operational events for logs, metrics, and traces.
+- A production host checklist covering catalogs, action/permission policy, binding state, errors,
+  transport/OAuth configuration, token non-forwarding, diagnostics redaction, and cleanup.
 
 ### Security
 
 - Deny unknown tool/argument consent profiles, incomplete privacy declarations, overlapping consent
   reviews, malformed host descriptors, and non-boolean decisions without trusting server
-  annotations or retaining grants.
+  annotations; grants are retained only through the explicit bounded host-owned wrapper.
+- Treat persisted consent grants and OAuth scope history as untrusted, bind them to host-authored
+  keys or exact resources/issuers, and reject malformed, substituted, oversized, or expired state.
+- Keep lifecycle diagnostics free of raw errors, URLs, credentials, tokens, server payloads, user
+  payloads, and arbitrary labels.
 - Bound complete MCP SDK results, downstream A2UI result collections, decoded JSON string/key
   totals, A2UI lifecycle batches, and cumulative state retained by one surface store.
 - Validate complete MCP Apps content annotations, icons, sizes, metadata objects, and resource-link

@@ -34,6 +34,7 @@ export {
   A2UI_V1_MAX_COMPONENTS,
   A2UI_V1_MAX_SURFACES,
   A2uiSurfaceStore,
+  createA2uiV1ActionDeliveryHandler,
   createA2uiV1ActionEnvelope,
   createA2uiV1BasicCatalogPolicy,
   createA2uiV1RendererCapabilities,
@@ -48,6 +49,9 @@ export {
   validateA2uiV1SurfaceState,
 } from "./v1/index.js";
 export type {
+  A2uiV1ActionDeliveryHandler,
+  A2uiV1ActionDeliveryOptions,
+  A2uiV1ActionDeliveryPolicy,
   A2uiV1Action,
   A2uiV1ActionEnvelope,
   A2uiV1ActionEnvelopeInput,

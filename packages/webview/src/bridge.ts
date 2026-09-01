@@ -2,6 +2,7 @@ import { JSON_MAX_STRING_LENGTH, parseJsonObject } from "@mcp-native/core";
 import type {
   JsonObject,
   JsonValue,
+  McpNativeActionPolicy,
   McpReadResourceResult,
   McpTool,
   McpToolCallResult,
@@ -36,6 +37,8 @@ export type McpAppsContentModality =
   | "text";
 
 export interface McpAppsBridgeHandlers {
+  /** Required with `callTool`; authorizes the validated app-originated tool action. */
+  readonly authorizeToolCall?: McpNativeActionPolicy;
   readonly callTool?: (
     name: string,
     arguments_: JsonObject,
@@ -128,6 +131,14 @@ export class McpAppsBridge {
         ? { platform: "mobile" }
         : parseHostContext(options.hostContext, "hostContext");
     this.#handlers = options.handlers ?? {};
+    if (
+      (this.#handlers.callTool === undefined) !==
+      (this.#handlers.authorizeToolCall === undefined)
+    ) {
+      throw new McpAppsBridgeError(
+        "MCP Apps tool proxying requires both authorizeToolCall and callTool handlers",
+      );
+    }
     this.#hostCapabilities = createHostCapabilities(options);
     this.#tools = createToolMap(options.tools ?? []);
     this.#onProtocolError = options.onProtocolError;
@@ -417,6 +428,15 @@ export class McpAppsBridge {
       call["_meta"] === undefined
         ? undefined
         : parseBoundedObject(call["_meta"], "tools/call.params._meta");
+    const policyArguments = parseJsonObject(arguments_, "tools/call policy arguments");
+    const authorized = await this.#handlers.authorizeToolCall!({
+      type: "tool",
+      name,
+      arguments: policyArguments,
+    });
+    if (authorized !== true) {
+      throw new McpAppsBridgeError("App tool call denied by host policy", -32001);
+    }
     const result = await this.#handlers.callTool(name, arguments_, requestMeta);
     return parseBoundedObject(result, "tools/call result");
   }
@@ -601,7 +621,9 @@ function createHostCapabilities(options: McpAppsBridgeOptions): JsonObject {
   return {
     ...(handlers.openLink === undefined ? {} : { openLinks: {} }),
     ...(handlers.downloadFile === undefined ? {} : { downloadFile: {} }),
-    ...(handlers.callTool === undefined ? {} : { serverTools: {} }),
+    ...(handlers.callTool === undefined || handlers.authorizeToolCall === undefined
+      ? {}
+      : { serverTools: {} }),
     ...(handlers.readResource === undefined ? {} : { serverResources: {} }),
     ...(handlers.log === undefined ? {} : { logging: {} }),
     sandbox,

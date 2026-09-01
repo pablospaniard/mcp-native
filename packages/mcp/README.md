@@ -14,10 +14,12 @@
 
 `@mcp-native/mcp` adapts a connected [`Client`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/client.md) from `@modelcontextprotocol/client` v2 to the transport-neutral `McpClient` interface in `@mcp-native/core`. It also provides the native host boundary for interactive OAuth on protected Streamable HTTP connections.
 
-The result adapter does not own the SDK client's lifecycle. For unprotected connections, the host
-still chooses the transport directly. For protected HTTP, the package creates the exact official
-transport/profile while the host owns its secure credential store, browser handoff, user consent,
-and reconnection lifecycle.
+The result adapter does not own SDK wire behavior. The host still chooses and constructs the
+official client and transport. `createMcpNativeConnectionLifecycle()` optionally coordinates their
+bounded timeout, cancellation, retry/backoff, offline, reconnection, state, diagnostics, and shutdown
+around fresh host-owned SDK connection units. For protected HTTP, the package also creates the exact
+official transport/profile while the host owns its secure credential store, browser handoff, and
+user consent.
 
 ## Install
 
@@ -107,6 +109,7 @@ const provider = createMcpNativeOAuthProvider({
   redirectUrl,
   clientMetadata: { client_name: "My app", redirect_uris: [redirectUrl] },
   storage: secureOAuthStore,
+  scopeStore: durableResourceBoundScopeStore,
   createState: () => createCryptographicallyRandomState(),
   openAuthorization: authorizationSession.openAuthorization,
   approveReauthorization: (request) => consentAndCheckRetryBudget(request),
@@ -162,11 +165,49 @@ Expo Go-compatible reference mapping and production-host responsibilities.
 
 `createMcpNativeOAuthTransport()` rejects manual credential headers and configures
 `insufficient_scope` to throw by default. Setting `scopeEscalation: "host-approved"` is accepted only
-when the provider has an `approveReauthorization` callback. That callback runs for every new
-authorization request while credentials exist, even when a hostile resource repeats the same scope;
+when the provider has an `approveReauthorization` callback. That callback receives the exact
+protected resource and runs for every new authorization request while credentials or persisted scope
+history exist, even when a hostile resource repeats the same scope;
 the transport permits at most one SDK step-up retry per request. The host must maintain any stricter
-cross-request budget. All 25 scored pinned official `2026-07-28` authorization client scenarios
+cross-request budget. Supply `scopeStore` to retain a validated issuer/resource-bound scope record
+across token invalidation and provider instances; full credential invalidation removes it. All 25
+scored pinned official `2026-07-28` authorization client scenarios
 pass. Native-library integration is demonstrated separately through non-blocking app-level PoCs.
+
+## Production connection lifecycle
+
+Wrap fresh official SDK ownership units when the host needs a common production state machine:
+
+```ts
+import { createMcpNativeConnectionLifecycle } from "@mcp-native/mcp";
+
+const lifecycle = createMcpNativeConnectionLifecycle({
+  createConnection() {
+    const client = createOfficialClient();
+    const transport = createOfficialTransport();
+    return {
+      connect: () => client.connect(transport),
+      close: () => client.close(),
+      closed: observeOneUnexpectedTransportClose(transport),
+    };
+  },
+  classifyError: (error) => classifyWithoutRetainingRawError(error),
+  onStateChange: renderConnectionState,
+  diagnostics: operationalSink,
+});
+
+await lifecycle.start();
+await lifecycle.setOnline(false);
+await lifecycle.setOnline(true);
+await lifecycle.shutdown();
+```
+
+Attempts, timeouts, exponential backoff, and close waits have hard maximums. Cancellation aborts the
+host callback and closes its ownership unit; the host must make `connect(signal)` respond promptly.
+The optional `closed` promise triggers reconnection through a fresh unit. Fixed operational events
+contain only outcome, timing, attempt, and stable host-classified code fields, so they can feed logs,
+metrics, and traces without accepting raw errors, URLs, credentials, tokens, server data, or user
+data. See the [production host checklist](https://github.com/pablospaniard/mcp-native/blob/main/docs/host-integration-checklist.md).
 
 ## Mapping
 
@@ -212,6 +253,9 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 | `createMcpNativeClientOptions`, `McpNativeProtocolMode`                                                          | Exact official SDK options for automatic, modern-only, or legacy-only operation. |
 | `McpNativeClientCapabilityOptions`                                                                               | Explicit host-approved extension settings accepted by the options helper.        |
 | `MCP_NATIVE_PROTOCOL_REVISION`, `MCP_NATIVE_LEGACY_PROTOCOL_REVISION`, `MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS` | The current target and deliberately tested revision list.                        |
+| `McpNativeConnectionLifecycle`, `createMcpNativeConnectionLifecycle`                                             | Bounded host coordination around fresh official SDK connections.                 |
+| `McpNativeHostState`, `McpNativeOperationalEvent`, `McpNativeOperationalSink`                                    | Actionable UI states and a fixed redacted observability boundary.                |
+| `McpNativeConnectionLifecycleError`                                                                              | Stable timeout/cancellation category passed only to the host classifier.         |
 | The protected-HTTP exports below live at the explicit `@mcp-native/mcp/oauth` subpath so importing               |
 | the result adapter does not load a transport implementation:                                                     |
 
@@ -222,6 +266,7 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 | `McpNativeOAuthPlatformSecureStore`, `createMcpNativeOAuthPlatformSecureStore`   | Bounded adapter over an app-owned native secret backend.                        |
 | `McpNativeOAuthAuthorizationSession`, `createMcpNativeOAuthAuthorizationSession` | Closed OS browser-session callback adapter.                                     |
 | `McpNativeOAuthReauthorizationRequest`                                           | Frozen host decision input for bounded interactive reauthorization.             |
+| `McpNativeOAuthScopeStore`, `McpNativeOAuthScopeRecord`                          | Persistent resource/issuer-bound scope-upgrade history.                         |
 | `createMcpNativeOAuthTransport`                                                  | Protected HTTP transport with resource pinning and host-gated scope escalation. |
 | `McpNativeOAuthError`                                                            | Fail-closed categories without attacker-controlled callback details.            |
 
@@ -234,9 +279,10 @@ This adapter never evaluates server-provided code and never resolves a server-pr
   headers, invalid header annotations, safe `$ref` handling, and JSON Schema 2020-12 preservation.
   See the [pinned coverage report](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-conformance.md).
 - The conformance gate accounts for every scored client requirement in the pinned official fixture, while shared-store tests verify that private cache entries stay principal-partitioned and public entries are reused only for the same server identity and request.
-- Hosts retain connection lifecycle, consent, platform authentication-session presentation,
-  secure-storage implementation, retries, and shutdown. The protected-HTTP helper owns only the
-  exact OAuth/transport policy boundary documented above.
+- Hosts retain SDK construction and wire behavior, consent, platform authentication-session
+  presentation, and secure-storage implementation. The optional lifecycle controller coordinates
+  bounded host operations around those SDK objects; the protected-HTTP helper owns only the exact
+  OAuth/transport policy boundary documented above.
 - Generic JSON-safe `_meta` is preserved across the adapter boundary.
 - Generic extension discovery and settings are implemented and verified on the modern SDK path.
 - The adapter package remains independent of React Native, A2UI, and WebView packages.

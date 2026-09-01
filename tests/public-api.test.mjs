@@ -33,6 +33,7 @@ import {
   createAllowlistActionPolicy,
   createConsentActionPolicy,
   createA2uiV1BasicCatalogPolicy,
+  createA2uiV1ActionDeliveryHandler,
   createA2uiV1ActionEnvelope,
   createA2uiV1RendererCapabilities,
   createA2uiV1NativeRenderPlan,
@@ -106,6 +107,7 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof createAllowlistActionPolicy, "function");
   assert.equal(typeof createConsentActionPolicy, "function");
   assert.equal(typeof createA2uiV1BasicCatalogPolicy, "function");
+  assert.equal(typeof createA2uiV1ActionDeliveryHandler, "function");
   assert.equal(typeof createA2uiV1ActionEnvelope, "function");
   assert.equal(typeof createA2uiV1RendererCapabilities, "function");
   assert.equal(typeof createA2uiV1NativeRenderPlan, "function");

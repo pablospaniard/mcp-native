@@ -12,6 +12,7 @@ import {
   A2uiParseError,
   A2uiResourceError,
   A2uiSurfaceStore,
+  createA2uiV1ActionDeliveryHandler,
   createA2uiV1ActionEnvelope,
   createA2uiV1RendererCapabilities,
   isA2uiMcpBindingGrant,
@@ -167,6 +168,91 @@ test("renderer actions are reconstructed as exact official v1 envelopes", () => 
   assert.equal(Object.getPrototypeOf(envelope.action.context), Object.prototype);
   assert.equal(Object.hasOwn(envelope.action.context, "__proto__"), true);
   assert.equal(envelope.action.context.polluted, undefined);
+});
+
+test("A2UI v1 host delivery requires policy approval and isolates reviewer mutation", async () => {
+  const action = createA2uiV1ActionEnvelope({
+    name: "save_profile",
+    surfaceId: "profile",
+    sourceComponentId: "save",
+    context: { displayName: "Ada" },
+    timestamp: "2026-09-01T00:00:00.000Z",
+  });
+  const delivered = [];
+  const denied = [];
+  let decision = false;
+  const handler = createA2uiV1ActionDeliveryHandler({
+    authorize(envelope, dataModel) {
+      envelope.action.context.reviewMutation = true;
+      dataModel.reviewMutation = true;
+      return decision;
+    },
+    deliver(envelope, dataModel) {
+      delivered.push([envelope, dataModel]);
+    },
+    onDenied(envelope, reason) {
+      denied.push([envelope.action.name, reason]);
+    },
+  });
+
+  assert.equal(await handler(action, { form: { displayName: "Ada" } }), "denied");
+  assert.deepEqual(denied, [["save_profile", "policy"]]);
+  assert.deepEqual(delivered, []);
+
+  decision = true;
+  assert.equal(await handler(action, { form: { displayName: "Ada" } }), "delivered");
+  assert.deepEqual(delivered, [[action, { form: { displayName: "Ada" } }]]);
+});
+
+test("A2UI v1 host delivery denies overlap and recovers after policy failure", async () => {
+  const action = createA2uiV1ActionEnvelope({
+    name: "submit",
+    surfaceId: "form",
+    sourceComponentId: "submit",
+    context: {},
+  });
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const denied = [];
+  let attempt = 0;
+  const handler = createA2uiV1ActionDeliveryHandler({
+    async authorize() {
+      attempt += 1;
+      if (attempt === 1) {
+        await gate;
+        throw new Error("review failed");
+      }
+      return true;
+    },
+    deliver() {},
+    onDenied(_envelope, reason) {
+      denied.push(reason);
+    },
+  });
+
+  const first = handler(action);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(await handler(action), "denied");
+  assert.deepEqual(denied, ["busy"]);
+  release();
+  await assert.rejects(first, /review failed/);
+  assert.equal(await handler(action), "delivered");
+
+  const invalidDecision = createA2uiV1ActionDeliveryHandler({
+    authorize: () => "yes",
+    deliver: () => assert.fail("must not deliver"),
+  });
+  await assert.rejects(() => invalidDecision(action), /must return a boolean/);
+  await assert.rejects(
+    () =>
+      handler({
+        version: "v1.0",
+        error: { code: "UNKNOWN", surfaceId: "surface", message: "x" },
+      }),
+    /Expected an A2UI v1 action envelope/,
+  );
 });
 
 test("schema-derived renderer-to-agent fixtures cover every pinned message kind", () => {
