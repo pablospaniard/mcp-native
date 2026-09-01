@@ -91,6 +91,9 @@ test("native fixture respects platform safe areas without an extra root focus ta
   assert.match(source, /<SafeAreaProvider>/);
   assert.match(source, /<SafeAreaView edges=\{\["top", "right", "bottom", "left"\]\}/);
   assert.doesNotMatch(source, /<ScrollView\s+accessibilityLabel=/);
+  assert.match(source, /milestone-7-surface\.json/);
+  assert.match(source, /imagePolicy=/);
+  assert.match(source, /Network loading is intentionally disabled/);
 });
 
 test("CI pins both maintained React Native host lines without gating releases on app results", () => {

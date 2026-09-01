@@ -13,13 +13,20 @@ behavior.
 
 The supported renderer boundary:
 
-- derives closed text, button, and input roles instead of accepting native roles from a server;
+- derives closed text, button, image, checkbox, adjustable, radio, and tab semantics instead of
+  accepting native roles from a server;
 - preserves labels, descriptions, disabled and invalid state, validation messages, and live-region
   intent through explicitly selected host props;
 - excludes hidden controls from the accessibility tree;
 - keeps renderer-local edits local until an explicit action is dispatched;
 - prevents invalid buttons from resolving or dispatching their actions; and
 - explicitly enables text scaling for supported text and text-input components.
+
+The host implementation remains responsible for choice-item grouping, slider value announcements,
+date/time picker semantics, tab selection/focus, modal focus entry/trapping, platform back or escape
+dismissal, focus restoration, image failure alternatives, and meaningful icon-only labels. The
+typed boundary provides the required values and callbacks but cannot prove that a third-party
+component exposes them correctly on a particular OS version.
 
 Automated tests cover those mappings, failure paths, and the rule that arbitrary props and component
 implementations cannot cross the host boundary.
@@ -34,6 +41,8 @@ Expo SDK, React Native version, and component-library version. At minimum, exerc
 - portrait and landscape layout at normal and large system text sizes;
 - contrast, non-text contrast, reflow, and touch-target size;
 - local input behavior, disabled actions, and single action dispatch; and
+- tab traversal/selection, modal focus and dismissal/restoration, adjustable controls, grouped
+  choices, image alternatives, and decorative-divider exclusion; and
 - platform screen-reader navigation and activation.
 
 Input-purpose metadata, colors, spacing, scroll containers, visible focus styling, keyboard

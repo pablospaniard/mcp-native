@@ -6,6 +6,27 @@ their minor release line.
 
 ## Unreleased
 
+### Added
+
+- Trusted-plan and mounted React Native support for the nine remaining non-media components in the
+  pinned A2UI basic catalog: `Image`, `Icon`, `Divider`, `CheckBox`, `ChoicePicker`, `Slider`,
+  `DateTimeInput`, `Tabs`, and `Modal`.
+- Typed host adapters for every non-media semantic component, closed image and choice-picker
+  variants, and exact installed-catalog capability discovery.
+- Typed renderer-local boolean, number, date/time string, and string-array binding updates with
+  validation and dispatch-time reconstruction.
+- A deny-by-default image grant covering canonical HTTP(S) URLs, exact redirect origins, redirect
+  count, transfer bytes, decoded dimensions/pixels, and cache mode; the installed host loader owns
+  enforcement.
+- A complete non-media iOS/Android generated-host fixture and human-oriented capability guide.
+
+### Changed
+
+- The native icon boundary now accepts only pinned semantic names and rejects SVG paths, import
+  names, font/glyph selection, and arbitrary platform symbols.
+- The declared A2UI native component profile now contains 16 non-media basic-catalog components;
+  `Video` and `AudioPlayer` remain planned for Milestone 8.
+
 ## 0.6.0 - 2026-09-01
 
 Completes Milestone 6 with an issuer-bound protected-HTTP OAuth host boundary, explicit consent

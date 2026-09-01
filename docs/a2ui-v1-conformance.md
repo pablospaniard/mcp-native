@@ -41,11 +41,37 @@ and the MCP placement of A2UI capability objects remain host-owned.
 
 The React Native adapter implements these basic-catalog components:
 
-- `Row`, `Column`, static and dynamic `List`, `Card`, `Text`, `Button`, and `TextField`;
-- absolute and dynamic-list-relative string bindings with renderer-local updates;
+- `Row`, `Column`, static and dynamic `List`, `Card`, `Text`, `Image`, `Icon`, `Divider`, `Button`,
+  `TextField`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, and `Modal`;
+- absolute and dynamic-list-relative string, boolean, number, and string-array bindings with
+  renderer-local updates;
 - bounded template expansion and template-scoped `@index`;
 - closed structural, style-variant, accessibility, event, and check fields documented by the
   package APIs.
+
+`Video` and `AudioPlayer` are the only pinned basic-catalog components not implemented by this
+profile. A host must advertise only the intersection returned by
+`getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy })` for its installed and policy-ready catalog. The nine Milestone 7 slots
+are optional at the TypeScript catalog boundary; a surface using an omitted slot fails before that
+component can mount.
+
+The component-specific native interpretations are closed:
+
+| Component       | Implemented semantic boundary                                                                                                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Image`         | Canonical HTTP(S) URL plus a required synchronous host grant for exact redirect origins, redirect count, bytes, decoded width/height/pixels, and cache mode. The installed loader must enforce that grant. |
+| `Icon`          | One pinned semantic name mapped by the host; `svgPath`, font names, imports, platform symbol strings, and arbitrary glyph payloads are rejected.                                                           |
+| `Divider`       | Horizontal or vertical decorative separator, excluded from accessibility focus.                                                                                                                            |
+| `CheckBox`      | Boolean value/binding, label, checks, and checkbox accessibility state.                                                                                                                                    |
+| `ChoicePicker`  | Unique closed options, valid string-array selection, single/multiple semantics, checks, and cumulative option/output limits.                                                                               |
+| `Slider`        | Finite bounded number, optional finite step partition, checks, and adjustable accessibility role.                                                                                                          |
+| `DateTimeInput` | Strict date-only, time-only, or RFC 3339/date-time string according to enabled fields, with compatible bounds and checks.                                                                                  |
+| `Tabs`          | Non-empty titled tabs and renderer-local selected index; only the selected host-owned content is presented.                                                                                                |
+| `Modal`         | A required `Button` trigger plus content and renderer-local open state; the host component owns focus trapping, platform escape/back dismissal, and focus restoration through `onRequestClose`.            |
+
+Hosts may map these semantics through typed adapters and closed `Image` or `ChoicePicker` variant
+slots. No raw React Native style, arbitrary native prop, component class, import, executable code,
+or imperative native command crosses the wire boundary.
 
 The executable function subset is:
 
@@ -72,6 +98,14 @@ non-blocking Expo Go PoCs and is not part of the declared protocol profile.
   explicitly permits them. They remain inert and cannot grant host behavior.
 - Successful parsing is never authorization for function execution, tools, URLs, transport,
   device capabilities, or permissions.
+- The pinned `Modal` shape has a `Button` trigger but does not define whether opening replaces the
+  trigger's declared action. MCP Native opens the local modal and also resolves the trigger action;
+  host action policy remains authoritative. Dismissal never emits an agent action.
+- The pinned `Image` shape names a URL but does not define native network/decode policy. MCP Native
+  requires a separate host grant and passes its exact budgets to the installed image component. A
+  grant authorizes a constrained load; it does not prove the component enforced it. URLs are
+  canonicalized before authorization. Dispatch-time event and `openUrl` reconstruction revalidates
+  their server-controlled values without invoking unrelated image authorization callbacks again.
 
 ## Verification coverage
 
@@ -80,6 +114,8 @@ non-blocking Expo Go PoCs and is not part of the declared protocol profile.
   ordered state.
 - `tests/fixtures/a2ui-v1/renderer-to-agent-messages.json` covers every pinned renderer-to-agent
   message kind.
+- `tests/fixtures/a2ui-v1/milestone-7-surface.json` covers all nine non-media catalog additions in
+  generated React Native iOS and Android hosts.
 - Negative tests cover unknown versions and kinds, ambiguous envelopes, unsupported functions,
   malformed JSON Pointers, conflicting response/error forms, non-JSON input, and complexity limits.
 - Fixed-seed generated tests cover both envelope directions, ordered lifecycle state, bounded dynamic
@@ -104,6 +140,9 @@ Migrate as follows:
    host policy before rendering.
 4. Replace `McpNativeSurface` with `A2uiV1NativeSurface`; deliver validated action envelopes through
    an application-owned transport.
+5. Install only the optional native component slots your host implements completely, derive the
+   advertised list with `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy })`, and supply an enforcing image
+   policy/loader before advertising `Image`.
 
 There is no automatic conversion: the custom nested node tree and official component graph have
 different wire contracts. Legacy inputs never receive failed v1 streams as fallback.

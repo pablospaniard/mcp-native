@@ -6,6 +6,10 @@
 
 Render trusted, declarative MCP interfaces with host-owned native components—starting with React Native—while keeping HTML MCP Apps behind an explicit WebView policy boundary.
 
+[What MCP Native can do](docs/capabilities.md) explains the server-to-screen flow, supported
+components, design-system ownership, renderer scope, WebViews, and remaining roadmap in product
+language.
+
 [![CI](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml/badge.svg)](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/mcp-native?label=mcp-native)](https://www.npmjs.com/package/mcp-native)
 [![npm downloads](https://img.shields.io/npm/dm/mcp-native?label=downloads)](https://www.npmjs.com/package/mcp-native)
@@ -103,7 +107,8 @@ package boundary with issuer-bound protected-HTTP OAuth, explicit consent gates 
 host-owned grants, bounded connection lifecycle coordination, actionable host states, redacted
 operations, and production integration guidance. Release `0.5.0` added the stable MCP Apps
 `2026-01-26` native host-adapter profile, while `0.4.0` completed the feature-scoped A2UI v1
-Candidate adapter. Package versions are independent of the internal A2UI proof-of-concept surface
+Candidate adapter. The current `0.7.0` candidate completes the non-media basic catalog and typed
+design-system boundary without changing published package versions yet. Package versions are independent of the internal A2UI proof-of-concept surface
 value `"0.1"`.
 
 ## Installation
@@ -151,13 +156,13 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Schema-validated v1 lifecycle JSONL with atomic, ordered create/update/delete surface state
 - Fail-closed parsing for every pinned renderer-to-agent message kind without implicit execution
 - A pre-render v1 validation boundary with explicit host component, event, and function allowlists plus bounded validation of literal `formatString` sources
-- A fail-closed adapter from the supported A2UI v1 subset into the trusted native render plan
+- A fail-closed adapter for every non-media basic-catalog component into the trusted native render plan
 - Bounded dynamic `List` template expansion with relative bindings, local edits, and `@index`
 - Bounded `formatString` interpolation over validated bindings, JSON values, and nested supported functions
 - Host-localized `formatNumber` and `formatCurrency` execution with bounded, validated options
 - Bounded `required`, `regex`, `length`, `numeric`, and `email` validation with renderer-side field and button checks
 - Host-localized CLDR plural selection and strict `and`, `or`, and `not` evaluation
-- A mounted v1 native surface with renderer-local string bindings, dispatch-time event resolution, and schema-validated renderer-to-agent action envelopes
+- A mounted v1 native surface covering every non-media basic-catalog component, with typed renderer-local bindings, dispatch-time event resolution, and schema-validated renderer-to-agent action envelopes
 - Typed `tools/call` action routing with a fail-closed host policy
 - Consent profiles across core dispatch/direct calls, MCP Apps callbacks, and A2UI delivery, with bounded expiring/revocable grants
 - Bounded SDK connection lifecycle coordination, actionable host states, and data-free operational events
@@ -165,8 +170,8 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Strict resolution of `application/a2ui+json` resource links from real tool results
 - Strict parsing of a deliberately small declarative UI subset
 - Conversion from a validated surface to a trusted native render plan
-- Mounting through host-provided `View`, `Text`, `Button`, and `TextInput` components
-- Typed adapters from those trusted primitives into locally bundled design-system components
+- Mounting through a required four-primitive base plus optional host-provided non-media components
+- Typed adapters from trusted semantic props into locally bundled design-system components
 - React hooks for memoized render plans and safely observed asynchronous action dispatch
 - Accessibility labels and controlled text-input binding events selected at the renderer boundary
 - Fail-closed behavior for unknown nodes, actions, protocol versions, and WebView MIME types
@@ -178,12 +183,12 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
   JSON-RPC lifecycle verified against official `@modelcontextprotocol/ext-apps@1.7.5` schemas
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. In particular, the v1 native
-adapter supports only the documented component subset, absolute and dynamic-list-relative string
-bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks
-for supported text fields and buttons, pure boolean functions, `@index`, action events returned to
-a host callback, and press-time host-policy-gated HTTP(S) `openUrl`. Renderer behavior outside the
-automated native fixture remains unclaimed. Release `0.6.0` includes policy gates at all
+This is a foundation, not a complete MCP or A2UI implementation. The v1 native adapter supports
+every non-media basic-catalog component, typed absolute and dynamic-list-relative bindings, bounded
+formatting and validation functions, pure boolean functions, `@index`, action events returned to a
+host callback, required host image grants, and press-time host-policy-gated HTTP(S) `openUrl`.
+`Video`, `AudioPlayer`, agent-initiated renderer functions, and behavior outside the automated native
+fixtures remain unclaimed. Release `0.6.0` includes policy gates at all
 current action boundaries, persistent expiring/revocable consent grants and OAuth scope history,
 bounded connection lifecycle coordination, actionable host states, redacted operational events, and
 a [production host checklist](docs/host-integration-checklist.md). Separate Expo Go integration PoCs
@@ -293,7 +298,10 @@ import {
   negotiateA2uiMcpBinding,
   resolveA2uiV1JsonlFromToolResult,
 } from "@mcp-native/a2ui";
-import { A2UI_V1_NATIVE_COMPONENT_NAMES, A2uiV1NativeSurface } from "@mcp-native/react-native";
+import {
+  A2uiV1NativeSurface,
+  getA2uiV1NativeSupportedComponentNames,
+} from "@mcp-native/react-native";
 import { Button, Linking, Text, TextInput, View } from "react-native";
 
 const binding = negotiateA2uiMcpBinding(
@@ -314,8 +322,9 @@ if (surface === undefined) {
   throw new Error("The A2UI stream did not create the profile surface");
 }
 
+const components = { Button, Text, TextInput, View };
 const policy = createA2uiV1BasicCatalogPolicy({
-  allowedComponentNames: A2UI_V1_NATIVE_COMPONENT_NAMES,
+  allowedComponentNames: getA2uiV1NativeSupportedComponentNames(components),
   allowedEventNames: ["save_profile"],
   allowedFunctionNames: [
     "formatString",
@@ -333,7 +342,7 @@ function ProfileScreen() {
     <A2uiV1NativeSurface
       surface={surface}
       policy={policy}
-      components={{ Button, Text, TextInput, View }}
+      components={components}
       onAction={(envelope, dataModel) => {
         void deliverA2uiAction(envelope, dataModel);
       }}
@@ -347,7 +356,7 @@ function ProfileScreen() {
 ```
 
 `onAction` receives a validated official envelope and, only after surface opt-in, the renderer-local
-data model. `deliverA2uiAction` is deliberately host-owned: version `0.4.0` does not choose or invoke
+data model. `deliverA2uiAction` is deliberately host-owned: the package does not choose or invoke
 a renderer-to-agent transport. `openUrl` needs all three grants: the catalog function allowlist,
 the synchronous `openUrlPolicy`, and `onOpenUrl`. The adapter accepts only bounded, credential-free
 HTTP(S) URLs, resolves the current value during the originating Button press, and calls the host
@@ -490,9 +499,10 @@ package gates.
 
 The detailed [standards-first roadmap](docs/roadmap.md) records retained architecture, milestone exit criteria, and deferred optional extensions.
 
-Release `0.6.0` completes the original six pre-stable milestones. The remaining path is:
+Release `0.6.0` completes the original six pre-stable milestones. The current `0.7.0` candidate
+completes the non-media catalog and design-system boundary. The remaining path is:
 
-- `0.7.0`: the non-media pinned A2UI basic catalog and closed design-system mappings;
+- `0.7.0`: complete in the current candidate—the non-media pinned A2UI basic catalog and closed design-system mappings;
 - `0.8.0`: policy-gated media and namespaced, schema-validated, locally compiled host extensions;
 - `0.9.0`: host-owned mixed native/WebView composition, a production-shaped reference host, and a
   frozen `1.0.0` release-candidate API;
@@ -535,6 +545,8 @@ post-stable deliverables.
 - [x] Add typed adapters for host-owned React Native component libraries
 - [x] Add closed host-owned component variants for supported A2UI structure and style hints
 - [x] Derive closed native text/button semantics and preserve text scaling at the host boundary
+- [x] Complete all non-media basic-catalog components with typed bindings and accessibility semantics
+- [x] Require bounded image grants, pinned icon mappings, and exact installed-subset advertising
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
 - [x] Generate pinned RN 0.87/0.86 hosts and exercise automated bundle and host-boundary checks

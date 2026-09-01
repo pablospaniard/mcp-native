@@ -162,6 +162,10 @@ export function prepareNativeHost({ output, reactNativeVersion, install = true, 
     resolve(repositoryRoot, "tests/fixtures/a2ui-v1/accessibility-surface.json"),
     resolve(resolvedOutput, "accessibility-surface.json"),
   );
+  cpSync(
+    resolve(repositoryRoot, "tests/fixtures/a2ui-v1/milestone-7-surface.json"),
+    resolve(resolvedOutput, "milestone-7-surface.json"),
+  );
 
   const infoPlistPath = resolve(resolvedOutput, "ios", NATIVE_HOST_NAME, "Info.plist");
   writeFileSync(

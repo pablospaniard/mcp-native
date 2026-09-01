@@ -6,7 +6,7 @@ import type {
   A2uiV1SurfaceState,
   A2uiV1SurfaceValidationPolicy,
 } from "@mcp-native/a2ui";
-import { parseJsonObject, parseMcpNativeAction } from "@mcp-native/core";
+import { parseJsonObject, parseJsonValue, parseMcpNativeAction } from "@mcp-native/core";
 import type { JsonObject, JsonValue, McpNativeAction, McpToolCallResult } from "@mcp-native/core";
 import {
   createElement,
@@ -22,26 +22,46 @@ import {
 import type {
   NativeAccessibilityProps,
   NativeButtonComponentProps,
+  NativeChoicePickerComponentProps,
+  NativeChoicePickerOption,
   NativeComponentCatalog,
+  NativeIconComponentProps,
+  NativeImageComponentProps,
+  NativeImageResourcePolicy,
+  NativeImageVariant,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
   NativeViewComponentProps,
   NativeViewStyle,
   NativeViewVariant,
 } from "./component-adapters.js";
+import { A2UI_V1_NATIVE_ICON_NAMES } from "./component-adapters.js";
 
 import {
+  A2UI_V1_NATIVE_COMPONENT_NAMES,
   createA2uiV1NativeRenderPlan,
   createA2uiV1NativeRenderPlanForLocalEdits,
   parseA2uiV1NativeOpenUrlDescriptor,
   resolveA2uiV1NativeEvent,
   resolveA2uiV1NativeOpenUrl,
+  validateA2uiV1NativeDateTimeInputChange,
   type A2uiV1NativeEventDescriptor,
+  type A2uiV1NativeImagePolicy,
   type A2uiV1NativeOpenUrlDescriptor,
 } from "./v1.js";
 
 export {
+  A2UI_V1_NATIVE_ICON_NAMES,
   createNativeButtonAdapter,
+  createNativeCheckBoxAdapter,
+  createNativeChoicePickerAdapter,
+  createNativeDateTimeInputAdapter,
+  createNativeDividerAdapter,
+  createNativeIconAdapter,
+  createNativeImageAdapter,
+  createNativeModalAdapter,
+  createNativeSliderAdapter,
+  createNativeTabsAdapter,
   createNativeTextAdapter,
   createNativeTextInputAdapter,
   createNativeViewAdapter,
@@ -53,8 +73,25 @@ export type {
   NativeAccessibilityState,
   NativeButtonComponentProps,
   NativeButtonVariant,
+  NativeCheckBoxComponentProps,
+  NativeChoicePickerComponentProps,
+  NativeChoicePickerDisplayStyle,
+  NativeChoicePickerOption,
+  NativeChoicePickerVariant,
   NativeComponentCatalog,
   NativeComponentVariants,
+  NativeDateTimeInputComponentProps,
+  NativeDividerComponentProps,
+  NativeIconComponentProps,
+  NativeIconName,
+  NativeImageComponentProps,
+  NativeImageFit,
+  NativeImageResourcePolicy,
+  NativeImageVariant,
+  NativeModalComponentProps,
+  NativeSliderComponentProps,
+  NativeTabItem,
+  NativeTabsComponentProps,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
   NativeTextInputVariant,
@@ -64,7 +101,64 @@ export type {
   NativeViewVariant,
 } from "./component-adapters.js";
 
-export type NativeComponentName = "Button" | "Text" | "TextInput" | "View";
+export type NativeComponentName =
+  | "Button"
+  | "CheckBox"
+  | "ChoicePicker"
+  | "DateTimeInput"
+  | "Divider"
+  | "Icon"
+  | "Image"
+  | "Modal"
+  | "Slider"
+  | "Tabs"
+  | "Text"
+  | "TextInput"
+  | "View";
+
+const A2UI_V1_NATIVE_BASE_COMPONENT_NAMES = Object.freeze([
+  "Button",
+  "Card",
+  "Column",
+  "List",
+  "Row",
+  "Text",
+  "TextField",
+] as const);
+
+const A2UI_V1_NATIVE_OPTIONAL_COMPONENT_SLOTS = Object.freeze([
+  "CheckBox",
+  "ChoicePicker",
+  "DateTimeInput",
+  "Divider",
+  "Icon",
+  "Image",
+  "Modal",
+  "Slider",
+  "Tabs",
+] as const);
+
+export interface A2uiV1NativeCatalogCapabilities {
+  /** Required before Image can be advertised as an installed capability. */
+  readonly imagePolicy?: A2uiV1NativeImagePolicy;
+}
+
+/** Returns the exact A2UI subset backed by one locally installed and policy-ready host catalog. */
+export function getA2uiV1NativeSupportedComponentNames(
+  components: NativeComponentCatalog,
+  capabilities: A2uiV1NativeCatalogCapabilities = {},
+): readonly string[] {
+  const installed = new Set<string>(A2UI_V1_NATIVE_BASE_COMPONENT_NAMES);
+  for (const name of A2UI_V1_NATIVE_OPTIONAL_COMPONENT_SLOTS) {
+    if (
+      components[name] !== undefined &&
+      (name !== "Image" || capabilities.imagePolicy !== undefined)
+    ) {
+      installed.add(name);
+    }
+  }
+  return Object.freeze(A2UI_V1_NATIVE_COMPONENT_NAMES.filter((name) => installed.has(name)));
+}
 
 /**
  * A serializable render plan. A React Native host maps these trusted component
@@ -112,6 +206,8 @@ export interface A2uiV1NativeSurfaceProps {
   readonly openUrlPolicy?: A2uiV1NativeOpenUrlPolicy;
   /** Executes an authorized URL while the originating Button press is still active. */
   readonly onOpenUrl?: A2uiV1NativeOpenUrlHandler;
+  /** Required when the reachable surface contains an Image component. */
+  readonly imagePolicy?: A2uiV1NativeImagePolicy;
   /** Observes renderer-local state changes without turning keystrokes into network calls. */
   readonly onDataModelChange?: (dataModel: JsonObject) => void;
   readonly actionMetadata?: JsonObject;
@@ -189,6 +285,7 @@ export function A2uiV1NativeSurface({
   onAction,
   openUrlPolicy,
   onOpenUrl,
+  imagePolicy,
   onDataModelChange,
   actionMetadata,
   locale,
@@ -236,11 +333,12 @@ export function A2uiV1NativeSurface({
         : createA2uiV1NativeRenderPlan)(validatedSurface, policy, {
         dataModel,
         ...(locale === undefined ? {} : { locale }),
+        ...(imagePolicy === undefined ? {} : { imagePolicy }),
       }),
-    [dataModel, locale, policy, tolerateInvalidLocalOpenUrls, validatedSurface],
+    [dataModel, imagePolicy, locale, policy, tolerateInvalidLocalOpenUrls, validatedSurface],
   );
   const handleBindingChange = useCallback(
-    (binding: string, value: string) => {
+    (binding: string, value: JsonValue) => {
       const next = updateDataModelBinding(dataModelRef.current, binding, value);
       dataModelRef.current = next;
       setLocalState({
@@ -304,7 +402,7 @@ export function A2uiV1NativeSurface({
 
   return renderElement(plan, components, {
     useComponentVariants: true,
-    onBindingChange: handleBindingChange,
+    onV1BindingChange: handleBindingChange,
     onV1Event: handleEvent,
     ...(openUrlPolicy === undefined || onOpenUrl === undefined
       ? {}
@@ -388,8 +486,10 @@ interface NativeRenderHandlers {
   readonly useComponentVariants?: boolean;
   readonly onAction?: NativeActionHandler;
   readonly onBindingChange?: NativeBindingChangeHandler;
+  readonly onV1BindingChange?: (binding: string, value: JsonValue) => void;
   readonly onV1Event?: (event: A2uiV1NativeEventDescriptor) => void;
   readonly onV1OpenUrl?: (request: A2uiV1NativeOpenUrlDescriptor) => void;
+  readonly onElementActivate?: (key: string) => void;
 }
 
 function renderElement(
@@ -466,15 +566,512 @@ function renderElement(
           ...(invalid === undefined ? {} : { invalid }),
           ...(validationMessages === undefined ? {} : { validationMessages }),
           ...(value === undefined ? {} : { value }),
-          ...(binding === undefined || handlers.onBindingChange === undefined
+          ...(binding === undefined ||
+          (handlers.onBindingChange === undefined && handlers.onV1BindingChange === undefined)
             ? {}
             : {
-                onChangeText: (nextValue: string) => handlers.onBindingChange?.(binding, nextValue),
+                onChangeText: (nextValue: string) => {
+                  if (handlers.onV1BindingChange !== undefined) {
+                    handlers.onV1BindingChange(binding, nextValue);
+                  } else {
+                    handlers.onBindingChange?.(binding, nextValue);
+                  }
+                },
               }),
         },
       );
     }
+    case "Image": {
+      const uri = expectStringProp(element, "uri");
+      const fit = selectClosedStringProp(element, "fit", [
+        "contain",
+        "cover",
+        "fill",
+        "none",
+        "scaleDown",
+      ] as const);
+      const variant = selectClosedStringProp(element, "variant", [
+        "avatar",
+        "header",
+        "icon",
+        "largeFeature",
+        "mediumFeature",
+        "smallFeature",
+      ] as const);
+      const accessible =
+        accessibilityProps.accessibilityLabel !== undefined &&
+        accessibilityProps.accessibilityElementsHidden !== true;
+      return createElement(
+        selectImageComponent(element, components, handlers.useComponentVariants === true, variant),
+        {
+          key: element.key,
+          uri,
+          fit,
+          resourcePolicy: expectImageResourcePolicy(element),
+          ...accessibilityProps,
+          accessible,
+          accessibilityRole: "image",
+        },
+      );
+    }
+    case "Icon": {
+      const name = expectStringProp(element, "name");
+      if (!(A2UI_V1_NATIVE_ICON_NAMES as readonly string[]).includes(name)) {
+        throw new TypeError(`Unsupported icon name at native element ${element.key}.name`);
+      }
+      const accessible =
+        accessibilityProps.accessibilityLabel !== undefined &&
+        accessibilityProps.accessibilityElementsHidden !== true;
+      return createElement(requireHostComponent(components.Icon, "Icon", element.key), {
+        key: element.key,
+        name: name as NativeIconComponentProps["name"],
+        ...accessibilityProps,
+        accessible,
+        accessibilityRole: "image",
+      });
+    }
+    case "Divider":
+      return createElement(requireHostComponent(components.Divider, "Divider", element.key), {
+        key: element.key,
+        axis: selectClosedStringProp(element, "axis", ["horizontal", "vertical"] as const),
+        ...accessibilityProps,
+        accessible: false,
+      });
+    case "CheckBox": {
+      const label = expectStringProp(element, "label");
+      const value = expectBooleanProp(element, "value");
+      const binding = optionalStringProp(element, "binding");
+      const invalid = optionalBooleanProp(element, "invalid");
+      const validationMessages = optionalStringArrayProp(element, "validationMessages");
+      return createElement(requireHostComponent(components.CheckBox, "CheckBox", element.key), {
+        key: element.key,
+        label,
+        value,
+        ...accessibilityProps,
+        accessible: accessibilityProps.accessibilityElementsHidden !== true,
+        accessibilityLabel: accessibilityProps.accessibilityLabel ?? label,
+        accessibilityRole: "checkbox",
+        accessibilityState: { checked: value },
+        ...(invalid === undefined ? {} : { invalid }),
+        ...(validationMessages === undefined ? {} : { validationMessages }),
+        ...(binding === undefined || handlers.onV1BindingChange === undefined
+          ? {}
+          : {
+              onValueChange: (nextValue: boolean) => {
+                if (typeof nextValue !== "boolean") {
+                  throw new TypeError(
+                    `Expected a boolean checkbox value at native element ${element.key}`,
+                  );
+                }
+                handlers.onV1BindingChange?.(binding, nextValue);
+              },
+            }),
+      });
+    }
+    case "ChoicePicker": {
+      const options = expectChoicePickerOptions(element);
+      const value = expectStringArrayProp(element, "value");
+      const variant = selectClosedStringProp(element, "variant", [
+        "multipleSelection",
+        "mutuallyExclusive",
+      ] as const);
+      const displayStyle = selectClosedStringProp(element, "displayStyle", [
+        "checkbox",
+        "chips",
+      ] as const);
+      const filterable = expectBooleanProp(element, "filterable");
+      const label = optionalStringProp(element, "label");
+      const accessibilityLabel = expectStringProp(element, "accessibilityLabel");
+      const binding = optionalStringProp(element, "binding");
+      const invalid = optionalBooleanProp(element, "invalid");
+      const validationMessages = optionalStringArrayProp(element, "validationMessages");
+      return createElement(selectChoicePickerComponent(components, variant, element.key), {
+        key: element.key,
+        options,
+        value,
+        variant,
+        displayStyle,
+        filterable,
+        ...accessibilityProps,
+        accessible: accessibilityProps.accessibilityElementsHidden !== true,
+        accessibilityLabel,
+        ...(label === undefined ? {} : { label }),
+        ...(invalid === undefined ? {} : { invalid }),
+        ...(validationMessages === undefined ? {} : { validationMessages }),
+        ...(binding === undefined || handlers.onV1BindingChange === undefined
+          ? {}
+          : {
+              onValueChange: (nextValue: readonly string[]) => {
+                const parsed = validateChoicePickerChange(nextValue, options, variant, element.key);
+                handlers.onV1BindingChange?.(binding, parsed);
+              },
+            }),
+      });
+    }
+    case "Slider": {
+      const value = expectFiniteNumberProp(element, "value");
+      const minimumValue = expectFiniteNumberProp(element, "minimum");
+      const maximumValue = expectFiniteNumberProp(element, "maximum");
+      const step = optionalFiniteNumberProp(element, "step");
+      const label = optionalStringProp(element, "label");
+      const accessibilityLabel = expectStringProp(element, "accessibilityLabel");
+      const binding = optionalStringProp(element, "binding");
+      const invalid = optionalBooleanProp(element, "invalid");
+      const validationMessages = optionalStringArrayProp(element, "validationMessages");
+      return createElement(requireHostComponent(components.Slider, "Slider", element.key), {
+        key: element.key,
+        value,
+        minimumValue,
+        maximumValue,
+        ...accessibilityProps,
+        accessible: accessibilityProps.accessibilityElementsHidden !== true,
+        accessibilityLabel,
+        accessibilityRole: "adjustable",
+        ...(label === undefined ? {} : { label }),
+        ...(step === undefined ? {} : { step }),
+        ...(invalid === undefined ? {} : { invalid }),
+        ...(validationMessages === undefined ? {} : { validationMessages }),
+        ...(binding === undefined || handlers.onV1BindingChange === undefined
+          ? {}
+          : {
+              onValueChange: (nextValue: number) => {
+                if (
+                  typeof nextValue !== "number" ||
+                  !Number.isFinite(nextValue) ||
+                  nextValue < minimumValue ||
+                  nextValue > maximumValue ||
+                  (step !== undefined && !isSliderStepValue(nextValue, minimumValue, step))
+                ) {
+                  throw new TypeError(
+                    `Expected an in-range finite slider value at native element ${element.key}`,
+                  );
+                }
+                handlers.onV1BindingChange?.(binding, nextValue);
+              },
+            }),
+      });
+    }
+    case "DateTimeInput": {
+      const value = expectStringProp(element, "value");
+      const enableDate = expectBooleanProp(element, "enableDate");
+      const enableTime = expectBooleanProp(element, "enableTime");
+      const minimum = optionalStringProp(element, "minimum");
+      const maximum = optionalStringProp(element, "maximum");
+      const label = optionalStringProp(element, "label");
+      const accessibilityLabel = expectStringProp(element, "accessibilityLabel");
+      const binding = optionalStringProp(element, "binding");
+      const invalid = optionalBooleanProp(element, "invalid");
+      const validationMessages = optionalStringArrayProp(element, "validationMessages");
+      return createElement(
+        requireHostComponent(components.DateTimeInput, "DateTimeInput", element.key),
+        {
+          key: element.key,
+          value,
+          enableDate,
+          enableTime,
+          ...accessibilityProps,
+          accessible: accessibilityProps.accessibilityElementsHidden !== true,
+          accessibilityLabel,
+          ...(label === undefined ? {} : { label }),
+          ...(minimum === undefined ? {} : { minimum }),
+          ...(maximum === undefined ? {} : { maximum }),
+          ...(invalid === undefined ? {} : { invalid }),
+          ...(validationMessages === undefined ? {} : { validationMessages }),
+          ...(binding === undefined || handlers.onV1BindingChange === undefined
+            ? {}
+            : {
+                onValueChange: (nextValue: string) => {
+                  if (typeof nextValue !== "string") {
+                    throw new TypeError(
+                      `Expected a string date/time value at native element ${element.key}`,
+                    );
+                  }
+                  try {
+                    validateA2uiV1NativeDateTimeInputChange(
+                      nextValue,
+                      enableDate,
+                      enableTime,
+                      minimum,
+                      maximum,
+                      `native element ${element.key}`,
+                    );
+                  } catch (error) {
+                    const message =
+                      error instanceof Error
+                        ? error.message
+                        : `Expected a valid date/time value at native element ${element.key}`;
+                    throw new TypeError(message, { cause: error });
+                  }
+                  handlers.onV1BindingChange?.(binding, nextValue);
+                },
+              }),
+        },
+      );
+    }
+    case "Tabs":
+      return createElement(NativeTabsRenderer, {
+        key: element.key,
+        element,
+        components,
+        handlers,
+      });
+    case "Modal":
+      return createElement(NativeModalRenderer, {
+        key: element.key,
+        element,
+        components,
+        handlers,
+      });
   }
+}
+
+function isSliderStepValue(value: number, minimum: number, step: number): boolean {
+  const offset = (value - minimum) / step;
+  return (
+    Math.abs(offset - Math.round(offset)) <= Number.EPSILON * Math.max(1, Math.abs(offset)) * 8
+  );
+}
+
+interface NativeCompositeRendererProps {
+  readonly element: NativeElement;
+  readonly components: NativeComponentCatalog;
+  readonly handlers: NativeRenderHandlers;
+}
+
+function NativeTabsRenderer({
+  element,
+  components,
+  handlers,
+}: NativeCompositeRendererProps): ReactElement {
+  const tabDefinitions = expectTabDefinitions(element);
+  const children = element.children ?? [];
+  if (tabDefinitions.length !== children.length || tabDefinitions.length === 0) {
+    throw new TypeError(
+      `Expected matching non-empty tabs and children at native element ${element.key}`,
+    );
+  }
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const currentIndex = selectedIndex < tabDefinitions.length ? selectedIndex : 0;
+  useEffect(() => {
+    if (selectedIndex >= tabDefinitions.length) {
+      setSelectedIndex(0);
+    }
+  }, [selectedIndex, tabDefinitions.length]);
+  const accessibilityProps = selectAccessibilityProps(element);
+  return createElement(requireHostComponent(components.Tabs, "Tabs", element.key), {
+    tabs: tabDefinitions.map((tab, index) => ({
+      title: tab.title,
+      content: renderChildElement(children[index]!, components, handlers),
+    })),
+    selectedIndex: currentIndex,
+    onSelect: (index: number) => {
+      if (!Number.isInteger(index) || index < 0 || index >= tabDefinitions.length) {
+        throw new TypeError(`Expected an in-range tab index at native element ${element.key}`);
+      }
+      setSelectedIndex(index);
+    },
+    ...accessibilityProps,
+    accessible: accessibilityProps.accessibilityElementsHidden !== true,
+  });
+}
+
+function NativeModalRenderer({
+  element,
+  components,
+  handlers,
+}: NativeCompositeRendererProps): ReactElement {
+  const children = element.children ?? [];
+  if (children.length !== 2 || children[0]?.component !== "Button") {
+    throw new TypeError(`Expected a Button trigger and content at native element ${element.key}`);
+  }
+  const [open, setOpen] = useState(false);
+  const trigger = children[0];
+  const content = children[1]!;
+  const outerActivation = handlers.onElementActivate;
+  const triggerElement = renderElement(trigger, components, {
+    ...handlers,
+    onElementActivate: (key) => {
+      if (key === trigger.key) {
+        setOpen(true);
+      }
+      outerActivation?.(key);
+    },
+  });
+  const contentElement = renderElement(content, components, handlers);
+  return createElement(requireHostComponent(components.Modal, "Modal", element.key), {
+    trigger: triggerElement,
+    content: contentElement,
+    open,
+    onRequestClose: () => setOpen(false),
+    ...selectAccessibilityProps(element),
+  });
+}
+
+function requireHostComponent<Props extends object>(
+  component: ComponentType<Props> | undefined,
+  name: string,
+  key: string,
+): ComponentType<Props> {
+  if (component === undefined) {
+    throw new TypeError(`Missing host component ${JSON.stringify(name)} for native element ${key}`);
+  }
+  return component;
+}
+
+function selectImageComponent(
+  element: NativeElement,
+  components: NativeComponentCatalog,
+  useComponentVariants: boolean,
+  variant: NativeImageVariant,
+): ComponentType<NativeImageComponentProps> {
+  const base = requireHostComponent(components.Image, "Image", element.key);
+  if (!useComponentVariants) {
+    return base;
+  }
+  return components.variants?.Image?.[variant] ?? base;
+}
+
+function selectChoicePickerComponent(
+  components: NativeComponentCatalog,
+  variant: "multipleSelection" | "mutuallyExclusive",
+  key: string,
+): ComponentType<NativeChoicePickerComponentProps> {
+  return (
+    components.variants?.ChoicePicker?.[variant] ??
+    requireHostComponent(components.ChoicePicker, "ChoicePicker", key)
+  );
+}
+
+function expectChoicePickerOptions(element: NativeElement): readonly NativeChoicePickerOption[] {
+  const value = element.props.options;
+  if (!Array.isArray(value)) {
+    throw new TypeError(`Expected choice options at native element ${element.key}.options`);
+  }
+  const seen = new Set<string>();
+  return Object.freeze(
+    value.map((entry, index) => {
+      if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new TypeError(
+          `Expected a choice option at native element ${element.key}.options[${index}]`,
+        );
+      }
+      const option = entry as Record<string, unknown>;
+      const unknown = Object.keys(option).find((name) => name !== "label" && name !== "value");
+      if (
+        unknown !== undefined ||
+        typeof option.label !== "string" ||
+        typeof option.value !== "string"
+      ) {
+        throw new TypeError(
+          `Expected a closed choice option at native element ${element.key}.options[${index}]`,
+        );
+      }
+      if (seen.has(option.value)) {
+        throw new TypeError(
+          `Duplicate choice option at native element ${element.key}.options[${index}]`,
+        );
+      }
+      seen.add(option.value);
+      return Object.freeze({ label: option.label, value: option.value });
+    }),
+  );
+}
+
+function expectImageResourcePolicy(element: NativeElement): NativeImageResourcePolicy {
+  const path = `native element ${element.key}.resourcePolicy`;
+  const value = parseJsonObject(element.props.resourcePolicy, path);
+  rejectObjectKeys(
+    value,
+    [
+      "allowedRedirectOrigins",
+      "cacheMode",
+      "maximumBytes",
+      "maximumDecodedHeight",
+      "maximumDecodedPixels",
+      "maximumDecodedWidth",
+      "maximumRedirects",
+    ],
+    path,
+  );
+  const origins = value.allowedRedirectOrigins;
+  if (!Array.isArray(origins) || origins.some((origin) => typeof origin !== "string")) {
+    throw new TypeError(`Expected redirect origins at ${path}.allowedRedirectOrigins`);
+  }
+  if (value.cacheMode !== "default" && value.cacheMode !== "no-store") {
+    throw new TypeError(`Expected a closed cache mode at ${path}.cacheMode`);
+  }
+  const maximumBytes = expectObjectPositiveInteger(value, "maximumBytes", path);
+  const maximumDecodedHeight = expectObjectPositiveInteger(value, "maximumDecodedHeight", path);
+  const maximumDecodedPixels = expectObjectPositiveInteger(value, "maximumDecodedPixels", path);
+  const maximumDecodedWidth = expectObjectPositiveInteger(value, "maximumDecodedWidth", path);
+  const maximumRedirects = value.maximumRedirects;
+  if (
+    typeof maximumRedirects !== "number" ||
+    !Number.isInteger(maximumRedirects) ||
+    maximumRedirects < 0
+  ) {
+    throw new TypeError(`Expected a non-negative integer at ${path}.maximumRedirects`);
+  }
+  return Object.freeze({
+    allowedRedirectOrigins: Object.freeze([...origins] as string[]),
+    cacheMode: value.cacheMode,
+    maximumBytes,
+    maximumDecodedHeight,
+    maximumDecodedPixels,
+    maximumDecodedWidth,
+    maximumRedirects,
+  });
+}
+
+function expectObjectPositiveInteger(value: JsonObject, name: string, path: string): number {
+  const field = value[name];
+  if (typeof field !== "number" || !Number.isInteger(field) || field < 1) {
+    throw new TypeError(`Expected a positive integer at ${path}.${name}`);
+  }
+  return field;
+}
+
+function validateChoicePickerChange(
+  value: readonly string[],
+  options: readonly NativeChoicePickerOption[],
+  variant: "multipleSelection" | "mutuallyExclusive",
+  key: string,
+): readonly string[] {
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
+    throw new TypeError(`Expected an array of choice values at native element ${key}`);
+  }
+  if (new Set(value).size !== value.length) {
+    throw new TypeError(`Expected unique choice values at native element ${key}`);
+  }
+  if (variant === "mutuallyExclusive" && value.length > 1) {
+    throw new TypeError(`Expected at most one choice value at native element ${key}`);
+  }
+  const allowed = new Set(options.map((option) => option.value));
+  if (value.some((entry) => !allowed.has(entry))) {
+    throw new TypeError(`Expected known choice values at native element ${key}`);
+  }
+  return Object.freeze([...value]);
+}
+
+function expectTabDefinitions(element: NativeElement): readonly { readonly title: string }[] {
+  const value = element.props.tabs;
+  if (!Array.isArray(value)) {
+    throw new TypeError(`Expected tabs at native element ${element.key}.tabs`);
+  }
+  return Object.freeze(
+    value.map((entry, index) => {
+      if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new TypeError(`Expected a tab at native element ${element.key}.tabs[${index}]`);
+      }
+      const tab = entry as Record<string, unknown>;
+      if (Object.keys(tab).some((name) => name !== "title") || typeof tab.title !== "string") {
+        throw new TypeError(
+          `Expected a closed tab at native element ${element.key}.tabs[${index}]`,
+        );
+      }
+      return Object.freeze({ title: tab.title });
+    }),
+  );
 }
 
 function renderChildElement(
@@ -703,21 +1300,36 @@ function createButtonPressHandler(
     if (handlers.onAction === undefined) {
       throw new TypeError(`Missing native action handler for element ${element.key}`);
     }
-    return disabled ? () => undefined : () => handlers.onAction?.(action);
+    return disabled
+      ? () => undefined
+      : () => {
+          handlers.onElementActivate?.(element.key);
+          handlers.onAction?.(action);
+        };
   }
   if (hasEvent) {
     const event = expectV1EventProp(element);
     if (handlers.onV1Event === undefined) {
       throw new TypeError(`Missing A2UI v1 event handler for element ${element.key}`);
     }
-    return disabled ? () => undefined : () => handlers.onV1Event?.(event);
+    return disabled
+      ? () => undefined
+      : () => {
+          handlers.onElementActivate?.(element.key);
+          handlers.onV1Event?.(event);
+        };
   }
   if (hasOpenUrl) {
     const request = expectV1OpenUrlProp(element);
     if (handlers.onV1OpenUrl === undefined) {
       throw new TypeError(`Missing A2UI v1 openUrl policy or handler for element ${element.key}`);
     }
-    return disabled ? () => undefined : () => handlers.onV1OpenUrl?.(request);
+    return disabled
+      ? () => undefined
+      : () => {
+          handlers.onElementActivate?.(element.key);
+          handlers.onV1OpenUrl?.(request);
+        };
   }
   expectV1InvalidLocalOpenUrlProp(element);
   if (!disabled) {
@@ -754,6 +1366,20 @@ function expectStringProp(element: NativeElement, name: string): string {
   return value;
 }
 
+function selectClosedStringProp<const Value extends string>(
+  element: NativeElement,
+  name: string,
+  allowed: readonly Value[],
+): Value {
+  const value = expectStringProp(element, name);
+  if (!(allowed as readonly string[]).includes(value)) {
+    throw new TypeError(
+      `Unsupported value ${JSON.stringify(value)} at native element ${element.key}.${name}`,
+    );
+  }
+  return value as Value;
+}
+
 function optionalStringProp(element: NativeElement, name: string): string | undefined {
   const value = element.props[name];
   return value === undefined ? undefined : expectStringProp(element, name);
@@ -773,6 +1399,22 @@ function optionalStringArrayProp(
   return value as readonly string[];
 }
 
+function expectStringArrayProp(element: NativeElement, name: string): readonly string[] {
+  const value = optionalStringArrayProp(element, name);
+  if (value === undefined) {
+    throw new TypeError(`Expected an array of strings at native element ${element.key}.${name}`);
+  }
+  return value;
+}
+
+function expectBooleanProp(element: NativeElement, name: string): boolean {
+  const value = optionalBooleanProp(element, name);
+  if (value === undefined) {
+    throw new TypeError(`Expected a boolean at native element ${element.key}.${name}`);
+  }
+  return value;
+}
+
 function optionalBooleanProp(element: NativeElement, name: string): boolean | undefined {
   const value = element.props[name];
   if (value !== undefined && typeof value !== "boolean") {
@@ -784,6 +1426,14 @@ function optionalBooleanProp(element: NativeElement, name: string): boolean | un
 function optionalFiniteNumberProp(element: NativeElement, name: string): number | undefined {
   const value = element.props[name];
   if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) {
+    throw new TypeError(`Expected a finite number at native element ${element.key}.${name}`);
+  }
+  return value;
+}
+
+function expectFiniteNumberProp(element: NativeElement, name: string): number {
+  const value = optionalFiniteNumberProp(element, name);
+  if (value === undefined) {
     throw new TypeError(`Expected a finite number at native element ${element.key}.${name}`);
   }
   return value;
@@ -878,15 +1528,17 @@ function rejectObjectKeys(value: JsonObject, allowed: readonly string[], path: s
   }
 }
 
-function updateDataModelBinding(dataModel: JsonObject, binding: string, value: string): JsonObject {
+function updateDataModelBinding(
+  dataModel: JsonObject,
+  binding: string,
+  value: JsonValue,
+): JsonObject {
   if (typeof binding !== "string" || !binding.startsWith("/") || binding.length === 1) {
     throw new TypeError(
       `Expected a non-root absolute JSON Pointer binding, received ${JSON.stringify(binding)}`,
     );
   }
-  if (typeof value !== "string") {
-    throw new TypeError("Expected a string renderer binding value");
-  }
+  const parsedValue = parseJsonValue(value, "renderer binding value");
   const next = parseJsonObject(dataModel, "renderer data model");
   const tokens = binding
     .slice(1)
@@ -904,12 +1556,11 @@ function updateDataModelBinding(dataModel: JsonObject, binding: string, value: s
         throw new TypeError(`Renderer binding ${JSON.stringify(binding)} is missing`);
       }
       if (last) {
-        if (typeof cursor[arrayIndex] !== "string") {
-          throw new TypeError(
-            `Renderer binding ${JSON.stringify(binding)} must reference an existing string value`,
-          );
-        }
-        cursor[arrayIndex] = value;
+        cursor[arrayIndex] = validateRendererBindingReplacement(
+          cursor[arrayIndex]!,
+          parsedValue,
+          binding,
+        );
         break;
       }
       cursor = cursor[arrayIndex]!;
@@ -919,17 +1570,45 @@ function updateDataModelBinding(dataModel: JsonObject, binding: string, value: s
       throw new TypeError(`Renderer binding ${JSON.stringify(binding)} is missing`);
     }
     if (last) {
-      if (typeof (cursor as Record<string, JsonValue>)[token] !== "string") {
-        throw new TypeError(
-          `Renderer binding ${JSON.stringify(binding)} must reference an existing string value`,
-        );
-      }
-      defineJsonProperty(cursor as Record<string, JsonValue>, token, value);
+      defineJsonProperty(
+        cursor as Record<string, JsonValue>,
+        token,
+        validateRendererBindingReplacement(
+          (cursor as Record<string, JsonValue>)[token]!,
+          parsedValue,
+          binding,
+        ),
+      );
       break;
     }
     cursor = (cursor as Record<string, JsonValue>)[token]!;
   }
   return parseJsonObject(next, "renderer data model");
+}
+
+function validateRendererBindingReplacement(
+  current: JsonValue,
+  next: JsonValue,
+  binding: string,
+): JsonValue {
+  if (
+    (typeof current === "string" && typeof next === "string") ||
+    (typeof current === "boolean" && typeof next === "boolean") ||
+    (typeof current === "number" && typeof next === "number")
+  ) {
+    return next;
+  }
+  if (
+    Array.isArray(current) &&
+    current.every((value) => typeof value === "string") &&
+    Array.isArray(next) &&
+    next.every((value) => typeof value === "string")
+  ) {
+    return Object.freeze([...next]);
+  }
+  throw new TypeError(
+    `Renderer binding ${JSON.stringify(binding)} must preserve its string, boolean, number, or string-array value type`,
+  );
 }
 
 function decodePointerToken(token: string, pointer: string): string {
@@ -961,6 +1640,13 @@ function defineJsonProperty(
 
 export {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
+  A2UI_V1_NATIVE_MAX_CHOICE_OPTIONS,
+  A2UI_V1_NATIVE_MAX_IMAGE_BYTES,
+  A2UI_V1_NATIVE_MAX_IMAGE_DIMENSION,
+  A2UI_V1_NATIVE_MAX_IMAGE_PIXELS,
+  A2UI_V1_NATIVE_MAX_IMAGE_REDIRECT_ORIGINS,
+  A2UI_V1_NATIVE_MAX_IMAGE_REDIRECTS,
+  A2UI_V1_NATIVE_MAX_IMAGE_URL_LENGTH,
   A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH,
   A2UI_V1_NATIVE_MAX_RENDER_NODES,
   createA2uiV1NativeRenderPlan,
@@ -970,6 +1656,9 @@ export {
 export type {
   A2uiV1NativeEventDescriptor,
   A2uiV1NativeEventResolutionOptions,
+  A2uiV1NativeImagePolicy,
+  A2uiV1NativeImageGrant,
+  A2uiV1NativeImageRequest,
   A2uiV1NativeOpenUrlDescriptor,
   A2uiV1NativeOpenUrlResolutionOptions,
   A2uiV1NativeRenderPlanOptions,

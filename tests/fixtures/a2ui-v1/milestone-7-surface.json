@@ -1,0 +1,119 @@
+{
+  "version": "v1.0",
+  "createSurface": {
+    "surfaceId": "milestone-7",
+    "sendDataModel": true,
+    "components": [
+      {
+        "id": "root",
+        "component": "Card",
+        "child": "content",
+        "accessibility": { "label": "Milestone 7 component catalog" }
+      },
+      {
+        "id": "content",
+        "component": "Column",
+        "children": [
+          "image",
+          "icon-row",
+          "divider",
+          "checkbox",
+          "picker",
+          "slider",
+          "date",
+          "tabs",
+          "modal"
+        ]
+      },
+      {
+        "id": "image",
+        "component": "Image",
+        "url": "https://images.example.com/mcp-native-fixture.png",
+        "description": "Remote image policy fixture",
+        "fit": "contain",
+        "variant": "mediumFeature"
+      },
+      { "id": "icon-row", "component": "Row", "children": ["icon", "icon-label"] },
+      {
+        "id": "icon",
+        "component": "Icon",
+        "name": "favorite",
+        "accessibility": { "label": "Favorite" }
+      },
+      { "id": "icon-label", "component": "Text", "text": "Pinned host icon mapping" },
+      { "id": "divider", "component": "Divider", "axis": "horizontal" },
+      {
+        "id": "checkbox",
+        "component": "CheckBox",
+        "label": "Enable notifications",
+        "value": { "path": "/notifications" }
+      },
+      {
+        "id": "picker",
+        "component": "ChoicePicker",
+        "label": "Accent colors",
+        "variant": "multipleSelection",
+        "displayStyle": "chips",
+        "options": [
+          { "label": "Blue", "value": "blue" },
+          { "label": "Green", "value": "green" },
+          { "label": "Orange", "value": "orange" }
+        ],
+        "value": { "path": "/colors" }
+      },
+      {
+        "id": "slider",
+        "component": "Slider",
+        "label": "Volume",
+        "min": 0,
+        "max": 10,
+        "steps": 10,
+        "value": { "path": "/volume" }
+      },
+      {
+        "id": "date",
+        "component": "DateTimeInput",
+        "label": "Meeting date",
+        "enableDate": true,
+        "min": "2026-01-01",
+        "max": "2026-12-31",
+        "value": { "path": "/meetingDate" }
+      },
+      {
+        "id": "tabs",
+        "component": "Tabs",
+        "tabs": [
+          { "title": "Overview", "child": "overview" },
+          { "title": "Details", "child": "details" }
+        ]
+      },
+      { "id": "overview", "component": "Text", "text": "Overview tab content" },
+      { "id": "details", "component": "Text", "text": "Details tab content" },
+      { "id": "modal", "component": "Modal", "trigger": "modal-trigger", "content": "modal-body" },
+      {
+        "id": "modal-trigger",
+        "component": "Button",
+        "child": "modal-trigger-label",
+        "action": { "event": { "name": "open_details" } }
+      },
+      { "id": "modal-trigger-label", "component": "Text", "text": "Open modal" },
+      {
+        "id": "modal-body",
+        "component": "Column",
+        "children": ["modal-heading", "modal-description"]
+      },
+      { "id": "modal-heading", "component": "Text", "text": "Modal content" },
+      {
+        "id": "modal-description",
+        "component": "Text",
+        "text": "Use the platform back action or dismiss control to close."
+      }
+    ],
+    "dataModel": {
+      "notifications": false,
+      "colors": ["blue"],
+      "volume": 5,
+      "meetingDate": "2026-09-01"
+    }
+  }
+}

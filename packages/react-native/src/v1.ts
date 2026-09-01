@@ -19,14 +19,25 @@ import {
 import type { JsonObject, JsonValue } from "@mcp-native/core";
 
 import { ISO_4217_CURRENCY_CODES } from "./iso-4217.js";
+import { A2UI_V1_NATIVE_ICON_NAMES } from "./component-adapters.js";
+import type { NativeImageResourcePolicy } from "./component-adapters.js";
 import type { NativeElement } from "./index.js";
 
 export const A2UI_V1_NATIVE_COMPONENT_NAMES = Object.freeze([
   "Button",
   "Card",
+  "CheckBox",
+  "ChoicePicker",
   "Column",
+  "DateTimeInput",
+  "Divider",
+  "Icon",
+  "Image",
   "List",
+  "Modal",
   "Row",
+  "Slider",
+  "Tabs",
   "Text",
   "TextField",
 ]) as readonly string[];
@@ -36,6 +47,31 @@ export const A2UI_V1_NATIVE_MAX_RENDER_NODES = A2UI_V1_MAX_COMPONENTS;
 
 /** Maximum canonical HTTP(S) URL retained for one supported local action. */
 export const A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH = 8_192;
+
+/** Maximum canonical HTTP(S) image URL retained for one image component. */
+export const A2UI_V1_NATIVE_MAX_IMAGE_URL_LENGTH = 8_192;
+
+/** Maximum choice options expanded into trusted host props in one render pass. */
+export const A2UI_V1_NATIVE_MAX_CHOICE_OPTIONS = 1_024;
+export const A2UI_V1_NATIVE_MAX_IMAGE_REDIRECT_ORIGINS = 64;
+export const A2UI_V1_NATIVE_MAX_IMAGE_BYTES = 104_857_600;
+export const A2UI_V1_NATIVE_MAX_IMAGE_DIMENSION = 16_384;
+export const A2UI_V1_NATIVE_MAX_IMAGE_PIXELS = 268_435_456;
+export const A2UI_V1_NATIVE_MAX_IMAGE_REDIRECTS = 10;
+
+export interface A2uiV1NativeImageRequest {
+  readonly url: string;
+  readonly surfaceId: string;
+  readonly sourceComponentId: string;
+  readonly instanceKey: string;
+}
+
+export type A2uiV1NativeImageGrant = NativeImageResourcePolicy;
+
+/** Synchronous host authorization for one canonical image URL during plan construction. */
+export type A2uiV1NativeImagePolicy = (
+  request: A2uiV1NativeImageRequest,
+) => A2uiV1NativeImageGrant | false;
 
 /** Resolved event data retained in a trusted plan until renderer-to-agent dispatch. */
 export interface A2uiV1NativeEventDescriptor {
@@ -62,6 +98,8 @@ export interface A2uiV1NativeRenderPlanOptions {
   readonly dataModel?: JsonObject;
   /** Host-owned BCP 47 locale for renderer-side localization. Defaults to the runtime locale. */
   readonly locale?: string;
+  /** Required when the reachable surface contains an Image component. */
+  readonly imagePolicy?: A2uiV1NativeImagePolicy;
 }
 
 export interface A2uiV1NativeEventResolutionOptions {
@@ -93,9 +131,16 @@ interface AdapterContext {
   readonly pluralRules: Map<string, Intl.PluralRules>;
   readonly visiting: Set<string>;
   readonly tolerateInvalidLocalOpenUrls: boolean;
+  readonly imagePolicy: A2uiV1NativeImagePolicy | undefined;
+  readonly authorizeImageResources: boolean;
+  choiceOptionCount: number;
+  choiceOptionOutputLength: number;
   formatStringExpressionCount: number;
   formattedStringLength: number;
   openUrlLength: number;
+  imageUrlLength: number;
+  imageRedirectOriginCount: number;
+  imageResourcePolicyOutputLength: number;
   renderNodeCount: number;
   validationCheckCount: number;
   validationOutputLength: number;
@@ -135,6 +180,7 @@ function createNativeRenderPlan(
     parsedOptions.dataModel,
     parsedOptions.locale,
     tolerateInvalidLocalOpenUrls,
+    parsedOptions.imagePolicy,
   );
   return adaptComponent("root", "root", context, undefined);
 }
@@ -151,7 +197,15 @@ export function resolveA2uiV1NativeEvent(
     throw new A2uiParseError("Expected a non-empty A2UI source component id");
   }
   const parsedOptions = parseEventResolutionOptions(options);
-  const context = createAdapterContext(surface, policy, dataModel, parsedOptions.locale);
+  const context = createAdapterContext(
+    surface,
+    policy,
+    dataModel,
+    parsedOptions.locale,
+    false,
+    undefined,
+    false,
+  );
   const plan = adaptComponent("root", "root", context, undefined);
   const events = findNativeEvents(plan, sourceComponentId, parsedOptions.instanceKey);
   if (events.length === 0) {
@@ -190,7 +244,15 @@ export function resolveA2uiV1NativeOpenUrl(
     throw new A2uiParseError("Expected a non-empty A2UI openUrl source component id");
   }
   const parsedOptions = parseOpenUrlResolutionOptions(options);
-  const context = createAdapterContext(surface, policy, dataModel, parsedOptions.locale);
+  const context = createAdapterContext(
+    surface,
+    policy,
+    dataModel,
+    parsedOptions.locale,
+    false,
+    undefined,
+    false,
+  );
   const plan = adaptComponent("root", "root", context, undefined);
   const openUrls = findNativeOpenUrls(plan, sourceComponentId, parsedOptions.instanceKey);
   if (openUrls.length === 0) {
@@ -265,6 +327,8 @@ function createAdapterContext(
   dataModel: JsonObject | undefined,
   locale: string | undefined,
   tolerateInvalidLocalOpenUrls = false,
+  imagePolicy?: A2uiV1NativeImagePolicy,
+  authorizeImageResources = true,
 ): AdapterContext {
   const localDataModel =
     dataModel === undefined
@@ -283,9 +347,16 @@ function createAdapterContext(
     pluralRules: new Map<string, Intl.PluralRules>(),
     visiting: new Set<string>(),
     tolerateInvalidLocalOpenUrls,
+    imagePolicy,
+    authorizeImageResources,
+    choiceOptionCount: 0,
+    choiceOptionOutputLength: 0,
     formatStringExpressionCount: 0,
     formattedStringLength: 0,
     openUrlLength: 0,
+    imageUrlLength: 0,
+    imageRedirectOriginCount: 0,
+    imageResourcePolicyOutputLength: 0,
     renderNodeCount: 0,
     validationCheckCount: 0,
     validationOutputLength: 0,
@@ -295,8 +366,10 @@ function createAdapterContext(
 function parseRenderPlanOptions(options: unknown): A2uiV1NativeRenderPlanOptions {
   const parsed = parseOptionsObject(options, "A2UI native render plan options", [
     "dataModel",
+    "imagePolicy",
     "locale",
   ]);
+  const imagePolicy = parseOptionalImagePolicy(parsed.imagePolicy, "options.imagePolicy");
   return {
     ...(parsed.dataModel === undefined
       ? {}
@@ -304,6 +377,7 @@ function parseRenderPlanOptions(options: unknown): A2uiV1NativeRenderPlanOptions
     ...(parsed.locale === undefined
       ? {}
       : { locale: parseLocale(parsed.locale, "options.locale") }),
+    ...(imagePolicy === undefined ? {} : { imagePolicy }),
   };
 }
 
@@ -343,6 +417,16 @@ function parseOpenUrlResolutionOptions(options: unknown): A2uiV1NativeOpenUrlRes
       ? {}
       : { locale: parseLocale(parsed.locale, "options.locale") }),
   };
+}
+
+function parseOptionalImagePolicy(
+  value: unknown,
+  path: string,
+): A2uiV1NativeImagePolicy | undefined {
+  if (value !== undefined && typeof value !== "function") {
+    throw new A2uiParseError(`Expected a function at ${path}`);
+  }
+  return value as A2uiV1NativeImagePolicy | undefined;
 }
 
 function parseOptionsObject(
@@ -421,10 +505,28 @@ function adaptComponent(
         return adaptCard(component, key, context, scope);
       case "Text":
         return adaptText(component, key, context, scope);
+      case "Image":
+        return adaptImage(component, key, context, scope);
+      case "Icon":
+        return adaptIcon(component, key, context, scope);
+      case "Divider":
+        return adaptDivider(component, key, context, scope);
       case "Button":
         return adaptButton(component, key, context, scope);
       case "TextField":
         return adaptTextField(component, key, context, scope);
+      case "CheckBox":
+        return adaptCheckBox(component, key, context, scope);
+      case "ChoicePicker":
+        return adaptChoicePicker(component, key, context, scope);
+      case "Slider":
+        return adaptSlider(component, key, context, scope);
+      case "DateTimeInput":
+        return adaptDateTimeInput(component, key, context, scope);
+      case "Tabs":
+        return adaptTabs(component, key, context, scope);
+      case "Modal":
+        return adaptModal(component, key, context, scope);
       default:
         throw new A2uiParseError(
           `A2UI component ${JSON.stringify(id)} uses ${JSON.stringify(component.component)}, which the native adapter does not support`,
@@ -574,6 +676,115 @@ function adaptText(
   return { key, component: "Text", props };
 }
 
+function adaptImage(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const path = `components.${component.id}.url`;
+  const url = normalizeHttpUrl(
+    resolveDynamicString(component.url, path, context, scope),
+    path,
+    "image",
+    A2UI_V1_NATIVE_MAX_IMAGE_URL_LENGTH,
+  );
+  context.imageUrlLength += url.length;
+  if (context.imageUrlLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum image URL length of ${A2UI_V1_MAX_SOURCE_LENGTH} at ${path}`,
+    );
+  }
+  const props: Record<string, unknown> = {
+    uri: url,
+    fit: component.fit ?? "fill",
+    variant: component.variant ?? "mediumFeature",
+  };
+  if (context.authorizeImageResources) {
+    const request: A2uiV1NativeImageRequest = {
+      url,
+      surfaceId: context.surface.surfaceId,
+      sourceComponentId: component.id,
+      instanceKey: key,
+    };
+    if (context.imagePolicy === undefined) {
+      throw new A2uiParseError(
+        `A2UI Image ${JSON.stringify(component.id)} requires an explicit host image policy`,
+      );
+    }
+    let decision: A2uiV1NativeImageGrant | false;
+    try {
+      decision = context.imagePolicy(request);
+    } catch (cause) {
+      throw new A2uiParseError(`A2UI Image ${JSON.stringify(component.id)} host policy failed`, {
+        cause,
+      });
+    }
+    if (decision === false) {
+      throw new A2uiParseError(
+        `A2UI Image ${JSON.stringify(component.id)} URL is denied by host policy`,
+      );
+    }
+    props.resourcePolicy = parseImageResourcePolicy(
+      decision,
+      `components.${component.id}.imagePolicy`,
+      context,
+    );
+  }
+  if (component.description !== undefined) {
+    props.description = resolveDynamicString(
+      component.description,
+      `components.${component.id}.description`,
+      context,
+      scope,
+    );
+  }
+  addCommonProps(component, props, context, scope);
+  if (props.accessibilityLabel === undefined && props.description !== undefined) {
+    props.accessibilityLabel = props.description;
+  }
+  return { key, component: "Image", props };
+}
+
+function adaptIcon(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const path = `components.${component.id}.name`;
+  if (
+    component.name !== null &&
+    typeof component.name === "object" &&
+    !Array.isArray(component.name) &&
+    Object.hasOwn(component.name, "svgPath")
+  ) {
+    throw new A2uiParseError(
+      `A2UI native Icon ${JSON.stringify(component.id)} requires a pinned semantic icon name at ${path}; svgPath is not supported`,
+    );
+  }
+  const name = resolveDynamicString(component.name, path, context, scope);
+  if (!(A2UI_V1_NATIVE_ICON_NAMES as readonly string[]).includes(name)) {
+    throw new A2uiParseError(
+      `A2UI native Icon ${JSON.stringify(component.id)} requires a pinned semantic icon name at ${path}; svgPath is not supported`,
+    );
+  }
+  const props: Record<string, unknown> = { name };
+  addCommonProps(component, props, context, scope);
+  return { key, component: "Icon", props };
+}
+
+function adaptDivider(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const props: Record<string, unknown> = { axis: component.axis ?? "horizontal" };
+  addCommonProps(component, props, context, scope);
+  return { key, component: "Divider", props };
+}
+
 function adaptButton(
   component: A2uiV1Component,
   key: string,
@@ -643,6 +854,346 @@ function adaptTextField(
     props.accessibilityLabel = label;
   }
   return { key, component: "TextInput", props };
+}
+
+function adaptCheckBox(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const componentPath = `components.${component.id}`;
+  const label = resolveDynamicString(component.label, `${componentPath}.label`, context, scope);
+  const props: Record<string, unknown> = {
+    label,
+    value: resolveDynamicBoolean(component.value, `${componentPath}.value`, context, scope),
+  };
+  addBindingProp(component.value, `${componentPath}.value`, props, scope);
+  addCommonProps(component, props, context, scope);
+  addValidationProps(component, props, context, scope, "input");
+  if (props.accessibilityLabel === undefined) {
+    props.accessibilityLabel = label;
+  }
+  return { key, component: "CheckBox", props };
+}
+
+function adaptChoicePicker(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const componentPath = `components.${component.id}`;
+  if (!Array.isArray(component.options)) {
+    throw new A2uiParseError(`Expected an array at ${componentPath}.options`);
+  }
+  context.choiceOptionCount += component.options.length;
+  if (context.choiceOptionCount > A2UI_V1_NATIVE_MAX_CHOICE_OPTIONS) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum of ${A2UI_V1_NATIVE_MAX_CHOICE_OPTIONS} choice options`,
+    );
+  }
+  const optionValues = new Set<string>();
+  const options = component.options.map((value, index) => {
+    const option = expectObject(value, `${componentPath}.options[${index}]`);
+    const label = resolveDynamicString(
+      option.label,
+      `${componentPath}.options[${index}].label`,
+      context,
+      scope,
+    );
+    const optionValue = expectString(option.value, `${componentPath}.options[${index}].value`);
+    if (optionValues.has(optionValue)) {
+      throw new A2uiParseError(
+        `A2UI ChoicePicker ${JSON.stringify(component.id)} contains duplicate option value ${JSON.stringify(optionValue)}`,
+      );
+    }
+    optionValues.add(optionValue);
+    context.choiceOptionOutputLength += label.length + optionValue.length;
+    if (context.choiceOptionOutputLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+      throw new A2uiParseError(
+        `Expanded A2UI native plan exceeds maximum choice-option output length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
+      );
+    }
+    return Object.freeze({ label, value: optionValue });
+  });
+  const selected = resolveDynamicStringList(
+    component.value,
+    `${componentPath}.value`,
+    context,
+    scope,
+  );
+  if (new Set(selected).size !== selected.length) {
+    throw new A2uiParseError(
+      `A2UI ChoicePicker ${JSON.stringify(component.id)} contains duplicate selected values`,
+    );
+  }
+  for (const value of selected) {
+    if (!optionValues.has(value)) {
+      throw new A2uiParseError(
+        `A2UI ChoicePicker ${JSON.stringify(component.id)} selects unknown value ${JSON.stringify(value)}`,
+      );
+    }
+  }
+  const variant = component.variant ?? "mutuallyExclusive";
+  if (variant === "mutuallyExclusive" && selected.length > 1) {
+    throw new A2uiParseError(
+      `A2UI ChoicePicker ${JSON.stringify(component.id)} allows at most one selected value`,
+    );
+  }
+  const props: Record<string, unknown> = {
+    options: Object.freeze(options),
+    value: Object.freeze(selected),
+    variant,
+    displayStyle: component.displayStyle ?? "checkbox",
+    filterable: component.filterable ?? false,
+  };
+  if (component.label !== undefined) {
+    props.label = resolveDynamicString(component.label, `${componentPath}.label`, context, scope);
+  }
+  addBindingProp(component.value, `${componentPath}.value`, props, scope);
+  addCommonProps(component, props, context, scope);
+  addValidationProps(component, props, context, scope, "input");
+  if (props.accessibilityLabel === undefined) {
+    if (props.label === undefined) {
+      throw new A2uiParseError(
+        `A2UI native ChoicePicker ${JSON.stringify(component.id)} requires label or accessibility.label`,
+      );
+    }
+    props.accessibilityLabel = props.label;
+  }
+  return { key, component: "ChoicePicker", props };
+}
+
+function adaptSlider(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const componentPath = `components.${component.id}`;
+  const minimum =
+    component.min === undefined ? 0 : expectFiniteNumber(component.min, `${componentPath}.min`);
+  const maximum = expectFiniteNumber(component.max, `${componentPath}.max`);
+  if (minimum >= maximum) {
+    throw new A2uiParseError(`Expected ${componentPath}.min to be less than max`);
+  }
+  const value = resolveDynamicNumber(component.value, `${componentPath}.value`, context, scope);
+  if (value < minimum || value > maximum) {
+    throw new A2uiParseError(`Expected ${componentPath}.value to be within min and max`);
+  }
+  let step: number | undefined;
+  if (component.steps !== undefined) {
+    const steps = expectFiniteNumber(component.steps, `${componentPath}.steps`);
+    if (!Number.isInteger(steps) || steps < 1 || steps > JSON_MAX_VALUES) {
+      throw new A2uiParseError(
+        `Expected ${componentPath}.steps to be an integer from 1 through ${JSON_MAX_VALUES}`,
+      );
+    }
+    step = (maximum - minimum) / steps;
+    if (!Number.isFinite(step) || step <= 0) {
+      throw new A2uiParseError(`A2UI Slider ${JSON.stringify(component.id)} has invalid range`);
+    }
+    if (!isSliderStepValue(value, minimum, step)) {
+      throw new A2uiParseError(
+        `A2UI Slider ${JSON.stringify(component.id)} value does not align with its steps`,
+      );
+    }
+  }
+  const props: Record<string, unknown> = {
+    value,
+    minimum,
+    maximum,
+    ...(step === undefined ? {} : { step }),
+  };
+  if (component.label !== undefined) {
+    props.label = resolveDynamicString(component.label, `${componentPath}.label`, context, scope);
+  }
+  addBindingProp(component.value, `${componentPath}.value`, props, scope);
+  addCommonProps(component, props, context, scope);
+  addValidationProps(component, props, context, scope, "input");
+  if (props.accessibilityLabel === undefined) {
+    if (props.label === undefined) {
+      throw new A2uiParseError(
+        `A2UI native Slider ${JSON.stringify(component.id)} requires label or accessibility.label`,
+      );
+    }
+    props.accessibilityLabel = props.label;
+  }
+  return { key, component: "Slider", props };
+}
+
+function isSliderStepValue(value: number, minimum: number, step: number): boolean {
+  const offset = (value - minimum) / step;
+  return (
+    Math.abs(offset - Math.round(offset)) <= Number.EPSILON * Math.max(1, Math.abs(offset)) * 8
+  );
+}
+
+function adaptDateTimeInput(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const componentPath = `components.${component.id}`;
+  const enableDate = component.enableDate === true;
+  const enableTime = component.enableTime === true;
+  if (!enableDate && !enableTime) {
+    throw new A2uiParseError(
+      `A2UI DateTimeInput ${JSON.stringify(component.id)} must enable date, time, or both`,
+    );
+  }
+  const value = resolveDynamicString(component.value, `${componentPath}.value`, context, scope);
+  validateDateTimeInputValue(value, enableDate, enableTime, `${componentPath}.value`, true);
+  const minimum =
+    component.min === undefined
+      ? undefined
+      : resolveDynamicString(component.min, `${componentPath}.min`, context, scope);
+  const maximum =
+    component.max === undefined
+      ? undefined
+      : resolveDynamicString(component.max, `${componentPath}.max`, context, scope);
+  if (minimum !== undefined) {
+    validateDateTimeInputValue(minimum, enableDate, enableTime, `${componentPath}.min`, false);
+  }
+  if (maximum !== undefined) {
+    validateDateTimeInputValue(maximum, enableDate, enableTime, `${componentPath}.max`, false);
+  }
+  if (
+    minimum !== undefined &&
+    maximum !== undefined &&
+    dateTimeInputSortValue(minimum, enableDate, enableTime, `${componentPath}.min`) >
+      dateTimeInputSortValue(maximum, enableDate, enableTime, `${componentPath}.max`)
+  ) {
+    throw new A2uiParseError(`Expected ${componentPath}.min not to exceed max`);
+  }
+  const valueSort =
+    value.length === 0
+      ? undefined
+      : dateTimeInputSortValue(value, enableDate, enableTime, `${componentPath}.value`);
+  if (
+    valueSort !== undefined &&
+    minimum !== undefined &&
+    valueSort < dateTimeInputSortValue(minimum, enableDate, enableTime, `${componentPath}.min`)
+  ) {
+    throw new A2uiParseError(`Expected ${componentPath}.value not to be earlier than min`);
+  }
+  if (
+    valueSort !== undefined &&
+    maximum !== undefined &&
+    valueSort > dateTimeInputSortValue(maximum, enableDate, enableTime, `${componentPath}.max`)
+  ) {
+    throw new A2uiParseError(`Expected ${componentPath}.value not to be later than max`);
+  }
+  const props: Record<string, unknown> = {
+    value,
+    enableDate,
+    enableTime,
+    ...(minimum === undefined ? {} : { minimum }),
+    ...(maximum === undefined ? {} : { maximum }),
+  };
+  if (component.label !== undefined) {
+    props.label = resolveDynamicString(component.label, `${componentPath}.label`, context, scope);
+  }
+  addBindingProp(component.value, `${componentPath}.value`, props, scope);
+  addCommonProps(component, props, context, scope);
+  addValidationProps(component, props, context, scope, "input");
+  if (props.accessibilityLabel === undefined) {
+    if (props.label === undefined) {
+      throw new A2uiParseError(
+        `A2UI native DateTimeInput ${JSON.stringify(component.id)} requires label or accessibility.label`,
+      );
+    }
+    props.accessibilityLabel = props.label;
+  }
+  return { key, component: "DateTimeInput", props };
+}
+
+function adaptTabs(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const componentPath = `components.${component.id}`;
+  if (!Array.isArray(component.tabs) || component.tabs.length === 0) {
+    throw new A2uiParseError(`Expected a non-empty array at ${componentPath}.tabs`);
+  }
+  const tabs = component.tabs.map((value, index) => {
+    const tab = expectObject(value, `${componentPath}.tabs[${index}]`);
+    return Object.freeze({
+      title: resolveDynamicString(
+        tab.title,
+        `${componentPath}.tabs[${index}].title`,
+        context,
+        scope,
+      ),
+    });
+  });
+  const props: Record<string, unknown> = { tabs: Object.freeze(tabs) };
+  addCommonProps(component, props, context, scope);
+  return {
+    key,
+    component: "Tabs",
+    props,
+    children: component.tabs.map((value, index) => {
+      const tab = expectObject(value, `${componentPath}.tabs[${index}]`);
+      const childId = expectString(tab.child, `${componentPath}.tabs[${index}].child`);
+      return adaptComponent(childId, appendInstanceKey(key, childId, index), context, scope);
+    }),
+  };
+}
+
+function adaptModal(
+  component: A2uiV1Component,
+  key: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): NativeElement {
+  const componentPath = `components.${component.id}`;
+  const triggerId = expectString(component.trigger, `${componentPath}.trigger`);
+  const contentId = expectString(component.content, `${componentPath}.content`);
+  if (context.surface.components.get(triggerId)?.component !== "Button") {
+    throw new A2uiParseError(
+      `A2UI native Modal ${JSON.stringify(component.id)} requires a Button trigger`,
+    );
+  }
+  const props: Record<string, unknown> = {};
+  addCommonProps(component, props, context, scope);
+  return {
+    key,
+    component: "Modal",
+    props,
+    children: [
+      adaptComponent(triggerId, appendInstanceKey(key, triggerId, 0), context, scope),
+      adaptComponent(contentId, appendInstanceKey(key, contentId, 1), context, scope),
+    ],
+  };
+}
+
+function addBindingProp(
+  value: JsonValue | undefined,
+  path: string,
+  props: Record<string, unknown>,
+  scope: BindingScope | undefined,
+): void {
+  if (value !== undefined && isBinding(value)) {
+    props.binding = resolveBindingPointer(value.path, `${path}.path`, scope);
+  }
+}
+
+function resolveDynamicStringList(
+  value: JsonValue | undefined,
+  path: string,
+  context: AdapterContext,
+  scope: BindingScope | undefined,
+): string[] {
+  const resolved = resolveDynamicValue(value, path, context, scope);
+  if (!Array.isArray(resolved) || resolved.some((item) => typeof item !== "string")) {
+    throw new A2uiParseError(`Expected an array of strings at ${path}`);
+  }
+  return [...(resolved as string[])];
 }
 
 function addValidationProps(
@@ -973,6 +1524,7 @@ function resolveButtonAction(
 
 interface UrlLike {
   readonly href: string;
+  readonly origin: string;
   readonly password: string;
   readonly protocol: string;
   readonly username: string;
@@ -983,9 +1535,18 @@ interface UrlConstructorLike {
 }
 
 function normalizeOpenUrl(value: string, path: string): string {
-  if (value.length === 0 || value.length > A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH) {
+  return normalizeHttpUrl(value, path, "openUrl", A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH);
+}
+
+function normalizeHttpUrl(
+  value: string,
+  path: string,
+  label: string,
+  maximumLength: number,
+): string {
+  if (value.length === 0 || value.length > maximumLength) {
     throw new A2uiParseError(
-      `Expected an HTTP(S) URL up to ${A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH} characters at ${path}`,
+      `Expected an HTTP(S) URL up to ${maximumLength} characters at ${path}`,
     );
   }
   if (/\s|\p{Cf}/u.test(value) || hasAsciiControlCharacter(value)) {
@@ -995,7 +1556,7 @@ function normalizeOpenUrl(value: string, path: string): string {
   }
   const UrlConstructor = (globalThis as unknown as { readonly URL?: UrlConstructorLike }).URL;
   if (UrlConstructor === undefined) {
-    throw new A2uiParseError(`The host runtime cannot validate an openUrl value at ${path}`);
+    throw new A2uiParseError(`The host runtime cannot validate an ${label} value at ${path}`);
   }
   let parsed: UrlLike;
   try {
@@ -1007,14 +1568,158 @@ function normalizeOpenUrl(value: string, path: string): string {
     throw new A2uiParseError(`Expected an HTTP(S) URL at ${path}`);
   }
   if (parsed.username.length > 0 || parsed.password.length > 0) {
-    throw new A2uiParseError(`A2UI openUrl does not allow URL credentials at ${path}`);
+    throw new A2uiParseError(`A2UI ${label} does not allow URL credentials at ${path}`);
   }
-  if (parsed.href.length > A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH) {
+  if (parsed.href.length > maximumLength) {
     throw new A2uiParseError(
-      `Canonical A2UI openUrl at ${path} exceeds maximum length of ${A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH}`,
+      `Canonical A2UI ${label} at ${path} exceeds maximum length of ${maximumLength}`,
     );
   }
   return parsed.href;
+}
+
+function parseImageResourcePolicy(
+  value: unknown,
+  path: string,
+  context: AdapterContext,
+): NativeImageResourcePolicy {
+  const policy = parseJsonObject(value, path);
+  const allowedKeys = new Set([
+    "allowedRedirectOrigins",
+    "cacheMode",
+    "maximumBytes",
+    "maximumDecodedHeight",
+    "maximumDecodedPixels",
+    "maximumDecodedWidth",
+    "maximumRedirects",
+  ]);
+  for (const key of Object.keys(policy)) {
+    if (!allowedKeys.has(key)) {
+      throw new A2uiParseError(`Unexpected field ${JSON.stringify(key)} at ${path}`);
+    }
+  }
+  if (
+    !Array.isArray(policy.allowedRedirectOrigins) ||
+    policy.allowedRedirectOrigins.length > A2UI_V1_NATIVE_MAX_IMAGE_REDIRECT_ORIGINS
+  ) {
+    throw new A2uiParseError(
+      `Expected at most ${A2UI_V1_NATIVE_MAX_IMAGE_REDIRECT_ORIGINS} redirect origins at ${path}.allowedRedirectOrigins`,
+    );
+  }
+  context.imageRedirectOriginCount += policy.allowedRedirectOrigins.length;
+  if (context.imageRedirectOriginCount > JSON_MAX_VALUES) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum of ${JSON_MAX_VALUES} image redirect origins`,
+    );
+  }
+  const origins = policy.allowedRedirectOrigins.map((origin, index) =>
+    parseExactHttpOrigin(origin, `${path}.allowedRedirectOrigins[${index}]`),
+  );
+  if (new Set(origins).size !== origins.length) {
+    throw new A2uiParseError(`Expected unique redirect origins at ${path}.allowedRedirectOrigins`);
+  }
+  context.imageResourcePolicyOutputLength += origins.reduce(
+    (length, origin) => length + origin.length,
+    0,
+  );
+  if (context.imageResourcePolicyOutputLength > A2UI_V1_MAX_SOURCE_LENGTH) {
+    throw new A2uiParseError(
+      `Expanded A2UI native plan exceeds maximum image-policy output length of ${A2UI_V1_MAX_SOURCE_LENGTH}`,
+    );
+  }
+  const cacheMode = policy.cacheMode;
+  if (cacheMode !== "default" && cacheMode !== "no-store") {
+    throw new A2uiParseError(`Expected a closed cache mode at ${path}.cacheMode`);
+  }
+  const maximumBytes = parseBoundedPositiveInteger(
+    policy.maximumBytes,
+    A2UI_V1_NATIVE_MAX_IMAGE_BYTES,
+    `${path}.maximumBytes`,
+  );
+  const maximumDecodedWidth = parseBoundedPositiveInteger(
+    policy.maximumDecodedWidth,
+    A2UI_V1_NATIVE_MAX_IMAGE_DIMENSION,
+    `${path}.maximumDecodedWidth`,
+  );
+  const maximumDecodedHeight = parseBoundedPositiveInteger(
+    policy.maximumDecodedHeight,
+    A2UI_V1_NATIVE_MAX_IMAGE_DIMENSION,
+    `${path}.maximumDecodedHeight`,
+  );
+  const maximumDecodedPixels = parseBoundedPositiveInteger(
+    policy.maximumDecodedPixels,
+    A2UI_V1_NATIVE_MAX_IMAGE_PIXELS,
+    `${path}.maximumDecodedPixels`,
+  );
+  if (maximumDecodedPixels > maximumDecodedWidth * maximumDecodedHeight) {
+    throw new A2uiParseError(
+      `Expected ${path}.maximumDecodedPixels not to exceed the declared dimensions`,
+    );
+  }
+  const maximumRedirects = parseBoundedNonNegativeInteger(
+    policy.maximumRedirects,
+    A2UI_V1_NATIVE_MAX_IMAGE_REDIRECTS,
+    `${path}.maximumRedirects`,
+  );
+  return Object.freeze({
+    allowedRedirectOrigins: Object.freeze(origins),
+    cacheMode,
+    maximumBytes,
+    maximumDecodedHeight,
+    maximumDecodedPixels,
+    maximumDecodedWidth,
+    maximumRedirects,
+  });
+}
+
+function parseExactHttpOrigin(value: JsonValue | undefined, path: string): string {
+  const origin = expectString(value, path);
+  if (/\s|\p{Cf}/u.test(origin) || hasAsciiControlCharacter(origin)) {
+    throw new A2uiParseError(`Expected an exact HTTP(S) origin at ${path}`);
+  }
+  const UrlConstructor = (globalThis as unknown as { readonly URL?: UrlConstructorLike }).URL;
+  if (UrlConstructor === undefined) {
+    throw new A2uiParseError(`The host runtime cannot validate an image origin at ${path}`);
+  }
+  let parsed: UrlLike;
+  try {
+    parsed = new UrlConstructor(origin);
+  } catch (cause) {
+    throw new A2uiParseError(`Expected an exact HTTP(S) origin at ${path}`, { cause });
+  }
+  if (
+    (parsed.protocol !== "https:" && parsed.protocol !== "http:") ||
+    parsed.username.length > 0 ||
+    parsed.password.length > 0 ||
+    parsed.origin !== origin
+  ) {
+    throw new A2uiParseError(`Expected an exact HTTP(S) origin at ${path}`);
+  }
+  return parsed.origin;
+}
+
+function parseBoundedPositiveInteger(
+  value: JsonValue | undefined,
+  maximum: number,
+  path: string,
+): number {
+  const result = expectFiniteNumber(value, path);
+  if (!Number.isInteger(result) || result < 1 || result > maximum) {
+    throw new A2uiParseError(`Expected an integer from 1 through ${maximum} at ${path}`);
+  }
+  return result;
+}
+
+function parseBoundedNonNegativeInteger(
+  value: JsonValue | undefined,
+  maximum: number,
+  path: string,
+): number {
+  const result = expectFiniteNumber(value, path);
+  if (!Number.isInteger(result) || result < 0 || result > maximum) {
+    throw new A2uiParseError(`Expected an integer from 0 through ${maximum} at ${path}`);
+  }
+  return result;
 }
 
 function hasAsciiControlCharacter(value: string): boolean {
@@ -1280,6 +1985,7 @@ function resolveNumberFormat(
 
 const DATE_NUMBER = /^[+-]?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/;
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const TIME_ONLY = /^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|([+-])(\d{2}):(\d{2}))?$/;
 const RFC_3339_TIMESTAMP =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|([+-])(\d{2}):(\d{2}))$/;
 const A2UI_V1_MAX_DATE_PATTERN_TOKENS = 128;
@@ -1309,6 +2015,122 @@ type DatePatternToken = (typeof DATE_PATTERN_TOKENS)[number];
 type DatePatternPart =
   | { readonly kind: "literal"; readonly value: string }
   | { readonly kind: "token"; readonly value: DatePatternToken };
+
+function validateDateTimeInputValue(
+  value: string,
+  enableDate: boolean,
+  enableTime: boolean,
+  path: string,
+  allowEmpty: boolean,
+): void {
+  if (allowEmpty && value.length === 0) {
+    return;
+  }
+  if (enableDate && enableTime) {
+    parseDateValue(value, path);
+    if (RFC_3339_TIMESTAMP.exec(value) === null) {
+      throw new A2uiParseError(`Expected an RFC 3339 date-time at ${path}`);
+    }
+    return;
+  }
+  if (enableDate) {
+    const match = DATE_ONLY.exec(value);
+    if (match === null) {
+      throw new A2uiParseError(`Expected a yyyy-MM-dd date at ${path}`);
+    }
+    validateCalendarDate(Number(match[1]), Number(match[2]), Number(match[3]), path);
+    return;
+  }
+  parseTimeOnly(value, path);
+}
+
+/** Internal mounted-renderer guard for values emitted by a trusted host date/time component. */
+export function validateA2uiV1NativeDateTimeInputChange(
+  value: string,
+  enableDate: boolean,
+  enableTime: boolean,
+  minimum: string | undefined,
+  maximum: string | undefined,
+  path: string,
+): void {
+  if (!enableDate && !enableTime) {
+    throw new A2uiParseError(`A2UI DateTimeInput at ${path} must enable date, time, or both`);
+  }
+  validateDateTimeInputValue(value, enableDate, enableTime, `${path}.value`, true);
+  if (minimum !== undefined) {
+    validateDateTimeInputValue(minimum, enableDate, enableTime, `${path}.minimum`, false);
+  }
+  if (maximum !== undefined) {
+    validateDateTimeInputValue(maximum, enableDate, enableTime, `${path}.maximum`, false);
+  }
+  const minimumSort =
+    minimum === undefined
+      ? undefined
+      : dateTimeInputSortValue(minimum, enableDate, enableTime, `${path}.minimum`);
+  const maximumSort =
+    maximum === undefined
+      ? undefined
+      : dateTimeInputSortValue(maximum, enableDate, enableTime, `${path}.maximum`);
+  if (minimumSort !== undefined && maximumSort !== undefined && minimumSort > maximumSort) {
+    throw new A2uiParseError(`Expected ${path}.minimum not to exceed maximum`);
+  }
+  if (value.length === 0) {
+    return;
+  }
+  const valueSort = dateTimeInputSortValue(value, enableDate, enableTime, `${path}.value`);
+  if (minimumSort !== undefined && valueSort < minimumSort) {
+    throw new A2uiParseError(`Expected ${path}.value not to be earlier than minimum`);
+  }
+  if (maximumSort !== undefined && valueSort > maximumSort) {
+    throw new A2uiParseError(`Expected ${path}.value not to be later than maximum`);
+  }
+}
+
+function dateTimeInputSortValue(
+  value: string,
+  enableDate: boolean,
+  enableTime: boolean,
+  path: string,
+): number {
+  if (enableDate && enableTime) {
+    return parseDateValue(value, path).getTime();
+  }
+  if (enableDate) {
+    const match = DATE_ONLY.exec(value);
+    if (match === null) {
+      throw new A2uiParseError(`Expected a yyyy-MM-dd date at ${path}`);
+    }
+    validateCalendarDate(Number(match[1]), Number(match[2]), Number(match[3]), path);
+    return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+  return parseTimeOnly(value, path);
+}
+
+function parseTimeOnly(value: string, path: string): number {
+  const match = TIME_ONLY.exec(value);
+  if (match === null) {
+    throw new A2uiParseError(`Expected an ISO 8601 time at ${path}`);
+  }
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const second = Number(match[3] ?? "0");
+  if (hour > 23 || minute > 59 || second > 59) {
+    throw new A2uiParseError(`Invalid ISO 8601 time at ${path}`);
+  }
+  const fraction = match[4] ?? "";
+  const millisecond = Number(fraction.slice(0, 3).padEnd(3, "0"));
+  let result = ((hour * 60 + minute) * 60 + second) * 1_000 + millisecond;
+  if (match[5] !== undefined && match[5] !== "Z") {
+    const offsetHour = Number(match[7]);
+    const offsetMinute = Number(match[8]);
+    if (offsetHour > 23 || offsetMinute > 59) {
+      throw new A2uiParseError(`Invalid ISO 8601 time offset at ${path}`);
+    }
+    const direction = match[6] === "+" ? 1 : -1;
+    result -= direction * (offsetHour * 60 + offsetMinute) * 60_000;
+  }
+  return result;
+}
 
 function resolveDateFormat(
   call: JsonObject,
@@ -1911,7 +2733,7 @@ function expectString(value: JsonValue | undefined, path: string): string {
   return value;
 }
 
-function expectFiniteNumber(value: JsonValue, path: string): number {
+function expectFiniteNumber(value: JsonValue | undefined, path: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new A2uiParseError(`Expected a finite number at ${path}`);
   }
