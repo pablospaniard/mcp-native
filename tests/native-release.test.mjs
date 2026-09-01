@@ -13,11 +13,17 @@ import {
 
 import {
   addNativeHostFabricIosSources,
+  configureNativeHostAndroidApplicationJavascriptEngine,
+  configureNativeHostAndroidJavascriptEngine,
+  configureNativeHostIosJavascriptEngine,
   createNativeHostPackageJson,
   enableNativeHostPhoneOrientations,
   NATIVE_HOST_REACT_NATIVE_LATEST_VERSION,
   NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION,
   NATIVE_HOST_REACT_NATIVE_VERSIONS,
+  NATIVE_HOST_JAVASCRIPTCORE_VERSION,
+  NATIVE_HOST_JAVASCRIPT_ENGINES,
+  NATIVE_HOST_WEBVIEW_VERSION,
   parseNativeHostArguments,
   registerNativeHostAndroidPackage,
   validateNativeHostOutput,
@@ -40,9 +46,39 @@ test("native host arguments pin the latest and minimum React Native boundaries",
     ]),
     {
       install: false,
+      javascriptEngine: "hermes",
       output: "/tmp/mcp-native-host-test",
       reactNativeVersion: NATIVE_HOST_REACT_NATIVE_VERSIONS[0],
     },
+  );
+  assert.deepEqual(NATIVE_HOST_JAVASCRIPT_ENGINES, ["hermes", "jsc"]);
+  assert.deepEqual(
+    parseNativeHostArguments([
+      "--output",
+      "/tmp/mcp-native-host-test",
+      "--react-native",
+      NATIVE_HOST_REACT_NATIVE_VERSIONS[0],
+      "--js-engine",
+      "jsc",
+    ]),
+    {
+      install: true,
+      javascriptEngine: "jsc",
+      output: "/tmp/mcp-native-host-test",
+      reactNativeVersion: NATIVE_HOST_REACT_NATIVE_VERSIONS[0],
+    },
+  );
+  assert.throws(
+    () =>
+      parseNativeHostArguments([
+        "--output",
+        "/tmp/mcp-native-host-test",
+        "--react-native",
+        NATIVE_HOST_REACT_NATIVE_VERSIONS[0],
+        "--js-engine",
+        "v8",
+      ]),
+    /--js-engine must be one of/,
   );
   assert.throws(
     () =>
@@ -82,6 +118,20 @@ test("generated host manifests install local tarballs and expose reproducible ch
   assert.equal(
     packageJson.dependencies["@mcp-native/react-native"],
     "file:./mcp-native-packages/mcp-native-react-native-0.4.0.tgz",
+  );
+  assert.equal(packageJson.dependencies["react-native-webview"], NATIVE_HOST_WEBVIEW_VERSION);
+  const jscPackageJson = createNativeHostPackageJson(
+    { name: "host", dependencies: { react: "19.2.0", "react-native": "0.87.1" } },
+    {},
+    { javascriptEngine: "jsc" },
+  );
+  assert.equal(
+    jscPackageJson.dependencies["@react-native-community/javascriptcore"],
+    NATIVE_HOST_JAVASCRIPTCORE_VERSION,
+  );
+  assert.throws(
+    () => createNativeHostPackageJson({ name: "host" }, {}, { javascriptEngine: "v8" }),
+    /must be one of/,
   );
   assert.match(packageJson.scripts["mcp-native:bundle:android"], /--platform android/);
   assert.match(packageJson.scripts["mcp-native:bundle:ios"], /--platform ios/);
@@ -124,6 +174,45 @@ PackageList(this).packages.apply {
   assert.throws(() => addNativeHostFabricIosSources("// project"), /pinned template/);
 });
 
+test("generated hosts select Hermes or community JavaScriptCore explicitly", () => {
+  const androidApplication = `package io.github.pablospaniard.fixture
+
+import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+
+class MainApplication {
+  override val reactHost by lazy {
+    getDefaultReactHost(
+      context = applicationContext,
+      packageList = packages,
+    )
+  }
+}`;
+  const jscAndroid = configureNativeHostAndroidApplicationJavascriptEngine(
+    androidApplication,
+    "jsc",
+  );
+  assert.match(jscAndroid, /JSCRuntimeFactory/);
+  assert.match(jscAndroid, /jsRuntimeFactory = JSCRuntimeFactory\(\)/);
+  assert.equal(
+    configureNativeHostAndroidJavascriptEngine("hermesEnabled=true\n", "jsc"),
+    "hermesEnabled=false\nuseThirdPartyJSC=true\n",
+  );
+  assert.equal(
+    configureNativeHostAndroidJavascriptEngine("hermesEnabled=true\n", "hermes"),
+    "hermesEnabled=true\n",
+  );
+
+  const ios = `import ReactAppDependencyProvider
+
+class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
+}`;
+  const jscIos = configureNativeHostIosJavascriptEngine(ios, "jsc");
+  assert.match(jscIos, /import ReactJSC/);
+  assert.match(jscIos, /createJSRuntimeFactory\(\) -> JSRuntimeFactory/);
+  assert.match(jscIos, /jsrt_create_jsc_factory\(\)/);
+  assert.equal(configureNativeHostIosJavascriptEngine(ios, "hermes"), ios);
+});
+
 test("generated iPhone hosts support both landscape orientations", () => {
   const source = `\t<key>UISupportedInterfaceOrientations</key>
 \t<array>
@@ -147,6 +236,13 @@ test("native fixture respects platform safe areas without an extra root focus ta
   assert.match(source, /milestone-7-surface\.json/);
   assert.match(source, /milestone-8-surface\.json/);
   assert.match(source, /McpNativeStatusBadgeNativeComponent/);
+  assert.match(source, /McpNativeMixedSurfaceCoordinator/);
+  assert.match(source, /createMcpNativeMixedA2uiRegion/);
+  assert.match(source, /createMcpNativeMixedMcpAppsRegion/);
+  assert.match(source, /createMcpAppsReactNativeWebViewProps/);
+  assert.match(source, /from "react-native-webview"/);
+  assert.match(source, /Two sibling regions follow host-authored accessibility order/);
+  assert.match(source, /onContentProcessDidTerminate/);
   assert.match(source, /hostExtensionPolicy=/);
   assert.match(source, /mediaPolicy=/);
   assert.match(source, /imagePolicy=/);
@@ -197,8 +293,11 @@ test("CI pins and automatically builds the latest and minimum React Native bound
     "0.87.1",
     "0.86.0",
   ]);
+  assert.deepEqual(ci.jobs["native-host-bundle"].strategy.matrix["js-engine"], ["hermes", "jsc"]);
   assert.deepEqual(platform.jobs.android.strategy.matrix["react-native"], ["0.87.1", "0.86.0"]);
   assert.deepEqual(platform.jobs.ios.strategy.matrix["react-native"], ["0.87.1", "0.86.0"]);
+  assert.deepEqual(platform.jobs.android.strategy.matrix["js-engine"], ["hermes", "jsc"]);
+  assert.deepEqual(platform.jobs.ios.strategy.matrix["js-engine"], ["hermes", "jsc"]);
   assert.equal(Object.hasOwn(platform.on, "pull_request"), true);
   assert.equal(Object.hasOwn(platform.on, "workflow_dispatch"), true);
   const reactNativePackage = JSON.parse(readFileSync("packages/react-native/package.json", "utf8"));
@@ -211,4 +310,9 @@ test("CI pins and automatically builds the latest and minimum React Native bound
   assert.match(androidSdkStep.run, /ANDROID_HOME.*cmdline-tools\/latest\/bin\/sdkmanager/);
   assert.match(androidSdkStep.run, /platforms;android-37\.0/);
   assert.match(androidSdkStep.run, /build-tools;37\.0\.0/);
+  const podStep = platform.jobs.ios.steps.find(
+    (step) => step.name === "Install CocoaPods dependencies",
+  );
+  assert.match(podStep.env.USE_HERMES, /matrix\.js-engine == 'hermes'/);
+  assert.match(podStep.env.USE_THIRD_PARTY_JSC, /matrix\.js-engine == 'jsc'/);
 });

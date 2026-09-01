@@ -27,6 +27,11 @@ The exact protocol pin, message set, bounds, exclusions, native/browser differen
 schema coverage is documented in the [MCP Apps compatibility
 profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md).
 
+The convenience `mcp-native` package can coordinate this isolated region beside a native A2UI
+region. Composition remains host-authored and does not add any A2UI-to-WebView configuration,
+navigation, or message path. See the [mixed-surface
+guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/mixed-surfaces.md).
+
 ## Stable MCP Apps host flow
 
 ```ts

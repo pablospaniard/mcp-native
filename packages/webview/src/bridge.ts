@@ -16,7 +16,10 @@ import {
   parseMcpAppsToolMeta,
 } from "./apps.js";
 import type { McpAppsResource } from "./apps.js";
-import type { McpAppsNativeSandboxConfiguration } from "./sandbox.js";
+import {
+  isMcpAppsNativeSandboxConfiguration,
+  type McpAppsNativeSandboxConfiguration,
+} from "./sandbox.js";
 
 export const MCP_APPS_MAX_BRIDGE_MESSAGE_LENGTH = 1_048_576;
 export const MCP_APPS_MAX_PENDING_REQUESTS = 128;
@@ -122,6 +125,17 @@ export class McpAppsBridge {
   #nextRequestId = 1;
 
   constructor(options: McpAppsBridgeOptions) {
+    if (options === null || typeof options !== "object" || Array.isArray(options)) {
+      throw new McpAppsBridgeError("Expected MCP Apps bridge options to be an object");
+    }
+    if (!isMcpAppsNativeSandboxConfiguration(options.sandbox)) {
+      throw new McpAppsBridgeError(
+        "MCP Apps bridge requires an opaque createMcpAppsNativeSandbox result",
+      );
+    }
+    if (options.resource?.uri !== options.sandbox.source.baseUrl) {
+      throw new McpAppsBridgeError("MCP Apps bridge resource URI must match its sandbox base URL");
+    }
     if (typeof options.postMessage !== "function") {
       throw new McpAppsBridgeError("Expected postMessage to be a function");
     }

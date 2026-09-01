@@ -21,12 +21,13 @@ jobs:
       - run: npm run check
 
   native-host-bundle:
-    name: Native host bundle (React Native ${{ matrix.react-native }})
+    name: Native host bundle (React Native ${{ matrix.react-native }}, ${{ matrix.js-engine }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         react-native: ["0.87.1", "0.86.0"]
+        js-engine: ["hermes", "jsc"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,10 +39,11 @@ jobs:
         run: >-
           node scripts/prepare-native-host.mjs
           --react-native ${{ matrix.react-native }}
-          --output "${RUNNER_TEMP}/mcp-native-host-${{ matrix.react-native }}"
+          --js-engine ${{ matrix.js-engine }}
+          --output "${RUNNER_TEMP}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}"
       - name: Bundle Android host
-        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}
+        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}
         run: npm run mcp-native:bundle:android
       - name: Bundle iOS host
-        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}
+        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}
         run: npm run mcp-native:bundle:ios

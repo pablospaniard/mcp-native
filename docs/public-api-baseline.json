@@ -1,0 +1,85 @@
+{
+  "formatVersion": 1,
+  "packages": {
+    "@mcp-native/core": {
+      "declarationSha256": "b1402383b31b42e9b23a8ce3132c3791f07f90dad5aa3798c331cf281456df6a",
+      "exports": {
+        ".": {
+          "import": "./dist/index.js",
+          "runtimeSha256": "5e4e0f5b1b5a6643350f765078af01c814ca883e5f63379bf9e30eb0c2721ef0",
+          "types": "./dist/index.d.ts"
+        }
+      }
+    },
+    "@mcp-native/mcp": {
+      "declarationSha256": "303880f2ceb7fd384fda976b0d26efb08fbda4f477f43c62ff4c360fe7c4c495",
+      "exports": {
+        ".": {
+          "import": "./dist/index.js",
+          "runtimeSha256": "18383b69de56fc53097b6b39a40a3cc660f948e137b11e51d9b2cb9076337921",
+          "types": "./dist/index.d.ts"
+        },
+        "./oauth": {
+          "import": "./dist/oauth.js",
+          "runtimeSha256": "5f37c83b9ad433ccea2d31aa64dcdec26d5108ab25f9bb63c4847610b8ac49b3",
+          "types": "./dist/oauth.d.ts"
+        }
+      }
+    },
+    "@mcp-native/a2ui": {
+      "declarationSha256": "d3bdc26df6212f54430cbc4ea95f42817e30241696d39c3727916eca0688de50",
+      "exports": {
+        ".": {
+          "import": "./dist/index.js",
+          "runtimeSha256": "3d668ec0ae35ebe02d2d714e57f04bea1f2242e20f71626cf86c90f730fdc3d9",
+          "types": "./dist/index.d.ts"
+        },
+        "./legacy": {
+          "import": "./dist/legacy.js",
+          "runtimeSha256": "150e3aa6bf8907d186c0708bd185b3d76a6c0a441637fe74824c69668c284a7b",
+          "types": "./dist/legacy.d.ts"
+        }
+      }
+    },
+    "@mcp-native/webview": {
+      "declarationSha256": "1cd517e73bf1d71a6698624d7201bd92a076a35c6228ae5c7a0e8e289587d48d",
+      "exports": {
+        ".": {
+          "import": "./dist/index.js",
+          "runtimeSha256": "3edc6b667e3f74583b434af741a9af7b66c504ff6e47afb7256c17ff280c60e2",
+          "types": "./dist/index.d.ts"
+        }
+      }
+    },
+    "@mcp-native/react-native": {
+      "declarationSha256": "591ceb9d8e9c789ea02691df1287e3b78f5a4acc8f76f9e56a53c0e803ad080f",
+      "exports": {
+        ".": {
+          "import": "./dist/index.js",
+          "runtimeSha256": "06b38a8762e298b5fba22f7f73b30557a10835e266a0a2d68e120f3c0d46c623",
+          "types": "./dist/index.d.ts"
+        },
+        "./legacy": {
+          "import": "./dist/legacy.js",
+          "runtimeSha256": "f0a411ce5dc437fb22f1b60d6e5394935ad2098387f4e3533b8086eb641ad5f6",
+          "types": "./dist/legacy.d.ts"
+        }
+      }
+    },
+    "mcp-native": {
+      "declarationSha256": "ef07e4bb82c3a8a3935e12c402a86c0446f0b6bd1f9258f26c083b4cb6a8402b",
+      "exports": {
+        ".": {
+          "import": "./dist/index.js",
+          "runtimeSha256": "f0e86165d9936fa6634c979050b4eef4f7c33b9b99a36b26f0c0f0f44bcb88b9",
+          "types": "./dist/index.d.ts"
+        },
+        "./legacy": {
+          "import": "./dist/legacy.js",
+          "runtimeSha256": "8ddced760b569d397c97de9bea67b33120d7532a1e3a0aadb15fc9ea02f91a54",
+          "types": "./dist/legacy.d.ts"
+        }
+      }
+    }
+  }
+}

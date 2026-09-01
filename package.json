@@ -8,7 +8,8 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run schemas:verify && npm run test:coverage && npm run test:performance && npm run test:conformance",
+    "api:verify": "npm run build && node scripts/verify-public-api.mjs",
+    "check": "npm run format:check && npm run lint && npm run typecheck && node scripts/verify-public-api.mjs && npm run schemas:verify && npm run test:coverage && npm run test:performance && npm run test:conformance",
     "clean": "tsc -b --clean",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",

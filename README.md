@@ -6,9 +6,8 @@
 
 Render trusted, declarative MCP interfaces with host-owned native components—starting with React Native—while keeping HTML MCP Apps behind an explicit WebView policy boundary.
 
-[What MCP Native can do](docs/capabilities.md) explains the server-to-screen flow, supported
-components, design-system ownership, renderer scope, WebViews, and remaining roadmap in product
-language.
+[What MCP Native does](docs/product-guide.md) explains the server-to-screen flow, components,
+styling, renderers, extensions, and mixed native/WebView screens in product language.
 
 [![CI](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml/badge.svg)](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/mcp-native?label=mcp-native)](https://www.npmjs.com/package/mcp-native)
@@ -18,7 +17,7 @@ language.
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-buy%20me%20a%20coffee-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/pablospaniard)
 
-[Architecture](docs/RFC-0001-architecture.md) · [Media and extensions](docs/media-and-host-extensions.md) · [Protocol support](docs/protocol-support.md) · [Standards status](docs/standards-compatibility.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
+[Architecture](docs/RFC-0001-architecture.md) · [Mixed surfaces](docs/mixed-surfaces.md) · [Support matrix](docs/support-matrix.md) · [Protocol support](docs/protocol-support.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -104,6 +103,9 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 The packages are intentionally separated so the core runtime does not depend on the official SDK,
 React Native, or any single declarative UI protocol. Release `0.8.0` completes the pinned A2UI basic
 catalog with policy-gated media and adds exactly negotiated, locally compiled host extensions.
+The in-development `0.9.0` milestone adds host-owned mixed native/Apps lifecycle, a
+production-shaped reference host, and the proposed `1.0.0` API freeze. Package manifests remain at
+`0.8.0` until the separate release-preparation change.
 Release `0.7.0` completed the non-media catalog and typed design-system boundary. Release `0.6.0`
 completed the Milestone 6 package
 boundary with issuer-bound protected-HTTP OAuth, explicit consent gates and persistent host-owned
@@ -165,6 +167,8 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Bounded `required`, `regex`, `length`, `numeric`, and `email` validation with renderer-side field and button checks
 - Host-localized CLDR plural selection and strict `and`, `or`, and `not` evaluation
 - A mounted v1 native surface covering every basic-catalog component, with typed renderer-local bindings, dispatch-time event resolution, schema-validated renderer-to-agent action envelopes, and deny-by-default image/media grants
+- Host-owned native A2UI and isolated MCP Apps sibling composition with bounded lifecycle,
+  accessibility order, focus, environment, crash recovery, and teardown coordination
 - Typed `tools/call` action routing with a fail-closed host policy
 - Consent profiles across core dispatch/direct calls, MCP Apps callbacks, and A2UI delivery, with bounded expiring/revocable grants
 - Bounded SDK connection lifecycle coordination, actionable host states, and data-free operational events
@@ -510,7 +514,7 @@ path is:
 - `0.8.0`: released—policy-gated media and namespaced, schema-validated, locally compiled host
   extensions;
 - `0.9.0`: host-owned mixed native/WebView composition, a production-shaped reference host, and a
-  frozen `1.0.0` release-candidate API;
+  frozen `1.0.0` release-candidate API—implementation complete, release preparation pending;
 - `1.0.0`: independent review, full documented-profile gates, stable compatibility policy, complete
   human and technical documentation, and coordinated provenance publishing.
 
@@ -561,6 +565,9 @@ post-stable deliverables.
       host-boundary, Android-build, and iOS-build checks on pull requests
 - [x] Complete the documented real-platform accessibility behavior
 - [x] Execute the supported iOS/Android fixture and accessibility matrix in generated real hosts
+- [x] Coordinate host-owned native and isolated Apps sibling regions across complete lifecycle
+- [x] Freeze and verify the proposed public API, compatibility policy, support matrix, and migration
+      path
 - [x] Implement stable MCP Apps `2026-01-26` discovery, native sandboxing, and bridge compatibility
 - [x] Add the issuer-bound MCP HTTP OAuth provider, secure-storage seam, and safe callback boundary
 - [x] Pass every scored pinned official `2026-07-28` authorization client scenario

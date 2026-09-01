@@ -17,7 +17,11 @@
 
 > **Compatibility:** the initial tool/resource boundary preserves MCP `2026-07-28` fields, but complete MCP conformance is still in progress. The package exposes the feature-scoped A2UI v1.0 Candidate profile and retains custom `0.1` APIs only as deprecated migration support; this is not an unqualified A2UI renderer claim. It also re-exports the documented stable MCP Apps `2026-01-26` native host-adapter profile. See the [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md), [MCP Apps profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md), and [standards matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
-`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, A2UI v1 lifecycle/capability/renderer-message APIs, trusted native renderer and hooks, deprecated custom surface migration APIs, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
+`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, A2UI v1 lifecycle/capability/renderer-message APIs, trusted native renderer and hooks, host-owned mixed-surface coordinator, deprecated custom surface migration APIs, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
+
+Read the human-oriented [product guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/product-guide.md)
+and [mixed-surface guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/mixed-surfaces.md)
+before the API examples.
 
 ## Install
 
@@ -38,6 +42,9 @@ official action envelopes to a host callback; it never selects a return transpor
 and the [`@mcp-native/react-native` adapter documentation](https://github.com/pablospaniard/mcp-native/tree/main/packages/react-native#a2ui-v1-render-plan-adapter).
 
 ## Deprecated `0.1` proof-model preview
+
+For `0.9.x`, migrate these imports to `mcp-native/legacy`. Root aliases are removed at `1.0.0`;
+the explicit legacy subpath stays frozen for migration and security fixes.
 
 ```tsx
 import {
@@ -133,6 +140,7 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - typed adapters from trusted semantics into locally bundled design-system components;
 - exact namespaced host-extension manifests, negotiation, opaque registries, local Fabric
   registration, policy grants, and schema-valid events with inline catalogs disabled;
+- host-owned native A2UI and isolated MCP Apps sibling lifecycle coordination;
 - memoized render-plan and safely observed asynchronous action-dispatch hooks;
 - policy-gated inline and remote HTML document descriptions;
 - MCP `2026-07-28` tool/resource field preservation through the official SDK adapter;

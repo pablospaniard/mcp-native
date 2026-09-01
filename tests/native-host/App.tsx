@@ -1,7 +1,13 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import {
+  AccessibilityInfo,
+  AppState,
+  BackHandler,
+  Dimensions,
+  Keyboard,
   Modal as ReactNativeModal,
+  PixelRatio,
   Platform,
   Pressable,
   ScrollView,
@@ -11,6 +17,7 @@ import {
   View as ReactNativeView,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
 
 import {
   A2uiSurfaceStore,
@@ -47,6 +54,18 @@ import type {
   NativeVideoComponentProps,
   NativeViewComponentProps,
 } from "@mcp-native/react-native";
+import {
+  MCP_APPS_MIME_TYPE,
+  McpAppsBridge,
+  createMcpAppsNativeDeliveryScript,
+  createMcpAppsNativeSandbox,
+  createMcpAppsReactNativeWebViewProps,
+} from "@mcp-native/webview";
+import {
+  McpNativeMixedSurfaceCoordinator,
+  createMcpNativeMixedA2uiRegion,
+  createMcpNativeMixedMcpAppsRegion,
+} from "mcp-native";
 
 import accessibilityFixture from "./accessibility-surface.json";
 import milestone7Fixture from "./milestone-7-surface.json";
@@ -757,6 +776,243 @@ const catalogs: Readonly<Record<CatalogMode, NativeComponentCatalog>> = {
   variants: variantCatalog,
 };
 
+const mixedAppsResource = {
+  uri: "ui://mcp-native/reference-host",
+  mimeType: MCP_APPS_MIME_TYPE,
+  html: `<!doctype html><html lang="en"><head><title>Travel preview</title></head>
+<body style="margin:0;background:#eef4ff;color:#102a43;font-family:-apple-system,system-ui,sans-serif">
+  <main style="padding:20px"><p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#174ea6">ISOLATED MCP APP</p>
+  <h2 style="margin:0 0 8px;font-size:22px">Madrid weekend</h2>
+  <p style="margin:0;line-height:1.45">Interactive HTML stays inside its ephemeral, permission-free WebView region.</p></main>
+  <script>
+    addEventListener("message", (event) => {
+      if (event.data && event.data.id === "reference-init") {
+        postMessage({ jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} });
+      }
+    });
+    postMessage({
+      jsonrpc: "2.0",
+      id: "reference-init",
+      method: "ui/initialize",
+      params: {
+        appInfo: { name: "reference-app", version: "1.0.0" },
+        appCapabilities: {},
+        protocolVersion: "2026-01-26"
+      }
+    });
+  </script>
+</body></html>`,
+  meta: { prefersBorder: true },
+} as const;
+
+function getHostOrientation() {
+  const { height, width } = Dimensions.get("window");
+  return width > height ? ("landscape-left" as const) : ("portrait" as const);
+}
+
+function MixedReferenceScreen({ catalog }: { readonly catalog: NativeComponentCatalog }) {
+  const webViewRef = useRef<WebView<Record<never, never>>>(null);
+  const [error, setError] = useState<string>();
+  const sandbox = useMemo(() => createMcpAppsNativeSandbox(mixedAppsResource), []);
+  const bridge = useMemo(
+    () =>
+      new McpAppsBridge({
+        resource: mixedAppsResource,
+        sandbox,
+        hostInfo: { name: "mcp-native-reference-host", version: "0.9.0" },
+        postMessage(serialized) {
+          const view = webViewRef.current;
+          if (view === null) throw new Error("Reference WebView is not mounted");
+          view.injectJavaScript(createMcpAppsNativeDeliveryScript(serialized));
+        },
+      }),
+    [sandbox],
+  );
+  const coordinator = useMemo(() => {
+    const nativeRegion = createMcpNativeMixedA2uiRegion({
+      id: "native-summary",
+      accessibilityLabel: "Native trip summary",
+      surface: fixtureSurface,
+      policy,
+    });
+    const appsRegion = createMcpNativeMixedMcpAppsRegion({
+      id: "apps-preview",
+      accessibilityLabel: "Isolated interactive trip preview",
+      resource: mixedAppsResource,
+      sandbox,
+      bridge,
+      lifecycle: {
+        onBack: () => false,
+        onRecover: () => webViewRef.current?.reload(),
+      },
+    });
+    return new McpNativeMixedSurfaceCoordinator({
+      regions: [nativeRegion, appsRegion],
+      initialFocusedRegionId: nativeRegion.id,
+    });
+  }, [bridge, sandbox]);
+  const snapshot = useSyncExternalStore(
+    (listener) => coordinator.subscribe(listener),
+    coordinator.getSnapshot,
+    coordinator.getSnapshot,
+  );
+  const webViewProps = useMemo(
+    () =>
+      createMcpAppsReactNativeWebViewProps(sandbox, {
+        onMessage: (serialized) => bridge.receive(serialized),
+        onError: (cause) => {
+          setError(cause instanceof Error ? cause.message : "MCP Apps host callback failed");
+        },
+      }),
+    [bridge, sandbox],
+  );
+  const webViewComponentProps = useMemo(
+    () => ({ ...webViewProps, originWhitelist: [...webViewProps.originWhitelist] }),
+    [webViewProps],
+  );
+  const reportHostError = (cause: unknown, fallback: string) => {
+    setError(cause instanceof Error ? cause.message : fallback);
+  };
+  const reportAppsCrash = (message: string) => {
+    void coordinator
+      .reportCrash("apps-preview", new Error(message))
+      .catch((cause) => reportHostError(cause, "WebView crash handling failed"));
+  };
+
+  useEffect(() => {
+    let disposed = false;
+    const report = (cause: unknown) => {
+      if (!disposed)
+        setError(cause instanceof Error ? cause.message : "Mixed host lifecycle failed");
+    };
+    void coordinator.start().catch(report);
+    const appState = AppState.addEventListener("change", (state) => {
+      void coordinator.setActivity(state === "active" ? "foreground" : "background").catch(report);
+    });
+    const dimensions = Dimensions.addEventListener("change", () => {
+      const current = coordinator.getSnapshot().environment;
+      void coordinator
+        .setEnvironment({
+          ...current,
+          dynamicTypeScale: PixelRatio.getFontScale(),
+          orientation: getHostOrientation(),
+        })
+        .catch(report);
+    });
+    const keyboardDidShow = Keyboard.addListener("keyboardDidShow", () => {
+      const current = coordinator.getSnapshot().environment;
+      void coordinator.setEnvironment({ ...current, keyboardVisible: true }).catch(report);
+    });
+    const keyboardDidHide = Keyboard.addListener("keyboardDidHide", () => {
+      const current = coordinator.getSnapshot().environment;
+      void coordinator.setEnvironment({ ...current, keyboardVisible: false }).catch(report);
+    });
+    const back = BackHandler.addEventListener("hardwareBackPress", () => {
+      void coordinator
+        .handleBack()
+        .then((handled) => {
+          if (!handled) BackHandler.exitApp();
+        })
+        .catch((cause) => {
+          report(cause);
+          BackHandler.exitApp();
+        });
+      return true;
+    });
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .then((reducedMotion) =>
+        coordinator.setEnvironment({
+          ...coordinator.getSnapshot().environment,
+          dynamicTypeScale: PixelRatio.getFontScale(),
+          orientation: getHostOrientation(),
+          reducedMotion,
+        }),
+      )
+      .catch(report);
+    return () => {
+      disposed = true;
+      appState.remove();
+      dimensions.remove();
+      keyboardDidShow.remove();
+      keyboardDidHide.remove();
+      back.remove();
+      void coordinator.dispose().catch(() => {
+        // The screen is already unmounted; disposal still closes every bridge before rejecting.
+      });
+    };
+  }, [coordinator]);
+
+  return (
+    <ReactNativeView style={styles.mixedScreen}>
+      <ReactNativeText accessibilityRole="header" allowFontScaling style={styles.subheading}>
+        Host-owned mixed screen
+      </ReactNativeText>
+      <ReactNativeText allowFontScaling style={styles.instructions}>
+        Two sibling regions follow host-authored accessibility order. The native surface cannot
+        create, navigate, or message the isolated MCP Apps WebView.
+      </ReactNativeText>
+      {snapshot.regions[0]?.visibility === "visible" && (
+        <ReactNativeView
+          accessibilityLabel={snapshot.regions[0].accessibilityLabel}
+          onTouchStart={() =>
+            void coordinator
+              .transferFocus("native-summary")
+              .catch((cause) => reportHostError(cause, "Native focus transfer failed"))
+          }
+          style={styles.mixedNativeRegion}
+        >
+          <A2uiV1NativeSurface
+            components={catalog}
+            onAction={(envelope) => setError(`Observed ${envelope.action.name}`)}
+            policy={policy}
+            surface={fixtureSurface}
+          />
+        </ReactNativeView>
+      )}
+      {snapshot.regions[1]?.visibility === "visible" && (
+        <ReactNativeView
+          accessibilityLabel={snapshot.regions[1].accessibilityLabel}
+          onTouchStart={() =>
+            void coordinator
+              .transferFocus("apps-preview")
+              .catch((cause) => reportHostError(cause, "WebView focus transfer failed"))
+          }
+          style={styles.mixedAppsRegion}
+        >
+          <WebView<Record<never, never>>
+            {...webViewComponentProps}
+            accessibilityLabel="Isolated MCP Apps content"
+            onContentProcessDidTerminate={() => reportAppsCrash("Web content process ended")}
+            onError={() => reportAppsCrash("Web content failed to load")}
+            onRenderProcessGone={() => reportAppsCrash("Web renderer process ended")}
+            ref={webViewRef}
+            style={styles.mixedWebView}
+          />
+          {snapshot.regions[1].status === "crashed" && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                void coordinator
+                  .recover("apps-preview")
+                  .catch((cause) => reportHostError(cause, "WebView recovery failed"))
+              }
+              style={styles.counterButton}
+            >
+              <ReactNativeText allowFontScaling style={styles.counterButtonLabel}>
+                Reload isolated content
+              </ReactNativeText>
+            </Pressable>
+          )}
+        </ReactNativeView>
+      )}
+      <ReactNativeText accessibilityLiveRegion="polite" allowFontScaling style={styles.caption}>
+        {error ??
+          `Native and Apps ready: ${snapshot.regions.filter((region) => region.status === "ready").length}/2`}
+      </ReactNativeText>
+    </ReactNativeView>
+  );
+}
+
 export default function App() {
   const [mode, setMode] = useState<CatalogMode>("primitives");
   const actionCallbackCountRef = useRef(0);
@@ -905,6 +1161,7 @@ export default function App() {
             policy={policy}
             surface={milestone8Surface}
           />
+          <MixedReferenceScreen catalog={catalog} />
         </ScrollView>
       </SafeAreaView>
     </SafeAreaProvider>
@@ -1037,6 +1294,22 @@ const styles = StyleSheet.create({
     minHeight: 96,
     padding: 12,
   },
+  mixedAppsRegion: {
+    borderColor: "#8BA3C7",
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 220,
+    overflow: "hidden",
+  },
+  mixedNativeRegion: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#8BA3C7",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  mixedScreen: { gap: 12 },
+  mixedWebView: { backgroundColor: "transparent", flex: 1 },
   primaryButton: { backgroundColor: "#174EA6", borderColor: "#174EA6" },
   primaryButtonLabel: { color: "#FFFFFF" },
   row: { flexDirection: "row", gap: 12 },

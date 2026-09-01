@@ -59,10 +59,9 @@ The standards review does not require starting over. Keep and evolve:
 - isolated HTML policy primitives;
 - CI, protected-branch workflow, package smoke tests, and npm provenance.
 
-The custom `@mcp-native/a2ui` `0.1` object remains useful as a proof and test fixture, but it must
-not grow into a competing public protocol. It is deprecated and frozen except for security and
-correctness fixes until Milestone 9 decides whether `1.0.0` removes it or isolates it as legacy
-support.
+The custom `@mcp-native/a2ui` `0.1` object remains useful only for migration. It is deprecated and
+frozen except for security and critical correctness fixes. Milestone 9 isolates it behind explicit
+`/legacy` subpaths; deprecated root aliases remain through `0.9.x` and are removed at `1.0.0`.
 
 ## Integration PoC policy
 
@@ -315,29 +314,29 @@ code-resolution, native-command, unchecked-prop, or capability-escalation path.
 
 ## Milestone 9: mixed hosting and API freeze (`0.9.0`)
 
-Status: planned.
+Status: implementation complete; `0.9.0` release preparation pending.
 
-- [ ] Define a host-owned surface coordinator that can place native A2UI and isolated MCP Apps
+- [x] Define a host-owned surface coordinator that can place native A2UI and isolated MCP Apps
       WebView surfaces in the same application screen as sibling regions. A2UI content cannot create,
       configure, navigate, or send raw bridge messages to a WebView.
-- [ ] Specify lifecycle ownership for creation, visibility, backgrounding, focus transfer, back
+- [x] Specify lifecycle ownership for creation, visibility, backgrounding, focus transfer, back
       handling, cancellation, crash recovery, teardown, and memory pressure across mixed surfaces.
-- [ ] Preserve the existing MCP Apps origin, navigation, bridge-message, storage, download, external
+- [x] Preserve the existing MCP Apps origin, navigation, bridge-message, storage, download, external
       link, permission, and teardown isolation for every WebView region.
-- [ ] Add cross-surface accessibility order, focus, reduced-motion, dynamic-type, orientation, and
+- [x] Add cross-surface accessibility order, focus, reduced-motion, dynamic-type, orientation, and
       keyboard scenarios without implying one shared accessibility tree where platforms cannot
       provide it.
-- [ ] Build one production-shaped reference host demonstrating React Native primitives, a mapped
+- [x] Build one production-shaped reference host demonstrating React Native primitives, a mapped
       design system, a Fabric-backed host extension, and native plus MCP Apps regions together.
-- [ ] Publish a short human-oriented guide covering what the packages do, the end-to-end server/host
+- [x] Publish a short human-oriented guide covering what the packages do, the end-to-end server/host
       flow, component and styling ownership, supported renderers, WebView tradeoffs, and safe extension
       examples before the API reference.
-- [ ] Audit all public exports, package boundaries, dependency directions, declaration output,
+- [x] Audit all public exports, package boundaries, dependency directions, declaration output,
       error types, wire names, defaults, and deprecations. Publish the proposed `1.0.0` compatibility
       and migration policy and freeze the release-candidate API.
-- [ ] Decide and document removal or isolation of the deprecated custom A2UI `0.1` proof surface;
+- [x] Decide and document removal or isolation of the deprecated custom A2UI `0.1` proof surface;
       it must not remain ambiguous with the supported A2UI v1 Candidate profile in `1.0.0`.
-- [ ] Run package-consumer fixtures against the supported React Native, React, TypeScript, Node.js,
+- [x] Run package-consumer fixtures against the supported React Native, React, TypeScript, Node.js,
       iOS, Android, New Architecture, and JavaScript-engine matrix, with exact version ranges recorded.
 
 Exit criterion: the release-candidate API is frozen, the reference host proves the promised native,

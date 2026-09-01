@@ -80,6 +80,15 @@ owned by the host.
 
 ## Lifecycle and operations
 
+- Build mixed screens only from host-created A2UI and opaque MCP Apps registrations. Keep sibling
+  layout and navigation in the app shell; never translate A2UI data into WebView props, navigation,
+  bridge messages, permissions, or region creation.
+- Forward activity, visibility, focus, reduced motion, text scale, orientation, keyboard, back,
+  crash, recovery, memory pressure, and teardown through the mixed coordinator. Preserve actual
+  sibling accessibility order while testing native and WebView trees separately.
+- Report both iOS content-process termination and Android renderer-process loss, show host-authored
+  recovery UI, and observe reverse-order `dispose()` so every Apps bridge closes.
+
 - Give `createMcpNativeConnectionLifecycle` a fresh SDK client/transport ownership unit per attempt.
   Its `connect(signal)` should stop promptly on abort, `close()` must release listeners and native
   resources, and optional `closed` should resolve once for unexpected transport loss.

@@ -27,10 +27,12 @@ npm install @mcp-native/a2ui
 ## Deprecated custom `0.1` example
 
 The following APIs remain available for migration but are deprecated. New hosts should start with
-the v1 flow below and the [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md#custom-01-migration).
+the v1 flow below and the [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
+Use the explicit `/legacy` subpath during `0.9.x`; the deprecated root aliases are removed at
+`1.0.0` while the migration subpath stays frozen.
 
 ```ts
-import { parseA2uiSurface } from "@mcp-native/a2ui";
+import { parseA2uiSurface } from "@mcp-native/a2ui/legacy";
 
 const surface = parseA2uiSurface({
   version: "0.1",
@@ -73,7 +75,7 @@ const surface = parseA2uiSurface(
 An MCP tool may return a `resource_link` for a declarative surface. Pass the connected runtime or any `A2uiResourceReader` to the resolver:
 
 ```ts
-import { resolveA2uiResourceFromToolResult } from "@mcp-native/a2ui";
+import { resolveA2uiResourceFromToolResult } from "@mcp-native/a2ui/legacy";
 
 const toolResult = await runtime.callTool("open_profile");
 const resolved = await resolveA2uiResourceFromToolResult(runtime, toolResult);
