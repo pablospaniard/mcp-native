@@ -212,6 +212,8 @@ export interface McpNativeOAuthProviderOptions {
   readonly clientMetadata: OAuthClientMetadata;
   readonly clientMetadataUrl?: string;
   readonly storage: McpNativeOAuthSecureStore;
+  /** Optional durable, resource-bound history used for cross-request scope-upgrade decisions. */
+  readonly scopeStore?: McpNativeOAuthScopeStore;
   /** Must return a fresh, cryptographically random, URL-safe value for every redirect. */
   readonly createState: () => string | Promise<string>;
   /** Host-owned browser or authentication-session handoff. */
@@ -227,10 +229,24 @@ export interface McpNativeOAuthProviderOptions {
 }
 
 export interface McpNativeOAuthReauthorizationRequest {
+  readonly resource: string;
   readonly issuer: string | undefined;
   readonly currentScopes: readonly string[];
   readonly requestedScopes: readonly string[];
   readonly addedScopes: readonly string[];
+}
+
+export interface McpNativeOAuthScopeRecord {
+  readonly resource: string;
+  readonly issuer: string;
+  readonly scopes: readonly string[];
+}
+
+/** Host-owned durable storage for non-token OAuth scope history. */
+export interface McpNativeOAuthScopeStore {
+  load(resource: string): unknown | Promise<unknown>;
+  save(record: McpNativeOAuthScopeRecord): void | Promise<void>;
+  remove(resource: string): void | Promise<void>;
 }
 
 export interface McpNativeOAuthTransportOptions {
@@ -260,6 +276,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
 
   readonly #resourceUrl: URL;
   readonly #storage: McpNativeOAuthSecureStore;
+  readonly #scopeStore: McpNativeOAuthScopeStore | undefined;
   readonly #createState: () => string | Promise<string>;
   readonly #openAuthorization: (authorizationUrl: URL) => void | Promise<void>;
   readonly #approveReauthorization:
@@ -278,6 +295,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
 
   constructor(options: McpNativeOAuthProviderOptions) {
     assertSecureStore(options.storage);
+    assertScopeStore(options.scopeStore);
     if (
       typeof options.createState !== "function" ||
       typeof options.openAuthorization !== "function" ||
@@ -322,6 +340,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
       application_type: metadataResult.data.application_type ?? "native",
     });
     this.#storage = options.storage;
+    this.#scopeStore = options.scopeStore;
     this.#createState = options.createState;
     this.#openAuthorization = options.openAuthorization;
     this.#approveReauthorization = options.approveReauthorization;
@@ -421,7 +440,50 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     const parsed = parseStoredTokens(tokens);
     const issuer = resolveStoredIssuer(parsed.issuer, context?.issuer, "tokens");
     this.#activeIssuer = issuer;
-    await this.#storage.saveTokens(issuer, { ...parsed, issuer });
+
+    let effectiveScopes: readonly string[] | undefined;
+    if (parsed.scope !== undefined) {
+      effectiveScopes = parseScope(parsed.scope);
+    } else if (this.#pendingAuthorizationUrl !== undefined) {
+      const requestedScope = new URL(this.#pendingAuthorizationUrl).searchParams.get("scope");
+      if (requestedScope !== null) {
+        effectiveScopes = parseScope(requestedScope);
+      }
+    }
+
+    let previousTokens: StoredOAuthTokens | undefined;
+    let storedScopeRecord: McpNativeOAuthScopeRecord | undefined;
+    if (parsed.scope === undefined && effectiveScopes === undefined) {
+      const stored = await this.#storage.loadTokens(issuer);
+      if (stored !== undefined) {
+        previousTokens = parseStoredTokens(stored);
+        requireMatchingIssuer(
+          parseIssuer(previousTokens.issuer, "stored token issuer"),
+          issuer,
+          "tokens",
+        );
+      }
+      storedScopeRecord = await this.#loadScopeRecord();
+      effectiveScopes =
+        previousTokens?.scope === undefined
+          ? storedScopeRecord?.scopes
+          : parseScope(previousTokens.scope);
+    }
+
+    const persistedTokens =
+      parsed.scope === undefined && effectiveScopes !== undefined
+        ? { ...parsed, issuer, scope: effectiveScopes.join(" ") }
+        : { ...parsed, issuer };
+    await this.#storage.saveTokens(issuer, persistedTokens);
+    if (this.#scopeStore !== undefined && effectiveScopes !== undefined) {
+      await this.#scopeStore.save(
+        Object.freeze({
+          resource: this.#resourceUrl.href,
+          issuer,
+          scopes: Object.freeze([...effectiveScopes]),
+        }),
+      );
+    }
   }
 
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
@@ -475,12 +537,17 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     try {
       const requestedScopes = parseScope(url.searchParams.get("scope"));
       const storedTokens = await this.#storage.loadTokens(this.#activeIssuer);
-      if (storedTokens !== undefined) {
-        const currentScopes = parseScope(parseStoredTokens(storedTokens).scope ?? null);
+      const storedScopeRecord = await this.#loadScopeRecord();
+      if (storedTokens !== undefined || storedScopeRecord !== undefined) {
+        const currentScopes =
+          storedTokens === undefined
+            ? storedScopeRecord!.scopes
+            : parseScope(parseStoredTokens(storedTokens).scope ?? null);
         const currentScopeSet = new Set(currentScopes);
         const addedScopes = requestedScopes.filter((scope) => !currentScopeSet.has(scope));
         const approved = await this.#approveReauthorization?.(
           Object.freeze({
+            resource: this.#resourceUrl.href,
             issuer: this.#activeIssuer,
             currentScopes: Object.freeze([...currentScopes]),
             requestedScopes: Object.freeze([...requestedScopes]),
@@ -630,6 +697,7 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
         this.#activeIssuer = undefined;
       }
       if (scope === "all") {
+        await this.#scopeStore?.remove(this.#resourceUrl.href);
         this.#pendingAuthorizationUrl = undefined;
         this.#authorizationAttemptReserved = false;
         this.#authorizationCodeVerifierSaved = false;
@@ -740,6 +808,15 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     return this.#approveReauthorization !== undefined;
   }
 
+  async #loadScopeRecord(): Promise<McpNativeOAuthScopeRecord | undefined> {
+    if (this.#scopeStore === undefined) return undefined;
+    const value = await this.#scopeStore.load(this.#resourceUrl.href);
+    if (value === undefined) return undefined;
+    const record = parseScopeRecord(value, this.#resourceUrl.href, this.#activeIssuer);
+    this.#activeIssuer ??= record.issuer;
+    return record;
+  }
+
   async #discardPendingAuthorization(): Promise<void> {
     if (this.#authorizationCleanupRunning) {
       throw new McpNativeOAuthError(
@@ -822,6 +899,67 @@ function parseScope(value: string | null): readonly string[] {
     );
   }
   return scopes;
+}
+
+function parseScopeRecord(
+  value: unknown,
+  expectedResource: string,
+  expectedIssuer: string | undefined,
+): McpNativeOAuthScopeRecord {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)
+  ) {
+    throw new McpNativeOAuthError("invalid-storage", "Stored OAuth scope record is invalid");
+  }
+  const record = value as Record<string, unknown>;
+  if (
+    Object.keys(record).length !== 3 ||
+    !Object.hasOwn(record, "resource") ||
+    !Object.hasOwn(record, "issuer") ||
+    !Object.hasOwn(record, "scopes") ||
+    typeof record.resource !== "string" ||
+    record.resource !== expectedResource ||
+    typeof record.issuer !== "string" ||
+    !Array.isArray(record.scopes) ||
+    Object.keys(record.scopes).length !== record.scopes.length ||
+    record.scopes.some((scope) => typeof scope !== "string")
+  ) {
+    throw new McpNativeOAuthError("invalid-storage", "Stored OAuth scope record is invalid");
+  }
+  let issuer: string;
+  try {
+    issuer = parseIssuer(record.issuer, "stored scope issuer");
+  } catch (error) {
+    throw new McpNativeOAuthError("invalid-storage", "Stored OAuth scope issuer is invalid", {
+      cause: error,
+    });
+  }
+  if (expectedIssuer !== undefined) {
+    requireMatchingIssuer(issuer, expectedIssuer, "scope history");
+  }
+  let scopes: readonly string[];
+  const storedScopes = record.scopes as string[];
+  try {
+    scopes = parseScope(storedScopes.join(" "));
+  } catch (error) {
+    throw new McpNativeOAuthError("invalid-storage", "Stored OAuth scopes are invalid", {
+      cause: error,
+    });
+  }
+  if (
+    scopes.length !== storedScopes.length ||
+    scopes.some((scope, index) => scope !== storedScopes[index])
+  ) {
+    throw new McpNativeOAuthError("invalid-storage", "Stored OAuth scopes are invalid");
+  }
+  return Object.freeze({
+    resource: expectedResource,
+    issuer,
+    scopes: Object.freeze([...scopes]),
+  });
 }
 
 function parseProtectedServerUrl(value: string | URL): URL {
@@ -1324,6 +1462,22 @@ function assertSecureStore(storage: McpNativeOAuthSecureStore): void {
     throw new McpNativeOAuthError(
       "invalid-configuration",
       "OAuth secure store must implement the complete persistence contract",
+    );
+  }
+}
+
+function assertScopeStore(storage: McpNativeOAuthScopeStore | undefined): void {
+  if (storage === undefined) return;
+  if (
+    storage === null ||
+    (typeof storage !== "object" && typeof storage !== "function") ||
+    typeof storage.load !== "function" ||
+    typeof storage.save !== "function" ||
+    typeof storage.remove !== "function"
+  ) {
+    throw new McpNativeOAuthError(
+      "invalid-configuration",
+      "OAuth scope store must implement load, save, and remove",
     );
   }
 }

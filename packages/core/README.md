@@ -83,6 +83,8 @@ await runtime.dispatch({
 | `createAllowlistActionPolicy`, `McpNativeToolAllowlistEntry`                                      | Fail-closed helper that authorizes tools by name and exact or predicated arguments.         |
 | `createConsentActionPolicy`, `McpNativeToolConsentEntry`, `McpNativeToolConsentRequest`           | Core `dispatch()` consent over explicit risk, capability, and privacy descriptors.          |
 | `McpNativeToolRisk`, `McpNativeToolConsentReviewer`                                               | Closed risk vocabulary and exact-boolean host review callback.                              |
+| `createExpiringGrantActionPolicy`, `revokeMcpNativeConsentGrant`                                  | Bounded persistent grants around any action policy, with explicit revocation.               |
+| `McpNativeConsentGrantStore`, `McpNativeConsentGrantRecord`                                       | Host-owned durable grant storage contract and validated record.                             |
 | `McpNativeActionDeniedError`                                                                      | Fail-closed error for actions not explicitly allowed by the host.                           |
 | `parseMcpNativeAction`, `parseJsonObject`, `parseJsonValue`                                       | Strict validators that return safely reconstructed untrusted data.                          |
 | `JsonValidationOptions`                                                                           | Optional cumulative string/key budget for one reconstructed JSON graph.                     |
@@ -133,9 +135,11 @@ const runtime = new McpNativeRuntime(client, {
 });
 ```
 
-Profiles and their identifiers are host-authored. Every profile must explicitly provide `capabilities`, `sensitiveData`, and `sharesDataExternally`; use empty arrays or `false` only after the host has classified that dimension. Map identifiers to app-owned localized copy; do not display server tool names, descriptions, annotations, arguments, or metadata as trusted consent claims. Unknown tools and arguments are denied without prompting, the reviewer must return an exact boolean, and concurrent evaluations are denied instead of accumulating consent dialogs. Approval applies to one dispatch only. A host that retains grants must key, expire, revoke, and persist them outside this helper and re-evaluate them when tool arguments, capabilities, sensitive-data use, destination, or server identity changes.
+Profiles and their identifiers are host-authored. Every profile must explicitly provide `capabilities`, `sensitiveData`, and `sharesDataExternally`; use empty arrays or `false` only after the host has classified that dimension. Map identifiers to app-owned localized copy; do not display server tool names, descriptions, annotations, arguments, or metadata as trusted consent claims. Unknown tools and arguments are denied without prompting, the reviewer must return an exact boolean, and concurrent evaluations are denied instead of accumulating consent dialogs. Approval applies to one dispatch only.
 
-This helper is installed only on `McpNativeRuntime.dispatch()`. It does not automatically protect trusted direct `callTool()` operations, MCP Apps `callTool` handlers, or A2UI v1 renderer-to-agent envelope delivery. Hosts must either route a tool action through this policy explicitly at those boundaries or apply an equivalent host-owned policy suited to that protocol path.
+Wrap the policy with `createExpiringGrantActionPolicy()` when the host offers remembered approval. Its app-owned grant key must bind the policy revision, server/account partition, tool, and argument class. Stored records are validated, expired records are removed, evaluation is serialized, and a grant is saved only after exact approval. Set a zero duration for allow-once and call `revokeMcpNativeConsentGrant()` from the host's user-visible revoke, logout, server-removal, and policy-migration paths.
+
+`actionPolicy` protects `McpNativeRuntime.dispatch()`. Set `trustedToolPolicy` to protect direct `callTool()` operations with the same or another explicit policy; omission preserves the lower-level trusted seam. MCP Apps requires its own `authorizeToolCall` callback and A2UI v1 delivery requires `createA2uiV1ActionDeliveryHandler`, because those packages own different protocol boundaries.
 
 ## Pre-1.0 MCP result migration
 
@@ -170,9 +174,9 @@ Content blocks now use MCP's official discriminated fields. Replace `{ type: "te
 - No transport or official MCP SDK dependency.
 - No remote code loading or execution.
 - Surface-driven `dispatch()` is denied unless the host's action policy explicitly allows it.
-- Direct `callTool()` is a lower-level API for trusted host code. It validates JSON arguments but does not apply the surface action policy.
-- Prefer `createAllowlistActionPolicy()` so surface authorization covers tool arguments, not only tool names.
-- Use `createConsentActionPolicy()` for explicit core `dispatch()` review; it never treats server annotations as risk classification or retains approval, and other tool/action paths require their own explicit integration.
+- Direct `callTool()` is a lower-level trusted seam by default. Set `trustedToolPolicy` when it must receive explicit policy review.
+- Prefer `createAllowlistActionPolicy()` so authorization covers tool arguments, not only tool names.
+- Use `createConsentActionPolicy()` for explicit review; it never treats server annotations as risk classification. Add the bounded grant wrapper only for host-authored, expiring, revocable persistence.
 - Untrusted JSON is reconstructed without prototype mutation and rejects cycles, non-plain objects, non-finite numbers, excessive depth, excessive value counts, and oversized strings or object keys.
 - Declared actions reject fields outside the exact `{ type, name, arguments? }` contract.
 - Extension declarations require prefixed identifiers and JSON-object settings; server metadata never activates an extension.

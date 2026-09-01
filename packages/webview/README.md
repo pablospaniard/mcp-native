@@ -30,6 +30,7 @@ profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-com
 ## Stable MCP Apps host flow
 
 ```ts
+import { createConsentActionPolicy } from "@mcp-native/core";
 import {
   MCP_APPS_EXTENSION_CAPABILITIES,
   McpAppsBridge,
@@ -51,6 +52,18 @@ if (grant.kind !== "negotiated") {
 
 const resource = await loadMcpAppsResource(tool, runtime, grant);
 const sandbox = createMcpAppsNativeSandbox(resource); // no sensitive permissions by default
+const appToolPolicy = createConsentActionPolicy(
+  [
+    {
+      name: "refresh",
+      risk: "read-only",
+      capabilities: [],
+      sensitiveData: [],
+      sharesDataExternally: false,
+    },
+  ],
+  reviewMcpAppsToolCall,
+);
 
 let webViewRef;
 const bridge = new McpAppsBridge({
@@ -62,6 +75,7 @@ const bridge = new McpAppsBridge({
     webViewRef.injectJavaScript(createMcpAppsNativeDeliveryScript(serialized));
   },
   handlers: {
+    authorizeToolCall: appToolPolicy,
     callTool: (name, arguments_) => runtime.callTool(name, arguments_),
     readResource: (uri) => runtime.readResource(uri),
     openLink: async (url) => {
@@ -81,9 +95,12 @@ const webViewProps = createMcpAppsReactNativeWebViewProps(sandbox, {
 
 Advertise `MCP_APPS_EXTENSION_CAPABILITIES` through `createMcpNativeClientOptions()` and pass the
 same snapshot into the SDK adapter. Capabilities are not inferred from the tool or resource MIME
-type. The bridge advertises View-facing host features only when the matching host callback exists.
-The native adapter requires `onError` so rejected message and external-link callbacks remain inside
-the host's controlled error boundary. Bridge work is capped at 128 concurrent inbound messages, and
+type. The bridge advertises View-facing tool proxying only when both `authorizeToolCall` and
+`callTool` exist. The validated action must receive exact host-policy approval before the tool
+handler runs; View `_meta`, server annotations, and tool visibility never grant execution. Other
+View-facing host features are advertised only when the matching host callback exists. The native
+adapter requires `onError` so rejected message and external-link callbacks remain inside the host's
+controlled error boundary. Bridge work is capped at 128 concurrent inbound messages, and
 exactly-once tool lifecycle sends are serialized across asynchronous transports.
 
 ## Install
@@ -165,8 +182,9 @@ A production host must still verify:
 - allowed origins and navigation rules;
 - ephemeral website data and cookie/process-pool isolation on each supported OS version;
 - native download, permission, safe-browsing, custom-scheme, and teardown delegates;
-- that every descriptor field maps to the intended locally bundled WebView implementation; and
-- user approval before any sensitive device capability or external effect.
+- that every descriptor field maps to the intended locally bundled WebView implementation;
+- user approval before any sensitive device capability or external effect; and
+- an explicit `authorizeToolCall` policy whenever the View may proxy a same-server tool call.
 
 See the repository's [security policy](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md) before expanding this boundary. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
 

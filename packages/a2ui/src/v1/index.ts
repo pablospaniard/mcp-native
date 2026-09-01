@@ -36,6 +36,12 @@ export type {
   A2uiV1ValidationRendererError,
 } from "./types.js";
 export { createA2uiV1ActionEnvelope, parseA2uiV1RendererToAgentEnvelope } from "./action.js";
+export { createA2uiV1ActionDeliveryHandler } from "./delivery.js";
+export type {
+  A2uiV1ActionDeliveryHandler,
+  A2uiV1ActionDeliveryOptions,
+  A2uiV1ActionDeliveryPolicy,
+} from "./delivery.js";
 export { evaluateA2uiV1FormatString } from "./format-string.js";
 export type {
   A2uiV1FormatStringExpressionBudgetConsumer,

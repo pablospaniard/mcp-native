@@ -11,11 +11,13 @@ import {
   McpNativeRuntime,
   createAllowlistActionPolicy,
   createConsentActionPolicy,
+  createExpiringGrantActionPolicy,
   isMcpExtensionIdentifier,
   negotiateMcpExtension,
   parseJsonValue,
   parseMcpExtensionSettings,
   parseMcpNativeAction,
+  revokeMcpNativeConsentGrant,
 } from "../packages/core/dist/index.js";
 
 const TEST_EXTENSION_ID = "com.example/native-ui";
@@ -780,6 +782,128 @@ test("the core runtime validates and safely reconstructs actions before policy e
   );
   assert.equal(policyActions.length, 1);
   assert.equal(calls.length, 1);
+});
+
+test("trusted direct tool calls can opt into the same explicit policy boundary", async () => {
+  const calls = [];
+  const runtime = new McpNativeRuntime(
+    {
+      async listTools() {
+        return { tools: [] };
+      },
+      async callTool(name, arguments_) {
+        calls.push({ name, arguments: arguments_ });
+        return { content: [] };
+      },
+      async readResource() {
+        return { contents: [] };
+      },
+    },
+    { trustedToolPolicy: (action) => action.name === "approved" },
+  );
+
+  await runtime.callTool("approved", { value: 1 });
+  await assert.rejects(() => runtime.callTool("denied"), McpNativeActionDeniedError);
+  assert.deepEqual(calls, [{ name: "approved", arguments: { value: 1 } }]);
+  assert.throws(
+    () =>
+      new McpNativeRuntime(/** @type {any} */ ({}), { trustedToolPolicy: /** @type {any} */ ({}) }),
+    JsonValidationError,
+  );
+});
+
+test("expiring consent grants persist, expire, and revoke through host-owned storage", async () => {
+  let time = 1_000;
+  const records = new Map();
+  const removed = [];
+  const store = {
+    load: (key) => records.get(key),
+    save: (record) => records.set(record.key, record),
+    remove: (key) => {
+      removed.push(key);
+      records.delete(key);
+    },
+  };
+  let reviews = 0;
+  const policy = createExpiringGrantActionPolicy({
+    store,
+    now: () => time,
+    grantKey: (action) => `policy-v2:server-a:${action.name}`,
+    grantDurationMs: () => 500,
+    authorize: () => {
+      reviews += 1;
+      return true;
+    },
+  });
+  const action = { type: "tool", name: "save" };
+
+  assert.equal(await policy(action), true);
+  assert.deepEqual(records.get("policy-v2:server-a:save"), {
+    key: "policy-v2:server-a:save",
+    expiresAt: 1_500,
+  });
+  assert.equal(await policy(action), true);
+  assert.equal(reviews, 1);
+
+  time = 1_500;
+  assert.equal(await policy(action), true);
+  assert.equal(reviews, 2);
+  assert.deepEqual(removed, ["policy-v2:server-a:save"]);
+
+  await revokeMcpNativeConsentGrant(store, "policy-v2:server-a:save");
+  assert.equal(records.has("policy-v2:server-a:save"), false);
+  await assert.rejects(
+    () => revokeMcpNativeConsentGrant(store, /** @type {any} */ (undefined)),
+    JsonValidationError,
+  );
+});
+
+test("expiring consent grants fail closed for overlap and untrusted persisted values", async () => {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const records = new Map();
+  const policy = createExpiringGrantActionPolicy({
+    store: {
+      load: (key) => records.get(key),
+      save: (record) => records.set(record.key, record),
+      remove: (key) => records.delete(key),
+    },
+    now: () => 100,
+    grantKey: () => "grant",
+    grantDurationMs: () => 0,
+    authorize: async () => {
+      await gate;
+      return true;
+    },
+  });
+  const first = policy({ type: "tool", name: "save" });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(await policy({ type: "tool", name: "save" }), false);
+  release();
+  assert.equal(await first, true);
+
+  records.set("grant", { key: "other", expiresAt: 200 });
+  await assert.rejects(
+    () => policy({ type: "tool", name: "save" }),
+    (error) => error instanceof JsonValidationError && /does not match/.test(error.message),
+  );
+  records.set("grant", { key: "grant", expiresAt: Number.POSITIVE_INFINITY });
+  await assert.rejects(
+    () => policy({ type: "tool", name: "save" }),
+    (error) => error instanceof JsonValidationError && /expiry/.test(error.message),
+  );
+  records.set("grant", { key: "grant", expiresAt: 3_000_000_000 });
+  await assert.rejects(
+    () => policy({ type: "tool", name: "save" }),
+    (error) => error instanceof JsonValidationError && /lifetime/.test(error.message),
+  );
+  records.set("grant", null);
+  await assert.rejects(
+    () => policy({ type: "tool", name: "save" }),
+    (error) => error instanceof JsonValidationError && /object/.test(error.message),
+  );
 });
 
 test("the core runtime delegates every client operation", async () => {

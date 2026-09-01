@@ -42,8 +42,10 @@ const client = new Client(
 
 `auto` is the helper default because MCP Native targets long-lived native hosts that normally benefit from modern negotiation. Spawn-per-invocation command-line tools should choose deliberately: the official SDK warns that probing a silent legacy stdio server can consume the full probe timeout and may spawn a disposable sibling process.
 
-The helper returns verified SDK options. The host owns client construction, connection lifecycle,
-consent, retry, and shutdown. For protected Streamable HTTP, `@mcp-native/mcp` additionally exports
+The helper returns verified SDK options. The host owns client/transport construction and wire
+behavior. `createMcpNativeConnectionLifecycle()` optionally coordinates bounded timeout,
+cancellation, retry/backoff, offline transitions, reconnection, safe states/operations, and shutdown
+around fresh host-owned SDK units. For protected Streamable HTTP, `@mcp-native/mcp` additionally exports
 an issuer-bound official SDK OAuth provider and transport factory. They pin one protected resource,
 validate bounded stored registrations, tokens, discovery, every registered redirect URI, issuer
 URLs, and callback state before parsing, persistence, or reuse; reject duplicate registered redirect
@@ -59,7 +61,9 @@ owns one interactive attempt, requires reserved state and exactly one saved veri
 rejects cancellation during setup, handoff, or completion, prevents a
 second provider from cancelling the live attempt, and applies callback budgets to both native-session
 and process-recovery entry points. All 25 scored pinned
-`2026-07-28` authorization client scenarios pass. Native-library integration is demonstrated
+`2026-07-28` authorization client scenarios pass. Persistent resource/issuer-bound scope history is
+available through a host `McpNativeOAuthScopeStore`, and full invalidation removes that history.
+Native-library integration is demonstrated
 separately through non-blocking application PoCs.
 
 ## Extension capability substrate

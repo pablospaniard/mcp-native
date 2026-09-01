@@ -22,6 +22,12 @@ to `ASWebAuthenticationSession` / an Android Custom Tab. AsyncStorage, plain fil
 application WebViews, remote secret services, and server-derived storage namespaces are outside the
 supported profile.
 
+`McpNativeOAuthScopeStore` is a separate bounded persistence seam for non-token scope history. Pass
+it as `scopeStore` when reauthorization decisions must compare an exact protected resource and
+issuer across provider instances or token invalidation. Treat returned records as untrusted, keep
+the storage partition app-owned, and clear it through full credential invalidation/logout. It must
+never contain tokens, account data, authorization URLs, or callback values.
+
 Apple documents `ASWebAuthenticationSession` as the OS authentication flow that returns the
 callback only to the calling app. Android recommends Custom Tabs for third-party authentication
 instead of a WebView. The Expo Go PoC uses Expo's included secure-store and browser modules, pinned
@@ -82,6 +88,7 @@ const provider = createMcpNativeOAuthProvider({
   redirectUrl,
   clientMetadata: { client_name: "My app", redirect_uris: [redirectUrl] },
   storage,
+  scopeStore: durableResourceBoundScopeStore,
   createState: createCryptographicallyRandomState,
   openAuthorization: authorizationSession.openAuthorization,
 });

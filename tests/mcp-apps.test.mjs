@@ -616,6 +616,9 @@ function createBridgeFixture(overrides = {}) {
     resource,
     sandbox,
     handlers: {
+      authorizeToolCall() {
+        return true;
+      },
       async callTool(name, arguments_, requestMeta) {
         calls.push(["callTool", name, arguments_, requestMeta]);
         return { content: [{ type: "text", text: "fresh" }], structuredContent: { ok: true } };
@@ -714,7 +717,7 @@ test("bridge bounds concurrent inbound work before invoking more host callbacks"
   let handlerCalls = 0;
   const fixture = createBridgeFixture({
     handlers: {
-      callTool() {
+      readResource() {
         handlerCalls += 1;
         return gate.promise;
       },
@@ -731,8 +734,8 @@ test("bridge bounds concurrent inbound work before invoking more host callbacks"
     fixture.bridge.receive({
       jsonrpc: "2.0",
       id: index + 100,
-      method: "tools/call",
-      params: { name: "refresh", arguments: {} },
+      method: "resources/read",
+      params: { uri: "ui://weather/resource.txt" },
     }),
   );
   await new Promise((resolve) => setImmediate(resolve));
@@ -743,21 +746,23 @@ test("bridge bounds concurrent inbound work before invoking more host callbacks"
       fixture.bridge.receive({
         jsonrpc: "2.0",
         id: 999,
-        method: "tools/call",
-        params: { name: "refresh", arguments: {} },
+        method: "resources/read",
+        params: { uri: "ui://weather/resource.txt" },
       }),
     (error) => error instanceof McpAppsBridgeError && error.code === -32000,
   );
   assert.equal(handlerCalls, MCP_APPS_MAX_PENDING_REQUESTS);
   assert.deepEqual(protocolErrors, [-32000]);
 
-  gate.resolve({ content: [{ type: "text", text: "bounded" }] });
+  gate.resolve({
+    contents: [{ uri: "ui://weather/resource.txt", mimeType: "text/plain", text: "bounded" }],
+  });
   await Promise.all(pending);
   await fixture.bridge.receive({
     jsonrpc: "2.0",
     id: 1000,
-    method: "tools/call",
-    params: { name: "refresh", arguments: {} },
+    method: "resources/read",
+    params: { uri: "ui://weather/resource.txt" },
   });
   assert.equal(handlerCalls, MCP_APPS_MAX_PENDING_REQUESTS + 1);
 });
@@ -893,6 +898,96 @@ test("bridge proxies only closed, app-visible methods after initialization", asy
     params: { role: "user", content: [{ type: "text" }] },
   });
   assert.equal(fixture.sent.at(-1).error.code, -32602);
+});
+
+test("bridge requires explicit host authorization before an app tool call", async () => {
+  const reviewed = [];
+  const deliveredArguments = [];
+  let handlerCalls = 0;
+  const fixture = createBridgeFixture({
+    handlers: {
+      authorizeToolCall(action) {
+        reviewed.push(action);
+        const allowed = action.arguments?.page === 1;
+        if (allowed) action.arguments.page = 99;
+        return allowed;
+      },
+      callTool(_name, arguments_) {
+        handlerCalls += 1;
+        deliveredArguments.push(arguments_);
+        return { content: [] };
+      },
+    },
+  });
+  await initializeBridge(fixture);
+
+  await fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 30,
+    method: "tools/call",
+    params: { name: "refresh", arguments: { page: 2 }, _meta: { untrusted: true } },
+  });
+  assert.equal(fixture.sent.at(-1).error.code, -32001);
+  assert.equal(handlerCalls, 0);
+  assert.deepEqual(reviewed, [{ type: "tool", name: "refresh", arguments: { page: 2 } }]);
+
+  await fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 31,
+    method: "tools/call",
+    params: { name: "refresh", arguments: { page: 1 } },
+  });
+  assert.equal(fixture.sent.at(-1).result !== undefined, true);
+  assert.equal(handlerCalls, 1);
+  assert.deepEqual(deliveredArguments, [{ page: 1 }]);
+});
+
+test("bridge rejects overlapping app tool authorization and delivery", async () => {
+  const authorizationStarted = createDeferred();
+  const authorization = createDeferred();
+  let authorizationCalls = 0;
+  let handlerCalls = 0;
+  const fixture = createBridgeFixture({
+    handlers: {
+      async authorizeToolCall() {
+        authorizationCalls += 1;
+        authorizationStarted.resolve();
+        await authorization.promise;
+        return true;
+      },
+      callTool() {
+        handlerCalls += 1;
+        return { content: [] };
+      },
+    },
+  });
+  await initializeBridge(fixture);
+
+  const first = fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 32,
+    method: "tools/call",
+    params: { name: "refresh", arguments: { page: 1 } },
+  });
+  await authorizationStarted.promise;
+  await fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 33,
+    method: "tools/call",
+    params: { name: "refresh", arguments: { page: 2 } },
+  });
+
+  assert.equal(authorizationCalls, 1);
+  assert.equal(handlerCalls, 0);
+  assert.deepEqual(fixture.sent.find((message) => message.id === 33)?.error, {
+    code: -32002,
+    message: "Another app tool call is already pending",
+  });
+
+  authorization.resolve();
+  await first;
+  assert.equal(handlerCalls, 1);
+  assert.deepEqual(fixture.sent.find((message) => message.id === 32)?.result, { content: [] });
 });
 
 test("bridge rejects malformed, premature, unknown, and amplified input", async () => {
@@ -1054,6 +1149,28 @@ test("bridge covers lifecycle validation, downloads, modalities, and constructor
         tools: [modelTool, modelTool],
       }),
     /Duplicate bridge tool name/,
+  );
+  assert.throws(
+    () =>
+      new McpAppsBridge({
+        postMessage() {},
+        hostInfo: { name: "x", version: "1" },
+        resource,
+        sandbox,
+        handlers: { callTool: async () => ({ content: [] }) },
+      }),
+    /requires both authorizeToolCall and callTool/,
+  );
+  assert.throws(
+    () =>
+      new McpAppsBridge({
+        postMessage() {},
+        hostInfo: { name: "x", version: "1" },
+        resource,
+        sandbox,
+        handlers: { authorizeToolCall: () => true },
+      }),
+    /requires both authorizeToolCall and callTool/,
   );
 
   const protocolErrors = [];

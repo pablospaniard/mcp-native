@@ -1,4 +1,22 @@
 import type { Client, ClientOptions } from "@modelcontextprotocol/client";
+
+export {
+  MCP_NATIVE_MAX_CONNECTION_ATTEMPTS,
+  MCP_NATIVE_MAX_CONNECTION_BACKOFF_MS,
+  MCP_NATIVE_MAX_CONNECTION_TIMEOUT_MS,
+  McpNativeConnectionLifecycle,
+  McpNativeConnectionLifecycleError,
+  createMcpNativeConnectionLifecycle,
+} from "./lifecycle.js";
+export type {
+  McpNativeConnectionErrorClassification,
+  McpNativeConnectionErrorKind,
+  McpNativeConnectionLifecycleOptions,
+  McpNativeHostState,
+  McpNativeManagedConnection,
+  McpNativeOperationalEvent,
+  McpNativeOperationalSink,
+} from "./lifecycle.js";
 import {
   JSON_MAX_DEPTH,
   JSON_MAX_STRING_LENGTH,

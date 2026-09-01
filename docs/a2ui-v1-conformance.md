@@ -33,8 +33,9 @@ closed messages, non-JSON values, and malformed identifiers fail closed. Generic
 that the pinned schema explicitly leaves open are preserved as bounded inert JSON.
 
 The project-owned [A2UI-over-MCP binding](a2ui-mcp-binding.md) defines JSONL transport only for the
-ordered agent-to-renderer lifecycle. Renderer-to-agent delivery and the MCP placement of A2UI
-capability objects remain host-owned.
+ordered agent-to-renderer lifecycle. `createA2uiV1ActionDeliveryHandler` provides a fail-closed,
+serialized authorization boundary for action delivery, but the actual renderer-to-agent transport
+and the MCP placement of A2UI capability objects remain host-owned.
 
 ## Native renderer subset
 

@@ -157,7 +157,8 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Host-localized CLDR plural selection and strict `and`, `or`, and `not` evaluation
 - A mounted v1 native surface with renderer-local string bindings, dispatch-time event resolution, and schema-validated renderer-to-agent action envelopes
 - Typed `tools/call` action routing with a fail-closed host policy
-- Core runtime `dispatch()` consent profiles for tool risk, capability use, sensitive data, and external sharing
+- Consent profiles across core dispatch/direct calls, MCP Apps callbacks, and A2UI delivery, with bounded expiring/revocable grants
+- Bounded SDK connection lifecycle coordination, actionable host states, and data-free operational events
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
 - Strict parsing of a deliberately small declarative UI subset
@@ -180,14 +181,15 @@ adapter supports only the documented component subset, absolute and dynamic-list
 bindings, bounded string, number, currency, date, plural, and validation functions, renderer checks
 for supported text fields and buttons, pure boolean functions, `@index`, action events returned to
 a host callback, and press-time host-policy-gated HTTP(S) `openUrl`. Renderer behavior outside the
-automated native fixture remains unclaimed. The core `dispatch()` tool-consent foundation is
-implemented; integration at other action boundaries, persistent consent and scope-upgrade tracking,
-production connection lifecycle and observability, action transport delivery, and the separate Expo
-Go integration PoCs remain Milestone 6 work.
+automated native fixture remains unclaimed. Milestone 6 package work now includes policy gates at all
+current action boundaries, persistent expiring/revocable consent grants and OAuth scope history,
+bounded connection lifecycle coordination, actionable host states, redacted operational events, and
+a [production host checklist](docs/host-integration-checklist.md). Separate Expo Go integration PoCs
+remain non-blocking evidence and are not a package release criterion.
 
 ## Protected Streamable HTTP OAuth
 
-Milestone 6 is in progress. `@mcp-native/mcp` now provides the interactive OAuth host boundary while
+Milestone 6 package work is complete. `@mcp-native/mcp` provides the interactive OAuth host boundary while
 the official SDK owns protected-resource and authorization-server discovery, PKCE, scope selection,
 issuer validation, token exchange, refresh, and bearer attachment:
 
@@ -219,6 +221,7 @@ const provider = createMcpNativeOAuthProvider({
     redirect_uris: [redirectUrl],
   },
   storage: secureOAuthStore,
+  scopeStore: durableResourceBoundScopeStore,
   createState: () => createCryptographicallyRandomState(),
   openAuthorization: authorizationSession.openAuthorization,
   approveReauthorization: (request) => consentAndCheckRetryBudget(request),
@@ -254,7 +257,9 @@ HTTP loopback address and contain no fragment before the metadata can be cached 
 default, runtime
 `insufficient_scope` challenges are surfaced to the host. The opt-in `host-approved` path calls
 `approveReauthorization` for every authorization retry while credentials exist—including repeated
-same-scope challenges—and permits at most one SDK retry per request. The callback error path never
+same-scope challenges—and permits at most one SDK retry per request. An optional durable scope store
+keeps exact protected-resource/issuer-bound scope history across provider instances and token
+invalidation; full invalidation clears it. The callback error path never
 renders attacker-controlled OAuth descriptions. A cancelled OS session clears pending state and
 PKCE material without deleting registrations or tokens; direct cancellation is rejected until an
 active state setup, system handoff, or callback completion has settled. A claimed callback state
@@ -514,8 +519,8 @@ The detailed [standards-first roadmap](docs/roadmap.md) records retained archite
 - [x] Pass every scored pinned official `2026-07-28` authorization client scenario
 - [x] Add bounded Keychain/Keystore and OS authentication-session reference adapters
 - [x] Add bounded core `dispatch()` tool-risk, capability, and privacy consent descriptors
-- [ ] Integrate consent policy across current action boundaries and add persistent, expiring grants
-- [ ] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
+- [x] Integrate consent policy across current action boundaries and add persistent, expiring grants
+- [x] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
 - [ ] Maintain separate Expo Go PoCs for the primitives baseline and selected common component libraries
 - [ ] Expand protocol coverage through reviewed RFCs and tests
 
