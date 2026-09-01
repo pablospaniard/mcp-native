@@ -1157,6 +1157,39 @@ test("OAuth scope history persists across provider instances and is resource-bou
   assert.equal(scopeStore.record, undefined);
 });
 
+test("OAuth token responses inherit omitted scopes without erasing durable history", async () => {
+  const storage = createStorage();
+  const scopeStore = createScopeStore();
+  const refreshed = createProvider({ storage, scopeStore });
+  await refreshed.provider.saveTokens(
+    { access_token: "access", token_type: "Bearer", scope: "mcp:read", issuer: ISSUER },
+    { issuer: ISSUER },
+  );
+  await refreshed.provider.saveTokens(
+    { access_token: "refreshed", token_type: "Bearer", issuer: ISSUER },
+    { issuer: ISSUER },
+  );
+  assert.equal(storage.values.tokens.scope, "mcp:read");
+  assert.deepEqual(scopeStore.record.scopes, ["mcp:read"]);
+
+  const authorized = createProvider({
+    storage,
+    scopeStore,
+    approveReauthorization: () => true,
+  });
+  await reserveAuthorizationAttempt(authorized.provider);
+  await authorized.provider.redirectToAuthorization(
+    new URL("https://auth.example.com/authorize?scope=mcp%3Aread%20mcp%3Awrite"),
+  );
+  await authorized.provider.saveTokens(
+    { access_token: "expanded", token_type: "Bearer", issuer: ISSUER },
+    { issuer: ISSUER },
+  );
+  assert.equal(storage.values.tokens.scope, "mcp:read mcp:write");
+  assert.deepEqual(scopeStore.record.scopes, ["mcp:read", "mcp:write"]);
+  await authorized.provider.cancelAuthorization();
+});
+
 test("OAuth scope history fails closed for malformed or substituted records", async () => {
   await Promise.all(
     [

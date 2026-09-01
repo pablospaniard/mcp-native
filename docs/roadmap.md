@@ -177,7 +177,8 @@ Go integration PoCs remain open as non-blocking evidence and are reported indepe
       callbacks, A2UI v1 action delivery, and other host action boundaries, including expiring,
       revocable grants and persistent cross-request scope-upgrade tracking. The transport defaults
       to throwing on `insufficient_scope`; its opt-in retry path requires a host approval callback and
-      caps SDK work to one retry per request.
+      caps SDK work to one retry per request. MCP Apps tool review/delivery is single-flight, and
+      OAuth responses that omit scope preserve the pending or previously granted scope history.
 - [x] Define production connection lifecycle behavior for timeouts, cancellation, bounded retry and
       backoff, reconnection, offline transitions, and graceful shutdown while leaving wire behavior
       to the official SDK.

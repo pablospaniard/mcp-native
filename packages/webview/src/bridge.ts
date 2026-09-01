@@ -116,6 +116,7 @@ export class McpAppsBridge {
   #toolInputSent = false;
   #toolTerminalSent = false;
   #toolLifecycleTail: Promise<void> = Promise.resolve();
+  #toolCallRunning = false;
   #pendingInboundMessages = 0;
   #teardownId: string | undefined;
   #nextRequestId = 1;
@@ -428,17 +429,25 @@ export class McpAppsBridge {
       call["_meta"] === undefined
         ? undefined
         : parseBoundedObject(call["_meta"], "tools/call.params._meta");
-    const policyArguments = parseJsonObject(arguments_, "tools/call policy arguments");
-    const authorized = await this.#handlers.authorizeToolCall!({
-      type: "tool",
-      name,
-      arguments: policyArguments,
-    });
-    if (authorized !== true) {
-      throw new McpAppsBridgeError("App tool call denied by host policy", -32001);
+    if (this.#toolCallRunning) {
+      throw new McpAppsBridgeError("Another app tool call is already pending", -32002);
     }
-    const result = await this.#handlers.callTool(name, arguments_, requestMeta);
-    return parseBoundedObject(result, "tools/call result");
+    this.#toolCallRunning = true;
+    try {
+      const policyArguments = parseJsonObject(arguments_, "tools/call policy arguments");
+      const authorized = await this.#handlers.authorizeToolCall!({
+        type: "tool",
+        name,
+        arguments: policyArguments,
+      });
+      if (authorized !== true) {
+        throw new McpAppsBridgeError("App tool call denied by host policy", -32001);
+      }
+      const result = await this.#handlers.callTool(name, arguments_, requestMeta);
+      return parseBoundedObject(result, "tools/call result");
+    } finally {
+      this.#toolCallRunning = false;
+    }
   }
 
   async #readResource(params: JsonValue | undefined): Promise<JsonObject> {

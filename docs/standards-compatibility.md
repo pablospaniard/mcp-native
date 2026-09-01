@@ -153,7 +153,8 @@ non-boolean check conditions.
    and a React Native WebView safe-prop adapter with ephemeral storage and deny-by-default
    navigation, cookies, downloads, external links, file access, and sensitive permissions.
 5. **Implemented:** run `ui/initialize` through initialized, tool data, host context, supported
-   View-to-host requests and notifications, and graceful teardown over bounded JSON-RPC messages.
+   View-to-host requests and notifications, and graceful teardown over bounded JSON-RPC messages;
+   overlapping View tool calls fail closed while one host authorization or delivery is pending.
 6. **Implemented:** compare the stable constants and outbound lifecycle shapes with exact official
    `@modelcontextprotocol/ext-apps@1.7.5` schemas and reject hostile, unknown, premature, oversized,
    malformed, visibility-bypassing, and permission-bypassing input.
@@ -190,7 +191,8 @@ non-boolean check conditions.
    Proxy-Authorization headers and surface insufficient-scope responses to the host by default. The
    opt-in step-up path requires a host callback for every reauthorization while credentials exist
    and caps SDK work to one retry per request. Access, refresh, and ID tokens are subject to both
-   per-value and cumulative limits before persistence or request reuse.
+   per-value and cumulative limits before persistence or request reuse. A token response that omits
+   its optional scope inherits the pending authorization request or the previously granted scope.
 5. **Implemented native integration boundary:** a bounded fixed-slot reference store maps the OAuth
    contract onto an app-owned native secret backend and serializes state operations across store
    objects using the same fixed namespace in one JS runtime. A closed session adapter accepts one

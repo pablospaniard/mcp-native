@@ -24,10 +24,13 @@ their minor release line.
   baseline and each selected common Expo Go-compatible component library. App results are reported
   independently from package and milestone gates.
 - Mandatory host authorization before MCP Apps tool callbacks and a serialized A2UI v1 action
-  delivery gate that isolates policy input from transport input.
+  delivery gate that isolates policy input from transport input. MCP Apps bridges permit only one
+  tool authorization and delivery at a time so concurrent View requests cannot amplify prompts.
 - Optional policy review for direct core `callTool()` operations plus bounded, host-keyed,
   persistent consent grants with expiry and explicit revocation.
 - Persistent resource/issuer-bound OAuth scope history for cross-request step-up decisions.
+  Token responses that omit their optional scope inherit the pending authorization request or the
+  previously granted scope instead of erasing that history.
 - A bounded official-SDK connection lifecycle coordinator with timeout, cancellation, exponential
   backoff, offline/reconnection/shutdown behavior, actionable host states, and fixed data-free
   operational events for logs, metrics, and traces.

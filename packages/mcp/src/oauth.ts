@@ -440,14 +440,47 @@ export class McpNativeOAuthClientProvider implements OAuthClientProvider {
     const parsed = parseStoredTokens(tokens);
     const issuer = resolveStoredIssuer(parsed.issuer, context?.issuer, "tokens");
     this.#activeIssuer = issuer;
-    await this.#storage.saveTokens(issuer, { ...parsed, issuer });
-    if (this.#scopeStore !== undefined) {
-      const scopes = parseScope(parsed.scope ?? null);
+
+    let effectiveScopes: readonly string[] | undefined;
+    if (parsed.scope !== undefined) {
+      effectiveScopes = parseScope(parsed.scope);
+    } else if (this.#pendingAuthorizationUrl !== undefined) {
+      const requestedScope = new URL(this.#pendingAuthorizationUrl).searchParams.get("scope");
+      if (requestedScope !== null) {
+        effectiveScopes = parseScope(requestedScope);
+      }
+    }
+
+    let previousTokens: StoredOAuthTokens | undefined;
+    let storedScopeRecord: McpNativeOAuthScopeRecord | undefined;
+    if (parsed.scope === undefined && effectiveScopes === undefined) {
+      const stored = await this.#storage.loadTokens(issuer);
+      if (stored !== undefined) {
+        previousTokens = parseStoredTokens(stored);
+        requireMatchingIssuer(
+          parseIssuer(previousTokens.issuer, "stored token issuer"),
+          issuer,
+          "tokens",
+        );
+      }
+      storedScopeRecord = await this.#loadScopeRecord();
+      effectiveScopes =
+        previousTokens?.scope === undefined
+          ? storedScopeRecord?.scopes
+          : parseScope(previousTokens.scope);
+    }
+
+    const persistedTokens =
+      parsed.scope === undefined && effectiveScopes !== undefined
+        ? { ...parsed, issuer, scope: effectiveScopes.join(" ") }
+        : { ...parsed, issuer };
+    await this.#storage.saveTokens(issuer, persistedTokens);
+    if (this.#scopeStore !== undefined && effectiveScopes !== undefined) {
       await this.#scopeStore.save(
         Object.freeze({
           resource: this.#resourceUrl.href,
           issuer,
-          scopes: Object.freeze([...scopes]),
+          scopes: Object.freeze([...effectiveScopes]),
         }),
       );
     }
