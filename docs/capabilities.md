@@ -98,8 +98,8 @@ will not be able to create, configure, navigate, or bridge a WebView from A2UI.
 
 ## What remains before `1.0.0`
 
-- `0.8.0`: implementation complete—policy-gated audio/video and a versioned model for locally
-  compiled native extensions; release packaging remains;
+- `0.8.0`: released—policy-gated audio/video and a versioned model for locally compiled native
+  extensions;
 - `0.9.0`: mixed native/WebView hosting, production-shaped reference host, and proposed API freeze;
 - `1.0.0`: compatibility, migration, conformance, release, and long-term support gates.
 

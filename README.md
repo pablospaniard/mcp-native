@@ -102,10 +102,10 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                       |
 
 The packages are intentionally separated so the core runtime does not depend on the official SDK,
-React Native, or any single declarative UI protocol. The Milestone 8 implementation completes the
-pinned A2UI basic catalog with policy-gated media and adds exactly negotiated, locally compiled host
-extensions; package versions remain `0.7.0` until release preparation. Release `0.7.0` completed the
-non-media catalog and typed design-system boundary. Release `0.6.0` completed the Milestone 6 package
+React Native, or any single declarative UI protocol. Release `0.8.0` completes the pinned A2UI basic
+catalog with policy-gated media and adds exactly negotiated, locally compiled host extensions.
+Release `0.7.0` completed the non-media catalog and typed design-system boundary. Release `0.6.0`
+completed the Milestone 6 package
 boundary with issuer-bound protected-HTTP OAuth, explicit consent gates and persistent host-owned
 grants, bounded connection lifecycle coordination, actionable host states, redacted operations, and
 production integration guidance. Release `0.5.0` added the stable MCP Apps `2026-01-26` native
@@ -503,12 +503,12 @@ package gates.
 
 The detailed [standards-first roadmap](docs/roadmap.md) records retained architecture, milestone exit criteria, and deferred optional extensions.
 
-The Milestone 8 implementation completes the basic catalog and compiled-extension boundary. The
-remaining release path is:
+Release `0.8.0` completes the basic catalog and compiled-extension boundary. The remaining release
+path is:
 
 - `0.7.0`: released—the non-media pinned A2UI basic catalog and closed design-system mappings;
-- `0.8.0`: implementation complete—policy-gated media and namespaced, schema-validated, locally
-  compiled host extensions; release preparation remains;
+- `0.8.0`: released—policy-gated media and namespaced, schema-validated, locally compiled host
+  extensions;
 - `0.9.0`: host-owned mixed native/WebView composition, a production-shaped reference host, and a
   frozen `1.0.0` release-candidate API;
 - `1.0.0`: independent review, full documented-profile gates, stable compatibility policy, complete

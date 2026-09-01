@@ -1,6 +1,6 @@
 {
   "name": "@mcp-native/core",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Protocol-independent runtime primitives for MCP Native.",
   "keywords": [
     "mcp",

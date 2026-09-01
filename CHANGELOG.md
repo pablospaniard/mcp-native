@@ -6,9 +6,10 @@ their minor release line.
 
 ## Unreleased
 
-Completes the Milestone 8 implementation with the full pinned A2UI basic catalog and an exact,
-locally compiled host-extension boundary. Package versions remain unchanged until release
-preparation.
+## 0.8.0 - 2026-09-01
+
+Completes Milestone 8 with the full pinned A2UI basic catalog and an exact, locally compiled
+host-extension boundary.
 
 ### Added
 
