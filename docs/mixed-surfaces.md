@@ -10,8 +10,9 @@ The host creates each registration with `createMcpNativeMixedA2uiRegion()` or
 `createMcpNativeMixedMcpAppsRegion()`, then supplies the fixed ordered list to
 `McpNativeMixedSurfaceCoordinator`. Factory results are opaque registrations: copied or server-built
 lookalikes are rejected. A2UI registration revalidates and owns its surface snapshot. MCP Apps
-registration requires the opaque result of `createMcpAppsNativeSandbox()`, the matching resource,
-and its actual `McpAppsBridge`.
+registration requires the opaque result of `createMcpAppsNativeSandbox()`, the exact same resource
+object used to create that sandbox, and the bridge constructed from that exact pair. A cloned
+resource with the same URI is rejected.
 
 There is intentionally no generic region schema, renderer callback, component resolver, WebView
 prop bag, URL navigation method, or cross-region message channel. The host's ordinary React Native
@@ -31,7 +32,9 @@ serializes:
 - reverse-order disposal and MCP Apps resource teardown.
 
 Callbacks may be asynchronous, must be bounded and idempotent, and should not display raw server
-errors. A callback failure is wrapped in `McpNativeMixedSurfaceError`. Start continues initializing
+errors. Lifecycle state is committed only after its callback succeeds, so a rejected callback can
+be retried without publishing an unapplied transition. A callback failure is wrapped in
+`McpNativeMixedSurfaceError`. Start continues initializing
 independent siblings, marks the failed region as crashed, publishes the complete snapshot, and then
 rejects. The host can call `recover()` for that region. Listener exceptions never corrupt serialized
 lifecycle work. Disposal attempts every sibling and closes every Apps bridge even when one teardown

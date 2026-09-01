@@ -24,7 +24,7 @@ The renderer is an internal platform layer, not proof of complete A2UI v1.0 conf
 npm install @mcp-native/react-native react react-native
 ```
 
-`@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React is a peer dependency. React Native `>=0.86.0 <1` is an optional peer because the renderer does not import it or choose a platform implementation; a native host supplies its locally bundled components.
+`@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React is a peer dependency. React Native `>=0.87.0 <1` is an optional peer because the renderer does not import it or choose a platform implementation; a native host supplies its locally bundled components.
 
 ## Deprecated custom `0.1` quick start
 
@@ -126,7 +126,7 @@ repeatable Node.js render-plan budgets and fixed-seed generated-input coverage.
 
 For release/platform testing, `npm run native:host:prepare` generates an official temporary React
 Native host at the package's exact tested boundaries: current latest `0.87.1` and declared minimum
-`0.86.0`. Each host installs local package tarballs and the pinned accessibility,
+`0.87.0`. Each host installs local package tarballs and the pinned accessibility,
 complete-catalog, media, and Codegen/Fabric extension fixtures.
 The [Expo Go integration PoC policy](../../docs/native-accessibility-testing.md) documents the
 non-blocking app-level compatibility work. Generated hosts remain automated package fixtures and do

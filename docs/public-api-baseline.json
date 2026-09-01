@@ -42,11 +42,11 @@
       }
     },
     "@mcp-native/webview": {
-      "declarationSha256": "1cd517e73bf1d71a6698624d7201bd92a076a35c6228ae5c7a0e8e289587d48d",
+      "declarationSha256": "7b411ffdc58605825c9191f0577916ce8a33cf8cd37951afa5be666a9ab0ec3a",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "3edc6b667e3f74583b434af741a9af7b66c504ff6e47afb7256c17ff280c60e2",
+          "runtimeSha256": "a8415d93343d3fc664a181248ed49e0d4c8c686682206685f027bb2dc44780f2",
           "types": "./dist/index.d.ts"
         }
       }
@@ -71,7 +71,7 @@
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "f0e86165d9936fa6634c979050b4eef4f7c33b9b99a36b26f0c0f0f44bcb88b9",
+          "runtimeSha256": "dcdad8b0b70e3c1f71cfbb0e1d21acae7e465c158c99c93b1c138d8ab6c24ec2",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {

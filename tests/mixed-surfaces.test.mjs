@@ -117,6 +117,24 @@ test("mixed regions require host factories and opaque WebView isolation", () => 
       }),
     /resource URI must match/,
   );
+  const otherSandbox = createMcpAppsNativeSandbox(apps.resource);
+  const otherBridge = new McpAppsBridge({
+    resource: apps.resource,
+    sandbox: otherSandbox,
+    hostInfo: { name: "other-host", version: "1" },
+    postMessage() {},
+  });
+  assert.throws(
+    () =>
+      createMcpNativeMixedMcpAppsRegion({
+        id: "crossed-apps",
+        accessibilityLabel: "Crossed app region",
+        resource: apps.resource,
+        sandbox: apps.sandbox,
+        bridge: otherBridge,
+      }),
+    /exact resource, sandbox, and bridge binding/,
+  );
   assert.throws(
     () =>
       new McpNativeMixedSurfaceCoordinator({
@@ -346,4 +364,162 @@ test("mixed coordinator contains callback and listener failures", async () => {
   );
   await assert.rejects(() => coordinator.dispose(), /onDispose callback failed/);
   assert.equal(coordinator.getSnapshot().disposed, true);
+});
+
+test("mixed coordinator commits lifecycle transitions only after callbacks succeed", async () => {
+  const attempts = {
+    activity: 0,
+    cancel: 0,
+    crash: 0,
+    environment: 0,
+    focus: 0,
+    recover: 0,
+    recoveryEnvironment: 0,
+    visibility: 0,
+  };
+  let recovering = false;
+  const first = createMcpNativeMixedA2uiRegion({
+    id: "first",
+    accessibilityLabel: "First",
+    surface: createNativeSurface(),
+    policy,
+    lifecycle: {
+      onActivityChange(value) {
+        if (value === "background" && ++attempts.activity === 1) throw new Error("activity once");
+      },
+      onEnvironmentChange(value) {
+        if (value.reducedMotion && ++attempts.environment === 1) {
+          throw new Error("environment once");
+        }
+      },
+      onCancel() {
+        if (++attempts.cancel === 1) throw new Error("cancel once");
+      },
+    },
+  });
+  const apps = createAppsFixture();
+  const second = createMcpNativeMixedMcpAppsRegion({
+    id: "second",
+    accessibilityLabel: "Second",
+    ...apps,
+    lifecycle: {
+      onFocusChange(focused) {
+        if (focused && ++attempts.focus === 1) throw new Error("focus once");
+      },
+      onVisibilityChange(visibility) {
+        if (visibility === "hidden" && ++attempts.visibility === 1) {
+          throw new Error("visibility once");
+        }
+      },
+      onCrash() {
+        if (++attempts.crash === 1) throw new Error("crash once");
+      },
+      onRecover() {
+        attempts.recover += 1;
+        recovering = true;
+      },
+      onEnvironmentChange() {
+        if (!recovering) return;
+        recovering = false;
+        if (++attempts.recoveryEnvironment === 1) {
+          throw new Error("recovery environment once");
+        }
+      },
+    },
+  });
+  const coordinator = new McpNativeMixedSurfaceCoordinator({
+    regions: [first, second],
+    initialFocusedRegionId: "first",
+  });
+  await coordinator.start();
+
+  await assert.rejects(() => coordinator.setActivity("background"), /onActivityChange/);
+  assert.equal(coordinator.getSnapshot().activity, "foreground");
+  await coordinator.setActivity("background");
+  assert.equal(coordinator.getSnapshot().activity, "background");
+  assert.equal(attempts.activity, 2);
+
+  const environment = {
+    dynamicTypeScale: 2,
+    keyboardVisible: true,
+    orientation: "landscape-right",
+    reducedMotion: true,
+  };
+  await assert.rejects(() => coordinator.setEnvironment(environment), /onEnvironmentChange/);
+  assert.equal(coordinator.getSnapshot().environment.reducedMotion, false);
+  await coordinator.setEnvironment(environment);
+  assert.equal(coordinator.getSnapshot().environment.reducedMotion, true);
+  assert.equal(attempts.environment, 2);
+
+  await assert.rejects(() => coordinator.transferFocus("second"), /onFocusChange/);
+  assert.equal(coordinator.getSnapshot().focusedRegionId, "first");
+  await coordinator.transferFocus("second");
+  assert.equal(coordinator.getSnapshot().focusedRegionId, "second");
+  assert.equal(attempts.focus, 2);
+
+  await assert.rejects(() => coordinator.setVisibleRegions(["first"]), /onVisibilityChange/);
+  assert.equal(coordinator.getSnapshot().focusedRegionId, "second");
+  assert.equal(coordinator.getSnapshot().regions[1].visibility, "visible");
+  await coordinator.setVisibleRegions(["first"]);
+  assert.equal(coordinator.getSnapshot().focusedRegionId, undefined);
+  assert.equal(coordinator.getSnapshot().regions[1].visibility, "hidden");
+  assert.equal(attempts.visibility, 2);
+
+  await coordinator.setVisibleRegions(["first", "second"]);
+  await coordinator.transferFocus("second");
+  await assert.rejects(
+    () => coordinator.reportCrash("second", new Error("renderer exited")),
+    /onCrash/,
+  );
+  assert.equal(coordinator.getSnapshot().focusedRegionId, "second");
+  assert.equal(coordinator.getSnapshot().regions[1].status, "ready");
+  await coordinator.reportCrash("second", new Error("renderer exited"));
+  assert.equal(coordinator.getSnapshot().focusedRegionId, undefined);
+  assert.equal(coordinator.getSnapshot().regions[1].status, "crashed");
+  assert.equal(attempts.crash, 2);
+
+  await assert.rejects(() => coordinator.recover("second"), /onEnvironmentChange/);
+  assert.equal(coordinator.getSnapshot().regions[1].status, "crashed");
+  await coordinator.recover("second");
+  assert.equal(coordinator.getSnapshot().regions[1].status, "ready");
+  assert.equal(attempts.recover, 2);
+  assert.equal(attempts.recoveryEnvironment, 2);
+
+  await coordinator.transferFocus("first");
+  await assert.rejects(() => coordinator.cancel("first"), /onCancel/);
+  assert.equal(coordinator.getSnapshot().focusedRegionId, "first");
+  assert.equal(coordinator.getSnapshot().regions[0].status, "ready");
+  await coordinator.cancel("first");
+  assert.equal(coordinator.getSnapshot().focusedRegionId, undefined);
+  assert.equal(coordinator.getSnapshot().regions[0].status, "cancelled");
+  assert.equal(attempts.cancel, 2);
+});
+
+test("mixed coordinator clears failed initial focus and skips crashed back handlers", async () => {
+  let backCalls = 0;
+  const region = createMcpNativeMixedA2uiRegion({
+    id: "crashed",
+    accessibilityLabel: "Crashed",
+    surface: createNativeSurface(),
+    policy,
+    lifecycle: {
+      onCreate() {
+        throw new Error("creation failed");
+      },
+      onBack() {
+        backCalls += 1;
+        return true;
+      },
+    },
+  });
+  const coordinator = new McpNativeMixedSurfaceCoordinator({
+    regions: [region],
+    initialFocusedRegionId: "crashed",
+  });
+
+  await assert.rejects(() => coordinator.start(), /onCreate callback failed/);
+  assert.equal(coordinator.getSnapshot().focusedRegionId, undefined);
+  assert.equal(coordinator.getSnapshot().regions[0].status, "crashed");
+  assert.equal(await coordinator.handleBack(), false);
+  assert.equal(backCalls, 0);
 });

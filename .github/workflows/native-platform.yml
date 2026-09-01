@@ -14,15 +14,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        react-native: ["0.87.1", "0.86.0"]
+        react-native: ["0.87.1", "0.87.0"]
         js-engine: ["hermes", "jsc"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22.14.0
           cache: npm
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -41,7 +41,7 @@ jobs:
       - name: Assemble debug application
         working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}/android
         run: ./gradlew assembleDebug --no-daemon -PreactNativeArchitectures=x86_64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: android-rn-${{ matrix.react-native }}-${{ matrix.js-engine }}
           path: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}/android/app/build/outputs/apk/debug/app-debug.apk
@@ -53,11 +53,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        react-native: ["0.87.1", "0.86.0"]
+        react-native: ["0.87.1", "0.87.0"]
         js-engine: ["hermes", "jsc"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22.14.0
           cache: npm
@@ -73,6 +73,8 @@ jobs:
         env:
           USE_HERMES: ${{ matrix.js-engine == 'hermes' && '1' || '0' }}
           USE_THIRD_PARTY_JSC: ${{ matrix.js-engine == 'jsc' && '1' || '0' }}
+          RCT_USE_RN_DEP: ${{ matrix.js-engine == 'jsc' && '0' || '1' }}
+          RCT_USE_PREBUILT_RNCORE: ${{ matrix.js-engine == 'jsc' && '0' || '1' }}
         run: bundle install && bundle exec pod install
       - name: Build simulator application
         working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}/ios
@@ -85,7 +87,7 @@ jobs:
           -derivedDataPath "${RUNNER_TEMP}/mcp-native-ios-${{ matrix.react-native }}-${{ matrix.js-engine }}"
           CODE_SIGNING_ALLOWED=NO
           build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ios-simulator-rn-${{ matrix.react-native }}-${{ matrix.js-engine }}
           path: ${{ runner.temp }}/mcp-native-ios-${{ matrix.react-native }}-${{ matrix.js-engine }}/Build/Products/Debug-iphonesimulator/McpNativeAccessibilityHost.app

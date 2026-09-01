@@ -5,6 +5,7 @@ import {
 } from "@mcp-native/a2ui";
 import {
   McpAppsBridge,
+  isMcpAppsBridgeBinding,
   isMcpAppsNativeSandboxConfiguration,
   type McpAppsNativeSandboxConfiguration,
   type McpAppsResource,
@@ -184,6 +185,11 @@ export function createMcpNativeMixedMcpAppsRegion(
       "Mixed MCP Apps resource URI must match the sandbox base URL",
     );
   }
+  if (!isMcpAppsBridgeBinding(options.bridge, options.resource, options.sandbox)) {
+    throw new McpNativeMixedSurfaceError(
+      "Mixed MCP Apps regions require the exact resource, sandbox, and bridge binding",
+    );
+  }
   const region = Object.freeze({
     id: expectRegionId(options.id),
     accessibilityLabel: expectAccessibilityLabel(options.accessibilityLabel),
@@ -306,13 +312,14 @@ export class McpNativeMixedSurfaceCoordinator {
       await forEachSerial(this.#regions, async (region) => {
         try {
           await this.#invoke(region, "onCreate");
-          this.#states.get(region.id)!.status = "ready";
           await this.#invoke(region, "onActivityChange", this.#activity);
           await this.#invoke(region, "onEnvironmentChange", this.#environment);
           await this.#invoke(region, "onVisibilityChange", this.#states.get(region.id)!.visibility);
           await this.#invoke(region, "onFocusChange", this.#focusedRegionId === region.id);
+          this.#states.get(region.id)!.status = "ready";
         } catch (error) {
           this.#states.get(region.id)!.status = "crashed";
+          if (this.#focusedRegionId === region.id) this.#focusedRegionId = undefined;
           firstError ??= error;
         }
       });
@@ -326,12 +333,12 @@ export class McpNativeMixedSurfaceCoordinator {
       this.#assertStarted();
       const parsed = parseActivity(activity);
       if (parsed === this.#activity) return;
-      this.#activity = parsed;
       await forEachSerial(this.#regions, async (region) => {
         if (this.#states.get(region.id)!.status === "ready") {
           await this.#invoke(region, "onActivityChange", parsed);
         }
       });
+      this.#activity = parsed;
       this.#publish();
     });
   }
@@ -341,12 +348,12 @@ export class McpNativeMixedSurfaceCoordinator {
       this.#assertStarted();
       const parsed = createEnvironment(environment);
       if (environmentsEqual(parsed, this.#environment)) return;
-      this.#environment = parsed;
       await forEachSerial(this.#regions, async (region) => {
         if (this.#states.get(region.id)!.status === "ready") {
           await this.#invoke(region, "onEnvironmentChange", parsed);
         }
       });
+      this.#environment = parsed;
       this.#publish();
     });
   }
@@ -355,18 +362,23 @@ export class McpNativeMixedSurfaceCoordinator {
     return this.#enqueue("set visibility", async () => {
       this.#assertStarted();
       const visible = new Set(parseRegionIds(ids, this.#regionsById, "visible region ids"));
-      if (this.#focusedRegionId !== undefined && !visible.has(this.#focusedRegionId)) {
-        const previous = this.#regionsById.get(this.#focusedRegionId)!;
-        this.#focusedRegionId = undefined;
+      const previousFocusId = this.#focusedRegionId;
+      if (previousFocusId !== undefined && !visible.has(previousFocusId)) {
+        const previous = this.#regionsById.get(previousFocusId)!;
         await this.#invoke(previous, "onFocusChange", false);
       }
       await forEachSerial(this.#regions, async (region) => {
         const state = this.#states.get(region.id)!;
         const next = visible.has(region.id) ? "visible" : "hidden";
         if (state.visibility === next) return;
-        state.visibility = next;
         if (state.status === "ready") await this.#invoke(region, "onVisibilityChange", next);
       });
+      if (previousFocusId !== undefined && !visible.has(previousFocusId)) {
+        this.#focusedRegionId = undefined;
+      }
+      for (const region of this.#regions) {
+        this.#states.get(region.id)!.visibility = visible.has(region.id) ? "visible" : "hidden";
+      }
       this.#publish();
     });
   }
@@ -386,13 +398,13 @@ export class McpNativeMixedSurfaceCoordinator {
         }
       }
       const previousId = this.#focusedRegionId;
-      this.#focusedRegionId = nextId;
       if (previousId !== undefined) {
         await this.#invoke(this.#regionsById.get(previousId)!, "onFocusChange", false);
       }
       if (nextId !== undefined) {
         await this.#invoke(this.#regionsById.get(nextId)!, "onFocusChange", true);
       }
+      this.#focusedRegionId = nextId;
       this.#publish();
     });
   }
@@ -428,10 +440,10 @@ export class McpNativeMixedSurfaceCoordinator {
       const state = this.#states.get(region.id)!;
       if (state.status === "cancelled") return;
       if (this.#focusedRegionId === region.id) {
-        this.#focusedRegionId = undefined;
         await this.#invoke(region, "onFocusChange", false);
       }
       await this.#invoke(region, "onCancel", parsedReason);
+      if (this.#focusedRegionId === region.id) this.#focusedRegionId = undefined;
       state.status = "cancelled";
       state.visibility = "hidden";
       this.#publish();
@@ -449,12 +461,12 @@ export class McpNativeMixedSurfaceCoordinator {
         });
       }
       if (state.status === "crashed") return;
-      state.status = "crashed";
       if (this.#focusedRegionId === region.id) {
-        this.#focusedRegionId = undefined;
         await this.#invoke(region, "onFocusChange", false);
       }
       await this.#invoke(region, "onCrash", error);
+      if (this.#focusedRegionId === region.id) this.#focusedRegionId = undefined;
+      state.status = "crashed";
       this.#publish();
     });
   }
@@ -470,10 +482,10 @@ export class McpNativeMixedSurfaceCoordinator {
         });
       }
       await this.#invoke(region, "onRecover");
-      state.status = "ready";
       await this.#invoke(region, "onActivityChange", this.#activity);
       await this.#invoke(region, "onEnvironmentChange", this.#environment);
       await this.#invoke(region, "onVisibilityChange", state.visibility);
+      state.status = "ready";
       this.#publish();
     });
   }
@@ -543,7 +555,11 @@ export class McpNativeMixedSurfaceCoordinator {
   #backCandidates(): readonly McpNativeMixedSurfaceRegion[] {
     const result: McpNativeMixedSurfaceRegion[] = [];
     if (this.#focusedRegionId !== undefined) {
-      result.push(this.#regionsById.get(this.#focusedRegionId)!);
+      const focused = this.#regionsById.get(this.#focusedRegionId)!;
+      const focusedState = this.#states.get(focused.id)!;
+      if (focusedState.visibility === "visible" && focusedState.status === "ready") {
+        result.push(focused);
+      }
     }
     for (const region of [...this.#regions].reverse()) {
       if (

@@ -18,6 +18,7 @@ import {
 import type { McpAppsResource } from "./apps.js";
 import {
   isMcpAppsNativeSandboxConfiguration,
+  isMcpAppsNativeSandboxForResource,
   type McpAppsNativeSandboxConfiguration,
 } from "./sandbox.js";
 
@@ -101,6 +102,9 @@ type ParsedRpc = {
   readonly error?: JsonObject;
 };
 
+const bridgeResources = new WeakMap<object, McpAppsResource>();
+const bridgeSandboxes = new WeakMap<object, McpAppsNativeSandboxConfiguration>();
+
 /**
  * Stable MCP Apps host lifecycle for a single native WebView. Incoming data is
  * schema-shaped and bounded before any host callback runs.
@@ -136,6 +140,11 @@ export class McpAppsBridge {
     if (options.resource?.uri !== options.sandbox.source.baseUrl) {
       throw new McpAppsBridgeError("MCP Apps bridge resource URI must match its sandbox base URL");
     }
+    if (!isMcpAppsNativeSandboxForResource(options.sandbox, options.resource)) {
+      throw new McpAppsBridgeError(
+        "MCP Apps bridge requires the exact resource used to create its sandbox",
+      );
+    }
     if (typeof options.postMessage !== "function") {
       throw new McpAppsBridgeError("Expected postMessage to be a function");
     }
@@ -158,6 +167,8 @@ export class McpAppsBridge {
     this.#tools = createToolMap(options.tools ?? []);
     this.#onProtocolError = options.onProtocolError;
     this.#onTeardownComplete = options.onTeardownComplete;
+    bridgeResources.set(this, options.resource);
+    bridgeSandboxes.set(this, options.sandbox);
   }
 
   get state(): McpAppsBridgeState {
@@ -622,6 +633,19 @@ export class McpAppsBridge {
     }
     await this.#postMessage(serialized);
   }
+}
+
+/** Returns true only for the exact resource, sandbox, and bridge instance created together. */
+export function isMcpAppsBridgeBinding(
+  bridge: unknown,
+  resource: unknown,
+  sandbox: unknown,
+): bridge is McpAppsBridge {
+  return (
+    bridge instanceof McpAppsBridge &&
+    bridgeResources.get(bridge) === resource &&
+    bridgeSandboxes.get(bridge) === sandbox
+  );
 }
 
 function createHostCapabilities(options: McpAppsBridgeOptions): JsonObject {

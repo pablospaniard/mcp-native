@@ -12,8 +12,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -26,11 +26,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        react-native: ["0.87.1", "0.86.0"]
+        react-native: ["0.87.1", "0.87.0"]
         js-engine: ["hermes", "jsc"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22.14.0
           cache: npm

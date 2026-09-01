@@ -88,6 +88,7 @@ export interface McpAppsReactNativeWebViewProps {
 }
 
 const nativeSandboxConfigurations = new WeakSet<object>();
+const nativeSandboxResources = new WeakMap<object, McpAppsResource>();
 
 /** Builds a restrictive CSP from the stable resource metadata. */
 export function createMcpAppsContentSecurityPolicy(csp: McpAppsResourceCsp = {}): string {
@@ -118,6 +119,7 @@ export function createMcpAppsNativeSandbox(
   resource: McpAppsResource,
   policy: McpAppsNativeSandboxPolicy = {},
 ): McpAppsNativeSandboxConfiguration {
+  const baseUrl = resource.uri;
   if (
     resource.meta.domain !== undefined &&
     policy.approveDedicatedDomain?.(resource.meta.domain) !== true
@@ -134,7 +136,7 @@ export function createMcpAppsNativeSandbox(
   const html = injectCsp(resource.html, contentSecurityPolicy);
   const allowedExternalOrigins = parseExternalOrigins(policy.allowedExternalOrigins ?? []);
   const configuration: McpAppsNativeSandboxConfiguration = {
-    source: Object.freeze({ html, baseUrl: resource.uri }),
+    source: Object.freeze({ html, baseUrl }),
     contentSecurityPolicy,
     javaScriptEnabled: true,
     javaScriptCanOpenWindowsAutomatically: false,
@@ -155,7 +157,7 @@ export function createMcpAppsNativeSandbox(
       : { prefersBorder: resource.meta.prefersBorder }),
     decideNavigation(uri, isTopFrame) {
       if (!isTopFrame && uri === "about:blank") return "allow-in-document";
-      if (uri === resource.uri || uri.startsWith(`${resource.uri}#`)) {
+      if (uri === baseUrl || uri.startsWith(`${baseUrl}#`)) {
         return "allow-in-document";
       }
       const origin = getHttpOrigin(uri);
@@ -168,6 +170,7 @@ export function createMcpAppsNativeSandbox(
     },
   };
   nativeSandboxConfigurations.add(configuration);
+  nativeSandboxResources.set(configuration, resource);
   return Object.freeze(configuration);
 }
 
@@ -176,6 +179,16 @@ export function isMcpAppsNativeSandboxConfiguration(
   value: unknown,
 ): value is McpAppsNativeSandboxConfiguration {
   return value !== null && typeof value === "object" && nativeSandboxConfigurations.has(value);
+}
+
+/** Returns true only when the sandbox was created from this exact validated resource object. */
+export function isMcpAppsNativeSandboxForResource(
+  sandbox: unknown,
+  resource: unknown,
+): sandbox is McpAppsNativeSandboxConfiguration {
+  return (
+    isMcpAppsNativeSandboxConfiguration(sandbox) && nativeSandboxResources.get(sandbox) === resource
+  );
 }
 
 /**

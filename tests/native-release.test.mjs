@@ -16,6 +16,7 @@ import {
   configureNativeHostAndroidApplicationJavascriptEngine,
   configureNativeHostAndroidJavascriptEngine,
   configureNativeHostIosJavascriptEngine,
+  configureNativeHostIosPodfile,
   createNativeHostPackageJson,
   enableNativeHostPhoneOrientations,
   NATIVE_HOST_REACT_NATIVE_LATEST_VERSION,
@@ -35,7 +36,7 @@ test("native host arguments pin the latest and minimum React Native boundaries",
     NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION,
   ]);
   assert.equal(NATIVE_HOST_REACT_NATIVE_LATEST_VERSION, "0.87.1");
-  assert.equal(NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION, "0.86.0");
+  assert.equal(NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION, "0.87.0");
   assert.deepEqual(
     parseNativeHostArguments([
       "--output",
@@ -208,9 +209,24 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 }`;
   const jscIos = configureNativeHostIosJavascriptEngine(ios, "jsc");
   assert.match(jscIos, /import ReactJSC/);
-  assert.match(jscIos, /createJSRuntimeFactory\(\) -> JSRuntimeFactory/);
+  assert.match(jscIos, /createJSRuntimeFactory\(\) -> JSRuntimeFactoryRef/);
   assert.match(jscIos, /jsrt_create_jsc_factory\(\)/);
   assert.equal(configureNativeHostIosJavascriptEngine(ios, "hermes"), ios);
+
+  const podfile = `  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
+  end`;
+  const jscPodfile = configureNativeHostIosPodfile(podfile, "jsc");
+  assert.match(jscPodfile, /target\.name == 'React-RCTAppDelegate'/);
+  assert.match(jscPodfile, /configuration\.base_configuration_reference&\.real_path/);
+  assert.match(jscPodfile, /RCT_NEW_ARCH_ENABLED=1 -DUSE_THIRD_PARTY_JSC=1/);
+  assert.equal(configureNativeHostIosPodfile(podfile, "hermes"), podfile);
+  assert.throws(() => configureNativeHostIosPodfile("target 'Host'", "jsc"), /pinned template/);
 });
 
 test("generated iPhone hosts support both landscape orientations", () => {
@@ -287,23 +303,25 @@ test("the Milestone 8 native fixture parses with its exact negotiated local exte
 });
 
 test("CI pins and automatically builds the latest and minimum React Native boundaries", () => {
-  const ci = parseYaml(readFileSync(".github/workflows/ci.yml", "utf8"));
-  const platform = parseYaml(readFileSync(".github/workflows/native-platform.yml", "utf8"));
+  const ciSource = readFileSync(".github/workflows/ci.yml", "utf8");
+  const platformSource = readFileSync(".github/workflows/native-platform.yml", "utf8");
+  const ci = parseYaml(ciSource);
+  const platform = parseYaml(platformSource);
   assert.deepEqual(ci.jobs["native-host-bundle"].strategy.matrix["react-native"], [
     "0.87.1",
-    "0.86.0",
+    "0.87.0",
   ]);
   assert.deepEqual(ci.jobs["native-host-bundle"].strategy.matrix["js-engine"], ["hermes", "jsc"]);
-  assert.deepEqual(platform.jobs.android.strategy.matrix["react-native"], ["0.87.1", "0.86.0"]);
-  assert.deepEqual(platform.jobs.ios.strategy.matrix["react-native"], ["0.87.1", "0.86.0"]);
+  assert.deepEqual(platform.jobs.android.strategy.matrix["react-native"], ["0.87.1", "0.87.0"]);
+  assert.deepEqual(platform.jobs.ios.strategy.matrix["react-native"], ["0.87.1", "0.87.0"]);
   assert.deepEqual(platform.jobs.android.strategy.matrix["js-engine"], ["hermes", "jsc"]);
   assert.deepEqual(platform.jobs.ios.strategy.matrix["js-engine"], ["hermes", "jsc"]);
   assert.equal(Object.hasOwn(platform.on, "pull_request"), true);
   assert.equal(Object.hasOwn(platform.on, "workflow_dispatch"), true);
   const reactNativePackage = JSON.parse(readFileSync("packages/react-native/package.json", "utf8"));
   const umbrellaPackage = JSON.parse(readFileSync("packages/mcp-native/package.json", "utf8"));
-  assert.equal(reactNativePackage.peerDependencies["react-native"], ">=0.86.0 <1");
-  assert.equal(umbrellaPackage.peerDependencies["react-native"], ">=0.86.0 <1");
+  assert.equal(reactNativePackage.peerDependencies["react-native"], ">=0.87.0 <1");
+  assert.equal(umbrellaPackage.peerDependencies["react-native"], ">=0.87.0 <1");
   const androidSdkStep = platform.jobs.android.steps.find(
     (step) => step.name === "Install Android 37 SDK",
   );
@@ -315,4 +333,8 @@ test("CI pins and automatically builds the latest and minimum React Native bound
   );
   assert.match(podStep.env.USE_HERMES, /matrix\.js-engine == 'hermes'/);
   assert.match(podStep.env.USE_THIRD_PARTY_JSC, /matrix\.js-engine == 'jsc'/);
+  assert.match(podStep.env.RCT_USE_RN_DEP, /matrix\.js-engine == 'jsc'/);
+  assert.match(podStep.env.RCT_USE_PREBUILT_RNCORE, /matrix\.js-engine == 'jsc'/);
+  assert.doesNotMatch(`${ciSource}\n${platformSource}`, /actions\/(?:checkout|setup-node)@v4/);
+  assert.doesNotMatch(platformSource, /actions\/(?:setup-java|upload-artifact)@v4/);
 });

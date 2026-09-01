@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const NATIVE_HOST_CLI_VERSION = "20.2.0";
 export const NATIVE_HOST_REACT_NATIVE_LATEST_VERSION = "0.87.1";
-export const NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION = "0.86.0";
+export const NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION = "0.87.0";
 export const NATIVE_HOST_WEBVIEW_VERSION = "14.0.1";
 export const NATIVE_HOST_JAVASCRIPTCORE_VERSION = "0.2.0";
 export const NATIVE_HOST_JAVASCRIPT_ENGINES = Object.freeze(["hermes", "jsc"]);
@@ -166,10 +166,56 @@ export function configureNativeHostIosJavascriptEngine(source, javascriptEngine)
   return source.replace(importAnchor, `${importAnchor}\nimport ReactJSC`).replace(
     delegateAnchor,
     `${delegateAnchor}
-  override func createJSRuntimeFactory() -> JSRuntimeFactory {
+  override func createJSRuntimeFactory() -> JSRuntimeFactoryRef {
     jsrt_create_jsc_factory()
   }
 `,
+  );
+}
+
+export function configureNativeHostIosPodfile(source, javascriptEngine) {
+  if (javascriptEngine === "hermes") return source;
+  if (javascriptEngine !== "jsc") throw new Error("Unsupported native host JavaScript engine");
+  const anchor = `    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )`;
+  if (!source.includes(anchor)) {
+    throw new Error("Generated native host Podfile does not match the pinned template");
+  }
+  return source.replace(
+    anchor,
+    `${anchor}
+
+    # React Native 0.87.x omits a separator between these two podspec flags.
+    # Repair only that known malformed value until the minimum moves past 0.87.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'React-RCTAppDelegate'
+
+      target.source_build_phase.files.each do |build_file|
+        flags = build_file.settings && build_file.settings['COMPILER_FLAGS']
+        next unless flags.is_a?(String)
+
+        build_file.settings['COMPILER_FLAGS'] = flags.gsub(
+          '-DRCT_NEW_ARCH_ENABLED=1-DUSE_THIRD_PARTY_JSC=1',
+          '-DRCT_NEW_ARCH_ENABLED=1 -DUSE_THIRD_PARTY_JSC=1'
+        )
+      end
+
+      target.build_configurations.each do |configuration|
+        xcconfig_path = configuration.base_configuration_reference&.real_path
+        next unless xcconfig_path&.exist?
+
+        flags = File.read(xcconfig_path)
+        repaired_flags = flags.gsub(
+          '-DRCT_NEW_ARCH_ENABLED=1-DUSE_THIRD_PARTY_JSC=1',
+          '-DRCT_NEW_ARCH_ENABLED=1 -DUSE_THIRD_PARTY_JSC=1'
+        )
+        File.write(xcconfig_path, repaired_flags) unless repaired_flags == flags
+      end
+    end`,
   );
 }
 
@@ -393,6 +439,11 @@ export function prepareNativeHost({
   writeFileSync(
     appDelegatePath,
     configureNativeHostIosJavascriptEngine(readFileSync(appDelegatePath, "utf8"), javascriptEngine),
+  );
+  const podfilePath = resolve(resolvedOutput, "ios", "Podfile");
+  writeFileSync(
+    podfilePath,
+    configureNativeHostIosPodfile(readFileSync(podfilePath, "utf8"), javascriptEngine),
   );
 
   const packageJsonPath = resolve(resolvedOutput, "package.json");

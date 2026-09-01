@@ -14,7 +14,7 @@ their minor release line.
 - A production-shaped generated React Native reference host combining primitives, typed
   design-system adapters, closed variants, media policy, a local Fabric component, and an isolated
   MCP Apps WebView with platform crash recovery.
-- Exact generated-host matrices for React Native `0.86.0` and `0.87.1` across Hermes and community
+- Exact generated-host matrices for React Native `0.87.0` and `0.87.1` across Hermes and community
   JavaScriptCore, including typecheck, Android/iOS bundles, and native platform builds.
 - Human product, mixed-surface, support-matrix, compatibility, and `1.0.0` migration guides, plus a
   machine-verified public export and declaration baseline.
@@ -24,7 +24,16 @@ their minor release line.
 ### Changed
 
 - `createMcpAppsNativeSandbox()` now returns an opaque, frozen factory-branded descriptor so mixed
-  registrations reject copied or server-forged sandbox objects.
+  registrations reject copied or server-forged sandbox objects. Sandboxes, resources, and bridges
+  are now bound by exact host-created object identity rather than URI equality alone.
+- Mixed-surface lifecycle state is committed only after the corresponding host callback succeeds,
+  so a failed activity, environment, focus, visibility, cancel, crash, or recovery callback can be
+  retried without the coordinator publishing a transition the host did not apply.
+- Raise the React Native peer minimum from `0.86.0` to `0.87.0`: the community JavaScriptCore
+  integration is not compatible with the `0.86.0` runtime-factory API. iOS JSC lanes build React
+  Native core and dependencies from source and repair the pinned `0.87.x` AppDelegate podspec flag
+  separator; Hermes lanes retain prebuilt artifacts.
+- Move repository CI actions to their Node.js 24-backed major versions.
 - The proposed `1.0.0` API is frozen for release-candidate review. Deprecated custom A2UI `0.1`
   aliases remain at package roots throughout `0.9.x`, then move exclusively to the explicit
   `/legacy` subpaths at `1.0.0`.

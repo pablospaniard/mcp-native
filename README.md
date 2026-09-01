@@ -122,7 +122,7 @@ Install the runtime and UI APIs from the convenience package:
 npm install mcp-native react
 ```
 
-Add React Native `>=0.86.0 <1` when mounting native surfaces. It remains an optional peer because
+Add React Native `>=0.87.0 <1` when mounting native surfaces. It remains an optional peer because
 the host—not this package—selects the platform implementation.
 
 Or install only the layers your host needs:
@@ -561,7 +561,7 @@ post-stable deliverables.
       UIKit/Android View fixtures
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
-- [x] Generate pinned latest/minimum RN 0.87.1/0.86.0 hosts and exercise automated bundle,
+- [x] Generate pinned latest/minimum RN 0.87.1/0.87.0 hosts and exercise automated bundle,
       host-boundary, Android-build, and iOS-build checks on pull requests
 - [x] Complete the documented real-platform accessibility behavior
 - [x] Execute the supported iOS/Android fixture and accessibility matrix in generated real hosts
