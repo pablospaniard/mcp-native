@@ -142,11 +142,12 @@ and platform controls. See [the exact compatibility profile](mcp-apps-compatibil
 
 ## Milestone 6: remote authorization and release readiness
 
-Status: package exit work complete. The issuer-bound interactive OAuth host boundary, every scored
-official `2026-07-28` authorization client scenario, dependency-neutral platform reference adapters,
-policy gates at current action boundaries, persistent host controls, bounded lifecycle coordination,
-actionable states, redacted operations, and host integration guidance are implemented. Separate Expo
-Go integration PoCs remain open as non-blocking evidence and are reported independently.
+Status: complete for `0.6.0` package behavior. The issuer-bound interactive OAuth host boundary,
+every scored official `2026-07-28` authorization client scenario, dependency-neutral platform
+reference adapters, policy gates at current action boundaries, persistent host controls, bounded
+lifecycle coordination, actionable states, redacted operations, and host integration guidance are
+implemented. Separate Expo Go integration PoCs remain open as non-blocking evidence and are reported
+independently.
 
 - [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
       and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
@@ -195,6 +196,6 @@ Go integration PoCs remain open as non-blocking evidence and are reported indepe
 - [ ] Maintain a separate Expo Go PoC for the React Native primitives baseline and each selected
       common Expo Go-compatible component library, and document the exact versions exercised.
 
-Exit criterion: a release candidate passes protocol, security, accessibility, performance,
-reliability, operability, package, and end-to-end interoperability gates. Expo Go PoC status is
-reported separately and is not an exit criterion.
+Exit criterion: met by the `0.6.0` package candidate, which passes protocol, security,
+accessibility, performance, reliability, operability, package, and end-to-end interoperability
+gates. Expo Go PoC status is reported separately and is not an exit criterion.
