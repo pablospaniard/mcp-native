@@ -87,6 +87,9 @@ export interface McpAppsReactNativeWebViewProps {
   onMessage(event: { readonly nativeEvent: { readonly data: unknown } }): void;
 }
 
+const nativeSandboxConfigurations = new WeakSet<object>();
+const nativeSandboxResources = new WeakMap<object, McpAppsResource>();
+
 /** Builds a restrictive CSP from the stable resource metadata. */
 export function createMcpAppsContentSecurityPolicy(csp: McpAppsResourceCsp = {}): string {
   const resources = csp.resourceDomains ?? [];
@@ -116,6 +119,7 @@ export function createMcpAppsNativeSandbox(
   resource: McpAppsResource,
   policy: McpAppsNativeSandboxPolicy = {},
 ): McpAppsNativeSandboxConfiguration {
+  const baseUrl = resource.uri;
   if (
     resource.meta.domain !== undefined &&
     policy.approveDedicatedDomain?.(resource.meta.domain) !== true
@@ -131,8 +135,8 @@ export function createMcpAppsNativeSandbox(
   const contentSecurityPolicy = createMcpAppsContentSecurityPolicy(resource.meta.csp);
   const html = injectCsp(resource.html, contentSecurityPolicy);
   const allowedExternalOrigins = parseExternalOrigins(policy.allowedExternalOrigins ?? []);
-  return {
-    source: { html, baseUrl: resource.uri },
+  const configuration: McpAppsNativeSandboxConfiguration = {
+    source: Object.freeze({ html, baseUrl }),
     contentSecurityPolicy,
     javaScriptEnabled: true,
     javaScriptCanOpenWindowsAutomatically: false,
@@ -153,7 +157,7 @@ export function createMcpAppsNativeSandbox(
       : { prefersBorder: resource.meta.prefersBorder }),
     decideNavigation(uri, isTopFrame) {
       if (!isTopFrame && uri === "about:blank") return "allow-in-document";
-      if (uri === resource.uri || uri.startsWith(`${resource.uri}#`)) {
+      if (uri === baseUrl || uri.startsWith(`${baseUrl}#`)) {
         return "allow-in-document";
       }
       const origin = getHttpOrigin(uri);
@@ -165,6 +169,26 @@ export function createMcpAppsNativeSandbox(
       return grantedPermissions.includes(permission);
     },
   };
+  nativeSandboxConfigurations.add(configuration);
+  nativeSandboxResources.set(configuration, resource);
+  return Object.freeze(configuration);
+}
+
+/** Returns true only for an opaque descriptor created by this module in this JavaScript realm. */
+export function isMcpAppsNativeSandboxConfiguration(
+  value: unknown,
+): value is McpAppsNativeSandboxConfiguration {
+  return value !== null && typeof value === "object" && nativeSandboxConfigurations.has(value);
+}
+
+/** Returns true only when the sandbox was created from this exact validated resource object. */
+export function isMcpAppsNativeSandboxForResource(
+  sandbox: unknown,
+  resource: unknown,
+): sandbox is McpAppsNativeSandboxConfiguration {
+  return (
+    isMcpAppsNativeSandboxConfiguration(sandbox) && nativeSandboxResources.get(sandbox) === resource
+  );
 }
 
 /**
@@ -175,6 +199,7 @@ export function createMcpAppsReactNativeWebViewProps(
   sandbox: McpAppsNativeSandboxConfiguration,
   callbacks: McpAppsReactNativeWebViewCallbacks,
 ): McpAppsReactNativeWebViewProps {
+  expectOpaqueNativeSandbox(sandbox);
   if (typeof callbacks.onMessage !== "function") {
     throw new McpAppsError("React Native WebView adapter requires an onMessage callback");
   }
@@ -505,6 +530,7 @@ function parseUrl(value: string, path: string): ParsedUrl {
 export function describeMcpAppsNativeSandbox(
   sandbox: McpAppsNativeSandboxConfiguration,
 ): JsonObject {
+  expectOpaqueNativeSandbox(sandbox);
   return {
     baseUrl: sandbox.source.baseUrl,
     contentSecurityPolicy: sandbox.contentSecurityPolicy,
@@ -523,4 +549,13 @@ export function describeMcpAppsNativeSandbox(
     grantedPermissions: [...sandbox.grantedPermissions],
     ...(sandbox.prefersBorder === undefined ? {} : { prefersBorder: sandbox.prefersBorder }),
   };
+}
+
+function expectOpaqueNativeSandbox(
+  sandbox: McpAppsNativeSandboxConfiguration,
+): McpAppsNativeSandboxConfiguration {
+  if (!isMcpAppsNativeSandboxConfiguration(sandbox)) {
+    throw new McpAppsError("Expected an opaque createMcpAppsNativeSandbox result");
+  }
+  return sandbox;
 }

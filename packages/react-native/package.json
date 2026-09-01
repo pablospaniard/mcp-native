@@ -31,6 +31,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./legacy": {
+      "types": "./dist/legacy.d.ts",
+      "import": "./dist/legacy.js"
     }
   },
   "publishConfig": {
@@ -47,7 +51,7 @@
   },
   "peerDependencies": {
     "react": ">=18.3.1 <20",
-    "react-native": ">=0.86.0 <1"
+    "react-native": ">=0.87.0 <1"
   },
   "peerDependenciesMeta": {
     "react-native": {

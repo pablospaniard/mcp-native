@@ -26,10 +26,13 @@ import {
   MCP_APPS_EXTENSION_ID,
   MCP_APPS_MIME_TYPE,
   MCP_APPS_PROTOCOL_VERSION,
+  MCP_NATIVE_MIXED_MAX_REGIONS,
   McpAppsBridge,
   McpAppsBridgeError,
   McpAppsError,
   McpNativeActionDeniedError,
+  McpNativeMixedSurfaceCoordinator,
+  McpNativeMixedSurfaceError,
   McpNativeSurface,
   McpNativeRuntime,
   createAllowlistActionPolicy,
@@ -50,10 +53,13 @@ import {
   createNativeVideoAdapter,
   createMcpAppsNativeSandbox,
   createMcpAppsReactNativeWebViewProps,
+  createMcpNativeMixedA2uiRegion,
+  createMcpNativeMixedMcpAppsRegion,
   createWebViewDocument,
   evaluateA2uiV1FormatString,
   isA2uiMcpBindingGrant,
   isMcpAppsGrant,
+  isMcpAppsNativeSandboxConfiguration,
   loadMcpAppsResource,
   negotiateMcpApps,
   negotiateA2uiMcpBinding,
@@ -78,6 +84,12 @@ import {
   useMcpNativeActionDispatcher,
   useNativeRenderPlan,
 } from "../packages/mcp-native/dist/index.js";
+import { A2UI_VERSION as LEGACY_A2UI_VERSION } from "../packages/a2ui/dist/legacy.js";
+import { McpNativeSurface as LegacyMcpNativeSurface } from "../packages/react-native/dist/legacy.js";
+import {
+  McpNativeSurface as UmbrellaLegacyMcpNativeSurface,
+  parseA2uiSurface as umbrellaLegacyParser,
+} from "../packages/mcp-native/dist/legacy.js";
 
 test("the convenience package re-exports each public runtime package", () => {
   assert.equal(A2UI_VERSION, "0.1");
@@ -102,8 +114,11 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(MCP_APPS_PROTOCOL_VERSION, "2026-01-26");
   assert.equal(MCP_APPS_MIME_TYPE, "text/html;profile=mcp-app");
   assert.equal(Object.isFrozen(MCP_APPS_EXTENSION_CAPABILITIES), true);
+  assert.equal(MCP_NATIVE_MIXED_MAX_REGIONS, 32);
   assert.equal(typeof McpNativeRuntime, "function");
   assert.equal(typeof McpNativeActionDeniedError, "function");
+  assert.equal(typeof McpNativeMixedSurfaceCoordinator, "function");
+  assert.equal(typeof McpNativeMixedSurfaceError, "function");
   assert.equal(typeof JsonValidationError, "function");
   assert.equal(typeof McpAppsBridge, "function");
   assert.equal(typeof McpAppsBridgeError, "function");
@@ -119,6 +134,8 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof createNativeVideoAdapter, "function");
   assert.equal(typeof createMcpAppsNativeSandbox, "function");
   assert.equal(typeof createMcpAppsReactNativeWebViewProps, "function");
+  assert.equal(typeof createMcpNativeMixedA2uiRegion, "function");
+  assert.equal(typeof createMcpNativeMixedMcpAppsRegion, "function");
   assert.equal(typeof createAllowlistActionPolicy, "function");
   assert.equal(typeof createConsentActionPolicy, "function");
   assert.equal(typeof createA2uiV1BasicCatalogPolicy, "function");
@@ -136,6 +153,7 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof createWebViewDocument, "function");
   assert.equal(typeof isA2uiMcpBindingGrant, "function");
   assert.equal(typeof isMcpAppsGrant, "function");
+  assert.equal(typeof isMcpAppsNativeSandboxConfiguration, "function");
   assert.equal(typeof loadMcpAppsResource, "function");
   assert.equal(typeof negotiateMcpApps, "function");
   assert.equal(typeof negotiateA2uiMcpBinding, "function");
@@ -156,6 +174,13 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof resolveA2uiResourceFromToolResult, "function");
   assert.equal(typeof useMcpNativeActionDispatcher, "function");
   assert.equal(typeof useNativeRenderPlan, "function");
+});
+
+test("the custom 0.1 proof surface has explicit legacy entry points", () => {
+  assert.equal(LEGACY_A2UI_VERSION, "0.1");
+  assert.equal(typeof LegacyMcpNativeSurface, "function");
+  assert.equal(UmbrellaLegacyMcpNativeSurface, LegacyMcpNativeSurface);
+  assert.equal(typeof umbrellaLegacyParser, "function");
 });
 
 test("the public JSON validator rejects sparse arrays", () => {

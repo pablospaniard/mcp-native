@@ -27,6 +27,11 @@ The exact protocol pin, message set, bounds, exclusions, native/browser differen
 schema coverage is documented in the [MCP Apps compatibility
 profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md).
 
+The convenience `mcp-native` package can coordinate this isolated region beside a native A2UI
+region. Composition remains host-authored and does not add any A2UI-to-WebView configuration,
+navigation, or message path. See the [mixed-surface
+guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/mixed-surfaces.md).
+
 ## Stable MCP Apps host flow
 
 ```ts
@@ -165,14 +170,18 @@ Remote inputs are `{ uri, mimeType }` references (not MCP text/blob resource bod
 | `parseMcpAppsToolMeta` / `filterMcpAppsModelTools`           | Validate discovery and enforce model/app visibility.                            |
 | `loadMcpAppsResource` / `resolveMcpAppsResource`             | Read and validate one exact stable text/blob resource and metadata.             |
 | `createMcpAppsNativeSandbox`                                 | Build the closed CSP, navigation, storage, permission, and document descriptor. |
+| `isMcpAppsNativeSandboxForResource`                          | Verify the exact host-created resource identity behind an opaque sandbox.       |
 | `createMcpAppsReactNativeWebViewProps`                       | Select an explicit safe subset for a locally bundled React Native WebView.      |
 | `createMcpAppsNativeDeliveryScript`                          | Deliver JSON data through the fixed local native bridge shim.                   |
 | `McpAppsBridge`                                              | Run the bounded stable View/host JSON-RPC lifecycle.                            |
+| `isMcpAppsBridgeBinding`                                     | Verify the exact resource/sandbox identities used to construct a bridge.        |
 | `isHtmlResource` / `createWebViewDocument`                   | Legacy generic HTML detection and deny-by-default document policy.              |
 | `McpAppsError` / `McpAppsBridgeError` / `WebViewPolicyError` | Controlled validation and policy failures.                                      |
 
 The stable Apps path accepts only `text/html;profile=mcp-app`. The separate generic helpers support
 `text/html` and `text/html+skybridge`; those MIME types never negotiate or resolve a stable App.
+Resource, sandbox, and bridge predicates use exact host-created object identity. Reconstructing or
+cloning a resource—even with the same URI and content—does not create a valid binding.
 
 ## Host responsibilities
 

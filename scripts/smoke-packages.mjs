@@ -47,6 +47,16 @@ try {
       throw new Error(`@mcp-native/webview declarations are missing ${typeName}`);
     }
   }
+  const mixedDeclarations = readFileSync("packages/mcp-native/dist/mixed-surfaces.d.ts", "utf8");
+  for (const typeName of [
+    "McpNativeMixedSurfaceCoordinator",
+    "McpNativeMixedSurfaceEnvironment",
+    "McpNativeMixedSurfaceSnapshot",
+  ]) {
+    if (!mixedDeclarations.includes(typeName)) {
+      throw new Error(`mcp-native declarations are missing ${typeName}`);
+    }
+  }
   const oauthDeclarations = ["oauth", "oauth-error", "oauth-native"]
     .map((moduleName) => readFileSync(`packages/mcp/dist/${moduleName}.d.ts`, "utf8"))
     .join("\n");
@@ -86,9 +96,17 @@ try {
     }
     if (packageName === "@mcp-native/a2ui") {
       requiredFiles.push(
+        "dist/legacy.d.ts",
+        "dist/legacy.js",
         "schemas/7541f953050cd58b80f0bf5d85fe2d63192af305/CHECKSUMS.sha256",
         "schemas/7541f953050cd58b80f0bf5d85fe2d63192af305/PROVENANCE.md",
       );
+    }
+    if (packageName === "@mcp-native/react-native" || packageName === "mcp-native") {
+      requiredFiles.push("dist/legacy.d.ts", "dist/legacy.js");
+    }
+    if (packageName === "mcp-native") {
+      requiredFiles.push("dist/mixed-surfaces.d.ts", "dist/mixed-surfaces.js");
     }
     for (const requiredFile of requiredFiles) {
       if (!files.has(requiredFile)) {
@@ -180,6 +198,17 @@ try {
 const oauthEntryPoint = import.meta.resolve("@mcp-native/mcp/oauth");
 if (!oauthEntryPoint.endsWith("/dist/oauth.js")) {
   throw new Error(\`Unexpected @mcp-native/mcp/oauth entry point: \${oauthEntryPoint}\`);
+}
+for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/legacy", "mcp-native/legacy"]) {
+  const legacy = await import(specifier);
+  const expectedA2ui = specifier !== "@mcp-native/react-native/legacy";
+  const expectedRenderer = specifier !== "@mcp-native/a2ui/legacy";
+  if (
+    (expectedA2ui && typeof legacy.parseA2uiSurface !== "function") ||
+    (expectedRenderer && typeof legacy.McpNativeSurface !== "function")
+  ) {
+    throw new Error(\`Unexpected legacy entry point: \${specifier}\`);
+  }
 }\n`,
   );
   execFileSync(process.execPath, [smokeEntryPoint], {

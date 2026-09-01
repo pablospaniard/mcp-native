@@ -6,6 +6,47 @@ their minor release line.
 
 ## Unreleased
 
+### Added
+
+- A host-owned mixed-surface coordinator for fixed native A2UI and isolated MCP Apps sibling
+  regions, with serialized activity, visibility, environment, focus, back, cancellation, crash,
+  recovery, memory-pressure, and teardown lifecycle.
+- A production-shaped generated React Native reference host combining primitives, typed
+  design-system adapters, closed variants, media policy, a local Fabric component, and an isolated
+  MCP Apps WebView with platform crash recovery.
+- Exact generated-host matrices for React Native `0.87.0` and `0.87.1` across Hermes and community
+  JavaScriptCore, including typecheck, Android/iOS bundles, and native platform builds.
+- Human product, mixed-surface, support-matrix, compatibility, and `1.0.0` migration guides, plus a
+  machine-verified public export and declaration baseline.
+- Explicit `@mcp-native/a2ui/legacy`, `@mcp-native/react-native/legacy`, and `mcp-native/legacy`
+  migration entry points.
+
+### Changed
+
+- `createMcpAppsNativeSandbox()` now returns an opaque, frozen factory-branded descriptor so mixed
+  registrations reject copied or server-forged sandbox objects. Sandboxes, resources, and bridges
+  are now bound by exact host-created object identity rather than URI equality alone.
+- Mixed-surface lifecycle state is committed only after the corresponding host callback succeeds,
+  so a failed activity, environment, focus, visibility, cancel, crash, or recovery callback can be
+  retried without the coordinator publishing a transition the host did not apply.
+- Raise the React Native peer minimum from `0.86.0` to `0.87.0`: the community JavaScriptCore
+  integration is not compatible with the `0.86.0` runtime-factory API. iOS JSC lanes build React
+  Native core and dependencies from source and repair the pinned `0.87.x` AppDelegate podspec flag
+  separator; Hermes lanes retain prebuilt artifacts.
+- Move repository CI actions to their Node.js 24-backed major versions.
+- The proposed `1.0.0` API is frozen for release-candidate review. Deprecated custom A2UI `0.1`
+  aliases remain at package roots throughout `0.9.x`, then move exclusively to the explicit
+  `/legacy` subpaths at `1.0.0`.
+
+### Security
+
+- Mixed composition has no server-described layout, WebView configuration, navigation, raw bridge,
+  or component-resolution channel; Apps regions retain the closed origin, storage, permission,
+  navigation, message, and teardown policy.
+- Callback failures publish bounded recoverable state, listener failures cannot break lifecycle
+  serialization, disposal closes every Apps bridge, and cancelled regions cannot re-enter through
+  crash reporting.
+
 ## 0.8.0 - 2026-09-01
 
 Completes Milestone 8 with the full pinned A2UI basic catalog and an exact, locally compiled

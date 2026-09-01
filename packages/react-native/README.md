@@ -24,14 +24,17 @@ The renderer is an internal platform layer, not proof of complete A2UI v1.0 conf
 npm install @mcp-native/react-native react react-native
 ```
 
-`@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React is a peer dependency. React Native `>=0.86.0 <1` is an optional peer because the renderer does not import it or choose a platform implementation; a native host supplies its locally bundled components.
+`@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React is a peer dependency. React Native `>=0.87.0 <1` is an optional peer because the renderer does not import it or choose a platform implementation; a native host supplies its locally bundled components.
 
-## Quick start
+## Deprecated custom `0.1` quick start
+
+Use the explicit legacy subpaths during `0.9.x`. These APIs leave package roots at `1.0.0`; the
+subpaths remain frozen for migration and security fixes.
 
 ```tsx
-import { parseA2uiSurface } from "@mcp-native/a2ui";
+import { parseA2uiSurface } from "@mcp-native/a2ui/legacy";
 import type { McpNativeRuntime } from "@mcp-native/core";
-import { McpNativeSurface, useMcpNativeActionDispatcher } from "@mcp-native/react-native";
+import { McpNativeSurface, useMcpNativeActionDispatcher } from "@mcp-native/react-native/legacy";
 import { Button, Text, TextInput, View } from "react-native";
 
 const components = { Button, Text, TextInput, View };
@@ -123,11 +126,16 @@ repeatable Node.js render-plan budgets and fixed-seed generated-input coverage.
 
 For release/platform testing, `npm run native:host:prepare` generates an official temporary React
 Native host at the package's exact tested boundaries: current latest `0.87.1` and declared minimum
-`0.86.0`. Each host installs local package tarballs and the pinned accessibility,
+`0.87.0`. Each host installs local package tarballs and the pinned accessibility,
 complete-catalog, media, and Codegen/Fabric extension fixtures.
 The [Expo Go integration PoC policy](../../docs/native-accessibility-testing.md) documents the
 non-blocking app-level compatibility work. Generated hosts remain automated package fixtures and do
 not establish support for a component library.
+
+The Milestone 9 fixture also places this native surface beside an isolated MCP Apps WebView through
+the convenience package's host-owned coordinator. It exercises fixed accessibility order,
+application state, dynamic type, reduced motion, orientation, keyboard, back handling, process
+crash/reload, and teardown without treating the two regions as one protocol or accessibility tree.
 
 ### Host component adapters
 

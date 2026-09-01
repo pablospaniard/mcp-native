@@ -16,7 +16,11 @@ import {
   parseMcpAppsToolMeta,
 } from "./apps.js";
 import type { McpAppsResource } from "./apps.js";
-import type { McpAppsNativeSandboxConfiguration } from "./sandbox.js";
+import {
+  isMcpAppsNativeSandboxConfiguration,
+  isMcpAppsNativeSandboxForResource,
+  type McpAppsNativeSandboxConfiguration,
+} from "./sandbox.js";
 
 export const MCP_APPS_MAX_BRIDGE_MESSAGE_LENGTH = 1_048_576;
 export const MCP_APPS_MAX_PENDING_REQUESTS = 128;
@@ -98,6 +102,9 @@ type ParsedRpc = {
   readonly error?: JsonObject;
 };
 
+const bridgeResources = new WeakMap<object, McpAppsResource>();
+const bridgeSandboxes = new WeakMap<object, McpAppsNativeSandboxConfiguration>();
+
 /**
  * Stable MCP Apps host lifecycle for a single native WebView. Incoming data is
  * schema-shaped and bounded before any host callback runs.
@@ -122,6 +129,22 @@ export class McpAppsBridge {
   #nextRequestId = 1;
 
   constructor(options: McpAppsBridgeOptions) {
+    if (options === null || typeof options !== "object" || Array.isArray(options)) {
+      throw new McpAppsBridgeError("Expected MCP Apps bridge options to be an object");
+    }
+    if (!isMcpAppsNativeSandboxConfiguration(options.sandbox)) {
+      throw new McpAppsBridgeError(
+        "MCP Apps bridge requires an opaque createMcpAppsNativeSandbox result",
+      );
+    }
+    if (options.resource?.uri !== options.sandbox.source.baseUrl) {
+      throw new McpAppsBridgeError("MCP Apps bridge resource URI must match its sandbox base URL");
+    }
+    if (!isMcpAppsNativeSandboxForResource(options.sandbox, options.resource)) {
+      throw new McpAppsBridgeError(
+        "MCP Apps bridge requires the exact resource used to create its sandbox",
+      );
+    }
     if (typeof options.postMessage !== "function") {
       throw new McpAppsBridgeError("Expected postMessage to be a function");
     }
@@ -144,6 +167,8 @@ export class McpAppsBridge {
     this.#tools = createToolMap(options.tools ?? []);
     this.#onProtocolError = options.onProtocolError;
     this.#onTeardownComplete = options.onTeardownComplete;
+    bridgeResources.set(this, options.resource);
+    bridgeSandboxes.set(this, options.sandbox);
   }
 
   get state(): McpAppsBridgeState {
@@ -608,6 +633,19 @@ export class McpAppsBridge {
     }
     await this.#postMessage(serialized);
   }
+}
+
+/** Returns true only for the exact resource, sandbox, and bridge instance created together. */
+export function isMcpAppsBridgeBinding(
+  bridge: unknown,
+  resource: unknown,
+  sandbox: unknown,
+): bridge is McpAppsBridge {
+  return (
+    bridge instanceof McpAppsBridge &&
+    bridgeResources.get(bridge) === resource &&
+    bridgeSandboxes.get(bridge) === sandbox
+  );
 }
 
 function createHostCapabilities(options: McpAppsBridgeOptions): JsonObject {

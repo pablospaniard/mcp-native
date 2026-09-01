@@ -91,16 +91,17 @@ Apps profile and supplies a restrictive sandbox/bridge contract, but a native We
 all guarantees of a browser's cross-origin double iframe. The host must enforce origins, navigation,
 storage, cookies, downloads, permissions, bridge messages, and teardown.
 
-Native A2UI and WebView rendering exist in the same package family today, but the supported
-production composition model is deliberately host-owned. The `0.9.0` milestone will add and verify
-a coordinator that places native and isolated WebView regions as siblings on one screen. A server
-will not be able to create, configure, navigate, or bridge a WebView from A2UI.
+Native A2UI and WebView rendering use a deliberately host-owned production composition model.
+Milestone `0.9.0` adds a coordinator that places factory-created native and isolated WebView regions
+as siblings on one screen and serializes their lifecycle. A server cannot create, configure,
+navigate, or bridge a WebView from A2UI. See the [mixed-surface guide](mixed-surfaces.md).
 
 ## What remains before `1.0.0`
 
 - `0.8.0`: released—policy-gated audio/video and a versioned model for locally compiled native
   extensions;
-- `0.9.0`: mixed native/WebView hosting, production-shaped reference host, and proposed API freeze;
+- `0.9.0`: implementation complete—mixed native/WebView hosting, production-shaped reference host,
+  and proposed API freeze; release preparation remains;
 - `1.0.0`: compatibility, migration, conformance, release, and long-term support gates.
 
 Expo Go demonstrations remain separate, informative compatibility work. They do not expand the

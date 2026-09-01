@@ -27,7 +27,10 @@ import {
   describeMcpAppsNativeSandbox,
   filterMcpAppsModelTools,
   getMcpAppsPermissionPolicy,
+  isMcpAppsBridgeBinding,
   isMcpAppsGrant,
+  isMcpAppsNativeSandboxConfiguration,
+  isMcpAppsNativeSandboxForResource,
   loadMcpAppsResource,
   negotiateMcpApps,
   parseMcpAppsToolMeta,
@@ -368,6 +371,43 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
     grantedPermissions: ["camera", "microphone"],
     allowedExternalOrigins: ["https://docs.example.com"],
   });
+  assert.equal(isMcpAppsNativeSandboxConfiguration(sandbox), true);
+  assert.equal(isMcpAppsNativeSandboxForResource(sandbox, resource), true);
+  assert.equal(isMcpAppsNativeSandboxForResource(sandbox, { ...resource }), false);
+  assert.equal(isMcpAppsNativeSandboxConfiguration({ ...sandbox }), false);
+  assert.equal(Object.isFrozen(sandbox), true);
+  assert.equal(Object.isFrozen(sandbox.source), true);
+  assert.throws(() => describeMcpAppsNativeSandbox({ ...sandbox }), /opaque/);
+  assert.throws(
+    () =>
+      new McpAppsBridge({
+        resource,
+        sandbox: { ...sandbox },
+        hostInfo: { name: "forged-host", version: "1" },
+        postMessage() {},
+      }),
+    /opaque createMcpAppsNativeSandbox result/,
+  );
+  assert.throws(
+    () =>
+      new McpAppsBridge({
+        resource: { ...resource, uri: "ui://different/app" },
+        sandbox,
+        hostInfo: { name: "mismatched-host", version: "1" },
+        postMessage() {},
+      }),
+    /resource URI must match/,
+  );
+  assert.throws(
+    () =>
+      new McpAppsBridge({
+        resource: { ...resource },
+        sandbox,
+        hostInfo: { name: "cloned-resource-host", version: "1" },
+        postMessage() {},
+      }),
+    /exact resource used to create its sandbox/,
+  );
   assert.match(sandbox.source.html, /<head><meta http-equiv="Content-Security-Policy"/i);
   assert.match(
     sandbox.contentSecurityPolicy,
@@ -406,6 +446,14 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
     /cannot enforce sensitive permission grants/,
   );
   const deniedPermissionSandbox = createMcpAppsNativeSandbox(resource);
+  assert.throws(
+    () =>
+      createMcpAppsReactNativeWebViewProps(
+        { ...deniedPermissionSandbox },
+        { onMessage() {}, onError() {} },
+      ),
+    /opaque/,
+  );
   const nativeMessages = [];
   const externalLinks = [];
   const callbackErrors = [];
@@ -471,6 +519,18 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
     () => createMcpAppsNativeSandbox(createResolvedResource({ domain: "view.example.com" })),
     /sandbox domain is unsupported/,
   );
+});
+
+test("native sandbox snapshots its navigation base URL from mutable resource input", () => {
+  const resource = { ...createResolvedResource() };
+  const sandbox = createMcpAppsNativeSandbox(resource);
+  const originalUri = resource.uri;
+  resource.uri = "ui://mutated/app";
+
+  assert.equal(sandbox.source.baseUrl, originalUri);
+  assert.equal(sandbox.decideNavigation(originalUri, true), "allow-in-document");
+  assert.equal(sandbox.decideNavigation(`${originalUri}#details`, true), "allow-in-document");
+  assert.equal(sandbox.decideNavigation(resource.uri, true), "deny");
 });
 
 test("native sandbox covers explicit origins, permissions, and adapter failure paths", () => {
@@ -651,6 +711,8 @@ function createBridgeFixture(overrides = {}) {
     },
     ...overrides.options,
   });
+  assert.equal(isMcpAppsBridgeBinding(bridge, resource, sandbox), true);
+  assert.equal(isMcpAppsBridgeBinding(bridge, { ...resource }, sandbox), false);
   return { bridge, calls, sent };
 }
 
