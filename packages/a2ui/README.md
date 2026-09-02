@@ -12,7 +12,10 @@
 
 </div>
 
-> **Experimental:** this package implements the documented feature-scoped A2UI v1.0 Candidate profile and retains a deprecated custom `0.1` proof surface only for migration. `0.1` is not an A2UI protocol version, and the v1 subset is not an unqualified A2UI compatibility claim.
+> **Pre-1.0 protocol profile:** this package implements the documented feature-scoped A2UI v1.0
+> Candidate profile and retains a deprecated custom `0.1` proof surface only for migration. The
+> project-owned A2UI-over-MCP binding remains experimental, `0.1` is not an A2UI protocol version,
+> and the implemented profile is not an unqualified A2UI compatibility claim.
 
 `@mcp-native/a2ui` resolves explicitly typed resource links and parses untrusted JSON or JavaScript values into a validated, typed surface before a host renders anything. Unknown or ambiguous resources fail with `A2uiResourceError`; unknown versions, node types, action types, non-plain objects, oversized trees, and invalid JSON values fail with `A2uiParseError`. Surfaces are capped at `A2UI_MAX_DEPTH` (32) and `A2UI_MAX_NODES` (256).
 

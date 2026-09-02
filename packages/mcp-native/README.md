@@ -2,7 +2,7 @@
 
 # mcp-native
 
-### One entry point for the MCP Native experimental runtime
+### One entry point for the MCP Native React Native host runtime
 
 [![npm](https://img.shields.io/npm/v/mcp-native)](https://www.npmjs.com/package/mcp-native)
 [![downloads](https://img.shields.io/npm/dm/mcp-native)](https://www.npmjs.com/package/mcp-native)
@@ -13,9 +13,17 @@
 
 </div>
 
-> **Experimental:** MCP Native is a proof of concept, not a production-ready MCP or React Native runtime. APIs may change before `1.0.0`.
+> **Pre-1.0 release candidate:** MCP Native `0.9.x` is feature-complete for the documented React
+> Native host scope, and the proposed `1.0.0` API is frozen. The stable compatibility guarantee
+> begins after the remaining independent review and release gates are complete. Shipping hosts must
+> still audit their policies, component mappings, permissions, WebView integration, and platform
+> behavior.
 
-> **Compatibility:** the initial tool/resource boundary preserves MCP `2026-07-28` fields, but complete MCP conformance is still in progress. The package exposes the feature-scoped A2UI v1.0 Candidate profile and retains custom `0.1` APIs only as deprecated migration support; this is not an unqualified A2UI renderer claim. It also re-exports the documented stable MCP Apps `2026-01-26` native host-adapter profile. See the [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md), [MCP Apps profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md), and [standards matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+> **Compatibility:** the documented tool/resource and authorization boundary preserves MCP
+> `2026-07-28` fields and passes its pinned conformance coverage. The package exposes the
+> feature-scoped A2UI v1.0 Candidate profile and retains custom `0.1` APIs only as deprecated
+> migration support; this is not an unqualified A2UI renderer claim. It also re-exports the
+> documented stable MCP Apps `2026-01-26` native host-adapter profile. See the [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md), [MCP Apps profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md), and [standards matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 `mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, A2UI v1 lifecycle/capability/renderer-message APIs, trusted native renderer and hooks, host-owned mixed-surface coordinator, deprecated custom surface migration APIs, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
 
@@ -119,10 +127,10 @@ Install an individual package instead when you only need one layer.
 
 Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospaniard/mcp-native/tree/main/packages/mcp) package to connect these APIs to the official MCP TypeScript SDK without forcing that SDK dependency on every `mcp-native` consumer.
 
-## What works today
+## Implemented in `0.9.0`
 
 - transport-independent MCP runtime contracts;
-- strict validation for container, text, button, and text-input nodes;
+- isolated migration support for the deprecated custom `0.1` surface;
 - declared tool-action dispatch;
 - strict A2UI resource-link resolution from tool results;
 - schema-validated A2UI v1 JSONL lifecycle state and explicit host policies;
@@ -154,9 +162,10 @@ local registration for compiled host extensions. Release `0.7.0` added the
 non-media catalog, typed renderer-local bindings, bounded formatting and validation, host-callback
 actions, required image grants, policy-gated HTTP(S) `openUrl`, and exact installed-subset
 discovery. Release `0.6.0` added bounded consent, expiring/revocable host-owned grants, interactive
-OAuth, scope history, lifecycle coordination, actionable states, and redacted operations. Complete
-MCP and A2UI conformance, full streaming host integration, transport placement for A2UI capability
-objects, and separate non-blocking Expo Go integration PoCs remain future work. Follow the
+OAuth, scope history, lifecycle coordination, actionable states, and redacted operations. The
+packages intentionally do not claim MCP operations or A2UI features outside their documented
+profiles. Full streaming host integration, transport placement for A2UI capability objects, and
+separate non-blocking Expo Go integration PoCs remain deferred or excluded work. Follow the
 [roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/roadmap.md) for exact claim
 boundaries.
 
@@ -164,7 +173,7 @@ boundaries.
 
 Remote servers may provide declarative UI and actions, but the host owns component resolution, tool execution, permissions, and every sensitive capability. Unknown data fails closed at validation and policy boundaries.
 
-Read the full [architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) and [security policy](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md) before using or extending the proof of concept.
+Read the full [architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) and [security policy](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md) before integrating or extending the runtime.
 
 ## License
 

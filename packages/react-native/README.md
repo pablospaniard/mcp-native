@@ -12,7 +12,9 @@
 
 </div>
 
-> **Experimental:** this package now mounts the initial surface model, but its API and component catalog may change before `1.0.0`.
+> **Pre-1.0 release candidate:** this package mounts the complete pinned A2UI basic catalog,
+> policy-gated media, and exactly negotiated local host extensions. Its `0.9.x` API is frozen for
+> `1.0.0` review; the stable compatibility guarantee begins at `1.0.0`.
 
 `@mcp-native/react-native` converts a surface already validated by `@mcp-native/a2ui` into a trusted render plan and mounts it with components supplied by the host application. Servers provide data and declared actions—not JavaScript modules, component implementations, or arbitrary component names.
 

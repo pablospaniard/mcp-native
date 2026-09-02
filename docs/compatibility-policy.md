@@ -1,7 +1,8 @@
-# Proposed `1.0.0` compatibility policy
+# `1.0.0` release-candidate compatibility policy
 
-Milestone 9 freezes the release-candidate API described here. The packages remain experimental
-until `1.0.0`; independent review may still require a documented correction before the stable tag.
+Milestone 9 froze the release-candidate API described here. The `0.9.x` packages are pre-stable,
+not early prototypes: independent review may still require a documented correction before the
+stable tag, and the `1.x` compatibility guarantee does not apply until `1.0.0`.
 
 ## Stable compatibility surfaces
 

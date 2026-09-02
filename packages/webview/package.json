@@ -1,6 +1,6 @@
 {
   "name": "@mcp-native/webview",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Policy-gated WebView fallback primitives for MCP Native.",
   "keywords": [
     "mcp",
@@ -37,6 +37,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@mcp-native/core": "^0.9.0"
+    "@mcp-native/core": "^0.9.1"
   }
 }

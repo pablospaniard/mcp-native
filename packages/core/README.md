@@ -12,7 +12,9 @@
 
 </div>
 
-> **Experimental:** this package is an early proof of concept. Its public API may change before `1.0.0`.
+> **Pre-1.0 release candidate:** the `0.9.x` API is part of the frozen proposed `1.0.0` contract.
+> The stable compatibility guarantee begins at `1.0.0`, after the remaining independent review and
+> release gates.
 
 `@mcp-native/core` is the protocol- and renderer-independent foundation of MCP Native. It defines the small MCP client boundary consumed by the runtime and routes declared actions without depending on A2UI, React Native, WebViews, or a specific MCP SDK transport.
 

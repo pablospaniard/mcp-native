@@ -12,9 +12,10 @@
 
 </div>
 
-> **Experimental:** this package implements the documented stable MCP Apps `2026-01-26` native
-> host-adapter profile. A shipping host must map the closed descriptor into its audited platform
-> WebView and lifecycle; native isolation is not equivalent to a browser's cross-origin iframe.
+> **Pre-1.0 host adapter:** this package implements the documented stable MCP Apps `2026-01-26`
+> native host-adapter profile. Its public API remains release-candidate until the `1.0.0` review
+> gates complete. A shipping host must map the closed descriptor into its audited platform WebView
+> and lifecycle; native isolation is not equivalent to a browser's cross-origin iframe.
 
 `@mcp-native/webview` handles the compatibility path for MCP resources that contain HTML. The stable
 path negotiates `io.modelcontextprotocol/ui`, discovers strict `_meta.ui` tool metadata, reads one
