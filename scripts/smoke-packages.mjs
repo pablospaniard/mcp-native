@@ -4,6 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { verifyPackageArtifacts } from "./verify-package-artifacts.mjs";
+import {
+  verifyLocalUpgradeInstallation,
+  verifyPublishedUpgradeBaseline,
+} from "./verify-package-upgrade.mjs";
 
 const packages = [
   "@mcp-native/core",
@@ -24,6 +28,7 @@ const workspacePackageDirectories = [
 ];
 const expectedVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
 const rootLicenseText = readFileSync("LICENSE", "utf8");
+const publishedUpgradeRange = "^0.9.0";
 
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "mcp-native-packages-"));
 const npmEnvironment = {
@@ -73,6 +78,7 @@ try {
     }
   }
 
+  const localTarballs = new Map();
   const tarballs = packages.map((packageName) => {
     const output = execFileSync(
       "npm",
@@ -118,7 +124,9 @@ try {
       additionalRequiredFiles,
     });
 
-    return join(temporaryDirectory, packed.filename);
+    const tarball = join(temporaryDirectory, packed.filename);
+    localTarballs.set(packageName, tarball);
+    return tarball;
   });
   const reactOutput = execFileSync(
     "npm",
@@ -168,6 +176,75 @@ try {
     join(consumerDirectory, "package.json"),
     `${JSON.stringify({ name: "mcp-native-package-smoke", private: true, type: "module" }, null, 2)}\n`,
   );
+  const smokeEntryPoint = join(consumerDirectory, "smoke.mjs");
+  writeFileSync(
+    smokeEntryPoint,
+    `const [core, mcp, a2ui, webview, reactNative, umbrella] = await Promise.all(${JSON.stringify(packages)}.map((specifier) => import(specifier)));
+for (const [name, value] of [
+  ["McpNativeRuntime", core.McpNativeRuntime],
+  ["McpSdkClientAdapter", mcp.McpSdkClientAdapter],
+  ["A2uiSurfaceStore", a2ui.A2uiSurfaceStore],
+  ["createWebViewDocument", webview.createWebViewDocument],
+  ["A2uiV1NativeSurface", reactNative.A2uiV1NativeSurface],
+  ["McpNativeMixedSurfaceCoordinator", umbrella.McpNativeMixedSurfaceCoordinator],
+]) {
+  if (typeof value !== "function") {
+    throw new Error(\`Missing migrated public API: \${name}\`);
+  }
+}
+const oauthEntryPoint = import.meta.resolve("@mcp-native/mcp/oauth");
+if (!oauthEntryPoint.endsWith("/dist/oauth.js")) {
+  throw new Error(\`Unexpected @mcp-native/mcp/oauth entry point: \${oauthEntryPoint}\`);
+}
+for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/legacy", "mcp-native/legacy"]) {
+  const legacy = await import(specifier);
+  const expectedA2ui = specifier !== "@mcp-native/react-native/legacy";
+  const expectedRenderer = specifier !== "@mcp-native/a2ui/legacy";
+  if (
+    (expectedA2ui && typeof legacy.parseA2uiSurface !== "function") ||
+    (expectedRenderer && typeof legacy.McpNativeSurface !== "function")
+  ) {
+    throw new Error(\`Unexpected legacy entry point: \${specifier}\`);
+  }
+}\n`,
+  );
+  const runConsumerSmoke = () =>
+    execFileSync(process.execPath, [smokeEntryPoint], {
+      cwd: consumerDirectory,
+      env: npmEnvironment,
+      stdio: "inherit",
+    });
+  const readInstalledManifest = (packageName) =>
+    JSON.parse(
+      readFileSync(join(consumerDirectory, "node_modules", packageName, "package.json"), "utf8"),
+    );
+
+  execFileSync(
+    "npm",
+    [
+      "install",
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+      "--legacy-peer-deps",
+      "--fetch-retries=5",
+      "--fetch-retry-maxtimeout=120000",
+      reactTarball,
+      ...externalTarballs,
+      ...packages.map((packageName) => `${packageName}@${publishedUpgradeRange}`),
+    ],
+    {
+      cwd: consumerDirectory,
+      env: npmEnvironment,
+      stdio: "inherit",
+    },
+  );
+  const upgradeFromVersion = verifyPublishedUpgradeBaseline({
+    packageNames: packages,
+    readInstalledManifest,
+  });
+  runConsumerSmoke();
+
   execFileSync(
     "npm",
     [
@@ -188,6 +265,14 @@ try {
     },
   );
 
+  verifyLocalUpgradeInstallation({
+    packageNames: packages,
+    expectedVersion,
+    localTarballs,
+    consumerManifest: JSON.parse(readFileSync(join(consumerDirectory, "package.json"), "utf8")),
+    readInstalledManifest,
+  });
+
   for (const packageName of packages) {
     const installedPackageDirectory = join(consumerDirectory, "node_modules", packageName);
     const packageJsonPath = join(installedPackageDirectory, "package.json");
@@ -199,33 +284,11 @@ try {
       throw new Error(`${packageName} installed LICENSE does not match the repository license`);
     }
   }
-  const smokeEntryPoint = join(consumerDirectory, "smoke.mjs");
-  writeFileSync(
-    smokeEntryPoint,
-    `await Promise.all(${JSON.stringify(packages)}.map((specifier) => import(specifier)));
-const oauthEntryPoint = import.meta.resolve("@mcp-native/mcp/oauth");
-if (!oauthEntryPoint.endsWith("/dist/oauth.js")) {
-  throw new Error(\`Unexpected @mcp-native/mcp/oauth entry point: \${oauthEntryPoint}\`);
-}
-for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/legacy", "mcp-native/legacy"]) {
-  const legacy = await import(specifier);
-  const expectedA2ui = specifier !== "@mcp-native/react-native/legacy";
-  const expectedRenderer = specifier !== "@mcp-native/a2ui/legacy";
-  if (
-    (expectedA2ui && typeof legacy.parseA2uiSurface !== "function") ||
-    (expectedRenderer && typeof legacy.McpNativeSurface !== "function")
-  ) {
-    throw new Error(\`Unexpected legacy entry point: \${specifier}\`);
-  }
-}\n`,
-  );
-  execFileSync(process.execPath, [smokeEntryPoint], {
-    cwd: consumerDirectory,
-    env: npmEnvironment,
-    stdio: "inherit",
-  });
+  runConsumerSmoke();
 
-  console.log(`Verified ${packages.length} installable package tarballs.`);
+  console.log(
+    `Verified ${packages.length} installable package tarballs and the ${upgradeFromVersion} upgrade path.`,
+  );
 } finally {
   rmSync(temporaryDirectory, { recursive: true, force: true });
 }

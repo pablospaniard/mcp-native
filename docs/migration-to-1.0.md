@@ -24,6 +24,18 @@ At `1.0.0`, deprecated legacy aliases are removed from package roots. The explic
 subpaths remain isolated, frozen, and eligible only for security and critical correctness fixes.
 They receive no new A2UI v1 components, functions, capabilities, extensions, or renderer behavior.
 
+## Automated upgrade path
+
+`npm run package:smoke` installs the latest coordinated stable `0.9.x` packages from npm into a
+clean consumer and runs modern APIs together with the explicit `/legacy` imports shown above. It
+then replaces all six dependencies with locally packed release-candidate artifacts, confirms that
+npm selected each local tarball, and runs the same consumer again. Mixed `0.9.x` package versions,
+retained registry dependencies, missing migration entry points, and stale installed versions fail
+the gate.
+
+Pull-request CI runs this upgrade smoke test. The final `1.0.0` release commit therefore exercises
+the same path with the actual coordinated stable artifacts before publication.
+
 ## Move new work to the v1 Candidate profile
 
 New surfaces should negotiate the project-owned A2UI-over-MCP binding, parse `version: "v1.0"`
@@ -44,5 +56,5 @@ Before `1.0.0`:
 - run the exact [support matrix](support-matrix.md), `npm run check`, and
   `npm run package:smoke` against the application integration.
 
-Any additional release-candidate correction discovered by independent review will be documented here with
-clear upgrade guidance before the stable tag.
+Any additional release-candidate correction discovered by independent review will be documented
+here with clear upgrade guidance before the stable tag.

@@ -15,6 +15,9 @@ their minor release line.
   missing exports, licenses, or invalid JavaScript and declaration source maps before installation.
 - Publish an evidence-based `1.0.0` readiness checklist that separates automated release gates from
   the remaining independent reviews, migration decision, and final registry publication checks.
+- Add a pull-request upgrade smoke gate that installs the latest coordinated published `0.9.x`
+  packages, exercises migration-ready modern and `/legacy` imports, replaces every dependency with
+  its local candidate tarball, and runs the same consumer again.
 
 ## 0.9.1 - 2026-09-02
 

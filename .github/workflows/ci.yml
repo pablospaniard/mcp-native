@@ -19,6 +19,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run package:smoke
 
   native-host-bundle:
     name: Native host bundle (React Native ${{ matrix.react-native }}, ${{ matrix.js-engine }})
