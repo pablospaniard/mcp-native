@@ -12,17 +12,13 @@
 
 </div>
 
-> **Release status:** this package implements the stable MCP Apps `2026-01-26` native host-adapter
-> profile with a frozen `0.9.x` API. Start with the stable host flow below; the
-> [compatibility profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md)
-> documents the native sandbox, lifecycle mapping, and exact message coverage.
+`@mcp-native/webview` hosts HTML MCP Apps inside a native WebView without mixing them into the native
+A2UI renderer. It implements the stable MCP Apps `2026-01-26` native host-adapter profile, including
+discovery, `ui://` resources, CSP and permission metadata, a native sandbox descriptor, and the Apps
+JSON-RPC lifecycle.
 
-`@mcp-native/webview` handles the compatibility path for MCP resources that contain HTML. The stable
-path negotiates `io.modelcontextprotocol/ui`, discovers strict `_meta.ui` tool metadata, reads one
-exact `ui://` resource with `text/html;profile=mcp-app`, preserves closed CSP and permission
-metadata, builds a CSP-first native sandbox, and runs the bounded Apps JSON-RPC lifecycle. The
-legacy generic helpers still recognize older HTML MIME types and reject both inline and remote
-documents unless the host explicitly grants them through policy.
+Older generic HTML helpers remain available for compatibility. They require an explicit host policy
+before loading either inline or remote documents.
 
 The exact protocol pin, message set, bounds, exclusions, native/browser differences, and official
 schema coverage is documented in the [MCP Apps compatibility

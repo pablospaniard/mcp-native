@@ -6,6 +6,12 @@ their minor release line.
 
 ## Unreleased
 
+### Changed
+
+- Rewrite the main documentation path around a plain-language introduction, working Expo example,
+  package choices, and task-based guide map; remove repeated release-status boilerplate from package
+  READMEs and keep exact conformance language in the technical reference pages.
+
 ## 0.9.2 - 2026-09-02
 
 Adds the runnable Expo Go proof and restores the React Native `0.86.0` minimum while preserving the

@@ -13,21 +13,15 @@
 
 </div>
 
-> **Release status:** MCP Native `0.9.x` is the feature-complete release candidate for the
-> documented React Native host scope. The public API is frozen for `1.0.0`, so teams can integrate
-> and evaluate it now. The stable `1.x` compatibility guarantee begins with `1.0.0` after final
-> independent review.
+`mcp-native` is the convenient way to use the runtime, A2UI, React Native, mixed-surface, and WebView
+APIs from one package. It re-exports the focused `@mcp-native/*` layers while leaving transport
+adapters as a separate installation choice.
 
-> **Compatibility:** the documented tool/resource and authorization boundary preserves MCP
-> `2026-07-28` fields and passes its pinned conformance coverage. The package exposes the
-> feature-scoped A2UI v1.0 Candidate profile, keeps custom `0.1` APIs under `/legacy` for migration,
-> and re-exports the stable MCP Apps `2026-01-26` native host-adapter profile. See the [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md), [MCP Apps profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md), and [standards matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+The current 0.9 line contains the React Native feature set planned for 1.0 and is ready to try in an
+integration. New work should use A2UI v1 Candidate or the stable MCP Apps `2026-01-26` host flow;
+the custom A2UI 0.1 APIs live under `/legacy` for migration.
 
-`mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, A2UI v1 lifecycle/capability/renderer-message APIs, trusted native renderer and hooks, host-owned mixed-surface coordinator, deprecated custom surface migration APIs, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
-
-Read the human-oriented [product guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/product-guide.md)
-and [mixed-surface guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/mixed-surfaces.md)
-before the API examples.
+For the big picture, start with the [product guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/product-guide.md).
 
 ## Install
 
@@ -123,7 +117,7 @@ Install an individual package instead when you only need one layer.
 
 Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospaniard/mcp-native/tree/main/packages/mcp) package to connect these APIs to the official MCP TypeScript SDK without forcing that SDK dependency on every `mcp-native` consumer.
 
-## Implemented in `0.9.0`
+## Included in the current 0.9 line
 
 - transport-independent MCP runtime contracts;
 - isolated migration support for the deprecated custom `0.1` surface;
@@ -151,18 +145,10 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - pinned current-protocol integration coverage through the SDK HTTP handler/fetch path;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-Release `0.9.0` adds host-owned mixed native/MCP Apps composition, a production-shaped reference
-host, and the frozen `1.0.0` release-candidate API. Release `0.8.0` added policy-gated `Video` and
-`AudioPlayer`, completed the pinned A2UI basic catalog, and added exact namespaced manifests and
-local registration for compiled host extensions. Release `0.7.0` added the
-non-media catalog, typed renderer-local bindings, bounded formatting and validation, host-callback
-actions, required image grants, policy-gated HTTP(S) `openUrl`, and exact installed-subset
-discovery. Release `0.6.0` added bounded consent, expiring/revocable host-owned grants, interactive
-OAuth, scope history, lifecycle coordination, actionable states, and redacted operations. The
-[roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/roadmap.md) tracks profile
-extensions such as full streaming host integration and transport placement for A2UI capability
-objects. The runnable [Expo Go todo app](../../examples/expo-go-todolist/README.md) provides
-application-level evidence alongside the automated release gates.
+For the release-by-release history, see the
+[changelog](https://github.com/pablospaniard/mcp-native/blob/main/CHANGELOG.md). The runnable
+[Expo Go todo app](../../examples/expo-go-todolist/README.md) shows the main A2UI and React Native
+pieces working together.
 
 ## Security model
 

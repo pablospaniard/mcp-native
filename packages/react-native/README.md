@@ -12,11 +12,10 @@
 
 </div>
 
-> **Release status:** this package mounts the complete pinned A2UI basic catalog, policy-gated
-> media, and exactly negotiated local host extensions. Its `0.9.x` API is frozen for `1.0.0`, so
-> teams can integrate it now; the stable `1.x` compatibility guarantee begins with `1.0.0`.
-
-`@mcp-native/react-native` converts a surface already validated by `@mcp-native/a2ui` into a trusted render plan and mounts it with components supplied by the host application. Servers provide data and declared actions—not JavaScript modules, component implementations, or arbitrary component names.
+`@mcp-native/react-native` turns a surface validated by `@mcp-native/a2ui` into native UI using
+components supplied by your application. It supports the complete pinned A2UI basic catalog,
+policy-gated media, and locally compiled host extensions. Your app keeps control of the component
+implementations, visual design, and action delivery.
 
 The renderer implements the native portion of the documented A2UI v1 Candidate profile. The v1 adapter converts the complete pinned basic catalog, including bounded dynamic lists and policy-gated media, into the host-owned `NativeElement` boundary. Exactly negotiated local host extensions use a separate closed registration boundary. The custom `0.1` surface remains available through migration APIs. See the [feature-scoped A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md) for exact coverage.
 

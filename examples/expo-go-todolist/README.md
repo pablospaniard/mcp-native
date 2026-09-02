@@ -1,9 +1,9 @@
 # MCP Native Expo Go todo app
 
-This is a runnable end-to-end proof for `@mcp-native/a2ui` and
-`@mcp-native/react-native`. It turns a schema-validated A2UI v1 lifecycle into a useful native todo
-app without downloading JavaScript or allowing the surface to select arbitrary React Native
-components.
+This example shows how `@mcp-native/a2ui` and `@mcp-native/react-native` fit into a real Expo Go app.
+It is a fully working todo list with local editing, filters, persistence, validation, and accessible
+native controls. The walkthrough keeps the A2UI surface, host component catalog, action handling,
+and storage code separate so each package boundary is easy to follow.
 
 | All tasks                                         | Completed filter                                               | Empty state                                      |
 | ------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
@@ -19,7 +19,7 @@ components.
 
 Open the [live Snack][expo-snack-todo], select **My Device**, and scan its QR code with Expo Go on
 Android or the Camera app on iOS. No clone or local build is required. Snack loads this complete
-five-file app, Expo SDK 57, and the published `0.9.2` versions of `@mcp-native/a2ui`,
+five-file app, Expo SDK 57, and exact `0.9.2` versions of `@mcp-native/a2ui`,
 `@mcp-native/core`, and `@mcp-native/react-native`. You can inspect and edit every part before
 running it.
 

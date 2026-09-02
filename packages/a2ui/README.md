@@ -12,13 +12,13 @@
 
 </div>
 
-> **Profile:** this package implements the documented feature-scoped A2UI v1.0 Candidate profile,
-> including pinned schemas, catalog capabilities, lifecycle messages, and a project-owned MCP
-> binding. New integrations should use the v1 flow; the custom `0.1` APIs remain under `/legacy` for
-> migration. See the [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md)
-> for exact coverage.
+`@mcp-native/a2ui` turns A2UI lifecycle messages into validated surface state that a host can safely
+render. It covers the documented A2UI v1 Candidate profile: pinned schemas, catalog capabilities,
+lifecycle messages, renderer messages, and the project-owned MCP binding.
 
-`@mcp-native/a2ui` resolves explicitly typed resource links and parses untrusted JSON or JavaScript values into a validated, typed surface before a host renders anything. Unknown or ambiguous resources fail with `A2uiResourceError`; unknown versions, node types, action types, non-plain objects, oversized trees, and invalid JSON values fail with `A2uiParseError`. Surfaces are capped at `A2UI_MAX_DEPTH` (32) and `A2UI_MAX_NODES` (256).
+New integrations should start with the v1 flow below. The older custom 0.1 APIs remain available
+from `/legacy` for migration. The [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md)
+contains the exact protocol coverage and limits.
 
 ## Install
 

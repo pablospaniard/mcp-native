@@ -1,9 +1,5 @@
 # What MCP Native can do
 
-MCP Native `0.9.x` is the feature-complete release candidate for the documented React Native host
-scope. Its public API is frozen for `1.0.0`, so teams can use the capabilities below in integrations
-today.
-
 MCP Native lets an MCP server describe an interactive interface while the mobile application keeps
 control of the code, visual system, navigation, permissions, and network boundaries.
 
@@ -49,8 +45,8 @@ The renderer also supports bounded dynamic lists, formatting, validation, absolu
 bindings, local form state, declared actions, explicit accessibility data, and a policy-gated local
 HTTP(S) `openUrl` action.
 
-Support is not automatic merely because a name appears above. A host advertises only the exact
-subset for which it installed complete components and policies. Missing optional slots fail closed.
+Each app chooses the subset it wants to offer. A host advertises a component only after installing
+its implementation and any required policy.
 An image-capable host must additionally provide a loader that enforces the exact origin, redirect,
 byte, decoded-size, and cache grant supplied with every request. The renderer also caps the complete
 surface at 64 images, 100 MiB of granted transfer bytes, and 268,435,456 granted decoded pixels.
@@ -100,14 +96,11 @@ Release `0.9.0` adds a coordinator that places factory-created native and isolat
 as siblings on one screen and serializes their lifecycle. A server cannot create, configure,
 navigate, or bridge a WebView from A2UI. See the [mixed-surface guide](mixed-surfaces.md).
 
-## Release status
+## Where the project is now
 
-- `0.8.0` delivered policy-gated audio/video and locally compiled native extensions.
-- `0.9.0` delivered mixed native/WebView hosting, the production-shaped reference host, and the
-  public API freeze.
-- Current `0.9.x` patches are ready for integration and evaluation.
-- `1.0.0` completes independent compatibility, accessibility, security, protocol/schema, native
-  WebView, migration, and release review before publishing the long-term `1.x` guarantee.
+The 0.9 line contains the React Native feature set planned for 1.0 and is ready for integration and
+evaluation. The remaining 1.0 work is independent review, final validation, the documented legacy
+import change, and publication of the long-term 1.x compatibility promise.
 
 The runnable [Expo Go todo app](../examples/expo-go-todolist/README.md) provides application-level
 native evidence alongside the automated package and protocol gates.

@@ -1,8 +1,8 @@
 # Roadmap
 
-MCP Native has completed Milestones 0–9 and is now moving from the feature-complete `0.9.x`
-release candidate to `1.0.0`. The public API is frozen; the remaining stable-release work is
-independent review, final validation, documentation, and publication of the `1.x` guarantee.
+MCP Native has completed Milestones 0–9. The React Native feature set planned for 1.0 is in place,
+and the current work is independent review, final validation, documentation polish, the documented
+legacy import change, and publication of the 1.x compatibility promise.
 
 ## Path from `0.9.x` to `1.0.0`
 
@@ -21,13 +21,15 @@ The product boundary is:
 | Host extensions        | A namespaced, versioned semantic component already advertised by the host | Registration, schema, implementation, prop/event mapping, limits, fallback, and platform support    |
 | MCP Apps               | A validated `ui://` MCP App resource                                      | Isolated WebView creation, placement, bridge policy, navigation, storage, permissions, and teardown |
 
-The release sequence is intentionally cumulative:
+The release sequence is cumulative. The first three rows are shipped; the 0.9 line is now the
+candidate for the stable contract:
 
 | Release      | Outcome                                                                                          | Release gate                                                                                                                                                              |
 | ------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `0.7.0`      | Complete the non-media A2UI basic-catalog renderer and stable design-system boundary             | Every supported component passes schema, hostile-input, interaction, accessibility, and iOS/Android fixture coverage                                                      |
 | `0.8.0`      | Add policy-gated media and compiled host-extension components                                    | The complete pinned basic catalog is covered, and no server value can resolve code, native classes, commands, or unchecked props                                          |
 | `0.9.0`      | Deliver mixed native/WebView hosting and freeze the proposed public API                          | One production-shaped reference host passes lifecycle, isolation, accessibility, performance, migration, and package-consumer tests                                       |
+| `0.9.x`      | Polish the candidate with the Expo Go proof, package checks, and documentation                   | The complete example and coordinated package artifacts pass the same repository and native-host gates                                                                     |
 | `1.0.0`      | Publish the reviewed stable contract and compatibility guarantees                                | No unresolved release-blocking security, compatibility, documentation, or conformance gaps remain                                                                         |
 | Post-`1.0.0` | Add first-class SwiftUI and Jetpack Compose renderers plus universal native-capability providers | Both native renderers share the trusted protocol boundary, and any additional native capability can be integrated through a typed, advertised, policy-gated host provider |
 
