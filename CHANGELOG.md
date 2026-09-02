@@ -8,6 +8,8 @@ their minor release line.
 
 ### Changed
 
+- Add City Canvas, a polished two-screen Expo Go example that combines native A2UI with an isolated
+  MCP Apps WebView, host-owned lifecycle coordination, and a policy-approved bridge tool call.
 - Restore the README's descriptive product heading and architecture diagrams, remove the lead
   screenshot, and move the Expo Go example below the package overview.
 - Remove the hosted playground launch and keep the maintained Expo Go app, local walkthrough, and

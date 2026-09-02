@@ -70,3 +70,8 @@ or observe `dispose()` during screen teardown.
 The production-shaped generated fixture in `tests/native-host/App.tsx` demonstrates primitive,
 design-system adapter, closed variant, Fabric extension, media-policy, and mixed native/Apps paths.
 It is release evidence, not a drop-in application shell.
+
+For an approachable application you can run in Expo Go, see the
+[City Canvas mixed-surface example](../examples/expo-go-mixed-surfaces/README.md). Its two screens
+show native A2UI state, host-owned navigation, an interactive isolated MCP App, a policy-approved
+tool call, lifecycle coordination, and recovery UI without requiring a remote server.

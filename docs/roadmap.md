@@ -71,10 +71,10 @@ frozen except for security and critical correctness fixes. Milestone 9 isolates 
 ## Integration proof
 
 The maintained [Expo Go todo app](../examples/expo-go-todolist/README.md) is the runnable React
-Native primitives proof. It pins its Expo SDK and application dependencies for local reproduction
-while the package support policy remains React Native `>=0.86.0 <1`. The app exercises a
-representative surface, catalog mapping, full interaction lifecycle, persistence, and accessibility
-behavior.
+Native primitives proof. The [City Canvas example](../examples/expo-go-mixed-surfaces/README.md)
+adds a two-screen mixed-hosting proof with native A2UI, an isolated MCP Apps WebView, a stable bridge,
+and a policy-approved tool call. Both pin their Expo SDK and application dependencies for local
+reproduction while the package support policy remains React Native `>=0.86.0 <1`.
 
 Package behavior still requires automated unit, integration, conformance, generated-host, and smoke
 coverage. The Expo app supplements those tests with an approachable end-to-end workflow; it does
@@ -241,6 +241,8 @@ implemented. The Expo Go todo proof supplies separate runnable native applicatio
       exact version verification.
 - [x] Maintain a runnable Expo Go primitives proof with a complete todo workflow, three screenshots,
       exact app dependencies, package walkthrough, and focused tests.
+- [x] Maintain a two-screen Expo Go mixed-surface proof with a native A2UI region, isolated MCP Apps
+      WebView, host-authorized bridge action, lifecycle coordination, screenshots, and focused tests.
 
 Exit criterion: met by the `0.6.0` package candidate, which passes protocol, security,
 accessibility, performance, reliability, operability, package, and end-to-end interoperability
