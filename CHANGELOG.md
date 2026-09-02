@@ -26,6 +26,8 @@ their minor release line.
   accessibility, focused tests, three current screenshots, and an end-to-end package walkthrough.
 - Replace the old empty React Native demonstration-policy placeholder with the runnable app and make
   it the prominent try-it-now path in the root documentation.
+- Add a one-click Expo Snack launch for the complete todo app and provide a default ESM export-map
+  fallback so condition-based bundlers such as Snackager can consume the published packages.
 
 ## 0.9.1 - 2026-09-02
 

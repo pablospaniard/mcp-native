@@ -30,11 +30,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./oauth": {
       "types": "./dist/oauth.d.ts",
-      "import": "./dist/oauth.js"
+      "import": "./dist/oauth.js",
+      "default": "./dist/oauth.js"
     }
   },
   "publishConfig": {

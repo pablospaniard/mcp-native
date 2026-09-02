@@ -13,8 +13,16 @@ function createFixture() {
         name: "@mcp-native/example",
         license: "MIT",
         exports: {
-          ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
-          "./feature": { types: "./dist/feature.d.ts", import: "./dist/feature.js" },
+          ".": {
+            types: "./dist/index.d.ts",
+            import: "./dist/index.js",
+            default: "./dist/index.js",
+          },
+          "./feature": {
+            types: "./dist/feature.d.ts",
+            import: "./dist/feature.js",
+            default: "./dist/feature.js",
+          },
         },
       })}\n`,
     ],
@@ -102,6 +110,15 @@ test("package artifacts reject a missing exported file", () => {
   fixture.artifacts.delete("dist/feature.js");
 
   assert.throws(() => fixture.verify(), /tarball is missing dist\/feature\.js/);
+});
+
+test("package artifacts reject exports without a matching default runtime fallback", () => {
+  const fixture = createFixture();
+  const manifest = JSON.parse(fixture.artifacts.get("package.json"));
+  delete manifest.exports["./feature"].default;
+  fixture.artifacts.set("package.json", `${JSON.stringify(manifest)}\n`);
+
+  assert.throws(() => fixture.verify(), /default runtime fallback matching import/);
 });
 
 test("package artifacts reject a missing declaration map", () => {
