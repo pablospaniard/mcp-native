@@ -1,18 +1,12 @@
 # What MCP Native does
 
-> **Status:** MCP Native `0.9.x` is the feature-complete release candidate for the
-> documented React Native host scope. The public API is frozen for `1.0.0`, and teams can integrate
-> it now. The remaining stable-release work is independent review, final compatibility and release
-> validation, and publication of the `1.x` guarantee.
+MCP Native lets an application turn a server-described interface into UI that still feels—and
+behaves—like part of the application. The server asks for semantic elements such as text, fields,
+choices, lists, media, and actions. The host validates the request and maps accepted elements to
+components already compiled into the app.
 
-MCP Native lets an application turn a server-described interface into UI that still belongs to the
-application. The server can ask for semantic elements such as text, fields, choices, lists, media,
-and actions. The host validates that description, decides which capabilities it accepts, and maps
-the accepted elements to components already compiled into the app.
-
-This is useful when an MCP experience should look and behave like the rest of a native product,
-without downloading React Native code or allowing a server to select arbitrary packages, props, or
-styles.
+Use it when an MCP experience should look and behave like the rest of a native product while the
+application keeps control of code, design, navigation, permissions, and transport.
 
 ## A good fit for
 

@@ -1,8 +1,8 @@
 # Contributing to MCP Native
 
-Thank you for helping build MCP Native. The `0.9.x` public API is frozen for `1.0.0`, so integration
+Thank you for helping build MCP Native. The project is preparing for 1.0, so real integration
 feedback, independent review, documentation improvements, tests, and focused fixes are especially
-valuable. New feature work follows the published roadmap and compatibility policy.
+useful right now. Larger feature work follows the published roadmap and compatibility policy.
 
 ## Ground rules
 

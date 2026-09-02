@@ -12,11 +12,9 @@
 
 </div>
 
-> **Release status:** `0.9.x` is the feature-complete release candidate for the documented React
-> Native host scope. Its public API is frozen for `1.0.0`, so teams can build against this package
-> now. The stable `1.x` compatibility guarantee begins with `1.0.0` after final independent review.
-
-`@mcp-native/core` is the protocol- and renderer-independent foundation of MCP Native. It defines the small MCP client boundary consumed by the runtime and routes declared actions without depending on A2UI, React Native, WebViews, or a specific MCP SDK transport.
+`@mcp-native/core` is the protocol- and renderer-independent foundation of MCP Native. Use it to
+connect an MCP client to the runtime, validate JSON data, and route declared actions through an
+application policy. It does not depend on A2UI, React Native, WebViews, or a particular MCP SDK.
 
 ## Install
 

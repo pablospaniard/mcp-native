@@ -1,9 +1,8 @@
 # `0.9.x` support policy
 
-MCP Native supports React Native `>=0.86.0 <1`. The generated host runs at the minimum so CI catches
-changes that would silently raise the installation floor. Newer versions within the peer range are
-supported without requiring a dedicated version-by-version certification lane; absence from CI is
-not an incompatibility claim.
+MCP Native supports React Native `>=0.86.0 <1`. Pull requests build a generated host at 0.86.0 so
+the minimum stays real. Newer React Native 0.x versions are included in the supported range; the
+table shows the automated baseline, not a closed list of usable versions.
 
 | Surface          | Supported range or profile                                                          | Automated baseline                                             |
 | ---------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------- |
