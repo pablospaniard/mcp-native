@@ -22,16 +22,20 @@ styling, renderers, extensions, and mixed native/WebView screens in product lang
 </div>
 
 > [!IMPORTANT]
-> MCP Native is an experimental proof of concept, not a production-ready runtime. The npm packages contain working foundational APIs, but those APIs may change before the first stable release.
+> MCP Native `0.9.x` is the feature-complete pre-`1.0` release candidate for the documented React
+> Native host scope. The proposed `1.0.0` API is frozen, but the stable compatibility guarantee does
+> not apply until the independent security, accessibility, compatibility, protocol/schema, and
+> native WebView reviews in the `1.0.0` release gate are complete. Shipping hosts must still audit
+> their component mappings, policies, permissions, WebView integration, and platform behavior.
 
 > [!CAUTION]
 > The custom `@mcp-native/a2ui` `0.1` surface is deprecated and frozen for migration. The packages implement a separately negotiated, feature-scoped A2UI v1.0 Candidate profile with schema-validated lifecycle and renderer messages, capability and host-policy validation, bounded dynamic lists and catalog functions, renderer-local state, and official action envelopes returned to a host callback. This is not an unqualified A2UI compatibility claim, and the host still owns action transport. The WebView package implements the documented stable MCP Apps `2026-01-26` native host-adapter profile; native WebView isolation is not equivalent to a browser's cross-origin double iframe. See the [A2UI conformance profile](docs/a2ui-v1-conformance.md), [MCP Apps profile](docs/mcp-apps-compatibility.md), and [standards status](docs/standards-compatibility.md).
 
-## The idea
+## How it works
 
 MCP servers can expose much more than text. They can describe tools, resources, actions, and interactive experiences. Today, those experiences often arrive as HTML and run inside an iframe or WebView.
 
-MCP Native explores a complementary path:
+MCP Native provides a complementary path:
 
 - a server describes UI as validated, declarative data;
 - the host maps that data to components already bundled with the app;
@@ -138,7 +142,7 @@ npm install @mcp-native/mcp @modelcontextprotocol/client
 
 Every package is ESM-only and includes TypeScript declarations. Published packages are released from GitHub Actions with signed npm provenance.
 
-## What works today
+## Implemented in `0.9.0`
 
 - A transport-independent MCP client boundary
 - A validated adapter for connected clients from the official MCP TypeScript SDK v2
@@ -173,7 +177,7 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
 - Bounded SDK connection lifecycle coordination, actionable host states, and data-free operational events
 - Shared finite, acyclic JSON validation with safe handling of prototype-named keys
 - Strict resolution of `application/a2ui+json` resource links from real tool results
-- Strict parsing of a deliberately small declarative UI subset
+- Frozen strict parsing for the deprecated custom `0.1` surface behind legacy migration APIs
 - Conversion from a validated surface to a trusted native render plan
 - Mounting through a required four-primitive base plus optional host-provided components
 - Typed adapters from trusted semantic props into locally bundled design-system components
@@ -190,7 +194,8 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
   JSON-RPC lifecycle verified against official `@modelcontextprotocol/ext-apps@1.7.5` schemas
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a foundation, not a complete MCP or A2UI implementation. The v1 native adapter supports
+This is a deliberately scoped implementation, not an unqualified claim of complete MCP or A2UI
+support. The v1 native adapter supports
 every basic-catalog component, typed absolute and dynamic-list-relative bindings, bounded
 formatting and validation functions, pure boolean functions, `@index`, action events returned to a
 host callback, required host image/media grants, press-time host-policy-gated HTTP(S) `openUrl`, and
@@ -493,7 +498,7 @@ mcp-native/
 │   ├── react-native/
 │   ├── webview/
 │   └── mcp-native/
-└── tests/                     # Cross-package proof-of-concept tests
+└── tests/                     # Cross-package integration and boundary tests
 ```
 
 React Native integrations are demonstrated independently with one Expo Go PoC per selected common,
@@ -541,7 +546,7 @@ post-stable deliverables.
 - [x] Preserve MCP `2026-07-28` tool/resource fields and test the current HTTP path
 - [x] Pin official MCP conformance scenarios and document backwards compatibility
 - [x] Add extension negotiation and metadata-preserving capability contracts
-- [x] Implement the initial A2UI v1.0 foundation from pinned schemas, lifecycle envelopes, and ordered state
+- [x] Implement the pinned A2UI v1.0 adapter from schemas, lifecycle envelopes, and ordered state
 - [x] Add a policy-gated pre-render boundary for basic-catalog graphs, bindings, events, and functions
 - [x] Adapt the supported A2UI v1 subset, including bounded dynamic lists, into the trusted native render plan
 - [x] Add renderer-local string state, dispatch-time action context, and official action envelopes

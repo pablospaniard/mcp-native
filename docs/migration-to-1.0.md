@@ -1,6 +1,6 @@
 # Migration from `0.9.x` to `1.0.0`
 
-Milestone 9 establishes the proposed stable API and one deliberate cleanup: the deprecated custom
+Milestone 9 establishes the release-candidate API and one deliberate cleanup: the deprecated custom
 A2UI `0.1` proof model will no longer appear in package root exports at `1.0.0`.
 
 ## Move legacy imports now
