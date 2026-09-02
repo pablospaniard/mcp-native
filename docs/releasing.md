@@ -18,9 +18,11 @@ Before creating a release:
 
 `npm run release:verify` covers repository checks, exact version verification, and package smoke
 installation. Package smoke verifies every declared export, runtime and declaration source map,
-README, and exact MIT license in the packed artifacts before installing them into a clean offline
-consumer. Expo Go integration demonstrations are reported independently when present as additional
-platform and component-library evidence.
+README, and exact MIT license in the packed artifacts. It installs the latest coordinated published
+`0.9.x` packages into a clean consumer, runs the documented migration-ready imports, replaces all
+six packages with the local candidate tarballs through an offline install, and runs the same
+consumer again. Expo Go integration demonstrations are reported independently when present as
+additional platform and component-library evidence.
 
 Use the [`1.0.0` readiness checklist](1.0-readiness.md) to distinguish automated repository evidence
 from the independent reviews and registry checks that must be recorded for the stable release.
