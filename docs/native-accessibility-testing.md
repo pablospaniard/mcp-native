@@ -20,7 +20,8 @@ The app covers:
 - strict persisted-state parsing through Expo SQLite;
 - VoiceOver/TalkBack labels, roles, checked/disabled state, font scaling, and native touch targets;
   and
-- portrait layouts on iOS and Android bundles produced by the same Expo project.
+- an orientation-aware scrolling layout, with the same Expo project configured for portrait and
+  landscape on iOS and Android.
 
 The example pins Expo SDK 57 and React Native 0.86.3. Those pins make the proof reproducible; they do
 not narrow the package support policy of React Native `>=0.86.0 <1`.

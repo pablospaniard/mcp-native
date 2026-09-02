@@ -23,6 +23,11 @@ export interface TodoCounts {
   readonly total: number;
 }
 
+export interface TodoReset {
+  readonly state: TodoState;
+  readonly persistenceCleared: Promise<boolean>;
+}
+
 const FILTERS = new Set<TodoFilter>(["all", "active", "completed"]);
 const TODO_ID_PATTERN = /^[a-zA-Z0-9._:-]{1,128}$/;
 const RESERVED_IDS = new Set(["__proto__", "constructor", "prototype"]);
@@ -37,6 +42,21 @@ export function createInitialTodoState(): TodoState {
       { id: "welcome-3", title: "Inspect the official action envelopes", completed: false },
     ],
   };
+}
+
+export function startTodoReset(clearPersistedState: () => Promise<void>): TodoReset {
+  const state = createInitialTodoState();
+  try {
+    return {
+      state,
+      persistenceCleared: clearPersistedState().then(
+        () => true,
+        () => false,
+      ),
+    };
+  } catch {
+    return { state, persistenceCleared: Promise.resolve(false) };
+  }
 }
 
 export function getTodoCounts(todos: readonly Todo[]): TodoCounts {

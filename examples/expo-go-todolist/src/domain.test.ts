@@ -10,6 +10,7 @@ import {
   MAX_TODO_TITLE_LENGTH,
   parsePersistedTodoState,
   reconcileRendererModel,
+  startTodoReset,
   toPersistedTodoState,
 } from "./domain";
 
@@ -88,4 +89,14 @@ test("persisted state round-trips and malformed storage falls back safely", () =
     }),
     undefined,
   );
+});
+
+test("reset restores in-memory state even when persisted cleanup fails", async () => {
+  const failedReset = startTodoReset(() => Promise.reject(new Error("storage unavailable")));
+  assert.deepEqual(failedReset.state, createInitialTodoState());
+  assert.equal(await failedReset.persistenceCleared, false);
+
+  const successfulReset = startTodoReset(() => Promise.resolve());
+  assert.deepEqual(successfulReset.state, createInitialTodoState());
+  assert.equal(await successfulReset.persistenceCleared, true);
 });

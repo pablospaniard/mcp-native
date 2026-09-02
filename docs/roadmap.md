@@ -39,8 +39,8 @@ The release sequence is intentionally cumulative:
   shell.
 - A2UI native regions and MCP Apps WebViews compose as host-created siblings with separate policy
   boundaries.
-- Compatibility is reported against exact pinned MCP, A2UI, MCP Apps, React Native, iOS, and
-  Android profiles.
+- Compatibility is reported against exact pinned MCP, A2UI, and MCP Apps profiles plus the declared
+  React Native, iOS, and Android support policy and automated minimum-version baseline.
 - First-class SwiftUI and Jetpack Compose renderers begin after the stable React Native release.
 
 UIKit, Android View, SwiftUI, and Compose implementations may still be used when the application
@@ -297,8 +297,8 @@ Status: released in `0.8.0`.
       a validated, policy-gated semantic action with user activation where required.
 - [x] Add one UIKit-backed iOS fixture and one Android View-backed fixture through Fabric. A
       SwiftUI- or Compose-backed wrapper may be demonstrated, but it is not a direct renderer or a
-      portability guarantee. Both the minimum and latest supported React Native boundaries compile
-      these native fixtures automatically on pull requests.
+      portability guarantee. The declared minimum React Native boundary compiles these native
+      fixtures with the default engine automatically on pull requests.
 - [x] Add negative and amplification tests for unknown extension IDs and versions, malformed props,
       forged events, unavailable platforms, oversized graphs and values, excessive updates, and
       permission or resource-policy bypass attempts.
@@ -333,8 +333,9 @@ Status: released in `0.9.0`.
       and migration policy and freeze the release-candidate API.
 - [x] Decide and document removal or isolation of the deprecated custom A2UI `0.1` proof surface;
       it must not remain ambiguous with the supported A2UI v1 Candidate profile in `1.0.0`.
-- [x] Run package-consumer fixtures against the supported React Native, React, TypeScript, Node.js,
-      iOS, Android, New Architecture, and JavaScript-engine matrix, with exact version ranges recorded.
+- [x] Run package-consumer fixtures against the declared React Native minimum, React, TypeScript,
+      Node.js, iOS, Android, New Architecture, and default JavaScript engine, with exact ranges and
+      the automated baseline recorded.
 
 Exit criterion: met by the `0.9.0` release. The release-candidate API is frozen, the reference host
 exercises the promised native, extension, and mixed-WebView flows, and adopters can understand and

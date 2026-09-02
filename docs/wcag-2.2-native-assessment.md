@@ -33,9 +33,10 @@ implementations cannot cross the host boundary.
 
 ## Host and demonstration responsibilities
 
-The maintained Expo Go todo proof checks the applicable WCAG 2.2 Level A and AA scenarios for its
-native primitives catalog. Hosts should repeat the relevant checks for their own design system,
-platform targets, and installed component versions. At minimum, exercise:
+The maintained Expo Go todo proof provides a concrete native primitives catalog for the applicable
+WCAG 2.2 Level A and AA scenarios. The app is configured for both orientations and its interactive
+controls use 44-point minimum targets. Hosts should exercise the following checks on their own
+design system, platform targets, and installed component versions:
 
 - names, roles, values, descriptions, validation messages, and status announcements;
 - forward and reverse focus order, visible focus, keyboard avoidance, and absence of focus traps;

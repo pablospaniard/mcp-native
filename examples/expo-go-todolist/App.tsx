@@ -20,9 +20,10 @@ import {
   applyTodoAction,
   createInitialTodoState,
   reconcileRendererModel,
+  startTodoReset,
   type TodoState,
 } from "./src/domain";
-import { loadTodoState, resetTodoState, saveTodoState } from "./src/storage";
+import { clearPersistedTodoState, loadTodoState, saveTodoState } from "./src/storage";
 import {
   createTodoActionMetadata,
   createValidatedTodoSurface,
@@ -100,9 +101,13 @@ export default function App() {
         text: "Reset",
         style: "destructive",
         onPress: () => {
-          void resetTodoState().then((initial) => {
-            setState(initial);
-            setStatus("Demo tasks restored");
+          const reset = startTodoReset(clearPersistedTodoState);
+          setState(reset.state);
+          setStatus("Demo tasks restored");
+          void reset.persistenceCleared.then((cleared) => {
+            if (!cleared) {
+              setStatus("Demo tasks restored in memory · the device save could not be cleared");
+            }
           });
         },
       },

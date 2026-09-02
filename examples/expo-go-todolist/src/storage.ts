@@ -23,7 +23,6 @@ export async function saveTodoState(state: TodoState): Promise<void> {
   await Storage.setItem(STORAGE_KEY, JSON.stringify(toPersistedTodoState(state)));
 }
 
-export async function resetTodoState(): Promise<TodoState> {
+export async function clearPersistedTodoState(): Promise<void> {
   await Storage.removeItem(STORAGE_KEY);
-  return createInitialTodoState();
 }
