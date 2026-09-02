@@ -161,8 +161,8 @@ discovery. Release `0.6.0` added bounded consent, expiring/revocable host-owned 
 OAuth, scope history, lifecycle coordination, actionable states, and redacted operations. The
 [roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/roadmap.md) tracks profile
 extensions such as full streaming host integration and transport placement for A2UI capability
-objects. The open Expo Go integration track can add platform and component-library evidence
-alongside the automated release gates.
+objects. The runnable [Expo Go todo app](../../examples/expo-go-todolist/README.md) provides
+application-level evidence alongside the automated release gates.
 
 ## Security model
 

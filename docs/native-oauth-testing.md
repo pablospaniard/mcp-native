@@ -1,7 +1,7 @@
 # Native OAuth host integration
 
-Status: the package-level reference adapters are implemented. The app-level demonstration track is
-open for additional platform evidence.
+Status: the package-level reference adapters are implemented. Production hosts can use the scenarios
+below to record platform-specific secure-storage and authentication-session evidence.
 
 ## Boundary
 
@@ -37,7 +37,7 @@ outside callback completion must use the previously granted token/scope history 
 Apple documents `ASWebAuthenticationSession` as the OS authentication flow that returns the
 callback only to the calling app. Android recommends Custom Tabs for third-party authentication
 instead of a WebView. The reference Expo Go wiring below uses Expo's secure-store and browser
-modules; a future demonstration should pin them to its Expo SDK version:
+modules; a host proof should pin them to its Expo SDK version:
 
 - [Apple ASWebAuthenticationSession](https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession)
 - [Android Custom Tabs](https://developer.android.com/develop/ui/views/layout/webapps/overview-of-android-custom-tabs)

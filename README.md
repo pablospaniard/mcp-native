@@ -33,6 +33,31 @@ styling, renderers, extensions, and mixed native/WebView screens in product lang
 > the [A2UI profile](docs/a2ui-v1-conformance.md), [MCP Apps profile](docs/mcp-apps-compatibility.md),
 > and [standards matrix](docs/standards-compatibility.md) for exact coverage.
 
+## Run the Expo Go proof
+
+<p align="center">
+  <a href="examples/expo-go-todolist/README.md">
+    <img src="examples/expo-go-todolist/docs/screenshots/all-tasks.png" width="360" alt="MCP Native Expo Go todo app showing its validated A2UI task surface" />
+  </a>
+</p>
+
+The [complete todo app](examples/expo-go-todolist/README.md) is the shortest path from this
+repository to a working native surface. It uses the real A2UI v1 lifecycle, trusted React Native
+catalog, official action envelopes, renderer-local bindings, validation, filters, editing,
+persistence, accessibility, and host-owned action handling.
+
+```bash
+npm ci
+npm run build
+cd examples/expo-go-todolist
+npm ci
+npm start
+```
+
+Scan the terminal QR code with Expo Go, or press `a`/`i` for an emulator/simulator. The example
+README explains each package boundary with copyable code and includes the focused verification
+commands.
+
 ## How it works
 
 MCP servers can expose much more than text. They can describe tools, resources, actions, and interactive experiences. Today, those experiences often arrive as HTML and run inside an iframe or WebView.
@@ -127,7 +152,7 @@ Install the runtime and UI APIs from the convenience package:
 npm install mcp-native react
 ```
 
-Add React Native `>=0.87.0 <1` when mounting native surfaces. It remains an optional peer because
+Add React Native `>=0.86.0 <1` when mounting native surfaces. It remains an optional peer because
 the host—not this package—selects the platform implementation.
 
 Or install only the layers your host needs:
@@ -204,8 +229,9 @@ exactly negotiated local host extensions. The profile records agent-initiated re
 and platform behavior outside the automated native fixtures as future extensions. Release `0.6.0` includes policy gates at all
 current action boundaries, persistent expiring/revocable consent grants and OAuth scope history,
 bounded connection lifecycle coordination, actionable host states, redacted operational events, and
-a [production host checklist](docs/host-integration-checklist.md). The open Expo Go demonstration
-track is designed to add component-library evidence alongside the package release gates.
+a [production host checklist](docs/host-integration-checklist.md). The runnable
+[Expo Go todo app](examples/expo-go-todolist/README.md) demonstrates those boundaries as a complete
+native workflow alongside the package release gates.
 
 ## Protected Streamable HTTP OAuth
 
@@ -293,9 +319,8 @@ restart. Authorization URLs are bounded before browser handoff, and both native-
 process-recovery callbacks have total and per-parameter budgets before code redemption. A handoff
 is allowed only after the provider has reserved state and saved exactly one PKCE verifier for the
 attempt. All 25 scored official
-authorization scenarios pass.
-App-level native integration demonstrations are tracked separately and remain open. Production
-hosts remain responsible for choosing app-owned secure-storage and authentication-session implementations
+authorization scenarios pass. Production hosts remain responsible for choosing app-owned
+secure-storage and authentication-session implementations
 and for the broader consent and lifecycle controls described below.
 
 ## A2UI v1 Candidate host flow
@@ -496,7 +521,7 @@ mcp-native/
 ├── .github/                   # CI, ownership, and collaboration templates
 ├── docs/                      # Architecture decisions and design notes
 ├── examples/
-│   └── react-native-demo/     # Expo Go app-per-library demonstration policy and shared flow
+│   └── expo-go-todolist/      # Runnable Expo Go A2UI todo proof and walkthrough
 ├── packages/
 │   ├── core/
 │   ├── mcp/
@@ -507,11 +532,10 @@ mcp-native/
 └── tests/                     # Cross-package integration and boundary tests
 ```
 
-The React Native integration demonstration policy calls for one Expo Go app per selected common,
-Expo Go-compatible component library, plus a primitives baseline. This evidence track is ready for
-contributions; no Expo Go app is currently committed. Each future demonstration will pin its
-library and Expo SDK versions and exercise the same representative flow; repository tests and smoke
-checks remain the package release gates.
+The Expo Go todo app is the maintained application-level proof for the React Native primitives
+catalog. It pins its Expo and React Native dependencies, includes screenshots and package-level code
+examples, and exercises the representative workflow. Repository checks and package smoke tests
+remain the release gates.
 
 ## Roadmap
 
@@ -571,8 +595,8 @@ post-stable deliverables.
       UIKit/Android View fixtures
 - [x] Parse every pinned renderer-to-agent message kind and publish the feature-scoped conformance profile
 - [x] Enforce A2UI parse, update, render-plan, and retained-memory budgets with deterministic fuzz coverage
-- [x] Generate pinned latest/minimum RN 0.87.1/0.87.0 hosts and exercise automated bundle,
-      host-boundary, Android-build, and iOS-build checks on pull requests
+- [x] Generate an RN 0.86.0 minimum-support host and exercise automated bundle, host-boundary,
+      Android-build, and iOS-build checks on pull requests
 - [x] Complete the documented real-platform accessibility behavior
 - [x] Execute the supported iOS/Android fixture and accessibility matrix in generated real hosts
 - [x] Coordinate host-owned native and isolated Apps sibling regions across complete lifecycle
@@ -585,7 +609,7 @@ post-stable deliverables.
 - [x] Add bounded core `dispatch()` tool-risk, capability, and privacy consent descriptors
 - [x] Integrate consent policy across current action boundaries and add persistent, expiring grants
 - [x] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
-- [ ] Maintain separate Expo Go demonstrations for the primitives baseline and selected common component libraries
+- [x] Maintain a runnable Expo Go primitives proof with a complete workflow and package walkthrough
 - [ ] Expand protocol coverage through reviewed RFCs and tests
 
 ## Contributing

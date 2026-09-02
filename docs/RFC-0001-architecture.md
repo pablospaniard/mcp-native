@@ -203,6 +203,6 @@ return { content: [{ type: "text", text: "Saved" }] };
   documented profile is updated;
 - extend MCP Apps with optional stable methods and browser-host double-iframe support as separate
   profiles;
-- add platform and component-library integration demonstrations; and
+- extend the Expo Go proof with useful host-owned catalog mappings when needed; and
 - develop first-class SwiftUI, Jetpack Compose, and native capability-provider packages after
   `1.0.0`.

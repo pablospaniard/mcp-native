@@ -1,52 +1,77 @@
-# Expo Go React Native integration demonstrations
+# Expo Go native integration proof
 
-Status: policy defined; implementation track open. No Expo Go app is currently committed.
+Status: implemented in [`examples/expo-go-todolist`](../examples/expo-go-todolist/README.md).
 
-## Scope
+## What it demonstrates
 
-Add small Expo Go apps to demonstrate how `@mcp-native/react-native` maps the same validated A2UI
-surface into commonly used React Native component libraries. Maintain one app for the React Native
-primitives baseline and one separate app for each selected Expo Go-compatible library. Do not combine
-libraries in one app: independent dependency trees make installation and compatibility failures
-clear.
+The maintained Expo Go app turns a validated A2UI v1 lifecycle into a complete native todo
+workflow using `@mcp-native/a2ui` and `@mcp-native/react-native`. It is intentionally built from
+React Native primitives already available in Expo Go, so anyone can clone the repository, scan a QR
+code, and try the package boundary without creating a custom development client.
 
-The maintained library set should reflect current community use, active maintenance, and Expo Go
-compatibility. Each demonstration names its exact Expo SDK, React Native, library, MCP Native, iOS, and
-Android versions. A library that requires native code absent from Expo Go is outside this matrix
-until it provides an Expo Go-compatible path.
+The app covers:
 
-Each result provides compatibility evidence for its exact library and version set. Automated unit,
-integration, conformance, performance, and package-smoke tests remain the repository release gates.
+- a host-owned component catalog with closed variants;
+- static content and a bounded dynamic todo list;
+- add, edit, complete/reactivate, filter, delete, clear-completed, and reset workflows;
+- official schema-validated action envelopes returned to the host;
+- renderer-local text, checkbox, and choice bindings reconciled through validated host state;
+- field validation, disabled actions, empty states, and live task counts;
+- strict persisted-state parsing through Expo SQLite;
+- VoiceOver/TalkBack labels, roles, checked/disabled state, font scaling, and native touch targets;
+  and
+- an orientation-aware scrolling layout, with the same Expo project configured for portrait and
+  landscape on iOS and Android.
 
-## Shared surface
+The example pins Expo SDK 57 and React Native 0.86.3. Those pins make the proof reproducible; they do
+not narrow the package support policy of React Native `>=0.86.0 <1`.
 
-Every app should exercise the same representative fixture, including:
+## Run it
 
-- primitive, typed-adapter, and closed-variant catalog paths;
-- static and dynamic-list content;
-- enabled and disabled actions with observable single dispatch;
-- valid, invalid, multiline, numeric, and obscured text fields;
-- image allow/deny and failure-placeholder behavior, pinned icons, decorative dividers, checkboxes,
-  single and multiple choices, sliders, date/time input, tabs, and modal dismissal;
-- renderer-local edits that do not emit network actions;
-- visible and hidden text, labels, descriptions, live regions, and validation messages; and
-- portrait and landscape layouts at normal and large system text sizes.
+```bash
+npm ci
+npm run build
+cd examples/expo-go-todolist
+npm ci
+npm start
+```
 
-The server remains unable to choose native roles, accessibility state, font-scaling policy,
-component implementations, arbitrary props, or imported modules. Each adapter explicitly maps the
-trusted semantic props into its local component library. Image demonstrations must not advertise
-`Image` unless their loader enforces the supplied resource grant. A mapping that drops required behavior is
-reported as a limitation of that demonstration and fixed in the local adapter or component.
+Scan the QR code with Expo Go or use the terminal shortcuts for an emulator or simulator. See the
+[example walkthrough](../examples/expo-go-todolist/README.md) for screenshots, package-specific
+code, expected behavior, and troubleshooting.
 
-## App structure
+## Trust boundary
 
-Keep each demonstration deliberately small:
+The example follows the same boundary expected from a production host:
 
-1. create a standard Expo app that opens in Expo Go;
-2. install one selected component library and the local or published MCP Native packages;
-3. hand-author only the catalog adapters, fixture screen, and a compact result view;
-4. run the shared interaction and accessibility scenarios on iOS and Android; and
-5. record the exact versions, known limitations, and reproduction steps in that app's README.
+- MCP/server input is data and is validated before rendering;
+- the host explicitly allowlists component, action, and pure-function names;
+- the server cannot select an imported component, arbitrary native prop, module, or executable
+  code;
+- renderer-local changes are checked against known todo IDs and application size limits;
+- action envelopes are validated before the host callback receives them; and
+- the host owns persistence and would also own MCP transport, authorization, consent, and device
+  permissions.
 
-Extend the existing app when coverage for a library grows. Use one demonstration per library, and
-keep package-level regression tests as the automated source of repeatable behavior coverage.
+The app does not advertise image, media, WebView, or custom native-module capabilities because they
+are not needed for this proof. Hosts can add those through the documented policy-gated catalog and
+MCP Apps APIs.
+
+## Repeatable checks
+
+From the example directory:
+
+```bash
+npm run check
+npm run bundle:ios
+npm run bundle:android
+```
+
+The focused tests cover lifecycle/schema validation, trusted render-plan expansion, every todo
+operation, persistence parsing, forged renderer input, and list/title bounds. Repository CI also
+builds the React Native 0.86.0 minimum host; the Expo app is complementary, runnable evidence rather
+than a version-certification matrix.
+
+When the screen or catalog changes, keep exactly three current screenshots in
+`examples/expo-go-todolist/docs/screenshots`: the all-tasks surface, completed filter, and empty
+state. Check both normal and large system text locally before updating them.

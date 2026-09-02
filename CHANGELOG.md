@@ -18,6 +18,14 @@ their minor release line.
 - Add a pull-request upgrade smoke gate that installs the latest coordinated published `0.9.x`
   packages, exercises migration-ready modern and `/legacy` imports, replaces every dependency with
   its local candidate tarball, and runs the same consumer again.
+- Restore React Native `0.86.0` as the supported minimum and focus generated native-host CI on that
+  minimum with the default Hermes engine. Optional engine combinations no longer narrow the package
+  peer range or imply incompatibility when they do not have a dedicated lane.
+- Add a complete Expo Go todo application with validated A2UI lifecycle messages, a trusted React
+  Native primitives catalog, renderer-local bindings, official action envelopes, persistence,
+  accessibility, focused tests, three current screenshots, and an end-to-end package walkthrough.
+- Replace the old empty React Native demonstration-policy placeholder with the runnable app and make
+  it the prominent try-it-now path in the root documentation.
 
 ## 0.9.1 - 2026-09-02
 

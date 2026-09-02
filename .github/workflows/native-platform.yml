@@ -9,13 +9,8 @@ permissions:
 
 jobs:
   android:
-    name: Android build (React Native ${{ matrix.react-native }}, ${{ matrix.js-engine }})
+    name: Android build (React Native 0.86.0 minimum)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        react-native: ["0.87.1", "0.87.0"]
-        js-engine: ["hermes", "jsc"]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -35,26 +30,20 @@ jobs:
       - name: Generate temporary host
         run: >-
           node scripts/prepare-native-host.mjs
-          --react-native ${{ matrix.react-native }}
-          --js-engine ${{ matrix.js-engine }}
-          --output "${RUNNER_TEMP}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}"
+          --react-native 0.86.0
+          --output "${RUNNER_TEMP}/mcp-native-host-0.86.0"
       - name: Assemble debug application
-        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}/android
+        working-directory: ${{ runner.temp }}/mcp-native-host-0.86.0/android
         run: ./gradlew assembleDebug --no-daemon -PreactNativeArchitectures=x86_64
       - uses: actions/upload-artifact@v6
         with:
-          name: android-rn-${{ matrix.react-native }}-${{ matrix.js-engine }}
-          path: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}/android/app/build/outputs/apk/debug/app-debug.apk
+          name: android-rn-0.86.0
+          path: ${{ runner.temp }}/mcp-native-host-0.86.0/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
   ios:
-    name: iOS simulator build (React Native ${{ matrix.react-native }}, ${{ matrix.js-engine }})
+    name: iOS simulator build (React Native 0.86.0 minimum)
     runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        react-native: ["0.87.1", "0.87.0"]
-        js-engine: ["hermes", "jsc"]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -65,30 +54,24 @@ jobs:
       - name: Generate temporary host
         run: >-
           node scripts/prepare-native-host.mjs
-          --react-native ${{ matrix.react-native }}
-          --js-engine ${{ matrix.js-engine }}
-          --output "${RUNNER_TEMP}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}"
+          --react-native 0.86.0
+          --output "${RUNNER_TEMP}/mcp-native-host-0.86.0"
       - name: Install CocoaPods dependencies
-        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}/ios
-        env:
-          USE_HERMES: ${{ matrix.js-engine == 'hermes' && '1' || '0' }}
-          USE_THIRD_PARTY_JSC: ${{ matrix.js-engine == 'jsc' && '1' || '0' }}
-          RCT_USE_RN_DEP: ${{ matrix.js-engine == 'jsc' && '0' || '1' }}
-          RCT_USE_PREBUILT_RNCORE: ${{ matrix.js-engine == 'jsc' && '0' || '1' }}
+        working-directory: ${{ runner.temp }}/mcp-native-host-0.86.0/ios
         run: bundle install && bundle exec pod install
       - name: Build simulator application
-        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}/ios
+        working-directory: ${{ runner.temp }}/mcp-native-host-0.86.0/ios
         run: >-
           xcodebuild
           -workspace McpNativeAccessibilityHost.xcworkspace
           -scheme McpNativeAccessibilityHost
           -configuration Debug
           -sdk iphonesimulator
-          -derivedDataPath "${RUNNER_TEMP}/mcp-native-ios-${{ matrix.react-native }}-${{ matrix.js-engine }}"
+          -derivedDataPath "${RUNNER_TEMP}/mcp-native-ios-0.86.0"
           CODE_SIGNING_ALLOWED=NO
           build
       - uses: actions/upload-artifact@v6
         with:
-          name: ios-simulator-rn-${{ matrix.react-native }}-${{ matrix.js-engine }}
-          path: ${{ runner.temp }}/mcp-native-ios-${{ matrix.react-native }}-${{ matrix.js-engine }}/Build/Products/Debug-iphonesimulator/McpNativeAccessibilityHost.app
+          name: ios-simulator-rn-0.86.0
+          path: ${{ runner.temp }}/mcp-native-ios-0.86.0/Build/Products/Debug-iphonesimulator/McpNativeAccessibilityHost.app
           if-no-files-found: error

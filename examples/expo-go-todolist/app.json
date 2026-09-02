@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "MCP Native Todos",
+    "slug": "mcp-native-todos",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "io.github.pablospaniard.mcpnative.todos"
+    },
+    "android": {
+      "package": "io.github.pablospaniard.mcpnative.todos"
+    }
+  }
+}

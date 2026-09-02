@@ -1,8 +1,8 @@
 # WCAG 2.2 native responsibility assessment
 
-Status: design and host-responsibility guidance for the supported A2UI native subset. The open Expo
-Go demonstration track can add platform and component-library evidence to the automated package
-release gates.
+Status: design and host-responsibility guidance for the supported A2UI native subset. The [Expo Go
+todo app](../examples/expo-go-todolist/README.md) adds runnable primitives-catalog evidence to the
+automated package release gates.
 
 WCAG is a web-content standard. W3C's WCAG2Mobile work provides informative guidance for applying
 its principles to native mobile applications. MCP Native can enforce only the semantics represented
@@ -33,8 +33,10 @@ implementations cannot cross the host boundary.
 
 ## Host and demonstration responsibilities
 
-Each Expo Go demonstration should check the applicable WCAG 2.2 Level A and AA scenarios for its
-exact platform, Expo SDK, React Native version, and component-library version. At minimum, exercise:
+The maintained Expo Go todo proof provides a concrete native primitives catalog for the applicable
+WCAG 2.2 Level A and AA scenarios. The app is configured for both orientations and its interactive
+controls use 44-point minimum targets. Hosts should exercise the following checks on their own
+design system, platform targets, and installed component versions:
 
 - names, roles, values, descriptions, validation messages, and status announcements;
 - forward and reverse focus order, visible focus, keyboard avoidance, and absence of focus traps;
@@ -50,6 +52,6 @@ avoidance, touch-target geometry, and component-library accessibility behavior a
 demonstration limitations in the local adapter or host component while preserving that host-owned
 capability boundary.
 
-Demonstration observations belong in that app's README with exact versions and reproduction steps.
-They provide support evidence for that exact library and version set; protocol conformance remains
-covered by the package-level gates.
+Application observations and reproduction steps belong in the [example
+README](../examples/expo-go-todolist/README.md). Protocol conformance remains covered by the
+package-level gates.

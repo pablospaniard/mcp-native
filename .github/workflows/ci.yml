@@ -21,14 +21,32 @@ jobs:
       - run: npm run check
       - run: npm run package:smoke
 
-  native-host-bundle:
-    name: Native host bundle (React Native ${{ matrix.react-native }}, ${{ matrix.js-engine }})
+  expo-go-todolist:
+    name: Expo Go todo proof
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        react-native: ["0.87.1", "0.87.0"]
-        js-engine: ["hermes", "jsc"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            examples/expo-go-todolist/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm ci
+        working-directory: examples/expo-go-todolist
+      - run: npm run check
+        working-directory: examples/expo-go-todolist
+      - run: npm run bundle:ios
+        working-directory: examples/expo-go-todolist
+      - run: npm run bundle:android
+        working-directory: examples/expo-go-todolist
+
+  native-host-bundle:
+    name: Native host bundle (React Native 0.86.0 minimum)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -39,12 +57,11 @@ jobs:
       - name: Generate temporary host
         run: >-
           node scripts/prepare-native-host.mjs
-          --react-native ${{ matrix.react-native }}
-          --js-engine ${{ matrix.js-engine }}
-          --output "${RUNNER_TEMP}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}"
+          --react-native 0.86.0
+          --output "${RUNNER_TEMP}/mcp-native-host-0.86.0"
       - name: Bundle Android host
-        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}
+        working-directory: ${{ runner.temp }}/mcp-native-host-0.86.0
         run: npm run mcp-native:bundle:android
       - name: Bundle iOS host
-        working-directory: ${{ runner.temp }}/mcp-native-host-${{ matrix.react-native }}-${{ matrix.js-engine }}
+        working-directory: ${{ runner.temp }}/mcp-native-host-0.86.0
         run: npm run mcp-native:bundle:ios

@@ -51,6 +51,6 @@ safe after measuring CI cost; reducing them requires a reviewed rationale.
 
 ## App-level demonstrations
 
-These gates execute the protocol and render-plan layers under Node.js. The open Expo Go
-demonstration track will exercise the shared surface through the React Native primitives baseline
-and selected common component libraries, adding exact platform and library evidence.
+These gates execute the protocol and render-plan layers under Node.js. The runnable [Expo Go todo
+app](../examples/expo-go-todolist/README.md) exercises the lifecycle and trusted React Native
+primitives catalog as a complete application-level workflow.

@@ -110,5 +110,6 @@ networking, storage, accessibility, and operations choices.
 - Exercise supported iOS and Android hosts across connect, timeout, cancellation, background/resume,
   offline/online, reconnect, consent denial/revocation/expiry, OAuth cancel/recovery/scope upgrade,
   accessibility, and graceful shutdown.
-- Record exact native/Expo/component-library versions separately. Use Expo Go demonstrations to add
-  integration evidence alongside the protocol and package release gates.
+- Record exact native/Expo/component-library versions separately. Use the maintained [Expo Go todo
+  app](../examples/expo-go-todolist/README.md) as a reproducible integration reference alongside the
+  protocol and package release gates.
