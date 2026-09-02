@@ -1,9 +1,9 @@
 # Media and host extensions
 
 Milestone 8 completes the pinned A2UI basic catalog with policy-gated `Video` and `AudioPlayer`
-and adds a closed way for an application to expose one of its own locally compiled semantic
-components. Neither feature lets an MCP server choose code, native classes, libraries, props,
-styles, permissions, or imperative commands.
+and gives applications a closed way to expose their own locally compiled semantic components. The
+host continues to own code, native classes, libraries, prop and style mapping, permissions, and
+imperative commands.
 
 ## Media flow
 

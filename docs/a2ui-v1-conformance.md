@@ -98,8 +98,8 @@ declared component and function profile is closed, and all other server-controll
 closed.
 
 The [automated robustness gates](a2ui-v1-performance.md) cover bounded Node.js performance and
-generated-input behavior. App-level component-library compatibility is demonstrated separately in
-non-blocking Expo Go PoCs and is not part of the declared protocol profile.
+generated-input behavior. The open Expo Go integration track can add complementary platform and
+component-library evidence; the package gates above verify the declared protocol profile.
 
 ## Candidate interpretations
 

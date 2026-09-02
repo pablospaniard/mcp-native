@@ -12,10 +12,11 @@
 
 </div>
 
-> **Pre-1.0 protocol profile:** this package implements the documented feature-scoped A2UI v1.0
-> Candidate profile and retains a deprecated custom `0.1` proof surface only for migration. The
-> project-owned A2UI-over-MCP binding remains experimental, `0.1` is not an A2UI protocol version,
-> and the implemented profile is not an unqualified A2UI compatibility claim.
+> **Profile:** this package implements the documented feature-scoped A2UI v1.0 Candidate profile,
+> including pinned schemas, catalog capabilities, lifecycle messages, and a project-owned MCP
+> binding. New integrations should use the v1 flow; the custom `0.1` APIs remain under `/legacy` for
+> migration. See the [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md)
+> for exact coverage.
 
 `@mcp-native/a2ui` resolves explicitly typed resource links and parses untrusted JSON or JavaScript values into a validated, typed surface before a host renders anything. Unknown or ambiguous resources fail with `A2uiResourceError`; unknown versions, node types, action types, non-plain objects, oversized trees, and invalid JSON values fail with `A2uiParseError`. Surfaces are capped at `A2UI_MAX_DEPTH` (32) and `A2UI_MAX_NODES` (256).
 
@@ -27,10 +28,17 @@ npm install @mcp-native/a2ui
 
 `@mcp-native/core` is installed as a dependency. The package is ESM-only and includes TypeScript declarations.
 
-## Deprecated custom `0.1` example
+## Start with A2UI v1 Candidate
 
-The following APIs remain available for migration but are deprecated. New hosts should start with
-the v1 flow below and the [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
+New integrations negotiate the project-owned MCP binding, resolve the pinned JSONL lifecycle
+stream, apply it to `A2uiSurfaceStore`, and validate the resulting snapshot against the host's
+catalog policy. Continue with the [binding example](#a2ui-over-mcp-capability-binding), [catalog
+capabilities](#a2ui-v1-catalog-capabilities), and [complete profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
+
+## Legacy custom `0.1` migration example
+
+The following APIs remain available for migration but are deprecated. New hosts should use the v1
+flow above; existing custom `0.1` integrations can follow the [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
 Use the explicit `/legacy` subpath during `0.9.x`; the deprecated root aliases are removed at
 `1.0.0` while the migration subpath stays frozen.
 
@@ -97,13 +105,13 @@ Resolution succeeds only when:
 
 Other tool content and non-A2UI resource links may coexist with the surface link. MCP Native never guesses a MIME type or chooses between multiple matching surfaces.
 
-The prototype's `application/a2ui+json` resource convention comes from earlier A2UI-over-MCP work. The [A2UI v1.0 Candidate protocol](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md) is transport-agnostic and uses a stream of `v1.0` envelopes. Recognizing this media type does not establish v1.0 conformance.
+The legacy `application/a2ui+json` resource convention comes from earlier A2UI-over-MCP work. The [A2UI v1.0 Candidate protocol](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md) is transport-agnostic and uses a stream of `v1.0` envelopes. New integrations use the negotiated v1 JSONL flow documented below.
 
 The official v1.0 surface-store state now has a strict React Native adapter, including bounded dynamic lists, local string state, supported catalog functions, and host-callback action envelopes, into the internal trusted render plan. This does not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 ## A2UI-over-MCP capability binding
 
-The package exports an experimental project-owned binding under `io.github.pablospaniard/mcp-native-a2ui`. It is enabled only when both peers advertise the exact binding version, A2UI Candidate revision, JSONL resource transport, and MIME type:
+The package exports a project-owned binding under `io.github.pablospaniard/mcp-native-a2ui`. It is enabled only when both peers advertise the exact binding version, A2UI Candidate revision, JSONL resource transport, and MIME type:
 
 ```ts
 import { A2UI_MCP_EXTENSION_CAPABILITIES, negotiateA2uiMcpBinding } from "@mcp-native/a2ui";
@@ -193,7 +201,7 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 | `resolveA2uiResourceFromToolResult`                                                                       | Deprecated custom `0.1` resource resolver.                              |
 | `parseA2uiSurface`                                                                                        | Deprecated custom `0.1` surface parser.                                 |
 | `A2uiResourceError`, `A2uiParseError`                                                                     | Specific resolution and parsing failures.                               |
-| `A2UI_MIME_TYPE`, `A2UI_VERSION`                                                                          | Exact media type and current proof-of-concept version.                  |
+| `A2UI_MIME_TYPE`, `A2UI_VERSION`                                                                          | Exact media type and legacy custom model version.                       |
 | `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                                                                        | Container-tree complexity limits.                                       |
 | `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH`                                                        | Serialized-input and string-field limits.                               |
 | `A2UI_MCP_EXTENSION_ID`, `A2UI_MCP_EXTENSION_CAPABILITIES`                                                | Exact project-owned extension declaration.                              |

@@ -22,14 +22,16 @@ styling, renderers, extensions, and mixed native/WebView screens in product lang
 </div>
 
 > [!IMPORTANT]
-> MCP Native `0.9.x` is the feature-complete pre-`1.0` release candidate for the documented React
-> Native host scope. The proposed `1.0.0` API is frozen, but the stable compatibility guarantee does
-> not apply until the independent security, accessibility, compatibility, protocol/schema, and
-> native WebView reviews in the `1.0.0` release gate are complete. Shipping hosts must still audit
-> their component mappings, policies, permissions, WebView integration, and platform behavior.
+> MCP Native `0.9.x` is the feature-complete release candidate for the documented React Native host
+> scope. The public API is frozen for `1.0.0`, so teams can integrate and evaluate it now. The stable
+> `1.x` compatibility guarantee begins with `1.0.0` after the final independent security,
+> accessibility, compatibility, protocol/schema, and native WebView reviews.
 
-> [!CAUTION]
-> The custom `@mcp-native/a2ui` `0.1` surface is deprecated and frozen for migration. The packages implement a separately negotiated, feature-scoped A2UI v1.0 Candidate profile with schema-validated lifecycle and renderer messages, capability and host-policy validation, bounded dynamic lists and catalog functions, renderer-local state, and official action envelopes returned to a host callback. This is not an unqualified A2UI compatibility claim, and the host still owns action transport. The WebView package implements the documented stable MCP Apps `2026-01-26` native host-adapter profile; native WebView isolation is not equivalent to a browser's cross-origin double iframe. See the [A2UI conformance profile](docs/a2ui-v1-conformance.md), [MCP Apps profile](docs/mcp-apps-compatibility.md), and [standards status](docs/standards-compatibility.md).
+> [!TIP]
+> New integrations should use the A2UI v1 Candidate flow or the stable MCP Apps `2026-01-26`
+> native-host flow. The custom A2UI `0.1` APIs remain available under `/legacy` for migration. See
+> the [A2UI profile](docs/a2ui-v1-conformance.md), [MCP Apps profile](docs/mcp-apps-compatibility.md),
+> and [standards matrix](docs/standards-compatibility.md) for exact coverage.
 
 ## How it works
 
@@ -91,7 +93,7 @@ The result should feel native to the device while preserving a clear trust bound
                     └──── validated action ──► host callback / policy-gated tool dispatch
 ```
 
-Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data flow, capability model, and initial threat model.
+Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data flow, capability model, and threat model.
 
 ## Packages
 
@@ -115,7 +117,7 @@ boundary with issuer-bound protected-HTTP OAuth, explicit consent gates and pers
 grants, bounded connection lifecycle coordination, actionable host states, redacted operations, and
 production integration guidance. Release `0.5.0` added the stable MCP Apps `2026-01-26` native
 host-adapter profile, while `0.4.0` completed the feature-scoped A2UI v1 Candidate adapter. Package
-versions are independent of the internal A2UI proof-of-concept surface value `"0.1"`.
+versions are independent of the legacy custom A2UI surface value `"0.1"`.
 
 ## Installation
 
@@ -194,17 +196,16 @@ Every package is ESM-only and includes TypeScript declarations. Published packag
   JSON-RPC lifecycle verified against official `@modelcontextprotocol/ext-apps@1.7.5` schemas
 - TypeScript project references, package exports, tests, and GitHub Actions CI
 
-This is a deliberately scoped implementation, not an unqualified claim of complete MCP or A2UI
-support. The v1 native adapter supports
-every basic-catalog component, typed absolute and dynamic-list-relative bindings, bounded
+The documented profiles define the supported MCP, A2UI, and MCP Apps coverage. The v1 native
+adapter supports every basic-catalog component, typed absolute and dynamic-list-relative bindings, bounded
 formatting and validation functions, pure boolean functions, `@index`, action events returned to a
 host callback, required host image/media grants, press-time host-policy-gated HTTP(S) `openUrl`, and
-exactly negotiated local host extensions. Agent-initiated renderer functions and behavior outside
-the automated native fixtures remain unclaimed. Release `0.6.0` includes policy gates at all
+exactly negotiated local host extensions. The profile records agent-initiated renderer functions
+and platform behavior outside the automated native fixtures as future extensions. Release `0.6.0` includes policy gates at all
 current action boundaries, persistent expiring/revocable consent grants and OAuth scope history,
 bounded connection lifecycle coordination, actionable host states, redacted operational events, and
-a [production host checklist](docs/host-integration-checklist.md). Separate Expo Go integration PoCs
-remain non-blocking evidence and are not a package release criterion.
+a [production host checklist](docs/host-integration-checklist.md). The open Expo Go demonstration
+track is designed to add component-library evidence alongside the package release gates.
 
 ## Protected Streamable HTTP OAuth
 
@@ -293,8 +294,8 @@ process-recovery callbacks have total and per-parameter budgets before code rede
 is allowed only after the provider has reserved state and saved exactly one PKCE verifier for the
 attempt. All 25 scored official
 authorization scenarios pass.
-Native integration is exercised separately through non-blocking app-level PoCs. Production hosts
-remain responsible for choosing app-owned secure-storage and authentication-session implementations
+App-level native integration demonstrations are tracked separately and remain open. Production
+hosts remain responsible for choosing app-owned secure-storage and authentication-session implementations
 and for the broader consent and lifecycle controls described below.
 
 ## A2UI v1 Candidate host flow
@@ -374,12 +375,12 @@ the synchronous `openUrlPolicy`, and `onOpenUrl`. The adapter accepts only bound
 HTTP(S) URLs, resolves the current value during the originating Button press, and calls the host
 opener only when the policy returns exactly `true`.
 
-## Legacy `0.1` proof-model example
+## Legacy custom `0.1` example
 
 ```tsx
-import { parseA2uiSurface } from "@mcp-native/a2ui";
+import { parseA2uiSurface } from "@mcp-native/a2ui/legacy";
 import type { McpNativeRuntime } from "@mcp-native/core";
-import { McpNativeSurface, useMcpNativeActionDispatcher } from "@mcp-native/react-native";
+import { McpNativeSurface, useMcpNativeActionDispatcher } from "@mcp-native/react-native/legacy";
 import { Button, Text, TextInput, View } from "react-native";
 
 const components = { Button, Text, TextInput, View };
@@ -417,19 +418,24 @@ function NativeScreen({ runtime }: { runtime: McpNativeRuntime }) {
 Connected hosts can resolve the same validated surface from a tool result:
 
 ```ts
-import { resolveA2uiResourceFromToolResult } from "@mcp-native/a2ui";
+import { resolveA2uiResourceFromToolResult } from "@mcp-native/a2ui/legacy";
 
 const toolResult = await runtime.callTool("open_surface");
 const { surface } = await resolveA2uiResourceFromToolResult(runtime, toolResult);
 ```
 
-This deprecated resolver requires exactly one `application/a2ui+json` resource link, reads the matching text resource, and passes it through the same strict parser. The `parseA2uiSurface` parser is MCP Native's frozen `0.1` proof-of-concept model. It is separate from the JSONL v1 Candidate flow above and is not wire-compatible with that protocol. New hosts should follow the [v1 migration guide](docs/a2ui-v1-conformance.md#custom-01-migration).
+This deprecated resolver requires exactly one `application/a2ui+json` resource link, reads the matching text resource, and passes it through the same strict parser. The `parseA2uiSurface` parser handles MCP Native's frozen legacy `0.1` model. It is separate from the JSONL v1 Candidate flow above and has a different wire format. New hosts should follow the [v1 migration guide](docs/a2ui-v1-conformance.md#custom-01-migration).
 
 ## Standards status
 
-MCP Native follows several important community design principles already: strict validation, host-owned catalogs, transport-independent core contracts, no downloaded native code, explicit capability boundaries, and deny-by-default HTML policy.
-
-Those principles do not amount to unqualified protocol conformance. The [feature-scoped A2UI v1.0 Candidate profile](docs/a2ui-v1-conformance.md) verifies pinned schemas, requires an exact project-binding grant before resolving JSONL resources, exposes strict catalog-capability negotiation for host integration, parses the supported lifecycle plus every renderer-to-agent message kind, maintains ordered surface/data-model state, validates rooted catalog graphs, and mounts the documented subset with bounded behavior. Renderer-to-agent transport, agent-initiated renderer-function execution, inline catalogs, and platform behavior outside the automated package tests remain excluded. The [stable MCP Apps native profile](docs/mcp-apps-compatibility.md) implements exact discovery, resources, metadata, sandbox controls, and the supported Apps JSON-RPC lifecycle while documenting native/browser isolation differences and optional method exclusions. The tracked claims live in [Standards and compatibility](docs/standards-compatibility.md).
+MCP Native combines strict validation, host-owned catalogs, transport-independent core contracts,
+explicit capability boundaries, and deny-by-default HTML policy. The [feature-scoped A2UI v1.0
+Candidate profile](docs/a2ui-v1-conformance.md) records the exact pinned schemas, lifecycle,
+catalog, renderer-message, policy, and native-renderer coverage. The [stable MCP Apps native
+profile](docs/mcp-apps-compatibility.md) records discovery, resources, metadata, sandbox controls,
+the supported Apps JSON-RPC lifecycle, and the native isolation contract. See [Standards and
+compatibility](docs/standards-compatibility.md) for the combined verified matrix and planned profile
+extensions.
 
 ## Security model
 
@@ -490,7 +496,7 @@ mcp-native/
 ├── .github/                   # CI, ownership, and collaboration templates
 ├── docs/                      # Architecture decisions and design notes
 ├── examples/
-│   └── react-native-demo/     # Expo Go app-per-library PoC policy and shared flow
+│   └── react-native-demo/     # Expo Go app-per-library demonstration policy and shared flow
 ├── packages/
 │   ├── core/
 │   ├── mcp/
@@ -501,11 +507,11 @@ mcp-native/
 └── tests/                     # Cross-package integration and boundary tests
 ```
 
-React Native integrations are demonstrated independently with one Expo Go PoC per selected common,
-Expo Go-compatible component library, plus a primitives baseline. Each PoC pins its library and Expo
-SDK versions and exercises the same representative flow. PoC results are informative and never
-block package releases or milestone completion; repository tests and smoke checks remain the
-package gates.
+The React Native integration demonstration policy calls for one Expo Go app per selected common,
+Expo Go-compatible component library, plus a primitives baseline. This evidence track is ready for
+contributions; no Expo Go app is currently committed. Each future demonstration will pin its
+library and Expo SDK versions and exercise the same representative flow; repository tests and smoke
+checks remain the package release gates.
 
 ## Roadmap
 
@@ -579,7 +585,7 @@ post-stable deliverables.
 - [x] Add bounded core `dispatch()` tool-risk, capability, and privacy consent descriptors
 - [x] Integrate consent policy across current action boundaries and add persistent, expiring grants
 - [x] Define production connection lifecycle, observable error states, diagnostic redaction, and host integration guidance
-- [ ] Maintain separate Expo Go PoCs for the primitives baseline and selected common component libraries
+- [ ] Maintain separate Expo Go demonstrations for the primitives baseline and selected common component libraries
 - [ ] Expand protocol coverage through reviewed RFCs and tests
 
 ## Contributing

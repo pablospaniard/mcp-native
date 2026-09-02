@@ -12,10 +12,10 @@
 
 </div>
 
-> **Pre-1.0 host adapter:** this package implements the documented stable MCP Apps `2026-01-26`
-> native host-adapter profile. Its public API remains release-candidate until the `1.0.0` review
-> gates complete. A shipping host must map the closed descriptor into its audited platform WebView
-> and lifecycle; native isolation is not equivalent to a browser's cross-origin iframe.
+> **Release status:** this package implements the stable MCP Apps `2026-01-26` native host-adapter
+> profile with a frozen `0.9.x` API. Start with the stable host flow below; the
+> [compatibility profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md)
+> documents the native sandbox, lifecycle mapping, and exact message coverage.
 
 `@mcp-native/webview` handles the compatibility path for MCP resources that contain HTML. The stable
 path negotiates `io.modelcontextprotocol/ui`, discovers strict `_meta.ui` tool metadata, reads one
@@ -186,8 +186,8 @@ cloning a resource—even with the same URI and content—does not create a vali
 
 ## Host responsibilities
 
-Returning a `WebViewDocument` or sandbox descriptor is not permission to weaken platform controls.
-A production host must still verify:
+The descriptor is designed to map onto a locally bundled WebView with the following production
+controls:
 
 - allowed origins and navigation rules;
 - ephemeral website data and cookie/process-pool isolation on each supported OS version;

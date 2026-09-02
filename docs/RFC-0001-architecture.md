@@ -1,19 +1,25 @@
 # RFC-0001: MCP Native architecture
 
-- Status: Accepted for initial proof of concept
-- Protocol conformance: None claimed
+- Status: Accepted; architecture retained through Milestone 9
+- Protocol profiles: [MCP](protocol-support.md), [A2UI v1 Candidate](a2ui-v1-conformance.md), and
+  [MCP Apps](mcp-apps-compatibility.md)
 - Date: 2026-08-25
-- Last updated: 2026-08-28
+- Last updated: 2026-09-02
 
 ## Summary
 
-MCP Native turns MCP resources and actions into host-controlled native UI. The initial implementation uses a small internal surface model inspired by A2UI. The intended production architecture will parse a supported declarative protocol into an internal trusted render plan, map that plan to a local component catalog, and route declared user actions back through its protocol binding.
+MCP Native turns MCP resources and actions into host-controlled native UI. It parses the documented
+A2UI v1 Candidate profile into an internal trusted render plan, maps that plan to a local component
+catalog, and returns validated actions to a host-owned delivery callback. The earlier custom `0.1`
+model remains isolated under `/legacy` for migration.
 
 HTML MCP Apps use a separately policy-gated WebView path. The WebView package implements the
 documented stable `2026-01-26` native host-adapter profile without weakening the declarative native
 boundary.
 
-RFC-0001 defines the proof-of-concept architecture, not A2UI v1.0 or MCP Apps conformance. See [Standards and compatibility](standards-compatibility.md) for the normative baselines and tracked gaps.
+RFC-0001 established the package boundaries and trust model retained by the current release
+candidate. See [Standards and compatibility](standards-compatibility.md) for the exact normative
+baselines, verified profiles, and planned extensions.
 
 ## Non-negotiable security rule
 
@@ -36,7 +42,7 @@ official @modelcontextprotocol/client
     v
 @mcp-native/core
     |
-    +-- tool result: application/a2ui+json resource_link
+    +-- negotiated A2UI v1 JSONL resource_link
     |       |
     |       `-- resources/read --> validated text resource
     |       |
@@ -73,9 +79,13 @@ This package is the validation boundary between SDK results and the runtime. It 
 
 ### `@mcp-native/a2ui`
 
-Owns resource-link resolution, parsing, validation, and conversion boundaries for both the custom proof surface and the official Candidate adapter. It also owns the exact settings and negotiation helper for the project-defined A2UI-over-MCP binding. Unsupported MIME types, ambiguous links or contents, binary surfaces, versions, catalogs, components, bindings, functions, and actions fail closed at their applicable boundary.
+Owns resource-link resolution, parsing, validation, and conversion boundaries for both the legacy
+custom surface and the A2UI v1 Candidate adapter. It also owns the exact settings and negotiation
+helper for the project-defined A2UI-over-MCP binding. Unsupported MIME types, ambiguous links or
+contents, binary surfaces, versions, catalogs, components, bindings, functions, and actions fail
+closed at their applicable boundary.
 
-The custom resolver recognizes the prototype's `application/a2ui+json` resource convention. Its deliberately small `0.1` input contains four nested node types, is deprecated and frozen, and remains isolated from the separately negotiated A2UI v1.0 Candidate path. The v1 adapter parses schema-validated lifecycle envelopes into bounded ordered state and requires a complete policy-gated snapshot before the React Native package adapts the supported subset, including bounded dynamic lists, into a trusted plan. It constructs pinned renderer-to-agent `action` envelopes and parses every renderer-to-agent message kind as owned data. Parsing never authorizes function execution, transport, or device access; agent-initiated renderer-function execution remains excluded from the [feature-scoped conformance profile](a2ui-v1-conformance.md).
+The custom resolver recognizes the legacy `application/a2ui+json` resource convention. Its deliberately small `0.1` input contains four nested node types, is deprecated and frozen, and remains isolated from the separately negotiated A2UI v1.0 Candidate path. The v1 adapter parses schema-validated lifecycle envelopes into bounded ordered state and requires a complete policy-gated snapshot before the React Native package adapts the supported subset, including bounded dynamic lists, into a trusted plan. It constructs pinned renderer-to-agent `action` envelopes and parses every renderer-to-agent message kind as owned data. Parsing never authorizes function execution, transport, or device access; agent-initiated renderer-function execution remains excluded from the [feature-scoped conformance profile](a2ui-v1-conformance.md).
 
 ### `@mcp-native/react-native`
 
@@ -83,7 +93,7 @@ Owns the native component catalog, React Native rendering, event translation, ac
 
 The renderer accepts a catalog of locally bundled components instead of importing or resolving components named by the server. It explicitly selects every prop crossing into that catalog, derives closed accessibility semantics, and never spreads unchecked plan or server props. Hosts may use typed adapter helpers to translate those selected props into Expo UI, Gluestack, another design system, or application-owned components. The v1 catalog requires the four base primitives and provides optional slots for `Image`, `Icon`, `Divider`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, `Modal`, `Video`, and `AudioPlayer`; capability advertising is derived from installed, policy-ready slots. Closed variant catalogs may substitute host-owned structure, text, button, input, image, and choice-picker implementations. Required image and media grants carry exact resource and playback budgets to enforcing host loaders. Exactly negotiated, namespaced host extensions bind closed local manifests to helper-created registrations and explicit capability grants; inline catalogs remain disabled. The legacy `0.1` path remains on the four base primitives when a catalog is shared. None of these mechanisms lets a server select an import, native class, SVG payload, raw style, arbitrary prop, or command.
 
-`useNativeRenderPlan` memoizes conversion for a validated surface identity. `useMcpNativeActionDispatcher` adapts asynchronous runtime dispatch to a synchronous component event and requires an error callback so action failures are observed. For the custom `0.1` proof surface, text inputs emit `(binding, value)` only when the host provides a handler. `A2uiV1NativeSurface` instead owns a bounded local copy of the v1 data model, applies declared absolute string, boolean, number, and string-array bindings without network calls, rerenders dependent values, and resolves button context against the latest local state before emitting a validated action envelope to the host. Supported `openUrl` actions re-resolve a canonical HTTP(S) URL during that Button press and require a separate synchronous host predicate before the host-owned opener is called. The library never imports or invokes a platform URL handler. The host still owns action transport delivery, user consent, tool policy, and synchronization with the agent; the separate MCP adapter may own the validated SDK OAuth seam for protected HTTP.
+`useNativeRenderPlan` memoizes conversion for a validated surface identity. `useMcpNativeActionDispatcher` adapts asynchronous runtime dispatch to a synchronous component event and requires an error callback so action failures are observed. For the custom `0.1` legacy surface, text inputs emit `(binding, value)` only when the host provides a handler. `A2uiV1NativeSurface` instead owns a bounded local copy of the v1 data model, applies declared absolute string, boolean, number, and string-array bindings without network calls, rerenders dependent values, and resolves button context against the latest local state before emitting a validated action envelope to the host. Supported `openUrl` actions re-resolve a canonical HTTP(S) URL during that Button press and require a separate synchronous host predicate before the host-owned opener is called. The library never imports or invokes a platform URL handler. The host still owns action transport delivery, user consent, tool policy, and synchronization with the agent; the separate MCP adapter may own the validated SDK OAuth seam for protected HTTP.
 
 ### `@mcp-native/webview`
 
@@ -105,15 +115,15 @@ The host owns the effective component and action allowlists. A server can reques
 
 Future capabilities that touch sensitive device APIs must be brokered by the host and may require user approval. Server declarations alone never grant device access.
 
-MCP extension support is determined only from validated, explicit client and server capability maps. `_meta`, MIME types, and tool-result content are preserved as data but never grant an extension. The generic substrate reports negotiation or a typed fallback reason; each extension must separately validate its settings and implement its own semantics. The experimental [project-owned A2UI binding](a2ui-mcp-binding.md) requires an exact settings match and defines ordinary MCP text/data as its graceful fallback.
+MCP extension support is determined only from validated, explicit client and server capability maps. `_meta`, MIME types, and tool-result content are preserved as data but never grant an extension. The generic substrate reports negotiation or a typed fallback reason; each extension must separately validate its settings and implement its own semantics. The [project-owned A2UI binding](a2ui-mcp-binding.md) requires an exact settings match and defines ordinary MCP text/data as its graceful fallback.
 
-## Initial proof milestone
+## Architecture validation history
 
-Status: complete through package and integration tests for the custom `0.1` proof path. A minimal,
-tested React Native integration PoC remains a separate roadmap milestone; it will not vendor a
-generated standalone mobile project into this repository.
+The original Milestone 0 path validated the package boundaries with the custom `0.1` model before
+the repository added its current protocol profiles. That historical path remains covered through
+the `/legacy` migration APIs.
 
-The proof demonstrates:
+That milestone established the following end-to-end flow:
 
 1. Connect an MCP client and obtain `tools/list`.
 2. Invoke a tool with `tools/call`.
@@ -122,9 +132,12 @@ The proof demonstrates:
 5. Render native text, button, text input, and container components.
 6. Route a button action back through `tools/call`.
 
-## Implementation status
+## Current implementation status
 
-The official SDK adapter, declarative resource-resolution, and initial React Native rendering milestones are complete in the proof-of-concept workspace:
+Milestones 0–9 are complete in the `0.9.x` release candidate. The frozen public API now covers the
+official SDK adapter and OAuth host boundary, the documented A2UI v1 Candidate profile and complete
+pinned basic catalog, compiled host extensions, the stable MCP Apps native-host profile, and
+host-owned mixed native/WebView composition. The original contract coverage remains in place:
 
 - `@mcp-native/mcp` targets `@modelcontextprotocol/client` v2;
 - an integration test connects the official `Client` and `McpServer` through the SDK's linked in-memory transport;
@@ -144,20 +157,19 @@ The official SDK adapter, declarative resource-resolution, and initial React Nat
 - renderer hooks memoize plans and route asynchronous dispatch results or failures to explicit host callbacks;
 - component, interaction, hook, malformed-plan, public-export, and isolated package-consumer tests cover the boundary.
 
-The MCP `2026-07-28` foundation is complete for RFC-0001's initial client boundary. The tool/resource boundary preserves official metadata, schemas, annotations, discriminated content, and cache semantics; a pinned integration test exercises the SDK's current HTTP handler/fetch path; and the selected official client conformance scenarios pass without expected failures. The conformance gate ingests the frozen official requirements fixture and requires every scored client requirement to be selected or explicitly excluded. Shared-store integration tests also prove that private cache entries remain isolated by host-provided principal partitions while public entries may be reused only for the same server identity and request. The exact target, tested `2025-11-25` compatibility lane, and [pinned conformance coverage](mcp-conformance.md) are documented explicitly. The official SDK continues to own wire behavior, and excluded operations remain unclaimed.
+The MCP `2026-07-28` foundation is complete for RFC-0001's client boundary. The tool/resource boundary preserves official metadata, schemas, annotations, discriminated content, and cache semantics; a pinned integration test exercises the SDK's current HTTP handler/fetch path; and the selected official client conformance scenarios pass without expected failures. The conformance gate ingests the frozen official requirements fixture and requires every scored client requirement to be selected or explicitly excluded. Shared-store integration tests also prove that private cache entries remain isolated by host-provided principal partitions while public entries may be reused only for the same server identity and request. The exact target, tested `2025-11-25` compatibility lane, implemented operations, and [pinned conformance coverage](mcp-conformance.md) are documented explicitly. The official SDK continues to own wire behavior.
 
 The extension and capability substrate is also complete. Core validates prefixed extension maps and requires mutual declarations; the SDK adapter exchanges settings on the modern HTTP path; metadata alone never grants support; and the project-owned A2UI binding pins an exact Candidate revision and ordered resource transport with text/data fallback. The A2UI package parses lifecycle envelopes, retains bounded ordered state, validates complete snapshots against the pinned basic catalog plus explicit host allowlists, including nested expressions in literal `formatString` sources reconstructed as catalog calls, and constructs the supported official renderer action envelope. The React Native package adapts and mounts the complete basic catalog with bounded dynamic lists, renderer-local typed bindings, bounded string/number/currency/date/plural formatting, pure boolean and validation evaluation, supported checks, dispatch-time template event resolution, required image and media grants, press-time policy-gated HTTP(S) `openUrl`, and closed locally compiled host extensions while rejecting unsupported components and functions. See the [standards-first roadmap](roadmap.md) and [media/extension profile](media-and-host-extensions.md).
 
-MCP Apps compatibility remains a separate track. A malformed or unsupported native surface fails
-closed rather than silently becoming executable HTML, and an invalid Apps resource is never
-interpreted as native UI. The stable Apps grant, resource resolver, sandbox, and bridge are all
-explicit boundaries.
+MCP Apps uses a separate stable native-host profile. Its grant, resource resolver, sandbox, and
+bridge are explicit boundaries, so native A2UI and HTML Apps can run as host-created sibling regions
+without sharing protocol or policy authority.
 
-## Compatibility note
+## Pre-1.0 compatibility history
 
-The original proof-of-concept `McpClient.readResource(uri)` returned one `McpResource`. The official SDK and MCP response model return a `contents` collection, so RFC-0001 now defines `Promise<McpReadResourceResult>` with `contents: readonly McpResource[]`.
+The original `0.0.x` `McpClient.readResource(uri)` returned one `McpResource`. The official SDK and MCP response model return a `contents` collection, so RFC-0001 now defines `Promise<McpReadResourceResult>` with `contents: readonly McpResource[]`.
 
-Early adopters implementing `McpClient` must wrap their resource in `contents`:
+Adapters written against `0.0.x` must wrap their resource in `contents`:
 
 ```ts
 // Before
@@ -181,14 +193,16 @@ return { tools: [{ name: "save", inputSchema: { type: "object" } }] };
 return { content: [{ type: "text", text: "Saved" }] };
 ```
 
-## Deferred work
+## Next work
 
-- A2UI agent-initiated renderer-function execution and interoperability beyond the declared profile
-- Extension-specific operations and additional official extension conformance scenarios
-- Platform accessibility testing and renderer capability transport integration
-- Expo Go integration PoCs and platform-specific production lifecycle validation
-- Richer React Native catalog components, styling, and platform-specific accessibility behavior
-- Sensitive-device capability policies, consent, and permissions
-- MCP Apps browser-host double-iframe support and optional stable methods outside the documented
-  native host-adapter profile
-- SwiftUI, Jetpack Compose, or other native renderers
+- complete the independent security, accessibility, compatibility, protocol/schema, and native
+  WebView reviews that gate `1.0.0`;
+- remove the deprecated root aliases for the custom `0.1` model according to the published
+  [migration guide](migration-to-1.0.md), while retaining `/legacy`;
+- extend A2UI with renderer-function execution and capability transport placement after the
+  documented profile is updated;
+- extend MCP Apps with optional stable methods and browser-host double-iframe support as separate
+  profiles;
+- add platform and component-library integration demonstrations; and
+- develop first-class SwiftUI, Jetpack Compose, and native capability-provider packages after
+  `1.0.0`.

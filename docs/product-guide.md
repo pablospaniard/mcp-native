@@ -1,9 +1,9 @@
 # What MCP Native does
 
-> **Status:** MCP Native `0.9.x` is the feature-complete pre-`1.0` release candidate for the
-> documented React Native host scope. The proposed stable API is frozen. The remaining `1.0.0`
-> work is independent review, final compatibility and release validation, stable documentation,
-> and publication of the `1.x` guarantee—not another feature-discovery phase.
+> **Status:** MCP Native `0.9.x` is the feature-complete release candidate for the
+> documented React Native host scope. The public API is frozen for `1.0.0`, and teams can integrate
+> it now. The remaining stable-release work is independent review, final compatibility and release
+> validation, and publication of the `1.x` guarantee.
 
 MCP Native lets an application turn a server-described interface into UI that still belongs to the
 application. The server can ask for semantic elements such as text, fields, choices, lists, media,
@@ -13,6 +13,15 @@ the accepted elements to components already compiled into the app.
 This is useful when an MCP experience should look and behave like the rest of a native product,
 without downloading React Native code or allowing a server to select arbitrary packages, props, or
 styles.
+
+## A good fit for
+
+- native forms, settings, approval flows, and structured tool results that should use the app's
+  existing design system;
+- interactive MCP experiences that need local input state, validation, accessibility semantics,
+  media, or app-owned components;
+- host screens that combine native controls with an isolated HTML visualization or MCP App; and
+- teams that want explicit capability and action policies at the server-to-device boundary.
 
 ## The end-to-end flow
 
@@ -59,10 +68,10 @@ host creates both registrations and fixes their sibling order. It also forwards 
 visibility, environment, focus, back, crash, recovery, memory-pressure, and teardown signals through
 the mixed-surface coordinator.
 
-This enables a native form or summary next to a rich HTML visualization. It does not merge their
-security or accessibility trees. A2UI cannot create, configure, navigate, or send raw messages to a
-WebView. Each WebView keeps the origin, navigation, bridge, storage, download, external-link,
-permission, and teardown rules of the MCP Apps profile.
+This enables a native form or summary next to a rich HTML visualization. Each region keeps its own
+security and accessibility tree: the host owns their order and lifecycle, while every WebView keeps
+the origin, navigation, bridge, storage, download, external-link, permission, and teardown rules of
+the MCP Apps profile.
 
 ## Extensions and sensitive capabilities
 
@@ -75,14 +84,13 @@ props. They require a typed installed provider, application policy, and any nece
 user approval. The post-`1.0.0` native-capability program expands this model without creating a
 generic server-to-device command channel.
 
-## What it does not do
+## Clear ownership boundaries
 
-- It does not download or evaluate remote JavaScript for native UI.
-- It does not accept arbitrary React Native, SwiftUI, Compose, UIKit, or Android View classes.
-- It does not let a server control application navigation or the application shell.
-- It does not turn MCP consent into an operating-system permission.
-- It does not make a native WebView equivalent to a browser's cross-origin double iframe.
-- It does not claim every A2UI or MCP Apps feature beyond the documented pinned profiles.
+- Native UI code, component classes, and styling stay compiled into the application.
+- The application owns navigation, screens, permissions, consent, and the surrounding shell.
+- Declarative A2UI and HTML MCP Apps use separate native rendering and WebView policy boundaries.
+- Compatibility follows the pinned MCP, A2UI, and MCP Apps profiles linked below, so teams can test
+  against a precise contract.
 
 For implementation details, continue with the [host integration checklist](host-integration-checklist.md),
 [mixed-surface guide](mixed-surfaces.md), [support matrix](support-matrix.md), and

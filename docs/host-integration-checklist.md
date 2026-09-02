@@ -1,8 +1,8 @@
 # Production host integration checklist
 
-Use this checklist before shipping a host built on MCP Native. Package validation does not replace
-the application policy, native permission, networking, storage, accessibility, or operations work
-owned by the host.
+Use this checklist to take an MCP Native integration from package setup to a production host. It
+connects the validated package boundaries with the application-owned policy, native permission,
+networking, storage, accessibility, and operations choices.
 
 ## Protocol and catalog boundary
 
@@ -110,5 +110,5 @@ owned by the host.
 - Exercise supported iOS and Android hosts across connect, timeout, cancellation, background/resume,
   offline/online, reconnect, consent denial/revocation/expiry, OAuth cancel/recovery/scope upgrade,
   accessibility, and graceful shutdown.
-- Record exact native/Expo/component-library versions separately. Expo Go PoCs demonstrate
-  integrations but are not protocol claims or package release gates.
+- Record exact native/Expo/component-library versions separately. Use Expo Go demonstrations to add
+  integration evidence alongside the protocol and package release gates.

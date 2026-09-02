@@ -6,21 +6,25 @@ their minor release line.
 
 ## Unreleased
 
+### Changed
+
+- Align current documentation around the feature-complete `0.9.x` release candidate, lead with
+  implemented workflows and adoption guidance, and present compatibility and security boundaries as
+  precise integration contracts.
+
 ## 0.9.1 - 2026-09-02
 
-Repositions the public documentation around the shipped `0.9` release candidate without weakening
-the explicit pre-`1.0`, conformance, security-review, host-policy, or WebView-isolation boundaries.
+Documents the shipped `0.9` release candidate as feature-complete for the React Native host scope
+and separates completed implementation work from the final `1.0.0` review and stability gates.
 
 ### Changed
 
-- Replace stale “early proof of concept” and “initial surface model” descriptions with the actual
-  `0.9.x` status: feature-complete for the documented React Native host scope, with a frozen
-  proposed `1.0.0` API.
+- Replace outdated status descriptions with the actual `0.9.x` state: feature-complete for the
+  documented React Native host scope, with a frozen proposed `1.0.0` API.
 - Separate remaining `1.0.0` independent review and stability guarantees from already completed
   product implementation, package, conformance, performance, and platform evidence.
-- Present the root and package documentation around implemented `0.9.0` behavior while retaining
-  exact A2UI Candidate, project-owned binding, MCP operation, native WebView, and host-integration
-  limitations.
+- Present the root and package documentation around implemented `0.9.0` behavior with exact A2UI
+  Candidate, project-owned binding, MCP operation, native WebView, and host-integration profiles.
 
 ## 0.9.0 - 2026-09-02
 

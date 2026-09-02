@@ -1,6 +1,8 @@
 # Project-owned A2UI-over-MCP binding
 
-This document defines MCP Native's experimental transport binding for carrying ordered A2UI v1.0 Candidate messages over MCP. It is project-owned, is not an official A2UI or MCP extension, and does not by itself establish A2UI v1.0 conformance.
+This document defines MCP Native's project-owned transport binding for carrying ordered A2UI v1.0
+Candidate messages over MCP. A2UI is transport-agnostic, so this exact negotiated MCP extension
+supplies the resource framing used by the documented [A2UI profile](a2ui-v1-conformance.md).
 
 ## Pinned contract
 
@@ -64,7 +66,7 @@ Malformed capability declarations fail closed. If the binding was negotiated but
 - `@mcp-native/core` validates prefixed extension maps and computes mutual support without inspecting metadata or MIME types.
 - `@mcp-native/mcp` advertises host-approved client settings and exposes validated server settings from the official SDK.
 - `@mcp-native/a2ui` exports the exact identifier, settings, pinned revision, transport constants, exact-match binding negotiator, strict A2UI capability parsers and catalog-overlap negotiator, JSONL envelope parser, ordered surface store, policy-gated `getValidated`, `resolveA2uiV1JsonlFromToolResult`, and a closed builder for the official renderer `action` envelope. The resolver requires the exact negotiated binding grant as an argument and rejects fallback or forged settings before reading a resource.
-- The custom `0.1` surface resolver remains a separate proof-of-concept input. It is not the JSONL protocol consumer described here.
+- The custom `0.1` surface resolver remains a separate legacy input; the v1 JSONL consumer does not reinterpret it.
 - Callers must negotiate the binding before using the v1 JSONL resolver; MIME type alone does not grant the transport. Invalid v1 streams fail closed and never fall through to `0.1` or HTML.
 
-See the [standards inventory](standards-compatibility.md), [protocol support policy](protocol-support.md), and [roadmap](roadmap.md) for claim boundaries and next steps.
+See the [standards inventory](standards-compatibility.md), [protocol support policy](protocol-support.md), and [roadmap](roadmap.md) for the combined coverage and next steps.

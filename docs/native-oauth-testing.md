@@ -1,7 +1,7 @@
 # Native OAuth host integration
 
-Status: the package-level reference adapters are implemented. App-level integration is demonstrated
-separately and does not gate releases or protocol claims.
+Status: the package-level reference adapters are implemented. The app-level demonstration track is
+open for additional platform evidence.
 
 ## Boundary
 
@@ -36,8 +36,8 @@ outside callback completion must use the previously granted token/scope history 
 
 Apple documents `ASWebAuthenticationSession` as the OS authentication flow that returns the
 callback only to the calling app. Android recommends Custom Tabs for third-party authentication
-instead of a WebView. The Expo Go PoC uses Expo's included secure-store and browser modules, pinned
-to its Expo SDK version:
+instead of a WebView. The reference Expo Go wiring below uses Expo's secure-store and browser
+modules; a future demonstration should pin them to its Expo SDK version:
 
 - [Apple ASWebAuthenticationSession](https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession)
 - [Android Custom Tabs](https://developer.android.com/develop/ui/views/layout/webapps/overview-of-android-custom-tabs)
@@ -124,16 +124,16 @@ provider also cannot invalidate all credentials or the verifier while setup, han
 is active. When the process is recreated and no live owner remains, a new provider may claim and
 release the stale reservation without deleting registrations or tokens.
 
-## Expo Go PoC scope
+## Expo Go demonstration scope
 
-The Expo Go app is an integration demonstration, not a release condition. Pin the Expo SDK and
-module versions in the app and exercise storage persistence and deletion, issuer and namespace
+An Expo Go app can provide additional integration evidence. Pin the Expo SDK and module versions in
+the app and exercise storage persistence and deletion, issuer and namespace
 isolation, single-use callback handling, cancellation, malformed callbacks, background/resume, and
 credential-safe logging. Keep secrets, authorization codes, PKCE verifiers, OAuth state, account
 identifiers, and screenshots or logs containing them out of the repository.
 
-Expo Go uses a development URL whose shape can change between sessions. That is suitable for a
-controlled PoC but not for a production OAuth redirect registration. A production host must use a
-development or production build with a stable app-owned scheme or universal/app link and must
-validate its chosen secure-storage and browser-session modules in that host. Those app-specific
-results are reported independently and never block MCP Native package releases.
+Expo Go uses a development URL whose shape can change between sessions, which is suitable for a
+controlled demonstration. For production OAuth redirect registration, use a development or
+production build with a stable app-owned scheme or universal/app link and validate the chosen
+secure-storage and browser-session modules in that host. Report those app-specific results
+alongside the MCP Native package release evidence.

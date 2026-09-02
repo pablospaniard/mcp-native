@@ -13,17 +13,15 @@
 
 </div>
 
-> **Pre-1.0 release candidate:** MCP Native `0.9.x` is feature-complete for the documented React
-> Native host scope, and the proposed `1.0.0` API is frozen. The stable compatibility guarantee
-> begins after the remaining independent review and release gates are complete. Shipping hosts must
-> still audit their policies, component mappings, permissions, WebView integration, and platform
-> behavior.
+> **Release status:** MCP Native `0.9.x` is the feature-complete release candidate for the
+> documented React Native host scope. The public API is frozen for `1.0.0`, so teams can integrate
+> and evaluate it now. The stable `1.x` compatibility guarantee begins with `1.0.0` after final
+> independent review.
 
 > **Compatibility:** the documented tool/resource and authorization boundary preserves MCP
 > `2026-07-28` fields and passes its pinned conformance coverage. The package exposes the
-> feature-scoped A2UI v1.0 Candidate profile and retains custom `0.1` APIs only as deprecated
-> migration support; this is not an unqualified A2UI renderer claim. It also re-exports the
-> documented stable MCP Apps `2026-01-26` native host-adapter profile. See the [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md), [MCP Apps profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md), and [standards matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
+> feature-scoped A2UI v1.0 Candidate profile, keeps custom `0.1` APIs under `/legacy` for migration,
+> and re-exports the stable MCP Apps `2026-01-26` native host-adapter profile. See the [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md), [MCP Apps profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/mcp-apps-compatibility.md), and [standards matrix](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 `mcp-native` is the convenience package for the runtime and UI APIs. It re-exports the runtime contracts, A2UI v1 lifecycle/capability/renderer-message APIs, trusted native renderer and hooks, host-owned mixed-surface coordinator, deprecated custom surface migration APIs, and policy-gated WebView compatibility primitives from focused `@mcp-native/*` packages. Transport adapters are installed separately.
 
@@ -49,20 +47,18 @@ official action envelopes to a host callback; it never selects a return transpor
 [complete v1 host-flow example](https://github.com/pablospaniard/mcp-native#a2ui-v1-candidate-host-flow)
 and the [`@mcp-native/react-native` adapter documentation](https://github.com/pablospaniard/mcp-native/tree/main/packages/react-native#a2ui-v1-render-plan-adapter).
 
-## Deprecated `0.1` proof-model preview
+## Legacy custom `0.1` migration
 
 For `0.9.x`, migrate these imports to `mcp-native/legacy`. Root aliases are removed at `1.0.0`;
 the explicit legacy subpath stays frozen for migration and security fixes.
 
 ```tsx
+import { McpNativeRuntime, createAllowlistActionPolicy, type McpClient } from "mcp-native";
 import {
   McpNativeSurface,
-  McpNativeRuntime,
-  createAllowlistActionPolicy,
   parseA2uiSurface,
   useMcpNativeActionDispatcher,
-  type McpClient,
-} from "mcp-native";
+} from "mcp-native/legacy";
 import { Button, Text, TextInput, View } from "react-native";
 
 const components = { Button, Text, TextInput, View };
@@ -163,11 +159,10 @@ non-media catalog, typed renderer-local bindings, bounded formatting and validat
 actions, required image grants, policy-gated HTTP(S) `openUrl`, and exact installed-subset
 discovery. Release `0.6.0` added bounded consent, expiring/revocable host-owned grants, interactive
 OAuth, scope history, lifecycle coordination, actionable states, and redacted operations. The
-packages intentionally do not claim MCP operations or A2UI features outside their documented
-profiles. Full streaming host integration, transport placement for A2UI capability objects, and
-separate non-blocking Expo Go integration PoCs remain deferred or excluded work. Follow the
-[roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/roadmap.md) for exact claim
-boundaries.
+[roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/roadmap.md) tracks profile
+extensions such as full streaming host integration and transport placement for A2UI capability
+objects. The open Expo Go integration track can add platform and component-library evidence
+alongside the automated release gates.
 
 ## Security model
 

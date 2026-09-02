@@ -1,8 +1,8 @@
 # Stable MCP Apps compatibility profile
 
-This document defines the exact MCP Apps profile implemented by `@mcp-native/webview`. It is a
-native-host adapter profile, not a claim that a bare platform WebView is equivalent to a browser's
-cross-origin double-iframe sandbox.
+This document defines the exact MCP Apps profile implemented by `@mcp-native/webview`. Browser hosts
+use a cross-origin double-iframe sandbox; native hosts apply the closed sandbox, lifecycle, and
+platform integration contract documented here.
 
 ## Normative pin
 
@@ -38,9 +38,9 @@ document plus the changelog to change in the same pull request.
 | Host policy        | Capabilities are advertised only when a corresponding host callback exists; external links require an explicit positive callback result; tool calls are limited to the same supplied tool snapshot and stable app visibility; one tool authorization and delivery may be pending at a time |
 | Bounds             | One MiB serialized bridge messages, at most 128 concurrent inbound method handlers, core JSON graph limits, 1,024 bridge tools, 2 MiB decoded HTML, 64 cumulative CSP domains, bounded content and download blocks, and one pending teardown request                                       |
 
-The bridge does not proxy arbitrary method names. Sampling, prompts, resource/tool listing, app-owned
-tools, experimental methods, and sandbox-proxy-reserved messages fail closed in this profile. They
-can be added only after their official schemas, authority model, and bounded work are reviewed.
+The bridge implements the method set listed above. Sampling, prompts, resource/tool listing,
+app-owned tools, methods outside the stable profile, and sandbox-proxy-reserved messages can be
+added through a future reviewed profile with their official schemas, authority model, and bounds.
 
 ## Native sandbox contract
 
