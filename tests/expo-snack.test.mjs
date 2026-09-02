@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const snackReferencePattern = /^\[expo-snack-todo\]: (https:\/\/snack\.expo\.dev\/\?\S+)$/m;
+const releaseVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
 const expectedFiles = [
   "App.tsx",
   "src/catalog.tsx",
@@ -46,9 +47,9 @@ test("the root and example READMEs launch the same complete Expo Snack", () => {
   assert.deepEqual(
     new Set(snack.searchParams.get("dependencies").split(",")),
     new Set([
-      "@mcp-native/a2ui@latest",
-      "@mcp-native/core@latest",
-      "@mcp-native/react-native@latest",
+      `@mcp-native/a2ui@${releaseVersion}`,
+      `@mcp-native/core@${releaseVersion}`,
+      `@mcp-native/react-native@${releaseVersion}`,
       "expo-sqlite@~57.0.2",
       "expo-status-bar@~57.0.1",
       "react-native-safe-area-context@~5.7.0",

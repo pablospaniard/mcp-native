@@ -6,6 +6,11 @@ their minor release line.
 
 ## Unreleased
 
+## 0.9.2 - 2026-09-02
+
+Adds the runnable Expo Go proof and restores the React Native `0.86.0` minimum while preserving the
+frozen `1.0.0` candidate API.
+
 ### Changed
 
 - Align current documentation around the feature-complete `0.9.x` release candidate, lead with
