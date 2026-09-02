@@ -6,7 +6,7 @@ what you are trying to do.
 ## I want to see it first
 
 Start with the [Expo Go todo app](../examples/expo-go-todolist/README.md). It is a small but complete
-application with screenshots, a one-click Snack, local setup instructions, and focused code examples.
+application with three screenshots, local setup instructions, and focused code examples.
 
 Then read [What MCP Native does](product-guide.md) for the product model: what the server describes,
 what the mobile app owns, and where native A2UI and HTML MCP Apps fit.

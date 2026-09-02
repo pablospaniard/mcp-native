@@ -10,6 +10,8 @@ their minor release line.
 
 - Restore the README's descriptive product heading and architecture diagrams, remove the lead
   screenshot, and move the Expo Go example below the package overview.
+- Remove the hosted playground launch and keep the maintained Expo Go app, local walkthrough, and
+  three screenshots as the runnable example.
 
 ## 0.9.2 - 2026-09-02
 
@@ -39,8 +41,8 @@ frozen `1.0.0` candidate API.
   accessibility, focused tests, three current screenshots, and an end-to-end package walkthrough.
 - Replace the old empty React Native demonstration-policy placeholder with the runnable app and make
   it the prominent try-it-now path in the root documentation.
-- Add a one-click Expo Snack launch for the complete todo app and provide a default ESM export-map
-  fallback so condition-based bundlers such as Snackager can consume the published packages.
+- Add a default ESM export-map fallback for condition-based bundlers consuming the published
+  packages.
 
 ## 0.9.1 - 2026-09-02
 
