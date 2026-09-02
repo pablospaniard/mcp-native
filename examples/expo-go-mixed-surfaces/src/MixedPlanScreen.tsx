@@ -15,7 +15,6 @@ import {
 import { WebView } from "react-native-webview";
 import { A2uiV1NativeSurface } from "@mcp-native/react-native";
 import {
-  McpAppsBridge,
   createMcpAppsNativeDeliveryScript,
   createMcpAppsNativeSandbox,
   createMcpAppsReactNativeWebViewProps,
@@ -27,13 +26,14 @@ import {
 } from "mcp-native";
 
 import { cityCatalog, cityPalette } from "./catalog";
+import { cityCanvasResource, createCityCanvasBridge } from "./mcp-app";
 import {
-  authorizeSaveCityStop,
-  cityCanvasResource,
-  createSavedStopResult,
-  parseSavedStop,
-  saveCityStopTool,
-} from "./mcp-app";
+  CITY_CANVAS_APP_REGION_ID,
+  CITY_CANVAS_NATIVE_REGION_ID,
+  advanceMixedPlanSession,
+  handleMixedPlanBack,
+  recoverMixedPlanApp,
+} from "./lifecycle";
 import { citySurfacePolicy, createSummarySurface, getCityVibeDetails } from "./surfaces";
 import type { CityVibe, SavedStop } from "./types";
 
@@ -44,36 +44,40 @@ export interface MixedPlanScreenProps {
   readonly vibe: CityVibe;
 }
 
+interface MixedPlanSessionProps extends MixedPlanScreenProps {
+  readonly onReplaceSession: () => void;
+}
+
 function getOrientation() {
   const { height, width } = Dimensions.get("window");
   return width > height ? ("landscape-left" as const) : ("portrait" as const);
 }
 
-export function MixedPlanScreen({ onBack, onSaveStop, savedStops, vibe }: MixedPlanScreenProps) {
+export function MixedPlanScreen(props: MixedPlanScreenProps) {
+  const [session, setSession] = useState(0);
+  const replaceSession = useCallback(
+    () => setSession((current) => advanceMixedPlanSession(current)),
+    [],
+  );
+
+  return <MixedPlanSession {...props} key={session} onReplaceSession={replaceSession} />;
+}
+
+function MixedPlanSession({
+  onBack,
+  onReplaceSession,
+  onSaveStop,
+  savedStops,
+  vibe,
+}: MixedPlanSessionProps) {
   const webViewRef = useRef<WebView<Record<never, never>>>(null);
   const [error, setError] = useState<string>();
   const summarySurface = useMemo(() => createSummarySurface(vibe), [vibe]);
   const sandbox = useMemo(() => createMcpAppsNativeSandbox(cityCanvasResource), []);
   const bridge = useMemo(
     () =>
-      new McpAppsBridge({
-        resource: cityCanvasResource,
-        sandbox,
-        hostInfo: {
-          name: "mcp-native-city-canvas",
-          title: "City Canvas Expo Go host",
-          version: "1.0.0",
-        },
-        tools: [saveCityStopTool],
-        handlers: {
-          authorizeToolCall: authorizeSaveCityStop,
-          callTool(_name, arguments_) {
-            const stop = parseSavedStop(arguments_);
-            if (stop === undefined) throw new Error("The host rejected an unknown city stop");
-            onSaveStop(stop);
-            return createSavedStopResult(stop);
-          },
-        },
+      createCityCanvasBridge(sandbox, {
+        onSaveStop,
         postMessage(serialized) {
           const view = webViewRef.current;
           if (view === null) throw new Error("The isolated WebView is not mounted");
@@ -87,28 +91,28 @@ export function MixedPlanScreen({ onBack, onSaveStop, savedStops, vibe }: MixedP
   );
   const coordinator = useMemo(() => {
     const nativeRegion = createMcpNativeMixedA2uiRegion({
-      id: "native-route-summary",
+      id: CITY_CANVAS_NATIVE_REGION_ID,
       accessibilityLabel: "Native route summary",
       surface: summarySurface,
       policy: citySurfacePolicy,
       lifecycle: { onBack: () => false },
     });
     const appRegion = createMcpNativeMixedMcpAppsRegion({
-      id: "interactive-city-app",
+      id: CITY_CANVAS_APP_REGION_ID,
       accessibilityLabel: "Interactive isolated city canvas",
       resource: cityCanvasResource,
       sandbox,
       bridge,
       lifecycle: {
         onBack: () => false,
-        onRecover: () => webViewRef.current?.reload(),
+        onRecover: onReplaceSession,
       },
     });
     return new McpNativeMixedSurfaceCoordinator({
       regions: [nativeRegion, appRegion],
       initialFocusedRegionId: nativeRegion.id,
     });
-  }, [bridge, sandbox, summarySurface]);
+  }, [bridge, onReplaceSession, sandbox, summarySurface]);
   const subscribe = useCallback(
     (listener: () => void) => coordinator.subscribe(listener),
     [coordinator],
@@ -132,6 +136,15 @@ export function MixedPlanScreen({ onBack, onSaveStop, savedStops, vibe }: MixedP
     () => ({ ...webViewProps, originWhitelist: [...webViewProps.originWhitelist] }),
     [webViewProps],
   );
+  const reportInteractionError = useCallback((cause: unknown) => {
+    setError(cause instanceof Error ? cause.message : "Mixed-surface interaction failed");
+  }, []);
+  const requestBack = useCallback(() => {
+    void handleMixedPlanBack(coordinator, onBack).catch(reportInteractionError);
+  }, [coordinator, onBack, reportInteractionError]);
+  const requestRecovery = useCallback(() => {
+    void recoverMixedPlanApp(coordinator).catch(reportInteractionError);
+  }, [coordinator, reportInteractionError]);
 
   useEffect(() => {
     let disposed = false;
@@ -163,12 +176,7 @@ export function MixedPlanScreen({ onBack, onSaveStop, savedStops, vibe }: MixedP
         .catch(report);
     });
     const hardwareBack = BackHandler.addEventListener("hardwareBackPress", () => {
-      void coordinator
-        .handleBack()
-        .then((handled) => {
-          if (!handled) onBack();
-        })
-        .catch(report);
+      requestBack();
       return true;
     });
     void AccessibilityInfo.isReduceMotionEnabled()
@@ -192,10 +200,10 @@ export function MixedPlanScreen({ onBack, onSaveStop, savedStops, vibe }: MixedP
         // Both regions are already unmounted, so there is no remaining UI error boundary.
       });
     };
-  }, [coordinator, onBack]);
+  }, [coordinator, requestBack]);
 
   const reportCrash = (message: string) => {
-    void coordinator.reportCrash("interactive-city-app", new Error(message)).catch((cause) => {
+    void coordinator.reportCrash(CITY_CANVAS_APP_REGION_ID, new Error(message)).catch((cause) => {
       setError(cause instanceof Error ? cause.message : "WebView crash handling failed");
     });
   };
@@ -209,7 +217,7 @@ export function MixedPlanScreen({ onBack, onSaveStop, savedStops, vibe }: MixedP
         <Pressable
           accessibilityLabel="Back to city mood"
           accessibilityRole="button"
-          onPress={onBack}
+          onPress={requestBack}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
         >
           <Text allowFontScaling style={styles.backLabel}>
@@ -238,7 +246,7 @@ export function MixedPlanScreen({ onBack, onSaveStop, savedStops, vibe }: MixedP
         <View
           accessibilityLabel={snapshot.regions[0].accessibilityLabel}
           onTouchStart={() => {
-            void coordinator.transferFocus("native-route-summary").catch(() => undefined);
+            void coordinator.transferFocus(CITY_CANVAS_NATIVE_REGION_ID).catch(() => undefined);
           }}
           style={styles.nativeRegion}
         >
@@ -255,7 +263,7 @@ export function MixedPlanScreen({ onBack, onSaveStop, savedStops, vibe }: MixedP
         <View
           accessibilityLabel={appRegion.accessibilityLabel}
           onTouchStart={() => {
-            void coordinator.transferFocus("interactive-city-app").catch(() => undefined);
+            void coordinator.transferFocus(CITY_CANVAS_APP_REGION_ID).catch(() => undefined);
           }}
           style={styles.appRegion}
         >
@@ -275,9 +283,7 @@ export function MixedPlanScreen({ onBack, onSaveStop, savedStops, vibe }: MixedP
               </Text>
               <Pressable
                 accessibilityRole="button"
-                onPress={() =>
-                  void coordinator.recover("interactive-city-app").catch(() => undefined)
-                }
+                onPress={requestRecovery}
                 style={styles.reloadButton}
               >
                 <Text allowFontScaling style={styles.reloadLabel}>

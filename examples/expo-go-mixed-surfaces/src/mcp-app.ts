@@ -2,8 +2,10 @@ import type { JsonObject, McpNativeAction, McpTool, McpToolCallResult } from "@m
 import {
   MCP_APPS_EXTENSION_CAPABILITIES,
   MCP_APPS_MIME_TYPE,
+  McpAppsBridge,
   negotiateMcpApps,
   resolveMcpAppsResource,
+  type McpAppsNativeSandboxConfiguration,
 } from "@mcp-native/webview";
 
 import type { SavedStop } from "./types";
@@ -183,6 +185,39 @@ export const cityCanvasResource = resolveMcpAppsResource(
   },
   grant,
 );
+
+export interface CityCanvasBridgeCallbacks {
+  readonly onProtocolError: (cause: Error) => void;
+  readonly onSaveStop: (stop: SavedStop) => void;
+  readonly postMessage: (serialized: string) => void;
+}
+
+export function createCityCanvasBridge(
+  sandbox: McpAppsNativeSandboxConfiguration,
+  callbacks: CityCanvasBridgeCallbacks,
+): McpAppsBridge {
+  return new McpAppsBridge({
+    resource: cityCanvasResource,
+    sandbox,
+    hostInfo: {
+      name: "mcp-native-city-canvas",
+      title: "City Canvas Expo Go host",
+      version: "1.0.0",
+    },
+    tools: [saveCityStopTool],
+    handlers: {
+      authorizeToolCall: authorizeSaveCityStop,
+      callTool(_name, arguments_) {
+        const stop = parseSavedStop(arguments_);
+        if (stop === undefined) throw new Error("The host rejected an unknown city stop");
+        callbacks.onSaveStop(stop);
+        return createSavedStopResult(stop);
+      },
+    },
+    postMessage: callbacks.postMessage,
+    onProtocolError: callbacks.onProtocolError,
+  });
+}
 
 export function authorizeSaveCityStop(action: McpNativeAction): boolean {
   if (action.type !== "tool" || action.name !== SAVE_CITY_STOP_TOOL_NAME) return false;

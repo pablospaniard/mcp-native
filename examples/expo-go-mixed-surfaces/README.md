@@ -167,6 +167,11 @@ React Native still owns the actual layout. The coordinator serializes foreground
 visibility, focus, orientation, dynamic type, reduced motion, keyboard, back, crash recovery, and
 disposal across the two regions.
 
+The header button and Android system back both ask the focused regions to handle navigation before
+the host changes screens. If the WebView process stops, **Reload securely** replaces the complete
+inner mixed session. That gives the new document a fresh bridge, because an MCP Apps bridge is
+initialized exactly once and must not be reused across WebView processes.
+
 ## Verify the example
 
 Run its focused type and behavior checks:
