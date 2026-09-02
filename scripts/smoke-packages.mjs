@@ -3,6 +3,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { verifyPackageArtifacts } from "./verify-package-artifacts.mjs";
+
 const packages = [
   "@mcp-native/core",
   "@mcp-native/mcp",
@@ -21,6 +23,7 @@ const workspacePackageDirectories = [
   "packages/mcp-native",
 ];
 const expectedVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
+const rootLicenseText = readFileSync("LICENSE", "utf8");
 
 const temporaryDirectory = mkdtempSync(join(tmpdir(), "mcp-native-packages-"));
 const npmEnvironment = {
@@ -82,10 +85,9 @@ try {
       throw new Error(`npm pack did not return a filename for ${packageName}`);
     }
 
-    const files = new Set(packed.files.map(({ path }) => path));
-    const requiredFiles = ["README.md", "dist/index.d.ts", "dist/index.js", "package.json"];
+    const additionalRequiredFiles = [];
     if (packageName === "@mcp-native/mcp") {
-      requiredFiles.push(
+      additionalRequiredFiles.push(
         "dist/oauth.d.ts",
         "dist/oauth.js",
         "dist/oauth-error.d.ts",
@@ -95,7 +97,7 @@ try {
       );
     }
     if (packageName === "@mcp-native/a2ui") {
-      requiredFiles.push(
+      additionalRequiredFiles.push(
         "dist/legacy.d.ts",
         "dist/legacy.js",
         "schemas/7541f953050cd58b80f0bf5d85fe2d63192af305/CHECKSUMS.sha256",
@@ -103,16 +105,18 @@ try {
       );
     }
     if (packageName === "@mcp-native/react-native" || packageName === "mcp-native") {
-      requiredFiles.push("dist/legacy.d.ts", "dist/legacy.js");
+      additionalRequiredFiles.push("dist/legacy.d.ts", "dist/legacy.js");
     }
     if (packageName === "mcp-native") {
-      requiredFiles.push("dist/mixed-surfaces.d.ts", "dist/mixed-surfaces.js");
+      additionalRequiredFiles.push("dist/mixed-surfaces.d.ts", "dist/mixed-surfaces.js");
     }
-    for (const requiredFile of requiredFiles) {
-      if (!files.has(requiredFile)) {
-        throw new Error(`${packageName} tarball is missing ${requiredFile}`);
-      }
-    }
+    verifyPackageArtifacts({
+      packageName,
+      packageDirectory: workspacePackageDirectories[packages.indexOf(packageName)],
+      packedFiles: packed.files,
+      rootLicenseText,
+      additionalRequiredFiles,
+    });
 
     return join(temporaryDirectory, packed.filename);
   });
@@ -185,10 +189,14 @@ try {
   );
 
   for (const packageName of packages) {
-    const packageJsonPath = join(consumerDirectory, "node_modules", packageName, "package.json");
+    const installedPackageDirectory = join(consumerDirectory, "node_modules", packageName);
+    const packageJsonPath = join(installedPackageDirectory, "package.json");
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
     if (packageJson.version !== expectedVersion) {
       throw new Error(`${packageName} has unexpected version ${packageJson.version}`);
+    }
+    if (readFileSync(join(installedPackageDirectory, "LICENSE"), "utf8") !== rootLicenseText) {
+      throw new Error(`${packageName} installed LICENSE does not match the repository license`);
     }
   }
   const smokeEntryPoint = join(consumerDirectory, "smoke.mjs");

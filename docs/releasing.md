@@ -16,9 +16,14 @@ Before creating a release:
    `GITHUB_REF_NAME=v<version> node scripts/verify-release-version.mjs`.
 4. Merge the release pull request and publish the matching GitHub Release.
 
-`npm run release:verify` covers repository checks, package smoke installation, and exact version
-verification. Expo Go integration demonstrations are reported independently when present as
-additional platform and component-library evidence.
+`npm run release:verify` covers repository checks, exact version verification, and package smoke
+installation. Package smoke verifies every declared export, runtime and declaration source map,
+README, and exact MIT license in the packed artifacts before installing them into a clean offline
+consumer. Expo Go integration demonstrations are reported independently when present as additional
+platform and component-library evidence.
+
+Use the [`1.0.0` readiness checklist](1.0-readiness.md) to distinguish automated repository evidence
+from the independent reviews and registry checks that must be recorded for the stable release.
 
 The release workflow publishes packages in dependency order. It first checks whether each exact
 version already exists, so an interrupted release can be resumed without attempting to overwrite

@@ -11,6 +11,10 @@ their minor release line.
 - Align current documentation around the feature-complete `0.9.x` release candidate, lead with
   implemented workflows and adoption guidance, and present compatibility and security boundaries as
   precise integration contracts.
+- Include the exact MIT license in every public package and make package smoke verification reject
+  missing exports, licenses, or invalid JavaScript and declaration source maps before installation.
+- Publish an evidence-based `1.0.0` readiness checklist that separates automated release gates from
+  the remaining independent reviews, migration decision, and final registry publication checks.
 
 ## 0.9.1 - 2026-09-02
 

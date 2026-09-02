@@ -45,8 +45,12 @@ commands, or a cross-boundary WebView escape is not a compatible extension.
 
 `npm run api:verify` builds every package and compares all declared package subpaths, runtime export
 names, and the complete emitted declaration surface with `docs/public-api-baseline.json`. Package
-smoke tests install tarballs into a clean offline consumer and resolve every supported subpath.
-Changes to the baseline require an intentional compatibility review and changelog/migration update.
+smoke tests verify the declared exports, JavaScript and declaration source maps, README, and exact
+MIT license in every tarball before installing them into a clean offline consumer and resolving
+every supported subpath. Changes to the baseline require an intentional compatibility review and
+changelog/migration update.
 
 The [support matrix](support-matrix.md) records the release-candidate dependency lanes. The
-[migration guide](migration-to-1.0.md) records the only planned root-export removal.
+[migration guide](migration-to-1.0.md) records the only planned root-export removal. The
+[`1.0.0` readiness checklist](1.0-readiness.md) distinguishes automated evidence from the final
+reviews and publication actions.
