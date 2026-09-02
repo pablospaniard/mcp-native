@@ -33,7 +33,8 @@ for (const packageDirectory of packageDirectories) {
       target === null ||
       typeof target !== "object" ||
       typeof target.import !== "string" ||
-      typeof target.types !== "string"
+      typeof target.types !== "string" ||
+      target.default !== target.import
     ) {
       throw new Error(`${manifest.name} has an unsupported export-map shape at ${subpath}`);
     }

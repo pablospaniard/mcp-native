@@ -43,6 +43,18 @@ export function verifyPackageArtifacts({
   if (manifest.license !== "MIT") {
     throw new Error(`${packageName} manifest must declare the MIT license`);
   }
+  for (const [subpath, target] of Object.entries(manifest.exports ?? {})) {
+    if (
+      target === null ||
+      typeof target !== "object" ||
+      typeof target.import !== "string" ||
+      target.default !== target.import
+    ) {
+      throw new Error(
+        `${packageName} export ${subpath} must provide a default runtime fallback matching import`,
+      );
+    }
+  }
 
   const requiredFiles = new Set([
     "LICENSE",
