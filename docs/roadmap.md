@@ -350,6 +350,9 @@ integrate the package without reading its implementation.
 
 Status: in release preparation.
 
+The [`1.0.0` readiness checklist](1.0-readiness.md) separates evidence already enforced in the
+repository from the remaining independent reviews, migration step, and final publication actions.
+
 - [ ] Resolve every release-blocking result from independent security review, public-API review,
       protocol/schema diff review, accessibility audit, and native WebView isolation review.
 - [ ] Pass the pinned MCP, A2UI, and MCP Apps conformance suites for the exact documented profiles,

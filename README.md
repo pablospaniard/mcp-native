@@ -17,7 +17,7 @@ styling, renderers, extensions, and mixed native/WebView screens in product lang
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-buy%20me%20a%20coffee-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/pablospaniard)
 
-[Architecture](docs/RFC-0001-architecture.md) · [Mixed surfaces](docs/mixed-surfaces.md) · [Support matrix](docs/support-matrix.md) · [Protocol support](docs/protocol-support.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[Architecture](docs/RFC-0001-architecture.md) · [Mixed surfaces](docs/mixed-surfaces.md) · [Support matrix](docs/support-matrix.md) · [Protocol support](docs/protocol-support.md) · [1.0 readiness](docs/1.0-readiness.md) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -515,7 +515,7 @@ checks remain the package release gates.
 
 ## Roadmap
 
-The detailed [standards-first roadmap](docs/roadmap.md) records retained architecture, milestone exit criteria, and deferred optional extensions.
+The detailed [standards-first roadmap](docs/roadmap.md) records retained architecture, milestone exit criteria, and deferred optional extensions. The [`1.0.0` readiness checklist](docs/1.0-readiness.md) shows which promotion gates are already automated and which final review and publication actions remain.
 
 Release `0.9.0` completes mixed native/WebView composition and freezes the proposed `1.0.0` API.
 The remaining release path is:

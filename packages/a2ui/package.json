@@ -22,6 +22,7 @@
   "files": [
     "dist",
     "schemas",
+    "LICENSE",
     "README.md"
   ],
   "type": "module",
