@@ -4,15 +4,8 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const NATIVE_HOST_CLI_VERSION = "20.2.0";
-export const NATIVE_HOST_REACT_NATIVE_LATEST_VERSION = "0.87.1";
-export const NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION = "0.87.0";
+export const NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION = "0.86.0";
 export const NATIVE_HOST_WEBVIEW_VERSION = "14.0.1";
-export const NATIVE_HOST_JAVASCRIPTCORE_VERSION = "0.2.0";
-export const NATIVE_HOST_JAVASCRIPT_ENGINES = Object.freeze(["hermes", "jsc"]);
-export const NATIVE_HOST_REACT_NATIVE_VERSIONS = Object.freeze([
-  NATIVE_HOST_REACT_NATIVE_LATEST_VERSION,
-  NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION,
-]);
 export const NATIVE_HOST_NAME = "McpNativeAccessibilityHost";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -26,7 +19,7 @@ const packageDirectories = Object.freeze({
 });
 
 export function parseNativeHostArguments(arguments_) {
-  const options = { install: true, javascriptEngine: "hermes" };
+  const options = { install: true };
   for (let index = 0; index < arguments_.length; index += 1) {
     const argument = arguments_[index];
     if (argument === "--output") {
@@ -35,10 +28,6 @@ export function parseNativeHostArguments(arguments_) {
     }
     if (argument === "--react-native") {
       options.reactNativeVersion = arguments_[++index];
-      continue;
-    }
-    if (argument === "--js-engine") {
-      options.javascriptEngine = arguments_[++index];
       continue;
     }
     if (argument === "--skip-install") {
@@ -51,13 +40,8 @@ export function parseNativeHostArguments(arguments_) {
   if (typeof options.output !== "string" || options.output.length === 0) {
     throw new Error("Native-host preparation requires --output <temporary-directory>");
   }
-  if (!NATIVE_HOST_REACT_NATIVE_VERSIONS.includes(options.reactNativeVersion)) {
-    throw new Error(
-      `--react-native must be one of ${NATIVE_HOST_REACT_NATIVE_VERSIONS.join(", ")}`,
-    );
-  }
-  if (!NATIVE_HOST_JAVASCRIPT_ENGINES.includes(options.javascriptEngine)) {
-    throw new Error(`--js-engine must be one of ${NATIVE_HOST_JAVASCRIPT_ENGINES.join(", ")}`);
+  if (options.reactNativeVersion !== NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION) {
+    throw new Error(`--react-native must be ${NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION}`);
   }
   return options;
 }
@@ -77,18 +61,10 @@ export function validateNativeHostOutput(output, root = repositoryRoot) {
   return resolvedOutput;
 }
 
-export function createNativeHostPackageJson(
-  source,
-  tarballs,
-  { javascriptEngine = "hermes" } = {},
-) {
-  expectNativeHostJavascriptEngine(javascriptEngine);
+export function createNativeHostPackageJson(source, tarballs) {
   const dependencies = {
     ...source.dependencies,
     "react-native-webview": NATIVE_HOST_WEBVIEW_VERSION,
-    ...(javascriptEngine === "jsc"
-      ? { "@react-native-community/javascriptcore": NATIVE_HOST_JAVASCRIPTCORE_VERSION }
-      : {}),
   };
   for (const [packageName, filename] of Object.entries(tarballs)) {
     dependencies[packageName] = `file:./mcp-native-packages/${filename}`;
@@ -119,104 +95,6 @@ export function createNativeHostPackageJson(
       "mcp-native:typecheck": "tsc --noEmit",
     },
   };
-}
-
-export function configureNativeHostAndroidJavascriptEngine(source, javascriptEngine) {
-  const anchor = "hermesEnabled=true";
-  if (!source.includes(anchor)) {
-    throw new Error("Generated native host gradle.properties does not enable Hermes by default");
-  }
-  if (javascriptEngine === "hermes") return source;
-  if (javascriptEngine !== "jsc") throw new Error("Unsupported native host JavaScript engine");
-  return source.replace(anchor, "hermesEnabled=false\nuseThirdPartyJSC=true");
-}
-
-export function configureNativeHostAndroidApplicationJavascriptEngine(source, javascriptEngine) {
-  if (javascriptEngine === "hermes") return source;
-  if (javascriptEngine !== "jsc") throw new Error("Unsupported native host JavaScript engine");
-  const importAnchor = "import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost";
-  const hostAnchor = `    getDefaultReactHost(
-      context = applicationContext,
-      packageList =`;
-  if (!source.includes(importAnchor) || !source.includes(hostAnchor)) {
-    throw new Error("Generated native host Android application does not match the pinned template");
-  }
-  return source
-    .replace(
-      importAnchor,
-      `${importAnchor}\nimport io.github.reactnativecommunity.javascriptcore.JSCRuntimeFactory`,
-    )
-    .replace(
-      hostAnchor,
-      `    getDefaultReactHost(
-      context = applicationContext,
-      jsRuntimeFactory = JSCRuntimeFactory(),
-      packageList =`,
-    );
-}
-
-export function configureNativeHostIosJavascriptEngine(source, javascriptEngine) {
-  if (javascriptEngine === "hermes") return source;
-  if (javascriptEngine !== "jsc") throw new Error("Unsupported native host JavaScript engine");
-  const importAnchor = "import ReactAppDependencyProvider";
-  const delegateAnchor = "class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {";
-  if (!source.includes(importAnchor) || !source.includes(delegateAnchor)) {
-    throw new Error("Generated native host iOS application does not match the pinned template");
-  }
-  return source.replace(importAnchor, `${importAnchor}\nimport ReactJSC`).replace(
-    delegateAnchor,
-    `${delegateAnchor}
-  override func createJSRuntimeFactory() -> JSRuntimeFactoryRef {
-    jsrt_create_jsc_factory()
-  }
-`,
-  );
-}
-
-export function configureNativeHostIosPodfile(source, javascriptEngine) {
-  if (javascriptEngine === "hermes") return source;
-  if (javascriptEngine !== "jsc") throw new Error("Unsupported native host JavaScript engine");
-  const anchor = `    react_native_post_install(
-      installer,
-      config[:reactNativePath],
-      :mac_catalyst_enabled => false,
-      # :ccache_enabled => true
-    )`;
-  if (!source.includes(anchor)) {
-    throw new Error("Generated native host Podfile does not match the pinned template");
-  }
-  return source.replace(
-    anchor,
-    `${anchor}
-
-    # React Native 0.87.x omits a separator between these two podspec flags.
-    # Repair only that known malformed value until the minimum moves past 0.87.
-    installer.pods_project.targets.each do |target|
-      next unless target.name == 'React-RCTAppDelegate'
-
-      target.source_build_phase.files.each do |build_file|
-        flags = build_file.settings && build_file.settings['COMPILER_FLAGS']
-        next unless flags.is_a?(String)
-
-        build_file.settings['COMPILER_FLAGS'] = flags.gsub(
-          '-DRCT_NEW_ARCH_ENABLED=1-DUSE_THIRD_PARTY_JSC=1',
-          '-DRCT_NEW_ARCH_ENABLED=1 -DUSE_THIRD_PARTY_JSC=1'
-        )
-      end
-
-      target.build_configurations.each do |configuration|
-        xcconfig_path = configuration.base_configuration_reference&.real_path
-        next unless xcconfig_path&.exist?
-
-        flags = File.read(xcconfig_path)
-        repaired_flags = flags.gsub(
-          '-DRCT_NEW_ARCH_ENABLED=1-DUSE_THIRD_PARTY_JSC=1',
-          '-DRCT_NEW_ARCH_ENABLED=1 -DUSE_THIRD_PARTY_JSC=1'
-        )
-        File.write(xcconfig_path, repaired_flags) unless repaired_flags == flags
-      end
-    end`,
-  );
 }
 
 export function registerNativeHostAndroidPackage(source) {
@@ -286,14 +164,7 @@ export function enableNativeHostPhoneOrientations(source) {
   return source.replace(portraitOnly, allPhoneOrientations);
 }
 
-export function prepareNativeHost({
-  output,
-  reactNativeVersion,
-  javascriptEngine = "hermes",
-  install = true,
-  run = spawnSync,
-}) {
-  expectNativeHostJavascriptEngine(javascriptEngine);
+export function prepareNativeHost({ output, reactNativeVersion, install = true, run = spawnSync }) {
   const resolvedOutput = validateNativeHostOutput(output);
   mkdirSync(dirname(resolvedOutput), { recursive: true });
 
@@ -398,18 +269,7 @@ export function prepareNativeHost({
   );
   writeFileSync(
     mainApplicationPath,
-    configureNativeHostAndroidApplicationJavascriptEngine(
-      registerNativeHostAndroidPackage(readFileSync(mainApplicationPath, "utf8")),
-      javascriptEngine,
-    ),
-  );
-  const gradlePropertiesPath = resolve(resolvedOutput, "android/gradle.properties");
-  writeFileSync(
-    gradlePropertiesPath,
-    configureNativeHostAndroidJavascriptEngine(
-      readFileSync(gradlePropertiesPath, "utf8"),
-      javascriptEngine,
-    ),
+    registerNativeHostAndroidPackage(readFileSync(mainApplicationPath, "utf8")),
   );
 
   const iosApplicationDirectory = resolve(resolvedOutput, "ios", NATIVE_HOST_NAME);
@@ -435,26 +295,11 @@ export function prepareNativeHost({
     infoPlistPath,
     enableNativeHostPhoneOrientations(readFileSync(infoPlistPath, "utf8")),
   );
-  const appDelegatePath = resolve(resolvedOutput, "ios", NATIVE_HOST_NAME, "AppDelegate.swift");
-  writeFileSync(
-    appDelegatePath,
-    configureNativeHostIosJavascriptEngine(readFileSync(appDelegatePath, "utf8"), javascriptEngine),
-  );
-  const podfilePath = resolve(resolvedOutput, "ios", "Podfile");
-  writeFileSync(
-    podfilePath,
-    configureNativeHostIosPodfile(readFileSync(podfilePath, "utf8"), javascriptEngine),
-  );
-
   const packageJsonPath = resolve(resolvedOutput, "package.json");
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
   writeFileSync(
     packageJsonPath,
-    `${JSON.stringify(
-      createNativeHostPackageJson(packageJson, tarballs, { javascriptEngine }),
-      null,
-      2,
-    )}\n`,
+    `${JSON.stringify(createNativeHostPackageJson(packageJson, tarballs), null, 2)}\n`,
   );
 
   if (install) {
@@ -465,22 +310,12 @@ export function prepareNativeHost({
   const result = {
     cliVersion: NATIVE_HOST_CLI_VERSION,
     installed: install,
-    javascriptEngine,
     output: resolvedOutput,
     reactNativeVersion,
     tarballs,
   };
   console.log(JSON.stringify(result, null, 2));
   return result;
-}
-
-function expectNativeHostJavascriptEngine(javascriptEngine) {
-  if (!NATIVE_HOST_JAVASCRIPT_ENGINES.includes(javascriptEngine)) {
-    throw new Error(
-      `Native host JavaScript engine must be one of ${NATIVE_HOST_JAVASCRIPT_ENGINES.join(", ")}`,
-    );
-  }
-  return javascriptEngine;
 }
 
 function runChecked(run, command, arguments_, cwd, { capture = false } = {}) {

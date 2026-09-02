@@ -21,8 +21,8 @@ installation. Package smoke verifies every declared export, runtime and declarat
 README, and exact MIT license in the packed artifacts. It installs the latest coordinated published
 `0.9.x` packages into a clean consumer, runs the documented migration-ready imports, replaces all
 six packages with the local candidate tarballs through an offline install, and runs the same
-consumer again. Expo Go integration demonstrations are reported independently when present as
-additional platform and component-library evidence.
+consumer again. The maintained Expo Go todo app is reported independently as additional
+application-level native evidence.
 
 Use the [`1.0.0` readiness checklist](1.0-readiness.md) to distinguish automated repository evidence
 from the independent reviews and registry checks that must be recorded for the stable release.

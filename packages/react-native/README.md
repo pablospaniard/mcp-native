@@ -26,7 +26,7 @@ The renderer implements the native portion of the documented A2UI v1 Candidate p
 npm install @mcp-native/react-native react react-native
 ```
 
-`@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React is a peer dependency. React Native `>=0.87.0 <1` is an optional peer because the renderer does not import it or choose a platform implementation; a native host supplies its locally bundled components.
+`@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React is a peer dependency. React Native `>=0.86.0 <1` is an optional peer because the renderer does not import it or choose a platform implementation; a native host supplies its locally bundled components.
 
 ## Start with the A2UI v1 renderer
 
@@ -127,18 +127,20 @@ registry and an exact `hostExtensionPolicy` grant. Advertise their catalog IDs w
 `getA2uiV1NativeSupportedHostExtensionCatalogIds` only after the local registration and policy are
 installed. See the [media and extension guide](../../docs/media-and-host-extensions.md).
 
-These mappings have automated host-boundary coverage. The [Expo Go integration demonstration
-policy](../../docs/native-accessibility-testing.md) defines the shared surface and the independent
-app-per-library approach for platform and component-library validation. The [automated robustness gates](../../docs/a2ui-v1-performance.md) define
-repeatable Node.js render-plan budgets and fixed-seed generated-input coverage.
+These mappings have automated host-boundary coverage. The runnable [Expo Go todo
+app](../../examples/expo-go-todolist/README.md) demonstrates the lifecycle, catalog, bindings,
+actions, persistence, and accessibility boundary in a complete native workflow. The [automated
+robustness gates](../../docs/a2ui-v1-performance.md) define repeatable Node.js render-plan budgets
+and fixed-seed generated-input coverage.
 
 For release/platform testing, `npm run native:host:prepare` generates an official temporary React
-Native host at the package's exact tested boundaries: current latest `0.87.1` and declared minimum
-`0.87.0`. Each host installs local package tarballs and the pinned accessibility,
-complete-catalog, media, and Codegen/Fabric extension fixtures.
-The [Expo Go integration demonstration policy](../../docs/native-accessibility-testing.md) documents
-the open app-level compatibility track. Generated hosts remain the current automated package
-fixtures; each future component-library demonstration will record its own exact support evidence.
+Native `0.86.0` host at the package's minimum supported version. The host installs local package
+tarballs and the pinned accessibility, complete-catalog, media, and Codegen/Fabric extension
+fixtures. React Native versions `>=0.86.0 <1` are supported; the minimum-version gate prevents the
+declared floor from drifting upward as newer React Native releases arrive.
+The [Expo Go integration proof](../../docs/native-accessibility-testing.md) documents the runnable
+app-level evidence. Generated hosts remain the automated package fixtures; the Expo app complements
+them with a workflow users can launch and inspect directly.
 
 The Milestone 9 fixture also places this native surface beside an isolated MCP Apps WebView through
 the convenience package's host-owned coordinator. It exercises fixed accessibility order,

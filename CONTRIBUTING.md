@@ -115,10 +115,11 @@ CI runs the same type and test checks on every pull request. A pull request cann
 
 ### Integration examples
 
-Add or maintain a separate Expo Go demonstration for the React Native primitives baseline and each
-selected common, Expo Go-compatible component library. Each app must pin its Expo SDK, React Native, component
-library, and MCP Native versions and must exercise the shared representative surface. Extend the
-existing app when a library's coverage grows instead of adding another app for the same library.
+Extend the maintained [`examples/expo-go-todolist`](examples/expo-go-todolist/README.md) proof when
+application-level React Native behavior changes. Keep its Expo SDK and application dependencies
+pinned, preserve the trusted catalog boundary, exercise the complete representative workflow, and
+keep exactly three current screenshots. Add another example only when it demonstrates a materially
+different host architecture that cannot be explained clearly in the existing app.
 
 Demonstration results complement package releases, milestone completion, and protocol profiles.
 Examples do not replace tests: package behavior still requires unit, integration,

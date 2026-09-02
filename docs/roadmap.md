@@ -66,22 +66,16 @@ The custom `@mcp-native/a2ui` `0.1` object remains useful only for migration. It
 frozen except for security and critical correctness fixes. Milestone 9 isolates it behind explicit
 `/legacy` subpaths; deprecated root aliases remain through `0.9.x` and are removed at `1.0.0`.
 
-## Integration demonstration policy
+## Integration proof
 
-React Native integration validation is developed independently from package releases as a set of
-small Expo Go apps. Maintain one focused demonstration per commonly used, Expo Go-compatible React Native
-component library, plus a React Native primitives baseline. Each app pins its library and Expo SDK
-versions and exercises the same representative surface, adapter mapping, interaction, and
-accessibility scenarios. Extend the existing app when a library's coverage grows instead of adding
-parallel apps for the same library.
+The maintained [Expo Go todo app](../examples/expo-go-todolist/README.md) is the runnable React
+Native primitives proof. It pins its Expo SDK and application dependencies for reproduction while
+the package support policy remains React Native `>=0.86.0 <1`. The app exercises a representative
+surface, catalog mapping, full interaction lifecycle, persistence, and accessibility behavior.
 
-Demonstration results provide library-specific compatibility evidence alongside package releases,
-milestone completion, and protocol profiles. Package documentation records support only for
-libraries that have been exercised. Libraries that require custom native modules are outside
-the Expo Go demonstration matrix until they offer an Expo Go-compatible path.
-
-Package behavior still requires automated unit, integration, conformance, and smoke coverage.
-Demonstration apps supplement those tests; they do not replace them. Protocol examples and hostile inputs used by
+Package behavior still requires automated unit, integration, conformance, generated-host, and smoke
+coverage. The Expo app supplements those tests with an approachable end-to-end workflow; it does
+not create a version-by-version certification matrix. Protocol examples and hostile inputs used by
 automated tests remain fixtures, not additional example applications.
 
 ## Milestone 0: architecture foundation
@@ -152,7 +146,7 @@ Exit criterion: conformance is reported per implemented A2UI feature against the
 
 Status: complete for `0.4.0` package behavior — renderer-local state, action-envelope emission,
 closed accessibility semantics, a generated platform fixture, a WCAG responsibility assessment,
-and CI performance/fuzz gates. Platform and component-library validation stays in separate demonstrations.
+and CI performance/fuzz gates. Application-level behavior is demonstrated by the Expo Go todo app.
 
 - [x] Add renderer-local data-model updates without network calls on each keystroke.
 - [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
@@ -161,15 +155,15 @@ and CI performance/fuzz gates. Platform and component-library validation stays i
       primitive fallbacks, and explicit prop selection without unchecked prop spreading.
 - [x] Mount explicit label, description, live-region, and hidden accessibility attributes for the supported subset, with inferred button and input labels.
 - [x] Derive closed text and button roles, button disabled state, hidden-element focus exclusion, and explicit Text/TextInput font scaling at the host boundary; add regression coverage and a real-platform test plan.
-- [x] Define the initial iOS, Android, and React Native target test matrix and add one pinned fixture that exercises base primitives, adapters, variants, dynamic lists, validation, and screen-reader semantics.
-- [x] Define shared TalkBack and iOS accessibility, dynamic type, focus, contrast, touch-target, orientation, and action scenarios for the separate Expo Go demonstrations.
+- [x] Define the minimum React Native support gate and iOS/Android fixtures that exercise base primitives, adapters, variants, dynamic lists, validation, and screen-reader semantics.
+- [x] Define shared TalkBack and iOS accessibility, dynamic type, focus, contrast, touch-target, orientation, and action scenarios for the Expo Go proof.
 - [x] Establish [parse, update, render-plan, and retained-memory budgets](a2ui-v1-performance.md) for supported surface sizes, with large-surface and rapid-update stress tests.
 - [x] Add deterministic fuzz and property tests for bidirectional protocol parsing, lifecycle state, render-plan conversion, and renderer failure paths.
 - [x] Assess applicable [WCAG 2.2 Level AA responsibilities](wcag-2.2-native-assessment.md) and separate library and host responsibilities.
 
 Exit criterion: the supported A2UI subset remains within documented accessibility and performance
-limits without weakening the component or capability boundary. Library-specific rendering is
-specified for the open Expo Go integration-app track.
+limits without weakening the component or capability boundary. The Expo Go todo app demonstrates
+the primitives workflow at application level.
 
 ## Milestone 5: stable MCP Apps compatibility
 
@@ -196,8 +190,7 @@ Status: complete for `0.6.0` package behavior. The issuer-bound interactive OAut
 every scored official `2026-07-28` authorization client scenario, dependency-neutral platform
 reference adapters, policy gates at current action boundaries, persistent host controls, bounded
 lifecycle coordination, actionable states, redacted operations, and host integration guidance are
-implemented. Separate Expo Go integration demonstrations remain open as additional evidence and are
-reported independently when present.
+implemented. The Expo Go todo proof supplies separate runnable native application evidence.
 
 - [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
       and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
@@ -243,12 +236,13 @@ reported independently when present.
       non-forwarding, and lifecycle cleanup.
 - [x] Continue npm trusted publishing with OIDC, provenance, protected release environments, and
       exact version verification.
-- [ ] Maintain a separate Expo Go demonstration for the React Native primitives baseline and each selected
-      common Expo Go-compatible component library, and document the exact versions exercised.
+- [x] Maintain a runnable Expo Go primitives proof with a complete todo workflow, screenshots,
+      exact app dependencies, package walkthrough, and focused tests.
 
 Exit criterion: met by the `0.6.0` package candidate, which passes protocol, security,
 accessibility, performance, reliability, operability, package, and end-to-end interoperability
-gates. Expo Go demonstration status is reported separately and is not an exit criterion.
+gates. The Expo Go proof is maintained as complementary application evidence rather than a package
+release exit criterion.
 
 ## Milestone 7: non-media A2UI catalog and design systems (`0.7.0`)
 
@@ -274,7 +268,7 @@ Status: released in `0.7.0`.
       surface validation before mounting.
 - [x] Add generated iOS and Android host fixtures using built-in React Native mappings where they
       exist, explicit host adapters for the remaining controls, and at least one representative
-      design-system mapping. Keep Expo Go library demonstrations informative and non-blocking.
+      design-system mapping. Keep the Expo Go proof informative and non-blocking.
 - [x] Update the A2UI conformance profile, standards matrix, human-oriented capability guide,
       package READMEs, migration notes, and changelog with exact supported and excluded fields.
 

@@ -1,30 +1,25 @@
-# `0.9.x` support matrix
+# `0.9.x` support policy
 
-This matrix distinguishes package peer support from the exact generated-host lanes used as release
-evidence. A range is supported only while its minimum and current-latest boundary both pass CI. If
-the minimum becomes incompatible, the matrix and peer range are updated together.
+MCP Native supports React Native `>=0.86.0 <1`. The generated host runs at the minimum so CI catches
+changes that would silently raise the installation floor. Newer versions within the peer range are
+supported without requiring a dedicated version-by-version certification lane; absence from CI is
+not an incompatibility claim.
 
-| Surface           | Declared or tested range                                                                          | Release-candidate evidence                                                                |
-| ----------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Node.js           | repository and package tooling `>=22.12`; native host CI `22.14.0`                                | Ubuntu and macOS workflows                                                                |
-| TypeScript        | emitted declarations built with `7.0.2`; generated RN host template currently resolves `6.0.3`    | monorepo build plus generated-host typecheck                                              |
-| React             | peer `>=18.3.1 <20`; version paired by each pinned RN template                                    | clean generated consumer                                                                  |
-| React Native      | peer `>=0.87.0 <1`; exact boundaries `0.87.0` and `0.87.1`                                        | both boundaries typecheck, bundle, and natively build                                     |
-| Architecture      | React Native New Architecture                                                                     | generated Codegen/Fabric host on iOS and Android                                          |
-| JavaScript engine | Hermes and community JavaScriptCore                                                               | full RN-version × engine matrix                                                           |
-| Community JSC     | `@react-native-community/javascriptcore@0.2.0` in the JSC fixture                                 | Android runtime factory; iOS ReactJSC factory with RN core/dependencies built from source |
-| MCP Apps WebView  | `react-native-webview@14.0.1` in the reference fixture                                            | safe-prop adapter, bridge, bundle, and native builds                                      |
-| Android           | min SDK 24; compile/target SDK supplied by pinned template, CI installs Android 37/build tools 37 | x86_64 debug APK, Java 17                                                                 |
-| iOS               | minimum and SDK inherited from the pinned RN template                                             | unsigned simulator app on `macos-latest`; exact Xcode/SDK retained in each CI run         |
-| MCP SDK           | `@modelcontextprotocol/client ^2.0.0`, verified with `2.0.0`                                      | package and conformance tests                                                             |
-| A2UI              | exact Candidate revision `7541f953050cd58b80f0bf5d85fe2d63192af305`                               | vendored schema checksums and declared profile tests                                      |
-| MCP Apps          | stable `2026-01-26`, official schema package `@modelcontextprotocol/ext-apps@1.7.5`               | interoperability and hostile-message tests                                                |
+| Surface          | Supported range or profile                                                          | Automated baseline                                             |
+| ---------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Node.js          | repository and package tooling `>=22.12`                                            | Ubuntu and macOS workflows                                     |
+| TypeScript       | emitted declarations built with `7.0.2`                                             | monorepo build plus generated-host typecheck                   |
+| React            | peer `>=18.3.1 <20`; version supplied by the host's React Native release            | clean generated consumer                                       |
+| React Native     | peer `>=0.86.0 <1`                                                                  | `0.86.0`, the declared minimum, with the default Hermes engine |
+| Architecture     | React Native New Architecture                                                       | generated Codegen/Fabric host on iOS and Android               |
+| MCP Apps WebView | host-supplied compatible `react-native-webview`; `14.0.1` in the reference fixture  | safe-prop adapter, bridge, bundle, and native builds           |
+| Android          | min SDK 24; compile/target SDK supplied by the React Native template                | x86_64 debug APK, Java 17, Android 37/build tools 37           |
+| iOS              | minimum and SDK inherited from the React Native template                            | unsigned simulator app on `macos-latest`                       |
+| MCP SDK          | `@modelcontextprotocol/client ^2.0.0`                                               | package integration and conformance tests                      |
+| A2UI             | exact Candidate revision `7541f953050cd58b80f0bf5d85fe2d63192af305`                 | vendored schema checksums and declared profile tests           |
+| MCP Apps         | stable `2026-01-26`, official schema package `@modelcontextprotocol/ext-apps@1.7.5` | interoperability and hostile-message tests                     |
 
-Future Expo Go library demonstrations can add application-level evidence for exact
-component-library, device, OEM WebView, and accessibility-service combinations. Direct SwiftUI and
-Compose renderers begin after `1.0.0` and will receive their own support matrices.
-
-The minimum was raised from React Native `0.86.0` because its runtime-factory API is incompatible
-with the pinned community JSC integration. On iOS, the JSC lanes intentionally disable React
-Native's prebuilt core and dependency artifacts: those artifacts are Hermes-oriented and do not
-provide a link-compatible JSC build. Hermes lanes continue to use the standard prebuilt path.
+The runnable [Expo Go todo app](../examples/expo-go-todolist/README.md) adds application-level
+evidence for the primitives catalog without turning one pinned app version into a package
+compatibility ceiling. Direct SwiftUI and Compose renderers begin after `1.0.0` and will receive
+their own support policies.

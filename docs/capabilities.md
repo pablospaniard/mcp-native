@@ -109,5 +109,5 @@ navigate, or bridge a WebView from A2UI. See the [mixed-surface guide](mixed-sur
 - `1.0.0` completes independent compatibility, accessibility, security, protocol/schema, native
   WebView, migration, and release review before publishing the long-term `1.x` guarantee.
 
-The open Expo Go demonstration track can add exact component-library and platform evidence alongside
-the automated package and protocol gates.
+The runnable [Expo Go todo app](../examples/expo-go-todolist/README.md) provides application-level
+native evidence alongside the automated package and protocol gates.

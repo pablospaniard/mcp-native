@@ -60,8 +60,9 @@ All 25 scored authorization client scenarios in the frozen `2026-07-28` requirem
 run through the same executable gate with no expected failures. Together with the seven scenarios
 above, the pinned run reports 386 successful checks, zero failures, and zero warnings across 32
 selected scenarios. This verifies the package-level protected Streamable HTTP OAuth boundary.
-Native-library integration is tracked separately in the open app-level demonstration matrix, while
-this conformance gate verifies the package-level protocol boundary.
+The runnable [Expo Go todo app](../examples/expo-go-todolist/README.md) provides separate
+application-level native evidence, while this conformance gate verifies the package-level protocol
+boundary.
 
 ## Cache-scope isolation
 

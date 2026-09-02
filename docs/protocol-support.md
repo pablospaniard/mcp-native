@@ -65,7 +65,8 @@ and process-recovery entry points. All 25 scored pinned
 available through a host `McpNativeOAuthScopeStore`, and full invalidation removes that history.
 The secure-store contract binds requested scopes to the pending state/verifier attempt so a
 scope-less callback survives process recovery without changing unrelated refresh scopes.
-Native-library integration is tracked separately through the open application-demonstration matrix.
+The runnable [Expo Go todo app](../examples/expo-go-todolist/README.md) provides complementary
+application-level native evidence.
 
 ## Extension capability substrate
 

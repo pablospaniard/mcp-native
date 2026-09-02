@@ -182,7 +182,8 @@ the transport permits at most one SDK step-up retry per request. The host must m
 cross-request budget. Supply `scopeStore` to retain a validated issuer/resource-bound scope record
 across token invalidation and provider instances; full credential invalidation removes it. All 25
 scored pinned official `2026-07-28` authorization client scenarios
-pass. Native-library integration is tracked separately through the open app-level demonstration matrix.
+pass. The runnable [Expo Go todo app](../../examples/expo-go-todolist/README.md) provides separate
+application-level native evidence.
 
 ## Production connection lifecycle
 
