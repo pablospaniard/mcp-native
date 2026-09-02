@@ -9,20 +9,6 @@ and storage code separate so each package boundary is easy to follow.
 | ------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
 | ![All todo tasks](docs/screenshots/all-tasks.png) | ![Completed todo filter](docs/screenshots/completed-tasks.png) | ![Empty todo filter](docs/screenshots/empty.png) |
 
-## Try it in Expo Snack
-
-<div align="center">
-
-[![Open in Expo Snack](https://img.shields.io/badge/Open_in-Expo_Snack-000020?logo=expo&logoColor=white)][expo-snack-todo]
-
-</div>
-
-Open the [live Snack][expo-snack-todo], select **My Device**, and scan its QR code with Expo Go on
-Android or the Camera app on iOS. No clone or local build is required. Snack loads this complete
-five-file app, Expo SDK 57, and exact `0.9.2` versions of `@mcp-native/a2ui`,
-`@mcp-native/core`, and `@mcp-native/react-native`. You can inspect and edit every part before
-running it.
-
 ## Run it locally
 
 From a fresh clone, build the workspace packages once and start the example:
@@ -43,8 +29,6 @@ Native 0.86.3, and the local MCP Native workspace packages. Expo's
 The Metro configuration deliberately resolves `react` and `react-native` from this app while
 watching the linked workspace packages. That keeps one React runtime when local `file:` dependencies
 are used in this monorepo.
-
-[expo-snack-todo]: https://snack.expo.dev/?name=MCP+Native+Todo&description=A+complete+Expo+Go+todo+app+rendered+from+validated+A2UI+v1+data+with+trusted+native+components.&sdkVersion=57.0.0&platform=mydevice&supportedPlatforms=ios%2Candroid%2Cmydevice&preview=true&files=%7B%22App.tsx%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2FApp.tsx%22%7D%2C%22src%2Fcatalog.tsx%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2Fsrc%2Fcatalog.tsx%22%7D%2C%22src%2Fdomain.ts%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2Fsrc%2Fdomain.ts%22%7D%2C%22src%2Fstorage.ts%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2Fsrc%2Fstorage.ts%22%7D%2C%22src%2Fsurface.ts%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2Fsrc%2Fsurface.ts%22%7D%7D&dependencies=%40mcp-native%2Fa2ui%400.9.2%2C%40mcp-native%2Fcore%400.9.2%2C%40mcp-native%2Freact-native%400.9.2%2Cexpo-sqlite%40%7E57.0.2%2Cexpo-status-bar%40%7E57.0.1%2Creact-native-safe-area-context%40%7E5.7.0
 
 ## What to try
 

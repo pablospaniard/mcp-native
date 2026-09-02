@@ -71,10 +71,10 @@ frozen except for security and critical correctness fixes. Milestone 9 isolates 
 ## Integration proof
 
 The maintained [Expo Go todo app](../examples/expo-go-todolist/README.md) is the runnable React
-Native primitives proof. It opens directly in Expo Snack for a no-clone first run and also pins its
-Expo SDK and application dependencies for local reproduction while the package support policy
-remains React Native `>=0.86.0 <1`. The app exercises a representative surface, catalog mapping,
-full interaction lifecycle, persistence, and accessibility behavior.
+Native primitives proof. It pins its Expo SDK and application dependencies for local reproduction
+while the package support policy remains React Native `>=0.86.0 <1`. The app exercises a
+representative surface, catalog mapping, full interaction lifecycle, persistence, and accessibility
+behavior.
 
 Package behavior still requires automated unit, integration, conformance, generated-host, and smoke
 coverage. The Expo app supplements those tests with an approachable end-to-end workflow; it does
@@ -239,8 +239,8 @@ implemented. The Expo Go todo proof supplies separate runnable native applicatio
       non-forwarding, and lifecycle cleanup.
 - [x] Continue npm trusted publishing with OIDC, provenance, protected release environments, and
       exact version verification.
-- [x] Maintain a runnable Expo Go primitives proof with an Expo Snack launch, complete todo
-      workflow, screenshots, exact app dependencies, package walkthrough, and focused tests.
+- [x] Maintain a runnable Expo Go primitives proof with a complete todo workflow, three screenshots,
+      exact app dependencies, package walkthrough, and focused tests.
 
 Exit criterion: met by the `0.6.0` package candidate, which passes protocol, security,
 accessibility, performance, reliability, operability, package, and end-to-end interoperability
