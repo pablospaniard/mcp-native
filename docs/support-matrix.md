@@ -1,8 +1,8 @@
-# `0.9.0` support matrix
+# `0.9.x` support matrix
 
 This matrix distinguishes package peer support from the exact generated-host lanes used as release
 evidence. A range is supported only while its minimum and current-latest boundary both pass CI. If
-the minimum becomes incompatible, it is raised explicitly instead of retaining a false claim.
+the minimum becomes incompatible, the matrix and peer range are updated together.
 
 | Surface           | Declared or tested range                                                                          | Release-candidate evidence                                                                |
 | ----------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
@@ -20,10 +20,9 @@ the minimum becomes incompatible, it is raised explicitly instead of retaining a
 | A2UI              | exact Candidate revision `7541f953050cd58b80f0bf5d85fe2d63192af305`                               | vendored schema checksums and declared profile tests                                      |
 | MCP Apps          | stable `2026-01-26`, official schema package `@modelcontextprotocol/ext-apps@1.7.5`               | interoperability and hostile-message tests                                                |
 
-Expo Go library demonstrations remain informative and outside the release gate. Devices, OEM
-WebViews, accessibility services, and design-system implementations still require application-level
-testing. Direct SwiftUI and Compose renderers are post-`1.0.0` deliverables and are not part of this
-matrix.
+Future Expo Go library demonstrations can add application-level evidence for exact
+component-library, device, OEM WebView, and accessibility-service combinations. Direct SwiftUI and
+Compose renderers begin after `1.0.0` and will receive their own support matrices.
 
 The minimum was raised from React Native `0.86.0` because its runtime-factory API is incompatible
 with the pinned community JSC integration. On iOS, the JSC lanes intentionally disable React

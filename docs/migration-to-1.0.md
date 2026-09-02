@@ -1,7 +1,7 @@
 # Migration from `0.9.x` to `1.0.0`
 
 Milestone 9 establishes the release-candidate API and one deliberate cleanup: the deprecated custom
-A2UI `0.1` proof model will no longer appear in package root exports at `1.0.0`.
+A2UI `0.1` model will no longer appear in package root exports at `1.0.0`.
 
 ## Move legacy imports now
 
@@ -44,5 +44,5 @@ Before `1.0.0`:
 - run the exact [support matrix](support-matrix.md), `npm run check`, and
   `npm run package:smoke` against the application integration.
 
-Any additional pre-stable incompatibility discovered by independent review will be documented here
-before the stable tag rather than hidden behind a silent behavior change.
+Any additional release-candidate correction discovered by independent review will be documented here with
+clear upgrade guidance before the stable tag.

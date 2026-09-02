@@ -12,13 +12,13 @@
 
 </div>
 
-> **Pre-1.0 release candidate:** this package mounts the complete pinned A2UI basic catalog,
-> policy-gated media, and exactly negotiated local host extensions. Its `0.9.x` API is frozen for
-> `1.0.0` review; the stable compatibility guarantee begins at `1.0.0`.
+> **Release status:** this package mounts the complete pinned A2UI basic catalog, policy-gated
+> media, and exactly negotiated local host extensions. Its `0.9.x` API is frozen for `1.0.0`, so
+> teams can integrate it now; the stable `1.x` compatibility guarantee begins with `1.0.0`.
 
 `@mcp-native/react-native` converts a surface already validated by `@mcp-native/a2ui` into a trusted render plan and mounts it with components supplied by the host application. Servers provide data and declared actions—not JavaScript modules, component implementations, or arbitrary component names.
 
-The renderer is an internal platform layer, not proof of complete A2UI v1.0 conformance. The custom `0.1` surface remains available only through deprecated migration APIs, while the v1.0 adapter converts the complete pinned basic catalog, including bounded dynamic lists and policy-gated media, into the same host-owned `NativeElement` boundary. Exactly negotiated local host extensions use a separate closed registration boundary. See the [feature-scoped conformance profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
+The renderer implements the native portion of the documented A2UI v1 Candidate profile. The v1 adapter converts the complete pinned basic catalog, including bounded dynamic lists and policy-gated media, into the host-owned `NativeElement` boundary. Exactly negotiated local host extensions use a separate closed registration boundary. The custom `0.1` surface remains available through migration APIs. See the [feature-scoped A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md) for exact coverage.
 
 ## Install
 
@@ -28,7 +28,13 @@ npm install @mcp-native/react-native react react-native
 
 `@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React is a peer dependency. React Native `>=0.87.0 <1` is an optional peer because the renderer does not import it or choose a platform implementation; a native host supplies its locally bundled components.
 
-## Deprecated custom `0.1` quick start
+## Start with the A2UI v1 renderer
+
+New integrations mount `A2uiV1NativeSurface` with an explicit catalog policy and locally bundled
+components. Continue with the [v1 render-plan adapter](#a2ui-v1-render-plan-adapter) for the complete
+host flow, catalog mapping, local state, validation, actions, media, and extension support.
+
+## Legacy custom `0.1` migration
 
 Use the explicit legacy subpaths during `0.9.x`. These APIs leave package roots at `1.0.0`; the
 subpaths remain frozen for migration and security fixes.
@@ -84,7 +90,7 @@ The renderer uses only the currently allowed component names:
 type NativeComponentName = "Button" | "Text" | "TextInput" | "View";
 ```
 
-This example uses deprecated custom `0.1` APIs. The application host decides how each name maps to a locally bundled component and how declared button actions reach `McpNativeRuntime`. `onBindingChange` reports a validated binding name and the next text value for that legacy proof surface. New hosts should use `A2uiV1NativeSurface`.
+This example uses deprecated custom `0.1` APIs. The application host decides how each name maps to a locally bundled component and how declared button actions reach `McpNativeRuntime`. `onBindingChange` reports a validated binding name and the next text value for that legacy surface. New hosts should use `A2uiV1NativeSurface`.
 
 ## A2UI v1 render-plan adapter
 
@@ -121,7 +127,7 @@ registry and an exact `hostExtensionPolicy` grant. Advertise their catalog IDs w
 `getA2uiV1NativeSupportedHostExtensionCatalogIds` only after the local registration and policy are
 installed. See the [media and extension guide](../../docs/media-and-host-extensions.md).
 
-These mappings have automated host-boundary coverage. The [Expo Go integration PoC
+These mappings have automated host-boundary coverage. The [Expo Go integration demonstration
 policy](../../docs/native-accessibility-testing.md) defines the shared surface and the independent
 app-per-library approach for platform and component-library validation. The [automated robustness gates](../../docs/a2ui-v1-performance.md) define
 repeatable Node.js render-plan budgets and fixed-seed generated-input coverage.
@@ -130,9 +136,9 @@ For release/platform testing, `npm run native:host:prepare` generates an officia
 Native host at the package's exact tested boundaries: current latest `0.87.1` and declared minimum
 `0.87.0`. Each host installs local package tarballs and the pinned accessibility,
 complete-catalog, media, and Codegen/Fabric extension fixtures.
-The [Expo Go integration PoC policy](../../docs/native-accessibility-testing.md) documents the
-non-blocking app-level compatibility work. Generated hosts remain automated package fixtures and do
-not establish support for a component library.
+The [Expo Go integration demonstration policy](../../docs/native-accessibility-testing.md) documents
+the open app-level compatibility track. Generated hosts remain the current automated package
+fixtures; each future component-library demonstration will record its own exact support evidence.
 
 The Milestone 9 fixture also places this native surface beside an isolated MCP Apps WebView through
 the convenience package's host-owned coordinator. It exercises fixed accessibility order,

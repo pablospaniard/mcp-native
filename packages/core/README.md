@@ -12,9 +12,9 @@
 
 </div>
 
-> **Pre-1.0 release candidate:** the `0.9.x` API is part of the frozen proposed `1.0.0` contract.
-> The stable compatibility guarantee begins at `1.0.0`, after the remaining independent review and
-> release gates.
+> **Release status:** `0.9.x` is the feature-complete release candidate for the documented React
+> Native host scope. Its public API is frozen for `1.0.0`, so teams can build against this package
+> now. The stable `1.x` compatibility guarantee begins with `1.0.0` after final independent review.
 
 `@mcp-native/core` is the protocol- and renderer-independent foundation of MCP Native. It defines the small MCP client boundary consumed by the runtime and routes declared actions without depending on A2UI, React Native, WebViews, or a specific MCP SDK transport.
 
@@ -143,9 +143,9 @@ Wrap the policy with `createExpiringGrantActionPolicy()` when the host offers re
 
 `actionPolicy` protects `McpNativeRuntime.dispatch()`. Set `trustedToolPolicy` to protect direct `callTool()` operations with the same or another explicit policy; omission preserves the lower-level trusted seam. MCP Apps requires its own `authorizeToolCall` callback and A2UI v1 delivery requires `createA2uiV1ActionDeliveryHandler`, because those packages own different protocol boundaries.
 
-## Pre-1.0 MCP result migration
+## Legacy MCP result migration
 
-The initial `0.0.x` proof of concept returned one `McpResource` directly from `readResource`. The official SDK returns a content collection, so implementations now return `McpReadResourceResult`:
+The initial `0.0.x` API returned one `McpResource` directly from `readResource`. The official SDK returns a content collection, so implementations now return `McpReadResourceResult`:
 
 ```ts
 // Before

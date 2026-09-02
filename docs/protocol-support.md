@@ -65,8 +65,7 @@ and process-recovery entry points. All 25 scored pinned
 available through a host `McpNativeOAuthScopeStore`, and full invalidation removes that history.
 The secure-store contract binds requested scopes to the pending state/verifier attempt so a
 scope-less callback survives process recovery without changing unrelated refresh scopes.
-Native-library integration is demonstrated
-separately through non-blocking application PoCs.
+Native-library integration is tracked separately through the open application-demonstration matrix.
 
 ## Extension capability substrate
 
@@ -92,11 +91,11 @@ The `2026-07-28` lane verifies explicit extension exchange. Metadata, MIME types
 never substitute for mutual declarations; fallback results preserve ordinary MCP text or structured
 data, and invalid declarations fail closed.
 
-The project-defined experimental [`io.github.pablospaniard/mcp-native-a2ui`
-binding](a2ui-mcp-binding.md) implements a documented [feature-scoped A2UI v1.0 Candidate
-profile](a2ui-v1-conformance.md)—lifecycle and renderer-message parsing, bounded ordered state, and
-policy-gated surface validation—but the binding's presence alone does not grant that path or claim
-complete A2UI conformance.
+The project-defined [`io.github.pablospaniard/mcp-native-a2ui`
+binding](a2ui-mcp-binding.md) implements the transport for the documented [feature-scoped A2UI v1.0
+Candidate profile](a2ui-v1-conformance.md), including lifecycle and renderer-message parsing,
+bounded ordered state, and policy-gated surface validation. Both peers must negotiate the exact
+binding settings before that path is enabled.
 
 The official `io.modelcontextprotocol/ui` identifier is implemented separately through the [stable
 MCP Apps `2026-01-26` native host-adapter profile](mcp-apps-compatibility.md). Both peers must include

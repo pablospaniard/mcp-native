@@ -8,14 +8,14 @@
 
 </div>
 
-> **Pre-1.0 release candidate:** the `0.9.x` API is part of the frozen proposed `1.0.0` contract.
-> The stable compatibility guarantee begins at `1.0.0`, after the remaining independent review and
-> release gates.
+> **Release status:** `0.9.x` is the feature-complete release candidate for the documented React
+> Native host scope. Its public API is frozen for `1.0.0`, so teams can integrate this adapter now.
+> The stable `1.x` compatibility guarantee begins with `1.0.0` after final independent review.
 
 > **Compatibility:** SDK v2 is the correct implementation line for MCP `2026-07-28`. The documented
 > tool/resource and authorization boundary preserves official fields and passes the pinned HTTP and
-> conformance coverage. The package does not claim MCP operations outside its explicit support
-> policy.
+> conformance coverage. The [protocol support policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/protocol-support.md)
+> lists the implemented operations and tested revisions.
 
 `@mcp-native/mcp` adapts a connected [`Client`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/client.md) from `@modelcontextprotocol/client` v2 to the transport-neutral `McpClient` interface in `@mcp-native/core`. It also provides the native host boundary for interactive OAuth on protected Streamable HTTP connections.
 
@@ -182,7 +182,7 @@ the transport permits at most one SDK step-up retry per request. The host must m
 cross-request budget. Supply `scopeStore` to retain a validated issuer/resource-bound scope record
 across token invalidation and provider instances; full credential invalidation removes it. All 25
 scored pinned official `2026-07-28` authorization client scenarios
-pass. Native-library integration is demonstrated separately through non-blocking app-level PoCs.
+pass. Native-library integration is tracked separately through the open app-level demonstration matrix.
 
 ## Production connection lifecycle
 

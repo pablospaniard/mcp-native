@@ -1,8 +1,8 @@
 # `1.0.0` release-candidate compatibility policy
 
-Milestone 9 froze the release-candidate API described here. The `0.9.x` packages are pre-stable,
-not early prototypes: independent review may still require a documented correction before the
-stable tag, and the `1.x` compatibility guarantee does not apply until `1.0.0`.
+Milestone 9 froze the `0.9.x` release-candidate API described here. Teams can integrate against this
+contract now. Independent review may still require a documented correction before the stable tag;
+the long-term `1.x` compatibility guarantee begins with `1.0.0`.
 
 ## Stable compatibility surfaces
 
@@ -26,8 +26,8 @@ release notes must identify the affected boundary and safe replacement.
 
 Additive exports, optional fields, components, negotiated features, and platform adapters may ship
 in minor releases when old callers retain their behavior. Patch releases contain compatible fixes
-within a minor line. Experimental post-`1.0.0` SwiftUI, Compose, and capability-provider packages do
-not silently expand the React Native server contract.
+within a minor line. Post-`1.0.0` SwiftUI, Compose, and capability-provider packages will use their
+own documented profiles and will not silently expand the React Native server contract.
 
 ## Package boundaries
 

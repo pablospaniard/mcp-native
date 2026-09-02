@@ -1,14 +1,15 @@
 # Roadmap
 
-This roadmap replaces feature-first growth with standards-first milestones. MCP Native is still pre-1.0, so protocol-facing APIs may change rather than preserving an incompatible proof-of-concept wire format.
+MCP Native has completed Milestones 0–9 and is now moving from the feature-complete `0.9.x`
+release candidate to `1.0.0`. The public API is frozen; the remaining stable-release work is
+independent review, final validation, documentation, and publication of the `1.x` guarantee.
 
-## Path from `0.9.0` to `1.0.0`
+## Path from `0.9.x` to `1.0.0`
 
-The `1.0.0` target is a production-ready React Native host library, not a universal native UI
-runtime. It will render the pinned A2UI basic catalog through components compiled into the host
-application, keep MCP Apps HTML inside its separate WebView policy boundary, and provide an
-explicit extension contract for application-owned semantic components. A server will never select
-an import, native class, React Native module, arbitrary style object, or unchecked prop map.
+The `1.0.0` target is a production-ready React Native host library. It renders the pinned A2UI basic
+catalog through components compiled into the host application, keeps MCP Apps HTML inside its
+separate WebView policy boundary, and provides an explicit extension contract for application-owned
+semantic components.
 
 The product boundary is:
 
@@ -26,19 +27,21 @@ The release sequence is intentionally cumulative:
 | ------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `0.7.0`      | Complete the non-media A2UI basic-catalog renderer and stable design-system boundary             | Every supported component passes schema, hostile-input, interaction, accessibility, and iOS/Android fixture coverage                                                      |
 | `0.8.0`      | Add policy-gated media and compiled host-extension components                                    | The complete pinned basic catalog is covered, and no server value can resolve code, native classes, commands, or unchecked props                                          |
-| `0.9.0`      | Prove mixed native/WebView hosting and freeze the proposed public API                            | One production-shaped reference host passes lifecycle, isolation, accessibility, performance, migration, and package-consumer tests                                       |
+| `0.9.0`      | Deliver mixed native/WebView hosting and freeze the proposed public API                          | One production-shaped reference host passes lifecycle, isolation, accessibility, performance, migration, and package-consumer tests                                       |
 | `1.0.0`      | Publish the reviewed stable contract and compatibility guarantees                                | No unresolved release-blocking security, compatibility, documentation, or conformance gaps remain                                                                         |
 | Post-`1.0.0` | Add first-class SwiftUI and Jetpack Compose renderers plus universal native-capability providers | Both native renderers share the trusted protocol boundary, and any additional native capability can be integrated through a typed, advertised, policy-gated host provider |
 
-The following are explicit non-goals for `1.0.0`:
+## Deliberate `1.0.0` scope
 
-- a server-controlled catalog of React Native packages or platform class names;
-- arbitrary React Native props, styles, commands, JavaScript, imports, or downloaded components;
-- direct standalone SwiftUI or Jetpack Compose renderers within the `1.0.0` release scope;
-- treating navigation, safe areas, status bars, or application screens as server-owned primitives;
-- embedding an MCP Apps WebView as an unrestricted A2UI component;
-- claiming support for every React Native library or unqualified conformance with a moving A2UI,
-  MCP, React Native, iOS, or Android version.
+- The host supplies all React Native packages, platform classes, components, props, styles, and
+  commands.
+- The host owns navigation, safe areas, status bars, application screens, and the surrounding app
+  shell.
+- A2UI native regions and MCP Apps WebViews compose as host-created siblings with separate policy
+  boundaries.
+- Compatibility is reported against exact pinned MCP, A2UI, MCP Apps, React Native, iOS, and
+  Android profiles.
+- First-class SwiftUI and Jetpack Compose renderers begin after the stable React Native release.
 
 UIKit, Android View, SwiftUI, and Compose implementations may still be used when the application
 deliberately exposes them to React Native through a locally compiled Fabric component and maps that
@@ -47,9 +50,9 @@ resolution. First-class SwiftUI and Jetpack Compose renderers are a committed po
 they must reuse the protocol-independent core and trusted semantic boundary rather than introducing
 React Native dependencies into `@mcp-native/core`.
 
-## What remains valid
+## Architecture retained through the roadmap
 
-The standards review does not require starting over. Keep and evolve:
+The standards review confirmed these foundations, which remain part of the frozen contract:
 
 - the protocol-independent package boundary in `@mcp-native/core`;
 - the official SDK adapter boundary in `@mcp-native/mcp`;
@@ -63,25 +66,25 @@ The custom `@mcp-native/a2ui` `0.1` object remains useful only for migration. It
 frozen except for security and critical correctness fixes. Milestone 9 isolates it behind explicit
 `/legacy` subpaths; deprecated root aliases remain through `0.9.x` and are removed at `1.0.0`.
 
-## Integration PoC policy
+## Integration demonstration policy
 
 React Native integration validation is developed independently from package releases as a set of
-small Expo Go apps. Maintain one focused PoC per commonly used, Expo Go-compatible React Native
+small Expo Go apps. Maintain one focused demonstration per commonly used, Expo Go-compatible React Native
 component library, plus a React Native primitives baseline. Each app pins its library and Expo SDK
 versions and exercises the same representative surface, adapter mapping, interaction, and
 accessibility scenarios. Extend the existing app when a library's coverage grows instead of adding
 parallel apps for the same library.
 
-PoC results are informative compatibility demonstrations. They never block package releases,
-milestone completion, or protocol claims, and the package documentation must not imply support for
-libraries that have not been exercised. Libraries that require custom native modules are outside
-the Expo Go PoC matrix until they offer an Expo Go-compatible path.
+Demonstration results provide library-specific compatibility evidence alongside package releases,
+milestone completion, and protocol profiles. Package documentation records support only for
+libraries that have been exercised. Libraries that require custom native modules are outside
+the Expo Go demonstration matrix until they offer an Expo Go-compatible path.
 
-Package behavior still requires automated unit, integration, conformance, and smoke coverage. PoC
-apps supplement those tests; they do not replace them. Protocol examples and hostile inputs used by
+Package behavior still requires automated unit, integration, conformance, and smoke coverage.
+Demonstration apps supplement those tests; they do not replace them. Protocol examples and hostile inputs used by
 automated tests remain fixtures, not additional example applications.
 
-## Milestone 0: proof-of-concept architecture
+## Milestone 0: architecture foundation
 
 Status: complete.
 
@@ -96,10 +99,10 @@ Status: complete.
 
 ## Milestone 1: MCP `2026-07-28` conformance foundation
 
-Status: complete for RFC-0001's initial client boundary.
+Status: complete for RFC-0001's documented client boundary.
 
 - [x] Declare the complete supported core revision and backwards-compatibility policy.
-- [x] Preserve official tool, content, resource, schema, annotation, `_meta`, and cache semantics across the initial `@mcp-native/mcp` and `@mcp-native/core` boundary.
+- [x] Preserve official tool, content, resource, schema, annotation, `_meta`, and cache semantics across the documented `@mcp-native/mcp` and `@mcp-native/core` boundary.
 - [x] Replace the lossy generic `{ type, data }` representation with official discriminated content types.
 - [x] Delegate transport framing, per-request envelopes, headers, cancellation, and protocol-version behavior to official SDK v2.
 - [x] Test real `2026-07-28` behavior through the SDK HTTP handler/fetch path.
@@ -149,7 +152,7 @@ Exit criterion: conformance is reported per implemented A2UI feature against the
 
 Status: complete for `0.4.0` package behavior — renderer-local state, action-envelope emission,
 closed accessibility semantics, a generated platform fixture, a WCAG responsibility assessment,
-and CI performance/fuzz gates. Platform and component-library validation stays in separate PoCs.
+and CI performance/fuzz gates. Platform and component-library validation stays in separate demonstrations.
 
 - [x] Add renderer-local data-model updates without network calls on each keystroke.
 - [x] Resolve A2UI action context at dispatch time and construct the pinned official renderer-to-agent action envelope; transport delivery remains host-owned.
@@ -159,14 +162,14 @@ and CI performance/fuzz gates. Platform and component-library validation stays i
 - [x] Mount explicit label, description, live-region, and hidden accessibility attributes for the supported subset, with inferred button and input labels.
 - [x] Derive closed text and button roles, button disabled state, hidden-element focus exclusion, and explicit Text/TextInput font scaling at the host boundary; add regression coverage and a real-platform test plan.
 - [x] Define the initial iOS, Android, and React Native target test matrix and add one pinned fixture that exercises base primitives, adapters, variants, dynamic lists, validation, and screen-reader semantics.
-- [x] Define shared TalkBack and iOS accessibility, dynamic type, focus, contrast, touch-target, orientation, and action scenarios for the separate Expo Go PoCs.
+- [x] Define shared TalkBack and iOS accessibility, dynamic type, focus, contrast, touch-target, orientation, and action scenarios for the separate Expo Go demonstrations.
 - [x] Establish [parse, update, render-plan, and retained-memory budgets](a2ui-v1-performance.md) for supported surface sizes, with large-surface and rapid-update stress tests.
 - [x] Add deterministic fuzz and property tests for bidirectional protocol parsing, lifecycle state, render-plan conversion, and renderer failure paths.
 - [x] Assess applicable [WCAG 2.2 Level AA responsibilities](wcag-2.2-native-assessment.md) and separate library and host responsibilities.
 
 Exit criterion: the supported A2UI subset remains within documented accessibility and performance
 limits without weakening the component or capability boundary. Library-specific rendering is
-demonstrated separately through the non-blocking Expo Go PoCs.
+specified for the open Expo Go integration-app track.
 
 ## Milestone 5: stable MCP Apps compatibility
 
@@ -193,8 +196,8 @@ Status: complete for `0.6.0` package behavior. The issuer-bound interactive OAut
 every scored official `2026-07-28` authorization client scenario, dependency-neutral platform
 reference adapters, policy gates at current action boundaries, persistent host controls, bounded
 lifecycle coordination, actionable states, redacted operations, and host integration guidance are
-implemented. Separate Expo Go integration PoCs remain open as non-blocking evidence and are reported
-independently.
+implemented. Separate Expo Go integration demonstrations remain open as additional evidence and are
+reported independently when present.
 
 - [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
       and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
@@ -240,12 +243,12 @@ independently.
       non-forwarding, and lifecycle cleanup.
 - [x] Continue npm trusted publishing with OIDC, provenance, protected release environments, and
       exact version verification.
-- [ ] Maintain a separate Expo Go PoC for the React Native primitives baseline and each selected
+- [ ] Maintain a separate Expo Go demonstration for the React Native primitives baseline and each selected
       common Expo Go-compatible component library, and document the exact versions exercised.
 
 Exit criterion: met by the `0.6.0` package candidate, which passes protocol, security,
 accessibility, performance, reliability, operability, package, and end-to-end interoperability
-gates. Expo Go PoC status is reported separately and is not an exit criterion.
+gates. Expo Go demonstration status is reported separately and is not an exit criterion.
 
 ## Milestone 7: non-media A2UI catalog and design systems (`0.7.0`)
 
@@ -340,12 +343,12 @@ Status: released in `0.9.0`.
       iOS, Android, New Architecture, and JavaScript-engine matrix, with exact version ranges recorded.
 
 Exit criterion: met by the `0.9.0` release. The release-candidate API is frozen, the reference host
-proves the promised native, extension, and mixed-WebView flows, and adopters can understand and
+exercises the promised native, extension, and mixed-WebView flows, and adopters can understand and
 integrate the package without reading its implementation.
 
 ## Milestone 10: stable release (`1.0.0`)
 
-Status: planned.
+Status: in release preparation.
 
 - [ ] Resolve every release-blocking result from independent security review, public-API review,
       protocol/schema diff review, accessibility audit, and native WebView isolation review.
@@ -366,8 +369,7 @@ Status: planned.
       workflow and verify registry contents, tags, signatures/provenance, and installability.
 
 Exit criterion: the documented product contract is implemented and verified, the `1.x` stability
-policy is published, and no required work is deferred behind an unqualified compatibility or
-security claim.
+policy is published, and every release-blocking review result has been resolved and documented.
 
 ## Committed post-`1.0.0` direction
 

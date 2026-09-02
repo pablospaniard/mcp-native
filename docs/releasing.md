@@ -17,8 +17,8 @@ Before creating a release:
 4. Merge the release pull request and publish the matching GitHub Release.
 
 `npm run release:verify` covers repository checks, package smoke installation, and exact version
-verification. Expo Go integration PoCs are maintained and reported independently; their status does
-not block package publication.
+verification. Expo Go integration demonstrations are reported independently when present as
+additional platform and component-library evidence.
 
 The release workflow publishes packages in dependency order. It first checks whether each exact
 version already exists, so an interrupted release can be resumed without attempting to overwrite

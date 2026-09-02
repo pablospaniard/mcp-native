@@ -1,6 +1,8 @@
 # Contributing to MCP Native
 
-Thank you for helping build MCP Native. The project is early enough that careful questions, design criticism, documentation fixes, and small experiments are just as valuable as large features.
+Thank you for helping build MCP Native. The `0.9.x` public API is frozen for `1.0.0`, so integration
+feedback, independent review, documentation improvements, tests, and focused fixes are especially
+valuable. New feature work follows the published roadmap and compatibility policy.
 
 ## Ground rules
 
@@ -113,13 +115,13 @@ CI runs the same type and test checks on every pull request. A pull request cann
 
 ### Integration examples
 
-Maintain a separate Expo Go PoC for the React Native primitives baseline and each selected common,
-Expo Go-compatible component library. Each app must pin its Expo SDK, React Native, component
+Add or maintain a separate Expo Go demonstration for the React Native primitives baseline and each
+selected common, Expo Go-compatible component library. Each app must pin its Expo SDK, React Native, component
 library, and MCP Native versions and must exercise the shared representative surface. Extend the
 existing app when a library's coverage grows instead of adding another app for the same library.
 
-PoC results are informative and never block package releases, milestone completion, or protocol
-claims. Examples do not replace tests: package behavior still requires unit, integration,
+Demonstration results complement package releases, milestone completion, and protocol profiles.
+Examples do not replace tests: package behavior still requires unit, integration,
 conformance, performance, or smoke coverage at the closest appropriate layer.
 
 ## Commits
@@ -154,7 +156,7 @@ Protocol- or compatibility-affecting pull requests must also:
 - link the relevant normative section and distinguish `MUST`, `SHOULD`, and project policy;
 - include official fixtures or interoperability scenarios where available;
 - update the [compatibility matrix](docs/standards-compatibility.md) and [roadmap](docs/roadmap.md) when support changes;
-- avoid unqualified conformance claims when only a subset is implemented.
+- describe compatibility using the exact implemented and tested profile.
 
 Draft pull requests are welcome for early feedback. They are not mergeable until marked ready for review.
 

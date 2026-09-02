@@ -1,8 +1,8 @@
 # Mixed native and MCP Apps surfaces
 
 `mcp-native` exposes a host-owned coordinator for screens that place validated native A2UI and
-isolated MCP Apps WebViews in sibling regions. It coordinates lifecycle; it is not a remotely
-described layout engine.
+isolated MCP Apps WebViews in sibling regions. It coordinates lifecycle while the app's React
+Native tree owns layout and placement.
 
 ## Ownership model
 

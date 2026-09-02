@@ -1,5 +1,9 @@
 # What MCP Native can do
 
+MCP Native `0.9.x` is the feature-complete release candidate for the documented React Native host
+scope. Its public API is frozen for `1.0.0`, so teams can use the capabilities below in integrations
+today.
+
 MCP Native lets an MCP server describe an interactive interface while the mobile application keeps
 control of the code, visual system, navigation, permissions, and network boundaries.
 
@@ -87,22 +91,23 @@ arbitrary platform APIs or commands to a server.
 ## WebViews and mixed screens
 
 HTML MCP Apps use a separate, isolated WebView path. The WebView package validates the stable MCP
-Apps profile and supplies a restrictive sandbox/bridge contract, but a native WebView cannot offer
-all guarantees of a browser's cross-origin double iframe. The host must enforce origins, navigation,
-storage, cookies, downloads, permissions, bridge messages, and teardown.
+Apps profile and supplies the native sandbox and bridge contract for origins, navigation, storage,
+cookies, downloads, permissions, bridge messages, and teardown. Browser hosts use the profile's
+cross-origin double-iframe model; native hosts apply the documented platform mapping.
 
 Native A2UI and WebView rendering use a deliberately host-owned production composition model.
 Release `0.9.0` adds a coordinator that places factory-created native and isolated WebView regions
 as siblings on one screen and serializes their lifecycle. A server cannot create, configure,
 navigate, or bridge a WebView from A2UI. See the [mixed-surface guide](mixed-surfaces.md).
 
-## What remains before `1.0.0`
+## Release status
 
-- `0.8.0`: released—policy-gated audio/video and a versioned model for locally compiled native
-  extensions;
-- `0.9.0`: released—mixed native/WebView hosting, production-shaped reference host, and proposed
-  API freeze;
-- `1.0.0`: compatibility, migration, conformance, release, and long-term support gates.
+- `0.8.0` delivered policy-gated audio/video and locally compiled native extensions.
+- `0.9.0` delivered mixed native/WebView hosting, the production-shaped reference host, and the
+  public API freeze.
+- Current `0.9.x` patches are ready for integration and evaluation.
+- `1.0.0` completes independent compatibility, accessibility, security, protocol/schema, native
+  WebView, migration, and release review before publishing the long-term `1.x` guarantee.
 
-Expo Go demonstrations remain separate, informative compatibility work. They do not expand the
-package's security or conformance claims.
+The open Expo Go demonstration track can add exact component-library and platform evidence alongside
+the automated package and protocol gates.

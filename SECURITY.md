@@ -1,10 +1,14 @@
 # Security Policy
 
-MCP Native processes server-controlled descriptions that may eventually reach device UI and capabilities. Security reports are especially valuable, even while the project is experimental.
+MCP Native processes server-controlled descriptions that can reach device UI and host-approved
+capabilities. Security reports help strengthen the current release candidate and the `1.0.0`
+release.
 
 ## Supported versions
 
-There is not yet a stable or supported release line. Security fixes are made on the latest `main` branch. Published pre-`1.0.0` packages are experimental and may not contain the latest repository code.
+The latest `0.9.x` package release is the current release-candidate line. Security fixes
+are developed on `main` and released on the latest applicable `0.9.x` patch. Users should stay on
+the newest patch; the long-term `1.x` compatibility guarantee begins at `1.0.0`.
 
 ## Report a vulnerability
 
@@ -17,11 +21,11 @@ Use GitHub's private vulnerability reporting flow:
 Include, where possible:
 
 - the affected package, API, commit, or version;
-- a minimal reproduction or proof of concept;
+- a minimal reproduction;
 - the expected and observed behavior;
 - the security impact and plausible attack path;
 - any mitigations you have already identified;
-- whether the report or proof of concept has been shared elsewhere.
+- whether the report or reproduction has been shared elsewhere.
 
 Do not include real credentials, personal data, private MCP endpoints, or data belonging to another party.
 
@@ -48,10 +52,8 @@ The foundational rule is documented in [RFC-0001](docs/RFC-0001-architecture.md)
 
 Surface-driven `dispatch()` invocations are validated and denied unless an explicit host policy resolves to `true`. Prefer argument-aware allowlists over tool-name checks; async allowlist predicates are awaited and only an explicit boolean `true` authorizes. Direct `callTool()` remains a trusted-host path with JSON validation only. Protocol-facing JSON rejects circular, non-plain, and non-finite values, and reconstructs prototype-named keys as ordinary own properties. WebView helpers deny inline and remote HTML by default, allowlist non-network inline base-URL schemes (`ui:` / `mcp:`), reject non-string URIs and embedded credentials, require exact remote origin allowlists, and never treat binary MCP blobs as documents. These protections do not authorize a tool, replace application permissions, or make the current WebView primitives a browser sandbox.
 
-Security-oriented architecture does not by itself establish unqualified protocol conformance. The
-custom A2UI `0.1` parser remains a deprecated proof shape, while the WebView package implements only
-the documented stable MCP Apps native host-adapter profile. Native WebView isolation differs from a
-browser's cross-origin double iframe, and sensitive permission grants require an audited platform
-adapter. The stable bridge caps concurrent inbound work, serializes exactly-once lifecycle sends,
-and requires a host error boundary for native callback failures. See
-[Standards and compatibility](docs/standards-compatibility.md) for the exact boundaries.
+The documented protocol profiles make these security boundaries testable. New A2UI integrations use
+the pinned v1 Candidate profile; the custom `0.1` parser is isolated for migration. MCP Apps hosts
+use the native sandbox and bridge contract, including bounded inbound work, serialized lifecycle
+sends, host error handling, and explicit platform permission integration. See [Standards and
+compatibility](docs/standards-compatibility.md) for the verified coverage.
