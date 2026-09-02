@@ -1,8 +1,11 @@
+<div align="center">
+
 # MCP Native
 
-Native, interactive interfaces for the Model Context Protocol—rendered with components your app already trusts.
+### Native application surfaces for the Model Context Protocol
 
-MCP Native lets an MCP server describe a form, list, media view, or action flow as data. Your app validates that description and renders it with its own React Native components. The server never ships React Native code or chooses a component from your bundle.
+Render trusted, declarative MCP interfaces with host-owned native components—starting with React
+Native—while keeping HTML MCP Apps behind an explicit WebView policy boundary.
 
 [![CI](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml/badge.svg)](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/mcp-native?label=mcp-native)](https://www.npmjs.com/package/mcp-native)
@@ -10,35 +13,13 @@ MCP Native lets an MCP server describe a form, list, media view, or action flow 
 [![License: MIT](https://img.shields.io/github/license/pablospaniard/mcp-native)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-MCP Native is currently in the 0.9 release-candidate line. The React Native feature set planned for 1.0 is in place and ready to try. The 1.0 release adds the long-term compatibility promise after the final independent reviews.
-
-## See it working
-
-<p align="center">
-  <a href="examples/expo-go-todolist/README.md">
-    <img src="examples/expo-go-todolist/docs/screenshots/all-tasks.png" width="360" alt="MCP Native Expo Go todo app showing its task list" />
-  </a>
-</p>
-
-<div align="center">
-
-[![Open in Expo Snack](https://img.shields.io/badge/Open_in-Expo_Snack-000020?logo=expo&logoColor=white)][expo-snack-todo]
-
 </div>
 
-The [Expo Go todo app](examples/expo-go-todolist/README.md) is a complete example, not a static mockup. You can add, edit, complete, filter, and delete tasks; state persists between launches. Underneath, it uses the A2UI lifecycle, local bindings, validation, accessible native components, and host-owned action handling.
+MCP Native lets an MCP server describe a form, list, media view, or action flow as data. Your app
+validates that description and renders it with its own React Native components. The server never
+ships React Native code or chooses a component from your bundle.
 
-Open the Snack, choose **My Device**, and scan the QR code with Expo Go on Android or the Camera app on iOS. You can inspect all five source files before running it.
-
-To run the same app from this repository:
-
-```bash
-npm ci
-npm run build
-cd examples/expo-go-todolist
-npm ci
-npm start
-```
+MCP Native is currently in the 0.9 release-candidate line. The React Native feature set planned for 1.0 is in place and ready to try. The 1.0 release adds the long-term compatibility promise after the final independent reviews.
 
 [expo-snack-todo]: https://snack.expo.dev/?name=MCP+Native+Todo&description=A+complete+Expo+Go+todo+app+rendered+from+validated+A2UI+v1+data+with+trusted+native+components.&sdkVersion=57.0.0&platform=mydevice&supportedPlatforms=ios%2Candroid%2Cmydevice&preview=true&files=%7B%22App.tsx%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2FApp.tsx%22%7D%2C%22src%2Fcatalog.tsx%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2Fsrc%2Fcatalog.tsx%22%7D%2C%22src%2Fdomain.ts%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2Fsrc%2Fdomain.ts%22%7D%2C%22src%2Fstorage.ts%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2Fsrc%2Fstorage.ts%22%7D%2C%22src%2Fsurface.ts%22%3A%7B%22type%22%3A%22CODE%22%2C%22url%22%3A%22https%3A%2F%2Fraw.githubusercontent.com%2Fpablospaniard%2Fmcp-native%2Fb4d55c9c51bba06601e0ed851b450c6ae8849110%2Fexamples%2Fexpo-go-todolist%2Fsrc%2Fsurface.ts%22%7D%7D&dependencies=%40mcp-native%2Fa2ui%400.9.2%2C%40mcp-native%2Fcore%400.9.2%2C%40mcp-native%2Freact-native%400.9.2%2Cexpo-sqlite%40%7E57.0.2%2Cexpo-status-bar%40%7E57.0.1%2Creact-native-safe-area-context%40%7E5.7.0
 
@@ -68,6 +49,55 @@ That split gives both sides a useful job:
 - HTML MCP Apps can still run in an isolated WebView when HTML is the better tool.
 
 The same server-described Button can become a React Native primitive, a component from your design system, or a locally compiled Fabric component. The mapping stays in your application.
+
+## Architecture at a glance
+
+```text
+                                  MCP server
+                                      │
+                  tools/list · tools/call · resources/read
+                                      │
+                                      ▼
+                         ┌────────────────────────┐
+                         │ official MCP TS client │
+                         └────────────┬───────────┘
+                                      │
+                                      ▼
+                           ┌─────────────────────┐
+                           │  @mcp-native/mcp    │
+                           │ validated SDK bridge│
+                           └──────────┬──────────┘
+                                      │
+                                      ▼
+                            ┌───────────────────┐
+                            │ @mcp-native/core  │
+                            │ runtime + actions │
+                            └─────────┬─────────┘
+                                      │
+                    ┌─────────────────┴─────────────────┐
+                    │                                   │
+          declarative A2UI resource              HTML MCP App resource
+                    │                                   │
+                    ▼                                   ▼
+          ┌──────────────────┐               ┌─────────────────────┐
+          │ @mcp-native/a2ui │               │ @mcp-native/webview │
+          │ parse + validate │               │ sandbox + bridge    │
+          └────────┬─────────┘               └─────────────────────┘
+                   │
+                   ▼
+       ┌──────────────────────────┐
+       │ @mcp-native/react-native │
+       │ trusted native catalog   │
+       └────────────┬─────────────┘
+                    │
+                    ▼
+        View · Text · Button · TextInput
+                    │
+                    └──── validated action ──► host callback / policy-gated tool dispatch
+```
+
+Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data flow, capability
+model, and threat model.
 
 ## Is it a good fit?
 
@@ -125,6 +155,28 @@ New integrations should use the A2UI v1 Candidate APIs. The older custom 0.1 sur
 
 The package split is intentional: <code>@mcp-native/core</code> does not depend on React Native, A2UI, WebViews, or a particular MCP SDK.
 
+## Try it in Expo Go
+
+The [Expo Go todo app](examples/expo-go-todolist/README.md) is a complete example, not a static
+mockup. You can add, edit, complete, filter, and delete tasks, and state persists between launches.
+Underneath, it uses the A2UI lifecycle, local bindings, validation, accessible native components,
+and host-owned action handling.
+
+[![Open in Expo Snack](https://img.shields.io/badge/Open_in-Expo_Snack-000020?logo=expo&logoColor=white)][expo-snack-todo]
+
+Open the Snack, choose **My Device**, and scan the QR code with Expo Go on Android or the Camera app
+on iOS. You can inspect all five source files before running it.
+
+To run the same app from this repository:
+
+```bash
+npm ci
+npm run build
+cd examples/expo-go-todolist
+npm ci
+npm start
+```
+
 ## Choose the right guide
 
 Start here:
@@ -172,6 +224,24 @@ Useful commands:
 | <code>npm run check</code>         | Run formatting, linting, types, schemas, tests, performance, and conformance |
 | <code>npm run package:smoke</code> | Pack and install every public package in clean consumers                     |
 | <code>npm run format:fix</code>    | Format supported project files                                               |
+
+## Repository layout
+
+```text
+mcp-native/
+├── .github/                   # CI and collaboration workflows
+├── docs/                      # Guides, architecture, and compatibility references
+├── examples/
+│   └── expo-go-todolist/      # Runnable Expo Go A2UI todo app
+├── packages/
+│   ├── core/
+│   ├── mcp/
+│   ├── a2ui/
+│   ├── react-native/
+│   ├── webview/
+│   └── mcp-native/
+└── tests/                     # Cross-package integration and boundary tests
+```
 
 Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Security reports should follow [SECURITY.md](SECURITY.md).
 
