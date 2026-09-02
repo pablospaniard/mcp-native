@@ -6,6 +6,11 @@ their minor release line.
 
 ## Unreleased
 
+### Changed
+
+- Restore the README's descriptive product heading and architecture diagrams, remove the lead
+  screenshot, and move the Expo Go example below the package overview.
+
 ## 0.9.2 - 2026-09-02
 
 Adds the runnable Expo Go proof and restores the React Native `0.86.0` minimum while preserving the
