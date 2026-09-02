@@ -1,0 +1,36 @@
+{
+  "name": "mcp-native-expo-go-mixed-surfaces",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "bundle:android": "expo export --platform android --output-dir dist/android",
+    "bundle:ios": "expo export --platform ios --output-dir dist/ios",
+    "ios": "expo start --ios",
+    "test": "tsx --test src/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@mcp-native/a2ui": "file:../../packages/a2ui",
+    "@mcp-native/core": "file:../../packages/core",
+    "@mcp-native/react-native": "file:../../packages/react-native",
+    "@mcp-native/webview": "file:../../packages/webview",
+    "expo": "~57.0.19",
+    "expo-status-bar": "~57.0.1",
+    "mcp-native": "file:../../packages/mcp-native",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-webview": "14.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "~19.2.2",
+    "tsx": "^4.20.6",
+    "typescript": "~6.0.3"
+  }
+}

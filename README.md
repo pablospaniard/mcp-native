@@ -153,19 +153,21 @@ New integrations should use the A2UI v1 Candidate APIs. The older custom 0.1 sur
 
 The package split is intentional: <code>@mcp-native/core</code> does not depend on React Native, A2UI, WebViews, or a particular MCP SDK.
 
-## Expo Go example
+## Expo Go examples
 
-The [Expo Go todo app](examples/expo-go-todolist/README.md) is a complete example, not a static
-mockup. You can add, edit, complete, filter, and delete tasks, and state persists between launches.
-Underneath, it uses the A2UI lifecycle, local bindings, validation, accessible native components,
-and host-owned action handling.
+Start with either complete application:
 
-Run it from this repository, then scan the QR code with Expo Go on Android or the Camera app on iOS:
+- [Todo app](examples/expo-go-todolist/README.md) — a focused native A2UI workflow with local
+  bindings, validation, accessible components, host-owned actions, and device persistence.
+- [City Canvas](examples/expo-go-mixed-surfaces/README.md) — a polished two-screen app that composes
+  a native A2UI region with an isolated MCP Apps WebView and policy-approved bridge action.
+
+Build the workspace, enter either example directory, and start Expo:
 
 ```bash
 npm ci
 npm run build
-cd examples/expo-go-todolist
+cd examples/expo-go-mixed-surfaces # or examples/expo-go-todolist
 npm ci
 npm start
 ```
@@ -177,6 +179,8 @@ Start here:
 - [Documentation home](docs/README.md) — a reader-friendly map of the project.
 - [What MCP Native does](docs/product-guide.md) — product model and server/host ownership.
 - [Expo Go todo walkthrough](examples/expo-go-todolist/README.md) — working code and screenshots.
+- [Mixed-surface Expo Go walkthrough](examples/expo-go-mixed-surfaces/README.md) — native A2UI and
+  an MCP App on one host-owned screen.
 - [Host integration checklist](docs/host-integration-checklist.md) — what a production app needs to own.
 
 Go deeper when you need the exact contract:

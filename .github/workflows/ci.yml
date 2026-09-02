@@ -44,6 +44,29 @@ jobs:
       - run: npm run bundle:android
         working-directory: examples/expo-go-todolist
 
+  expo-go-mixed-surfaces:
+    name: Expo Go mixed-surface proof
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            examples/expo-go-mixed-surfaces/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm ci
+        working-directory: examples/expo-go-mixed-surfaces
+      - run: npm run check
+        working-directory: examples/expo-go-mixed-surfaces
+      - run: npm run bundle:ios
+        working-directory: examples/expo-go-mixed-surfaces
+      - run: npm run bundle:android
+        working-directory: examples/expo-go-mixed-surfaces
+
   native-host-bundle:
     name: Native host bundle (React Native 0.86.0 minimum)
     runs-on: ubuntu-latest

@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "MCP Native City Canvas",
+    "slug": "mcp-native-city-canvas",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "io.github.pablospaniard.mcpnative.citycanvas"
+    },
+    "android": {
+      "package": "io.github.pablospaniard.mcpnative.citycanvas"
+    }
+  }
+}
