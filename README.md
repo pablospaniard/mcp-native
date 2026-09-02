@@ -101,11 +101,10 @@ Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data 
 | [`mcp-native`](https://www.npmjs.com/package/mcp-native)                             | [`packages/mcp-native`](packages/mcp-native)     | Convenience entry point for the runtime and UI packages                       |
 
 The packages are intentionally separated so the core runtime does not depend on the official SDK,
-React Native, or any single declarative UI protocol. Release `0.8.0` completes the pinned A2UI basic
-catalog with policy-gated media and adds exactly negotiated, locally compiled host extensions.
-The in-development `0.9.0` milestone adds host-owned mixed native/Apps lifecycle, a
-production-shaped reference host, and the proposed `1.0.0` API freeze. Package manifests remain at
-`0.8.0` until the separate release-preparation change.
+React Native, or any single declarative UI protocol. Release `0.9.0` adds host-owned mixed
+native/Apps lifecycle, a production-shaped reference host, and the proposed `1.0.0` API freeze.
+Release `0.8.0` completed the pinned A2UI basic catalog with policy-gated media and added exactly
+negotiated, locally compiled host extensions.
 Release `0.7.0` completed the non-media catalog and typed design-system boundary. Release `0.6.0`
 completed the Milestone 6 package
 boundary with issuer-bound protected-HTTP OAuth, explicit consent gates and persistent host-owned
@@ -507,21 +506,21 @@ package gates.
 
 The detailed [standards-first roadmap](docs/roadmap.md) records retained architecture, milestone exit criteria, and deferred optional extensions.
 
-Release `0.8.0` completes the basic catalog and compiled-extension boundary. The remaining release
-path is:
+Release `0.9.0` completes mixed native/WebView composition and freezes the proposed `1.0.0` API.
+The remaining release path is:
 
 - `0.7.0`: released—the non-media pinned A2UI basic catalog and closed design-system mappings;
 - `0.8.0`: released—policy-gated media and namespaced, schema-validated, locally compiled host
   extensions;
-- `0.9.0`: host-owned mixed native/WebView composition, a production-shaped reference host, and a
-  frozen `1.0.0` release-candidate API—implementation complete, release preparation pending;
+- `0.9.0`: released—host-owned mixed native/WebView composition, a production-shaped reference
+  host, and a frozen `1.0.0` release-candidate API;
 - `1.0.0`: independent review, full documented-profile gates, stable compatibility policy, complete
   human and technical documentation, and coordinated provenance publishing.
 
 The `1.0.0` scope remains a React Native host library. It does not expose server-selected React
 Native packages, native classes, arbitrary props or styles, or direct SwiftUI/Compose renderers.
 Applications may use locally compiled Fabric components through the closed host-extension boundary.
-By `0.9.0`, native A2UI and isolated MCP Apps WebView regions may share a host screen, but
+In `0.9.0`, native A2UI and isolated MCP Apps WebView regions may share a host screen, but
 neither protocol will configure or escape the other's policy boundary.
 
 After `1.0.0`, development continues with first-class SwiftUI and Jetpack Compose renderers and a

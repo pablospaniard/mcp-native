@@ -6,6 +6,11 @@ their minor release line.
 
 ## Unreleased
 
+## 0.9.0 - 2026-09-02
+
+Completes Milestone 9 with host-owned mixed native/WebView composition, a production-shaped
+reference host, and the frozen `1.0.0` release-candidate API.
+
 ### Added
 
 - A host-owned mixed-surface coordinator for fixed native A2UI and isolated MCP Apps sibling
