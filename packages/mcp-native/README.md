@@ -147,9 +147,10 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 - pinned current-protocol integration coverage through the SDK HTTP handler/fetch path;
 - ESM exports, TypeScript declarations, automated tests, and signed npm provenance.
 
-Release `0.8.0` adds policy-gated `Video` and `AudioPlayer`, completes the pinned A2UI basic catalog,
-and adds exact namespaced manifests and local registration for compiled host extensions. Release
-`0.7.0` added the
+Release `0.9.0` adds host-owned mixed native/MCP Apps composition, a production-shaped reference
+host, and the frozen `1.0.0` release-candidate API. Release `0.8.0` added policy-gated `Video` and
+`AudioPlayer`, completed the pinned A2UI basic catalog, and added exact namespaced manifests and
+local registration for compiled host extensions. Release `0.7.0` added the
 non-media catalog, typed renderer-local bindings, bounded formatting and validation, host-callback
 actions, required image grants, policy-gated HTTP(S) `openUrl`, and exact installed-subset
 discovery. Release `0.6.0` added bounded consent, expiring/revocable host-owned grants, interactive

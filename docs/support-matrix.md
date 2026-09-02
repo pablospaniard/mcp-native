@@ -1,4 +1,4 @@
-# `0.9.0` release-candidate support matrix
+# `0.9.0` support matrix
 
 This matrix distinguishes package peer support from the exact generated-host lanes used as release
 evidence. A range is supported only while its minimum and current-latest boundary both pass CI. If

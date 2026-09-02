@@ -2,7 +2,7 @@
 
 This roadmap replaces feature-first growth with standards-first milestones. MCP Native is still pre-1.0, so protocol-facing APIs may change rather than preserving an incompatible proof-of-concept wire format.
 
-## Path from `0.8.0` to `1.0.0`
+## Path from `0.9.0` to `1.0.0`
 
 The `1.0.0` target is a production-ready React Native host library, not a universal native UI
 runtime. It will render the pinned A2UI basic catalog through components compiled into the host
@@ -314,7 +314,7 @@ code-resolution, native-command, unchecked-prop, or capability-escalation path.
 
 ## Milestone 9: mixed hosting and API freeze (`0.9.0`)
 
-Status: implementation complete; `0.9.0` release preparation pending.
+Status: released in `0.9.0`.
 
 - [x] Define a host-owned surface coordinator that can place native A2UI and isolated MCP Apps
       WebView surfaces in the same application screen as sibling regions. A2UI content cannot create,
@@ -339,9 +339,9 @@ Status: implementation complete; `0.9.0` release preparation pending.
 - [x] Run package-consumer fixtures against the supported React Native, React, TypeScript, Node.js,
       iOS, Android, New Architecture, and JavaScript-engine matrix, with exact version ranges recorded.
 
-Exit criterion: the release-candidate API is frozen, the reference host proves the promised native,
-extension, and mixed-WebView flows, and adopters can understand and integrate the package without
-reading its implementation.
+Exit criterion: met by the `0.9.0` release. The release-candidate API is frozen, the reference host
+proves the promised native, extension, and mixed-WebView flows, and adopters can understand and
+integrate the package without reading its implementation.
 
 ## Milestone 10: stable release (`1.0.0`)
 
