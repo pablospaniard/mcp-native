@@ -24,8 +24,9 @@ their minor release line.
 - Render an explicit accessible empty state when an MCP server successfully returns no tools, and
   reject any residual pagination cursor as an incomplete discovery result instead of exposing a
   partial tool allowlist.
-- Preserve the active React Native result context when an overlapping tool call is rejected, so the
-  first successful result cannot become stuck in the preparing state.
+- Preserve the active React Native result context when an overlapping tool call or controller
+  preflight is rejected, so the previous successful result cannot become stuck in the preparing
+  state.
 
 ## 0.9.3 - 2026-09-03
 
