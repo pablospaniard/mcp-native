@@ -412,9 +412,9 @@ A2UI delivery and MCP Apps bridge authorization callbacks.
 - [ ] Pass the pinned MCP, A2UI, and MCP Apps conformance suites for the exact documented profiles,
       plus unit, integration, hostile-input, fuzz, performance, memory, generated-host, package smoke,
       and end-to-end tests.
-- [ ] Enforce the documented support matrix in CI and verify clean installation, declarations,
-      exports, peer dependencies, source maps, licenses, provenance, and upgrade behavior from the
-      latest `0.9.x` release candidate.
+- [x] Enforce the documented support matrix in CI and verify clean installation, declarations,
+      exports, peer dependencies, source maps, licenses, and upgrade behavior from the latest
+      `0.9.x` release candidate. Registry provenance remains part of the publication check below.
 - [x] Remove or isolate the deprecated custom A2UI `0.1` public surface according to the published
       migration decision, with no silent wire-format reinterpretation.
 - [ ] Publish stable documentation: human introduction, host integration guide, component matrix,

@@ -18,6 +18,9 @@ their minor release line.
 - Remove the deprecated custom A2UI `0.1` APIs from package-root exports while retaining the
   frozen `@mcp-native/a2ui/legacy`, `@mcp-native/react-native/legacy`, and `mcp-native/legacy`
   migration entry points.
+- Enforce the documented support matrix in CI at the exact Node `22.12.0` floor, including the
+  TypeScript/schema pins, React and MCP SDK peers, and absence of Expo or React Native package
+  dependencies.
 
 ## 0.9.3 - 2026-09-03
 
