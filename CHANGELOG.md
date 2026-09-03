@@ -6,6 +6,11 @@ their minor release line.
 
 ## Unreleased
 
+## 0.9.3 - 2026-09-03
+
+Introduces the initial headless host orchestration package and widens renderer compatibility by
+making React `>=18.1.0` its only required peer dependency.
+
 ### Added
 
 - Add the initial `@mcp-native/host` workspace with a bounded, fail-closed result resolver for exact
