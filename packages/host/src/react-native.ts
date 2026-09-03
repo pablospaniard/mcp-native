@@ -43,6 +43,7 @@ import {
 
 import {
   McpNativeHostController,
+  McpNativeHostControllerError,
   type McpNativeHostRequestOptions,
   type McpNativeHostSnapshot,
 } from "./controller.js";
@@ -132,6 +133,7 @@ export function McpNativeHostProvider({
   );
   const snapshot = useSyncExternalStore(subscribe, controller.getSnapshot, controller.getSnapshot);
   const callSequence = useRef(0);
+  const callPending = useRef(false);
   const mountedRef = useRef(true);
   const ownershipGeneration = useRef(0);
   const [activeCall, setActiveCall] = useState<McpNativeHostActiveCall | undefined>();
@@ -163,15 +165,23 @@ export function McpNativeHostProvider({
     ) => {
       const action = parseMcpNativeAction({ type: "tool", name, arguments: arguments_ });
       const ownedArguments = deepFreeze(action.arguments ?? {});
+      if (callPending.current) {
+        throw new McpNativeHostControllerError("operation-in-progress");
+      }
+      callPending.current = true;
       const sequence = ++callSequence.current;
       setActiveCall(Object.freeze({ id: sequence, name: action.name, arguments: ownedArguments }));
-      const result = await controller.callTool(action.name, ownedArguments, options);
-      if (mountedRef.current && callSequence.current === sequence) {
-        setActiveCall(
-          Object.freeze({ id: sequence, name: action.name, arguments: ownedArguments, result }),
-        );
+      try {
+        const result = await controller.callTool(action.name, ownedArguments, options);
+        if (mountedRef.current && callSequence.current === sequence) {
+          setActiveCall(
+            Object.freeze({ id: sequence, name: action.name, arguments: ownedArguments, result }),
+          );
+        }
+        return result;
+      } finally {
+        callPending.current = false;
       }
-      return result;
     },
     [controller],
   );
