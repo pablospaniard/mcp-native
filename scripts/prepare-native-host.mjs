@@ -4,7 +4,7 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const NATIVE_HOST_CLI_VERSION = "20.2.0";
-export const NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION = "0.86.0";
+export const NATIVE_HOST_REACT_NATIVE_FIXTURE_VERSION = "0.86.0";
 export const NATIVE_HOST_WEBVIEW_VERSION = "14.0.1";
 export const NATIVE_HOST_NAME = "McpNativeAccessibilityHost";
 
@@ -40,8 +40,8 @@ export function parseNativeHostArguments(arguments_) {
   if (typeof options.output !== "string" || options.output.length === 0) {
     throw new Error("Native-host preparation requires --output <temporary-directory>");
   }
-  if (options.reactNativeVersion !== NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION) {
-    throw new Error(`--react-native must be ${NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION}`);
+  if (options.reactNativeVersion !== NATIVE_HOST_REACT_NATIVE_FIXTURE_VERSION) {
+    throw new Error(`--react-native must be ${NATIVE_HOST_REACT_NATIVE_FIXTURE_VERSION}`);
   }
   return options;
 }

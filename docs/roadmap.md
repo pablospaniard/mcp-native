@@ -51,8 +51,8 @@ candidate for the stable contract:
 - The v1 host automatically handles only its documented built-in standard profiles. A public registry
   for additional standard revisions and application-defined custom input contracts begins after
   `1.0.0`; v1 never guesses or silently converts an unknown server format.
-- Compatibility is reported against exact pinned MCP, A2UI, and MCP Apps profiles plus the declared
-  React Native, iOS, and Android support policy and automated minimum-version baseline.
+- Compatibility is reported against exact pinned MCP, A2UI, and MCP Apps profiles plus the React
+  peer requirement and automated native-host, iOS, and Android integration fixtures.
 - First-class SwiftUI and Jetpack Compose renderers begin after the stable React Native release.
 
 UIKit, Android View, SwiftUI, and Compose implementations may still be used when the application
@@ -83,8 +83,8 @@ frozen except for security and critical correctness fixes. Milestone 9 isolates 
 The maintained [Expo Go todo app](../examples/expo-go-todolist/README.md) is the runnable React
 Native primitives proof. The [City Canvas example](../examples/expo-go-mixed-surfaces/README.md)
 adds a two-screen mixed-hosting proof with native A2UI, an isolated MCP Apps WebView, a stable bridge,
-and a policy-approved tool call. Both pin their Expo SDK and application dependencies for local
-reproduction while the package support policy remains React Native `>=0.86.0 <1`.
+and a policy-approved tool call. Both pin their application dependencies for local reproduction;
+those fixture versions do not define package dependencies or framework support boundaries.
 
 Package behavior still requires automated unit, integration, conformance, generated-host, and smoke
 coverage. The Expo app supplements those tests with an approachable end-to-end workflow; it does
@@ -312,8 +312,8 @@ Status: released in `0.8.0`.
       a validated, policy-gated semantic action with user activation where required.
 - [x] Add one UIKit-backed iOS fixture and one Android View-backed fixture through Fabric. A
       SwiftUI- or Compose-backed wrapper may be demonstrated, but it is not a direct renderer or a
-      portability guarantee. The declared minimum React Native boundary compiles these native
-      fixtures with the default engine automatically on pull requests.
+      portability guarantee. The pinned generated host compiles these native fixtures with the
+      default engine automatically on pull requests without defining a framework version boundary.
 - [x] Add negative and amplification tests for unknown extension IDs and versions, malformed props,
       forged events, unavailable platforms, oversized graphs and values, excessive updates, and
       permission or resource-policy bypass attempts.

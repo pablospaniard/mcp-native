@@ -24,6 +24,9 @@ their minor release line.
 
 ### Changed
 
+- Make React `>=18.1.0` the only peer dependency of the native renderer and convenience package,
+  with no upper bound. Native framework and example versions remain reproducible integration
+  fixtures rather than package compatibility boundaries.
 - Forward optional validated `AbortSignal` request options from the MCP SDK adapter for tool
   discovery, tool calls, and resource reads, plus the SDK's closed cache-mode set for tool discovery.
 - Bind host result negotiation and resource loading to one MCP client, preventing call sites from

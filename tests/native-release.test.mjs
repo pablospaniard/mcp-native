@@ -15,27 +15,27 @@ import {
   addNativeHostFabricIosSources,
   createNativeHostPackageJson,
   enableNativeHostPhoneOrientations,
-  NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION,
+  NATIVE_HOST_REACT_NATIVE_FIXTURE_VERSION,
   NATIVE_HOST_WEBVIEW_VERSION,
   parseNativeHostArguments,
   registerNativeHostAndroidPackage,
   validateNativeHostOutput,
 } from "../scripts/prepare-native-host.mjs";
 
-test("native host arguments pin the minimum supported React Native version", () => {
-  assert.equal(NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION, "0.86.0");
+test("native host arguments pin the React Native fixture version", () => {
+  assert.equal(NATIVE_HOST_REACT_NATIVE_FIXTURE_VERSION, "0.86.0");
   assert.deepEqual(
     parseNativeHostArguments([
       "--output",
       "/tmp/mcp-native-host-test",
       "--react-native",
-      NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION,
+      NATIVE_HOST_REACT_NATIVE_FIXTURE_VERSION,
       "--skip-install",
     ]),
     {
       install: false,
       output: "/tmp/mcp-native-host-test",
-      reactNativeVersion: NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION,
+      reactNativeVersion: NATIVE_HOST_REACT_NATIVE_FIXTURE_VERSION,
     },
   );
   assert.throws(
@@ -49,7 +49,7 @@ test("native host arguments pin the minimum supported React Native version", () 
     /must be 0\.86\.0/,
   );
   assert.throws(
-    () => parseNativeHostArguments(["--react-native", NATIVE_HOST_REACT_NATIVE_MINIMUM_VERSION]),
+    () => parseNativeHostArguments(["--react-native", NATIVE_HOST_REACT_NATIVE_FIXTURE_VERSION]),
     /requires --output/,
   );
 });
@@ -192,7 +192,7 @@ test("the Milestone 8 native fixture parses with its exact negotiated local exte
   assert.equal(store.get("milestone-8")?.components.size, 5);
 });
 
-test("CI builds the minimum supported React Native host with the default engine", () => {
+test("CI builds the pinned React Native integration fixture with the default engine", () => {
   const ciSource = readFileSync(".github/workflows/ci.yml", "utf8");
   const platformSource = readFileSync(".github/workflows/native-platform.yml", "utf8");
   const ci = parseYaml(ciSource);
@@ -207,8 +207,10 @@ test("CI builds the minimum supported React Native host with the default engine"
   assert.equal(Object.hasOwn(platform.on, "workflow_dispatch"), true);
   const reactNativePackage = JSON.parse(readFileSync("packages/react-native/package.json", "utf8"));
   const umbrellaPackage = JSON.parse(readFileSync("packages/mcp-native/package.json", "utf8"));
-  assert.equal(reactNativePackage.peerDependencies["react-native"], ">=0.86.0 <1");
-  assert.equal(umbrellaPackage.peerDependencies["react-native"], ">=0.86.0 <1");
+  assert.deepEqual(reactNativePackage.peerDependencies, { react: ">=18.1.0" });
+  assert.deepEqual(umbrellaPackage.peerDependencies, { react: ">=18.1.0" });
+  assert.equal(reactNativePackage.peerDependenciesMeta, undefined);
+  assert.equal(umbrellaPackage.peerDependenciesMeta, undefined);
   const androidSdkStep = platform.jobs.android.steps.find(
     (step) => step.name === "Install Android 37 SDK",
   );

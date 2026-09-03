@@ -68,7 +68,7 @@ jobs:
         working-directory: examples/expo-go-mixed-surfaces
 
   native-host-bundle:
-    name: Native host bundle (React Native 0.86.0 minimum)
+    name: Pinned native host bundle
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

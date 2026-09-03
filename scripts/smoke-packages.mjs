@@ -176,6 +176,21 @@ try {
     throw new Error("npm pack did not return a filename for the React peer dependency");
   }
   const reactTarball = join(temporaryDirectory, packedReact.filename);
+  const reactFloorOutput = execFileSync(
+    "npm",
+    ["pack", "--json", "--pack-destination", temporaryDirectory, "."],
+    {
+      cwd: join(process.cwd(), "node_modules", "react-18-1"),
+      encoding: "utf8",
+      env: npmEnvironment,
+    },
+  );
+  const [packedReactFloor] = JSON.parse(reactFloorOutput);
+
+  if (!packedReactFloor?.filename) {
+    throw new Error("npm pack did not return a filename for the React 18.1 peer floor");
+  }
+  const reactFloorTarball = join(temporaryDirectory, packedReactFloor.filename);
 
   const externalDependencies = new Map();
   const collectExternalDependencies = (packageDirectory) => {
@@ -192,6 +207,7 @@ try {
   for (const packageDirectory of workspacePackageDirectories) {
     collectExternalDependencies(join(process.cwd(), packageDirectory));
   }
+  collectExternalDependencies(join(process.cwd(), "node_modules", "react-18-1"));
   const externalTarballs = [...externalDependencies.entries()].map(
     ([dependencyName, dependencyDirectory]) => {
       const output = execFileSync(
@@ -338,8 +354,30 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
   }
   runConsumerSmoke("local");
 
+  execFileSync(
+    "npm",
+    [
+      "install",
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+      "--offline",
+      "--legacy-peer-deps",
+      reactFloorTarball,
+    ],
+    {
+      cwd: consumerDirectory,
+      env: npmEnvironment,
+      stdio: "inherit",
+    },
+  );
+  if (readInstalledManifest("react").version !== "18.1.0") {
+    throw new Error("Package smoke did not install the declared React 18.1 peer floor");
+  }
+  runConsumerSmoke("local");
+
   console.log(
-    `Verified ${packages.length} installable package tarballs and the ${upgradeFromVersion} upgrade path.`,
+    `Verified ${packages.length} installable package tarballs, React 18.1, and the ${upgradeFromVersion} upgrade path.`,
   );
 } finally {
   rmSync(temporaryDirectory, { recursive: true, force: true });

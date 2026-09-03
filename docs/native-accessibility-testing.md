@@ -23,8 +23,8 @@ The app covers:
 - an orientation-aware scrolling layout, with the same Expo project configured for portrait and
   landscape on iOS and Android.
 
-The example pins Expo SDK 57 and React Native 0.86.3. Those pins make the proof reproducible; they do
-not narrow the package support policy of React Native `>=0.86.0 <1`.
+The example pins its application dependencies to make the proof reproducible. Those versions are
+fixture inputs, not package dependencies or framework support boundaries.
 
 ## Run it
 
@@ -69,8 +69,8 @@ npm run bundle:android
 
 The focused tests cover lifecycle/schema validation, trusted render-plan expansion, every todo
 operation, persistence parsing, forged renderer input, and list/title bounds. Repository CI also
-builds the React Native 0.86.0 minimum host; the Expo app is complementary, runnable evidence rather
-than a version-certification matrix.
+builds a pinned generated native host; the Expo app is complementary, runnable evidence rather than
+a version-certification matrix.
 
 When the screen or catalog changes, keep exactly three current screenshots in
 `examples/expo-go-todolist/docs/screenshots`: the all-tasks surface, completed filter, and empty

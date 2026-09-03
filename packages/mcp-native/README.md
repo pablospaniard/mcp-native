@@ -32,7 +32,8 @@ For the big picture, start with the [product guide](https://github.com/pablospan
 npm install mcp-native react
 ```
 
-Add `react-native` when mounting native surfaces. The package is ESM-only and includes TypeScript declarations.
+React `>=18.1.0` is the only peer dependency. Native components and platform integrations are
+supplied by the host application. The package is ESM-only and includes TypeScript declarations.
 
 ## A2UI v1 Candidate path
 

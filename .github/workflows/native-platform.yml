@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   android:
-    name: Android build (React Native 0.86.0 minimum)
+    name: Pinned Android host build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -42,7 +42,7 @@ jobs:
           if-no-files-found: error
 
   ios:
-    name: iOS simulator build (React Native 0.86.0 minimum)
+    name: Pinned iOS simulator host build
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
