@@ -17,6 +17,21 @@ application keeps control of code, design, navigation, permissions, and transpor
 - host screens that combine native controls with an isolated HTML visualization or MCP App; and
 - teams that want explicit capability and action policies at the server-to-device boundary.
 
+## Choose a surface
+
+| Requirement                                                   | Surface              | Use it when                                                                                     |
+| ------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
+| Forms, lists, cards, validation, or local input state         | Native A2UI          | The interaction fits the negotiated semantic catalog and should use app-owned native components |
+| One application-specific native widget inside A2UI            | Host extension       | The app can compile, register, advertise, and policy-gate an exact namespaced component         |
+| Rich HTML, an existing web UI, or a web-focused visualization | MCP App              | The app can supply an isolated WebView and enforce the complete Apps policy                     |
+| Useful text or structured data without an executable UI claim | Ordinary MCP content | A safe inert fallback is sufficient                                                             |
+| A new server-defined document or component protocol           | Not supported by v1  | Track it through the post-1.0 contract-adapter work; do not guess from MIME type or metadata    |
+
+Use `@mcp-native/host` when one owner should connect, discover, call, classify, and render. Compose
+the focused packages directly when the application needs separate control of those stages.
+The headless controller is published in `0.9.3`; the `/react-native` provider and result renderer
+are currently unreleased additions on `main`.
+
 ## The end-to-end flow
 
 1. The host connects to an MCP server and advertises only the protocol profiles, catalogs, and
@@ -40,12 +55,12 @@ policies. `inspectA2uiV1NativeMount` checks the expanded surface and declared pa
 before React rendering; `A2uiV1NativeHostSurface` performs structural/layout preflight without
 duplicating resource authorization and contains adapter failures behind a host-authored fallback.
 
-For `1.0.0`, `@mcp-native/host` will compose this flow behind one optional high-level API: connect a
-compatible server, list and call tools, classify supported standard results, load resources, and
-render native A2UI, isolated MCP Apps, or safe ordinary MCP content. Applications that need direct
-control can continue to compose the focused packages themselves. The host will not guess or convert
-unknown formats. A public registry for additional standard contracts and explicitly installed custom
-input adapters is scheduled after `1.0.0`.
+`@mcp-native/host` composes this flow behind one optional high-level API: connect a compatible
+server, list and call tools, classify supported standard results, load resources, and render native
+A2UI, isolated MCP Apps, or safe ordinary MCP content. Applications that need direct control can
+continue to compose the focused packages themselves. The host does not guess or convert unknown
+formats. A public registry for additional standard contracts and explicitly installed custom input
+adapters is tracked as post-`1.0.0` work; no release date is assigned.
 
 “Server” therefore means the remote MCP participant that supplies tools, resources, and untrusted
 UI descriptions. “Host” means the installed application: it owns the MCP client, the native code,
@@ -70,8 +85,9 @@ the application's actual component library. Layout declarations are host-owned m
 reject unsupported bounded, unbounded, or scrolling parents but cannot grant server capabilities.
 
 The implemented renderer is React Native. It covers the pinned A2UI basic catalog and supports
-locally compiled Fabric extensions. Direct SwiftUI and Jetpack Compose renderers, followed by the
-broader typed native-capability provider program, are explicitly scheduled after `1.0.0`.
+locally compiled Fabric extensions. Direct SwiftUI and Jetpack Compose renderers and the broader
+typed native-capability provider program are tracked as post-`1.0.0` work without assigned release
+dates.
 
 ## Native and WebView content together
 

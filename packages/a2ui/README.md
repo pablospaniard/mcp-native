@@ -149,7 +149,7 @@ Locally compiled semantic components use the separate project-owned
 negotiate exact extension/catalog/schema/component tuples, and create opaque platform registries.
 Pass the registry to the envelope parser, resolver, surface store, and validation policy. Inline
 catalogs, server-selected code, raw children/props/styles, and commands stay disabled. See the
-[media and host-extension guide](../../docs/media-and-host-extensions.md).
+[media and host-extension guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/media-and-host-extensions.md).
 
 ## Official v1.0 envelopes and surface store
 

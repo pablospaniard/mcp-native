@@ -1,8 +1,8 @@
 # `1.0.0` release-candidate compatibility policy
 
-Milestone 9 froze the existing low-level `0.9.x` release-candidate API described here. Teams can
-integrate against that contract now. Milestone 10 adds and reviews the high-level
-`@mcp-native/host` API without removing the low-level path. Independent review may still require a
+Milestone 9 froze the low-level `0.9.x` release-candidate API described here. Milestone 10 has added
+the high-level `@mcp-native/host` API without removing that low-level path. Both are available for
+integration and remain under release-candidate review. Independent review may still require a
 documented correction before the stable tag; the long-term `1.x` compatibility guarantee begins
 with `1.0.0`.
 
@@ -75,8 +75,8 @@ commands, or a cross-boundary WebView escape is not a compatible extension.
 
 `npm run api:verify` builds every existing package and compares all declared package subpaths,
 runtime export names, and the complete emitted declaration surface with
-`docs/public-api-baseline.json`. The reviewed host-package root and `/react-native` surface are
-included in that baseline before the stable tag. Package
+`docs/public-api-baseline.json`. The host-package root and `/react-native` surface are included in
+that release-candidate baseline. Package
 smoke tests verify the declared exports, JavaScript and declaration source maps, README, and exact
 MIT license in every tarball. The same gate runs every supported subpath in a migration-ready clean
 consumer before and after an offline replacement of the latest coordinated published `0.9.x`

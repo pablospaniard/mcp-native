@@ -9,7 +9,7 @@
 </div>
 
 `@mcp-native/mcp` connects the official MCP TypeScript SDK v2 to MCP Native. It adapts a connected
-[`Client`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/client.md) to the
+[`Client`](https://ts.sdk.modelcontextprotocol.io/v2/) to the
 small runtime interface in `@mcp-native/core` and provides native-host helpers for interactive OAuth
 over protected Streamable HTTP.
 
@@ -188,7 +188,7 @@ the transport permits at most one SDK step-up retry per request. The host must m
 cross-request budget. Supply `scopeStore` to retain a validated issuer/resource-bound scope record
 across token invalidation and provider instances; full credential invalidation removes it. All 25
 scored pinned official `2026-07-28` authorization client scenarios
-pass. The runnable [Expo Go todo app](../../examples/expo-go-todolist/README.md) provides separate
+pass. The runnable [Expo Go todo app](https://github.com/pablospaniard/mcp-native/tree/main/examples/expo-go-todolist) provides separate
 application-level native evidence.
 
 ## Production connection lifecycle

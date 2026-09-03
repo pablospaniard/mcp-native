@@ -1,10 +1,11 @@
 # Roadmap
 
-MCP Native has completed Milestones 0–9. The low-level React Native, A2UI, MCP Apps, MCP SDK, and
-policy boundaries planned for 1.0 are in place. Milestone 10 now includes a high-level host package
-so a consumer can connect a compatible MCP server, call a tool, and automatically render a supported
+MCP Native has completed Milestones 0–9 and the Milestone 10 host-package gate. The low-level React
+Native, A2UI, MCP Apps, MCP SDK, and policy boundaries planned for 1.0 are in place. The high-level
+host package lets a consumer connect a compatible MCP server, call a tool, and resolve a supported
 standard result or safe ordinary-content fallback without manually composing those layers. Final
-review, validation, migration, documentation, and publication follow that host-package work.
+independent review, release validation, stable documentation, the `1.x` compatibility promise, and
+publication remain in the Milestone 10 stable-release gate.
 
 ## Path from `0.9.x` to `1.0.0`
 
@@ -367,7 +368,7 @@ integrate the package without reading its implementation.
 
 ## Milestone 10: stable release (`1.0.0`)
 
-Status: host-package implementation and release preparation.
+Status: host-package gate complete; stable-release gate in progress.
 
 GitHub tracking: [milestone](https://github.com/pablospaniard/mcp-native/milestone/1) ·
 [host-package issue #90](https://github.com/pablospaniard/mcp-native/issues/90)

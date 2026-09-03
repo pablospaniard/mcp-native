@@ -2,10 +2,10 @@
 
 # MCP Native
 
-### Native application surfaces for the Model Context Protocol
+### Host-controlled native interfaces for the Model Context Protocol
 
-Render trusted, declarative MCP interfaces with host-owned native components—starting with React
-Native—while keeping HTML MCP Apps behind an explicit WebView policy boundary.
+Render validated MCP interfaces with components compiled into your app. Use native A2UI for
+forms and structured interactions, or isolate HTML MCP Apps behind an explicit WebView policy.
 
 [![CI](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml/badge.svg)](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/mcp-native?label=mcp-native)](https://www.npmjs.com/package/mcp-native)
@@ -15,206 +15,180 @@ Native—while keeping HTML MCP Apps behind an explicit WebView policy boundary.
 
 </div>
 
-MCP Native lets an MCP server describe a form, list, media view, or action flow as data. Your app
-validates that description and renders it with its own React Native components. The server never
-ships React Native code or chooses a component from your bundle.
+MCP Native is a policy-gated host runtime, not a remote component loader. An MCP server may request
+a semantic component that the app advertised, such as `Button` or `TextField`. It cannot select the
+React Native implementation, import code, pass arbitrary props or styles, or gain device access.
 
-MCP Native is currently in the 0.9 release-candidate line. Its low-level layers and high-level
-`@mcp-native/host` connect-call-render workflow are ready to try. Final independent reviews and the
-long-term compatibility promise remain before 1.0. Versioned standard-contract registration and
-application-defined custom input adapters remain post-1.0 work. Closed, negotiated host-extension
-components are available now; they are distinct from that future input-contract registry.
+The published `0.9.3` release is the current 1.0 candidate. It includes the headless
+`@mcp-native/host` controller and independently usable low-level packages. The `main` branch also
+contains the unreleased React Native host provider, registered catalog workflow, and integration
+tooling listed in the [changelog](CHANGELOG.md). Independent reviews, final release validation, and
+publication of the long-term `1.x` compatibility promise remain before `1.0.0`.
 
-## The idea in one minute
+## When to use it
 
-An MCP server sends a semantic description:
+Use MCP Native when you need:
 
-```text
-A card
-  ├─ A title
-  ├─ A text field bound to /profile/name
-  └─ A Save button
+- native forms, lists, cards, settings, approvals, or structured tool results;
+- local input state, validation, accessibility semantics, and app-owned design-system components;
+- an isolated HTML MCP App for content that is better rendered by web technology; or
+- one host screen containing separate native and WebView regions.
+
+Do not use it to download JavaScript, resolve arbitrary component names, pass server-authored React
+Native props or styles, or expose native APIs directly. Those paths are intentionally unsupported.
+
+## Choose an integration path
+
+| Need                                                                      | Use                                                                                  | Why                                                                                    |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| Connect, discover tools, call, classify, and render through one lifecycle | [`@mcp-native/host`](packages/host)                                                  | Recommended high-level path; React Native lifecycle integration is currently on `main` |
+| Control connection, parsing, state, or rendering yourself                 | Focused `@mcp-native/*` packages                                                     | Keeps each boundary independently composable                                           |
+| Import the low-level runtime and UI layers from one module                | [`mcp-native`](packages/mcp-native)                                                  | Convenience re-export; it does not include the MCP SDK adapter or high-level host      |
+| Migrate the deprecated custom A2UI `0.1` surface                          | `mcp-native/legacy`, `@mcp-native/a2ui/legacy`, or `@mcp-native/react-native/legacy` | Explicit compatibility path only                                                       |
+
+```mermaid
+flowchart TD
+    Start{"What should the app own?"}
+    Start -->|"One connect-call-render lifecycle"| Host["@mcp-native/host"]
+    Start -->|"Manual orchestration"| Focused["Focused @mcp-native packages"]
+    Start -->|"Low-level imports from one module"| Umbrella["mcp-native"]
+    Host --> AppOwned["App still supplies transport, catalog, policy, shell, and platform adapters"]
+    Focused --> AppOwned
+    Umbrella --> AppOwned
 ```
 
-The host application decides how that becomes UI:
+## How a result is handled
 
-```text
-MCP server → validated A2UI data → host catalog → native components
-                                             ↘ validated action → host policy → MCP
+The high-level host resolves every successful tool result to exactly one closed outcome. A2UI and
+MCP Apps require exact mutual capability negotiation; MIME type alone does not select an executable
+renderer. Unknown, ambiguous, malformed, or oversized inputs fail closed.
+
+```mermaid
+flowchart LR
+    Server["MCP server"] --> Client["Official MCP client"]
+    Client --> Host["@mcp-native/host"]
+    Host --> Resolver{"Validated result"}
+    Resolver -->|"Negotiated A2UI"| A2UI["@mcp-native/a2ui"]
+    A2UI --> Native["Host catalog → native components"]
+    Resolver -->|"Negotiated MCP App"| Apps["@mcp-native/webview"]
+    Apps --> WebView["Host WebView → isolated HTML"]
+    Resolver -->|"Ordinary MCP content"| Ordinary["Bounded inert fallback"]
+    Resolver -->|"Invalid or ambiguous"| Invalid["Stable host error"]
+    Native -->|"Validated action"| Policy["Host authorization"]
+    WebView -->|"Validated bridge call"| Policy
+    Policy -->|"Approved delivery"| Client
 ```
 
-That split gives both sides a useful job:
+For native A2UI, the app installs a catalog that maps supported semantic names to its own React
+Native primitives or design-system adapters. The renderer has semantics for the pinned A2UI basic
+catalog, but the host advertises only components whose local implementation and required policy are
+installed. Domain-specific widgets can use an exactly negotiated, locally compiled host extension;
+application-defined input-format adapters are separate post-1.0 work.
 
-- The server describes content, controls, bindings, validation, and declared actions.
-- The app owns the actual components, visual design, navigation, permissions, and network transport.
-- MCP Native validates the boundary and turns accepted data into typed render props.
-- HTML MCP Apps can still run in an isolated WebView when HTML is the better tool.
-
-The same server-described Button can become a React Native primitive, a component from your design system, or a locally compiled Fabric component. The mapping stays in your application.
-
-## Architecture at a glance
-
-```text
-                                  MCP server
-                                      │
-                  tools/list · tools/call · resources/read
-                                      │
-                                      ▼
-                         ┌────────────────────────┐
-                         │ official MCP TS client │
-                         └────────────┬───────────┘
-                                      │
-                                      ▼
-                           ┌─────────────────────┐
-                           │  @mcp-native/mcp    │
-                           │ validated SDK bridge│
-                           └──────────┬──────────┘
-                                      │
-                                      ▼
-                            ┌───────────────────┐
-                            │ @mcp-native/core  │
-                            │ runtime + actions │
-                            └─────────┬─────────┘
-                                      │
-                    ┌─────────────────┴─────────────────┐
-                    │                                   │
-          declarative A2UI resource              HTML MCP App resource
-                    │                                   │
-                    ▼                                   ▼
-          ┌──────────────────┐               ┌─────────────────────┐
-          │ @mcp-native/a2ui │               │ @mcp-native/webview │
-          │ parse + validate │               │ sandbox + bridge    │
-          └────────┬─────────┘               └─────────────────────┘
-                   │
-                   ▼
-       ┌──────────────────────────┐
-       │ @mcp-native/react-native │
-       │ trusted native catalog   │
-       └────────────┬─────────────┘
-                    │
-                    ▼
-        View · Text · Button · TextInput
-                    │
-                    └──── validated action ──► host callback / policy-gated tool dispatch
-```
-
-Read [RFC-0001](docs/RFC-0001-architecture.md) for the package boundaries, data flow, capability
-model, and threat model.
-
-## Is it a good fit?
-
-MCP Native works well for:
-
-- forms, settings, approval flows, and structured tool results;
-- native experiences that need local state, validation, accessibility, or media;
-- apps that want MCP interfaces to match an existing design system;
-- screens that combine native controls with an isolated MCP App.
-
-It is not a remote component loader. If a server needs to send arbitrary JavaScript or control native APIs directly, this library intentionally does not provide that path.
+For MCP Apps, the app supplies a WebView wrapper. MCP Native validates the stable Apps profile and
+creates closed sandbox, navigation, storage, permission, bridge, and lifecycle descriptors. HTML
+never becomes a native component and receives no device permission by implication.
 
 ## Install
 
-For the runtime and UI packages through one entry point:
+For the published `0.9.3` headless high-level flow:
+
+```bash
+npm install @mcp-native/host @mcp-native/mcp @modelcontextprotocol/client react
+```
+
+The `@mcp-native/host/react-native` entry point documented on `main` is part of the unreleased
+changes and is not exported by the npm `0.9.3` artifact.
+
+For manual composition through one low-level entry point:
 
 ```bash
 npm install mcp-native react
 ```
 
-React <code>&gt;=18.1.0</code> is the only UI peer dependency. Native components and platform
-integrations come from the host application; the packages do not depend on Expo or import React
-Native.
-
-You can also install only the layers you need:
+Or install only the focused layers you use:
 
 ```bash
 npm install @mcp-native/core @mcp-native/a2ui @mcp-native/react-native
-npm install @mcp-native/mcp @modelcontextprotocol/client
+npm install @mcp-native/webview
 ```
 
-All packages are ESM-only and include TypeScript declarations.
+All packages are ESM-only and include TypeScript declarations. React `>=18.1.0` is the only UI peer
+dependency. The app supplies React Native, Expo if used, WebView, native components, and other
+platform integrations.
 
-## What ships today
+## What the app must provide
 
-- A React Native renderer for the complete pinned A2UI v1 Candidate basic catalog.
-- Typed local bindings, dynamic lists, validation, formatting, actions, and accessibility semantics.
-- Host-owned component adapters, design-system variants, media policies, and compiled extensions.
-- A validated adapter for the official MCP TypeScript SDK v2.
-- Protected Streamable HTTP OAuth helpers for native hosts.
-- Stable MCP Apps 2026-01-26 discovery, resource loading, WebView policy, and bridge support.
-- A headless `@mcp-native/host` controller for connection, automatic discovery, calls, cancellation,
-  reconnect, teardown, and deterministic A2UI, MCP Apps, ordinary-content, or invalid resolution.
-- A React provider and result renderer at `@mcp-native/host/react-native`, with accessible states,
-  bounded ordinary text, native A2UI mounting, and exact isolated MCP Apps lifecycle ownership.
-- A coordinator for native A2UI and isolated MCP Apps regions on the same host screen.
-- Generated Android and iOS integration builds, plus package, conformance, performance, and
-  hostile-input tests.
+MCP Native deliberately does not own the application shell. A production host supplies:
 
-New integrations should use the A2UI v1 Candidate APIs. The older custom 0.1 surface remains available from the explicit <code>/legacy</code> package paths for migration.
+- the server choice, official MCP transport, authentication handoff, and secure credential storage;
+- locally compiled native components and the catalog entries advertised to the server;
+- action, URL, resource, media, WebView, permission, and user-consent policies;
+- navigation, safe areas, scrolling, focus, errors, retries, and app lifecycle integration; and
+- platform testing for the exact component library, React Native version, and WebView in the app.
+
+Start with the [host integration checklist](docs/host-integration-checklist.md) before treating an
+integration as production-ready.
 
 ## Packages
 
-| Package                                           | Use it for                                                                          |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [@mcp-native/core](packages/core)                 | Runtime contracts, JSON validation, resources, action policy, and lifecycle helpers |
-| [@mcp-native/mcp](packages/mcp)                   | Adapting the official MCP TypeScript SDK and native OAuth flows                     |
-| [@mcp-native/a2ui](packages/a2ui)                 | A2UI negotiation, parsing, state, validation, and action envelopes                  |
-| [@mcp-native/react-native](packages/react-native) | Turning validated A2UI surfaces into host-owned native components                   |
-| [@mcp-native/webview](packages/webview)           | Hosting MCP Apps and other explicitly allowed HTML in a controlled WebView          |
-| [@mcp-native/host](packages/host)                 | Running the high-level connect-call-render workflow or its headless controller      |
-| [mcp-native](packages/mcp-native)                 | Using the runtime and UI layers from one convenience package                        |
+| Package                                             | Responsibility                                                                            |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [`@mcp-native/host`](packages/host)                 | High-level connection, discovery, call, result, lifecycle, and React Native orchestration |
+| [`@mcp-native/core`](packages/core)                 | Protocol-independent runtime contracts, JSON validation, resources, actions, and policy   |
+| [`@mcp-native/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK and native OAuth helpers            |
+| [`@mcp-native/a2ui`](packages/a2ui)                 | A2UI negotiation, parsing, surface state, validation, and action envelopes                |
+| [`@mcp-native/react-native`](packages/react-native) | Trusted A2UI render plans and host-owned native component adapters                        |
+| [`@mcp-native/webview`](packages/webview)           | MCP Apps validation, native WebView policy, sandbox, and bridge lifecycle                 |
+| [`mcp-native`](packages/mcp-native)                 | Convenience re-export of core, A2UI, React Native, WebView, and mixed-surface APIs        |
 
-The package split is intentional: <code>@mcp-native/core</code> does not depend on React Native, A2UI, WebViews, or a particular MCP SDK.
+The split is a security and dependency boundary. In particular, `@mcp-native/core` has no MCP SDK,
+A2UI, React, React Native, or WebView dependency.
 
-## Expo Go examples
+## Examples
 
-Start with either complete application:
+- [Expo Go todo app](examples/expo-go-todolist/README.md) — native A2UI with local bindings,
+  validation, accessible components, host-owned actions, and persistence.
+- [City Canvas](examples/expo-go-mixed-surfaces/README.md) — native A2UI and an isolated MCP Apps
+  WebView as host-created sibling regions.
 
-- [Todo app](examples/expo-go-todolist/README.md) — a focused native A2UI workflow with local
-  bindings, validation, accessible components, host-owned actions, and device persistence.
-- [City Canvas](examples/expo-go-mixed-surfaces/README.md) — a polished two-screen app that composes
-  a native A2UI region with an isolated MCP Apps WebView and policy-approved bridge action.
-
-Build the workspace, enter either example directory, and start Expo:
+Run either example from a built workspace:
 
 ```bash
 npm ci
 npm run build
-cd examples/expo-go-mixed-surfaces # or examples/expo-go-todolist
+cd examples/expo-go-todolist # or examples/expo-go-mixed-surfaces
 npm ci
 npm start
 ```
 
-## Choose the right guide
+## Exact compatibility status
 
-Start here:
+| Surface                | Supported profile                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| MCP                    | `2026-07-28`, with a tested `2025-11-25` compatibility lane                                         |
+| A2UI                   | Feature-scoped v1.0 Candidate profile pinned to commit `7541f953050cd58b80f0bf5d85fe2d63192af305`   |
+| MCP Apps               | Stable `2026-01-26` native host-adapter profile with `@modelcontextprotocol/ext-apps@1.7.5` schemas |
+| React                  | Peer dependency `>=18.1.0`                                                                          |
+| Direct native renderer | React Native; the package does not claim a React Native version range                               |
 
-- [Documentation home](docs/README.md) — a reader-friendly map of the project.
-- [What MCP Native does](docs/product-guide.md) — product model and server/host ownership.
-- [Expo Go todo walkthrough](examples/expo-go-todolist/README.md) — working code and screenshots.
-- [Mixed-surface Expo Go walkthrough](examples/expo-go-mixed-surfaces/README.md) — native A2UI and
-  an MCP App on one host-owned screen.
-- [Host integration checklist](docs/host-integration-checklist.md) — what a production app needs to own.
+Read the [support matrix](docs/support-matrix.md) and [standards inventory](docs/standards-compatibility.md)
+for the exact tested boundaries and exclusions. First-class SwiftUI, Jetpack Compose, capability
+providers, custom input contracts, and later protocol profiles are tracked as post-1.0 work without
+assigned release dates.
 
-Go deeper when you need the exact contract:
+## Documentation
 
-- [Capabilities](docs/capabilities.md)
-- [Host requirements and verified integrations](docs/support-matrix.md)
-- [A2UI profile](docs/a2ui-v1-conformance.md)
-- [MCP Apps profile](docs/mcp-apps-compatibility.md)
-- [Protocol support](docs/protocol-support.md)
-- [Standards and compatibility](docs/standards-compatibility.md)
-- [Architecture](docs/RFC-0001-architecture.md)
-- [Security](SECURITY.md)
-
-## Current roadmap
-
-Milestones 0–9 are complete. The project is now preparing 1.0: independent security, accessibility,
-public API, protocol/schema, and native WebView reviews; final release validation; and coordinated
-publication. The documented legacy-root migration is complete.
-
-After 1.0, the planned work moves to first-class SwiftUI and Jetpack Compose renderers and a typed provider model for additional native capabilities.
-
-See the [roadmap](docs/roadmap.md) for the history and future plan, or the [1.0 readiness checklist](docs/1.0-readiness.md) for the remaining release work.
+- [Documentation home](docs/README.md) — route to the right guide.
+- [Product guide](docs/product-guide.md) — server and host responsibilities in plain language.
+- [Architecture](docs/RFC-0001-architecture.md) — package boundaries, data flow, and threat model.
+- [Capabilities](docs/capabilities.md) — catalog, design-system, media, and extension behavior.
+- [A2UI profile](docs/a2ui-v1-conformance.md) and
+  [MCP Apps profile](docs/mcp-apps-compatibility.md) — exact protocol scope.
+- [Protocol support](docs/protocol-support.md) — MCP revisions and operations.
+- [1.0 readiness](docs/1.0-readiness.md) and [roadmap](docs/roadmap.md) — completed gates and
+  remaining work.
+- [Security policy](SECURITY.md) — trust assumptions and vulnerability reporting.
 
 ## Development
 
@@ -227,14 +201,12 @@ npm ci
 npm run check
 ```
 
-Useful commands:
-
-| Command                            | Purpose                                                                      |
-| ---------------------------------- | ---------------------------------------------------------------------------- |
-| <code>npm run build</code>         | Build every workspace                                                        |
-| <code>npm run check</code>         | Run formatting, linting, types, schemas, tests, performance, and conformance |
-| <code>npm run package:smoke</code> | Pack and install every public package in clean consumers                     |
-| <code>npm run format:fix</code>    | Format supported project files                                               |
+| Command                 | Purpose                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `npm run build`         | Build every workspace                                                        |
+| `npm run check`         | Run formatting, linting, types, schemas, tests, performance, and conformance |
+| `npm run package:smoke` | Pack and install every public package in clean consumers                     |
+| `npm run format:fix`    | Format supported project files                                               |
 
 ## Repository layout
 
@@ -243,19 +215,14 @@ mcp-native/
 ├── .github/                   # CI and collaboration workflows
 ├── docs/                      # Guides, architecture, and compatibility references
 ├── examples/
-│   └── expo-go-todolist/      # Runnable Expo Go A2UI todo app
-├── packages/
-│   ├── core/
-│   ├── mcp/
-│   ├── a2ui/
-│   ├── react-native/
-│   ├── webview/
-│   ├── host/
-│   └── mcp-native/
+│   ├── expo-go-todolist/      # Native A2UI workflow
+│   └── expo-go-mixed-surfaces/ # Native and MCP Apps sibling regions
+├── packages/                  # Seven published packages
 └── tests/                     # Cross-package integration and boundary tests
 ```
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Security reports should follow [SECURITY.md](SECURITY.md).
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+Security reports should follow [SECURITY.md](SECURITY.md).
 
 ## Support the project
 

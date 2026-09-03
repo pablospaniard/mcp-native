@@ -142,7 +142,7 @@ the separate image policy.
 Namespaced local components use `createNativeHostExtensionRegistration` plus a negotiated opaque
 registry and an exact `hostExtensionPolicy` grant. Advertise their catalog IDs with
 `getA2uiV1NativeSupportedHostExtensionCatalogIds` only after the local registration and policy are
-installed. See the [media and extension guide](../../docs/media-and-host-extensions.md).
+installed. See the [media and extension guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/media-and-host-extensions.md).
 
 Host adapters may declare verified layout contracts with `allowedParents`, `sizing`, optional
 overlay presentation, and scroll ownership. Pass the shell's `bounded`, `scroll`, or `unbounded`
@@ -155,16 +155,16 @@ and Modal conformance surfaces with expected semantic behaviors. Render every in
 the application's own native test stack, including its supported parent-layout categories.
 
 These mappings have automated host-boundary coverage. The runnable [Expo Go todo
-app](../../examples/expo-go-todolist/README.md) demonstrates the lifecycle, catalog, bindings,
-actions, persistence, and accessibility boundary in a complete native workflow. The [automated
-robustness gates](../../docs/a2ui-v1-performance.md) define repeatable Node.js render-plan budgets
+app](https://github.com/pablospaniard/mcp-native/tree/main/examples/expo-go-todolist) demonstrates
+the lifecycle, catalog, bindings, actions, persistence, and accessibility boundary in a complete
+native workflow. The [automated robustness gates](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-performance.md) define repeatable Node.js render-plan budgets
 and fixed-seed generated-input coverage.
 
 For release/platform testing, `npm run native:host:prepare` generates a pinned temporary native
 host. It installs local package tarballs and the accessibility, complete-catalog, media, and
 Codegen/Fabric extension fixtures. This is reproducible integration evidence, not a package peer or
 native-framework version boundary.
-The [Expo Go integration proof](../../docs/native-accessibility-testing.md) documents the runnable
+The [Expo Go integration proof](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-accessibility-testing.md) documents the runnable
 app-level evidence. Generated hosts remain the automated package fixtures; the Expo app complements
 them with a workflow users can launch and inspect directly.
 

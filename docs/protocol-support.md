@@ -144,8 +144,8 @@ Before adding a revision to `MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS`:
 ## Normative and implementation references
 
 - [MCP `2026-07-28`](https://modelcontextprotocol.io/specification/2026-07-28)
-- [Official TypeScript SDK protocol-version guide](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/protocol-versions.md)
-- [Official SDK migration guidance for `2026-07-28`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/migration/support-2026-07-28.md)
+- [Official TypeScript SDK protocol-version guide](https://ts.sdk.modelcontextprotocol.io/v2/protocol-versions)
+- [Official SDK migration guidance for `2026-07-28`](https://ts.sdk.modelcontextprotocol.io/v2/migration/support-2026-07-28)
 - [Pinned MCP conformance coverage](mcp-conformance.md)
 - [Standards and compatibility inventory](standards-compatibility.md)
 - [RFC-0001](RFC-0001-architecture.md)
