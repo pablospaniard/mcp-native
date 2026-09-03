@@ -38,6 +38,11 @@
       "types": "./dist/legacy.d.ts",
       "import": "./dist/legacy.js",
       "default": "./dist/legacy.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "default": "./dist/testing.js"
     }
   },
   "publishConfig": {

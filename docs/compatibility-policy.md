@@ -48,6 +48,15 @@ on the active connection; reconnect clears both discovered tools and prior call 
 automatically discovering again. Explicit `refreshTools()` ignores a still-fresh SDK cache entry and
 replaces it with a newly fetched, validated aggregate.
 
+The additive React Native host registration, mount-report fields and error codes, layout-contract
+vocabulary, registered surface, reusable render boundary, and `/testing` subpath are proposed
+`1.x` compatibility surfaces. Layout contracts are local host metadata only: changing them may
+narrow where a local adapter is mounted, but cannot alter the A2UI schema or advertise an otherwise
+uninstalled component. The `mcp-native` CLI command names and non-overwriting scaffold behavior are
+also public package behavior; generated application code is owned by the consumer after creation.
+The high-level `McpNativeRegisteredHostResultView` is an additive convenience over the existing
+separate-prop result view; both preserve the same rendering and error semantics.
+
 ## Package boundaries
 
 `@mcp-native/core` stays independent of MCP SDK, A2UI, React Native, and WebView implementations.

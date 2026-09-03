@@ -66,13 +66,15 @@ Applications can continue using every focused `@mcp-native/*` package directly.
 ## React Native provider and result renderer
 
 The optional `@mcp-native/host/react-native` entry point owns the controller lifecycle and renders
-the complete connection, discovery, call, and result state. The application still supplies its
-locally compiled component catalog, A2UI policy, and any MCP Apps WebView adapter.
+the complete connection, discovery, call, and result state. Register the locally compiled catalog
+once with `createA2uiV1NativeHost`; its derived `components` and `policy` keep result rendering and
+capability advertising aligned. The application still owns action delivery and any MCP Apps
+WebView adapter.
 
 ```tsx
 import {
   McpNativeHostProvider,
-  McpNativeHostResultView,
+  McpNativeRegisteredHostResultView,
   useMcpNativeHost,
 } from "@mcp-native/host/react-native";
 
@@ -86,9 +88,8 @@ function WeatherResult() {
   return (
     <>
       <AppButton onPress={() => host.callTool("weather", { city: "Madrid" })} />
-      <McpNativeHostResultView
-        components={appNativeCatalog}
-        a2uiPolicy={appA2uiPolicy}
+      <McpNativeRegisteredHostResultView
+        nativeHost={appNativeHost}
         onA2uiAction={handleA2uiAction}
         onError={reportLocalError}
         mcpApps={appMcpAppsOptions}
@@ -105,6 +106,11 @@ export function App() {
   );
 }
 ```
+
+Use `inspectA2uiV1NativeMount(resultSurface, appNativeHost, { parentLayout })` before mounting when
+the shell needs to reject unsupported scrolling, fill-height, or overlay combinations explicitly.
+Direct low-level users can mount `A2uiV1NativeHostSurface`, which includes the same preflight and a
+redacted, resettable render boundary.
 
 The provider calls `start()` after mount, publishes immutable snapshots with
 `useSyncExternalStore`, retains the exact validated arguments for the active call, and calls

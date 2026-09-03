@@ -52,22 +52,27 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "e9f5e413c6b41f0cd1ada4b77956dea61db951a435b9bfa4ac4eed01ca82bc82",
+      "declarationSha256": "71a8c0e21e69c29f187e17fb2c3240a0f3352729fab9e21c517d8eabd553b537",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "1bbb2a3da69c1016e7498675d4bddfbeda2fd091fe8f089e0f209741fbf680a0",
+          "runtimeSha256": "8a92f6bedb59b810fbe5ff53a824234805d397cb48f2a26f7437bd9ee62d7bfa",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {
           "import": "./dist/legacy.js",
           "runtimeSha256": "f0a411ce5dc437fb22f1b60d6e5394935ad2098387f4e3533b8086eb641ad5f6",
           "types": "./dist/legacy.d.ts"
+        },
+        "./testing": {
+          "import": "./dist/testing.js",
+          "runtimeSha256": "b47305c5051d6a30f2a12b1cedf83028721ea29cd46d327600febe3559c002fb",
+          "types": "./dist/testing.d.ts"
         }
       }
     },
     "@mcp-native/host": {
-      "declarationSha256": "59d6fc96969cc040a3d2f6d763636b08259cb7966f8fc9c606cd924a8e5bd190",
+      "declarationSha256": "f11ac3ee5ff1f3de626bbf73b54df7f81a99a8e48cc65e9c5227b391ee0b4a18",
       "exports": {
         ".": {
           "import": "./dist/index.js",
@@ -76,7 +81,7 @@
         },
         "./react-native": {
           "import": "./dist/react-native.js",
-          "runtimeSha256": "5f7dbb3af026314a6970edbed1fe566ac45e21ee7167af690f1b1376e58efe6f",
+          "runtimeSha256": "da79733d22932bb3663810fa16d266bad075304eec295192d7b1cead7556a2cf",
           "types": "./dist/react-native.d.ts"
         }
       }
@@ -86,7 +91,7 @@
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "a0652e65ed29673e88ac1207f26e57ec89eac5a710bc564ca8e46b1d96a118b7",
+          "runtimeSha256": "f0b4477a7481f6e6cec44e8294f14a63fd808582d774eeca2c13d7551cf5b7ac",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {

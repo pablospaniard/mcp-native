@@ -323,6 +323,45 @@ export interface NativeComponentVariants {
   >;
 }
 
+/** Host-owned parent layout categories used to preflight native component compatibility. */
+export type NativeSurfaceParentLayout = "bounded" | "scroll" | "unbounded";
+
+/**
+ * Declares layout behavior of one locally installed catalog entry. This metadata is trusted host
+ * configuration; it is never selected or modified by an MCP server.
+ */
+export interface NativeComponentLayoutContract {
+  /** Parent layouts in which this implementation has been tested and is supported. */
+  readonly allowedParents: readonly NativeSurfaceParentLayout[];
+  /** Whether the component measures intrinsically or expects to fill its bounded parent. */
+  readonly sizing: "fill" | "intrinsic";
+  /** Overlay components should use a host-owned portal rather than parent flow layout. */
+  readonly presentation?: "inline" | "overlay";
+  /** True when the component owns virtualization or scrolling for its content. */
+  readonly ownsScrolling?: boolean;
+}
+
+export type NativeCatalogComponentName =
+  | "AudioPlayer"
+  | "Button"
+  | "CheckBox"
+  | "ChoicePicker"
+  | "DateTimeInput"
+  | "Divider"
+  | "Icon"
+  | "Image"
+  | "Modal"
+  | "Slider"
+  | "Tabs"
+  | "Text"
+  | "TextInput"
+  | "Video"
+  | "View";
+
+export type NativeComponentLayoutContracts = Partial<
+  Readonly<Record<NativeCatalogComponentName, NativeComponentLayoutContract>>
+>;
+
 /** Locally bundled components chosen by the host application. */
 export interface NativeComponentCatalog {
   readonly View: ComponentType<NativeViewComponentProps>;

@@ -97,7 +97,20 @@ Owns the native component catalog, React Native rendering, event translation, ac
 
 The renderer accepts a catalog of locally bundled components instead of importing or resolving components named by the server. It explicitly selects every prop crossing into that catalog, derives closed accessibility semantics, and never spreads unchecked plan or server props. Hosts may use typed adapter helpers to translate those selected props into Expo UI, Gluestack, another design system, or application-owned components. The v1 catalog requires the four base primitives and provides optional slots for `Image`, `Icon`, `Divider`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, `Modal`, `Video`, and `AudioPlayer`; capability advertising is derived from installed, policy-ready slots. Closed variant catalogs may substitute host-owned structure, text, button, input, image, and choice-picker implementations. Required image and media grants carry exact resource and playback budgets to enforcing host loaders. Exactly negotiated, namespaced host extensions bind closed local manifests to helper-created registrations and explicit capability grants; inline catalogs remain disabled. The legacy `0.1` path remains on the four base primitives when a catalog is shared. None of these mechanisms lets a server select an import, native class, SVG payload, raw style, arbitrary prop, or command.
 
+`createA2uiV1NativeHost` is the additive preferred ownership boundary for the React Native path. It
+freezes a catalog snapshot and derives its validation policy, basic-catalog capabilities, exact
+extension catalogs, resource policies, and host-authored layout declarations together. Explicit
+mount preflight expands the same bounded trusted plan before React, verifies local registrations,
+and rejects a component whose declared implementation does not support the shell's bounded,
+unbounded, or scrolling parent. Layout metadata never enlarges protocol capability. The direct
+surface API remains available for manual composition.
+
 `useNativeRenderPlan` memoizes conversion for a validated surface identity. `useMcpNativeActionDispatcher` adapts asynchronous runtime dispatch to a synchronous component event and requires an error callback so action failures are observed. For the custom `0.1` legacy surface, text inputs emit `(binding, value)` only when the host provides a handler. `A2uiV1NativeSurface` instead owns a bounded local copy of the v1 data model, applies declared absolute string, boolean, number, and string-array bindings without network calls, rerenders dependent values, and resolves button context against the latest local state before emitting a validated action envelope to the host. Supported `openUrl` actions re-resolve a canonical HTTP(S) URL during that Button press and require a separate synchronous host predicate before the host-owned opener is called. The library never imports or invokes a platform URL handler. The host still owns action transport delivery, user consent, tool policy, and synchronization with the agent; the separate MCP adapter may own the validated SDK OAuth seam for protected HTTP.
+
+Direct integrations may wrap rendering in `A2uiV1NativeSurfaceBoundary`; the registered-host surface
+does so automatically. Adapter exceptions produce a stable redacted local error and unmount the
+whole A2UI surface by default. A host may provide inert fallback UI, but the renderer never keeps a
+partially actionable form mounted and never uses server-authored error text.
 
 ### `@mcp-native/webview`
 
@@ -228,5 +241,7 @@ return { content: [{ type: "text", text: "Saved" }] };
 - add a post-1.0 registry for additional reviewed standard contracts and explicitly installed,
   namespaced, versioned custom input adapters without fallback from failed standard validation;
 - extend the Expo Go proof with useful host-owned catalog mappings when needed; and
+- maintain canonical catalog conformance cases, local doctor diagnostics, and non-overwriting
+  catalog/extension scaffolds as integration tooling; and
 - develop first-class SwiftUI, Jetpack Compose, and native capability-provider packages after
   `1.0.0`.

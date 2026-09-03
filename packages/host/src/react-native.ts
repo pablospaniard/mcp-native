@@ -8,6 +8,8 @@ import {
 } from "@mcp-native/core";
 import {
   A2uiV1NativeSurface,
+  isA2uiV1NativeHost,
+  type A2uiV1NativeHost,
   type A2uiV1NativeActionHandler,
   type A2uiV1NativeHostExtensionEventDescriptor,
   type A2uiV1NativeHostExtensionPolicy,
@@ -273,6 +275,33 @@ export interface McpNativeHostResultViewProps {
   readonly hostExtensionPolicy?: A2uiV1NativeHostExtensionPolicy;
   readonly onHostExtensionEvent?: (event: A2uiV1NativeHostExtensionEventDescriptor) => void;
   readonly locale?: string;
+}
+
+export type McpNativeRegisteredHostResultViewProps = Omit<
+  McpNativeHostResultViewProps,
+  "a2uiPolicy" | "components" | "hostExtensionPolicy" | "imagePolicy" | "mediaPolicy"
+> & {
+  readonly nativeHost: A2uiV1NativeHost;
+};
+
+/** Renders high-level host state through one immutable registered native host. */
+export function McpNativeRegisteredHostResultView({
+  nativeHost,
+  ...props
+}: McpNativeRegisteredHostResultViewProps): ReactElement {
+  if (!isA2uiV1NativeHost(nativeHost)) {
+    throw new TypeError("Expected a native host created by createA2uiV1NativeHost");
+  }
+  return createElement(McpNativeHostResultView, {
+    ...props,
+    components: nativeHost.components,
+    a2uiPolicy: nativeHost.policy,
+    ...(nativeHost.imagePolicy === undefined ? {} : { imagePolicy: nativeHost.imagePolicy }),
+    ...(nativeHost.mediaPolicy === undefined ? {} : { mediaPolicy: nativeHost.mediaPolicy }),
+    ...(nativeHost.hostExtensionPolicy === undefined
+      ? {}
+      : { hostExtensionPolicy: nativeHost.hostExtensionPolicy }),
+  });
 }
 
 /**

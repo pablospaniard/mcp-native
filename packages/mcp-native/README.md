@@ -15,14 +15,15 @@
 
 `mcp-native` is the current convenient way to use the runtime, A2UI, React Native, mixed-surface,
 and WebView APIs from one package. It re-exports the focused `@mcp-native/*` layers while leaving
-transport adapters as a separate installation choice. The `1.0.0` roadmap adds
-`@mcp-native/host` as an optional high-level connect-call-render package; these low-level APIs remain
-available for applications that need manual composition.
+transport adapters as a separate installation choice. `@mcp-native/host` provides the optional
+high-level connect-call-render path; these low-level APIs remain available for applications that
+need manual composition.
 
 The current 0.9 line contains the validated low-level React Native feature set and is ready to try in
 an integration. New work should use A2UI v1 Candidate or the stable MCP Apps `2026-01-26` host flow;
 the custom A2UI 0.1 APIs live under `/legacy` for migration. Public standard-contract registration
 and application-defined custom input adapters are explicitly deferred until after `1.0.0`.
+Negotiated, locally compiled semantic host extensions are already supported.
 
 For the big picture, start with the [product guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/product-guide.md).
 
@@ -34,6 +35,18 @@ npm install mcp-native react
 
 React `>=18.1.0` is the only peer dependency. Native components and platform integrations are
 supplied by the host application. The package is ESM-only and includes TypeScript declarations.
+
+Run the bundled local diagnostics or generate safe starting points without network access:
+
+```bash
+npx mcp-native doctor
+npx mcp-native scaffold-catalog src/mcp
+npx mcp-native scaffold-extension com.example/data-grid DataGrid src/mcp
+```
+
+Scaffolds refuse to overwrite existing files. The extension command emits a closed, bounded
+manifest and a local React Native registration skeleton; the application must still negotiate it
+and supply explicit policy.
 
 ## A2UI v1 Candidate path
 

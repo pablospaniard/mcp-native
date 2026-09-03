@@ -54,6 +54,9 @@ A host must advertise only the intersection returned by
 `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })` for its installed
 and policy-ready catalog. Optional slots remain optional at the TypeScript catalog boundary; a
 surface using an omitted slot or required resource policy fails before that component can mount.
+`createA2uiV1NativeHost` now derives this intersection and the corresponding validation policy from
+one frozen registration. Its explicit mount inspection expands the same bounded plan and reports
+stable host diagnostics before React; this changes no Candidate schema or catalog interpretation.
 
 The component-specific native interpretations are closed:
 
@@ -101,6 +104,10 @@ The [automated robustness gates](a2ui-v1-performance.md) cover bounded Node.js p
 generated-input behavior. The runnable [Expo Go todo app](../examples/expo-go-todolist/README.md)
 adds complementary application-level evidence; the package gates above verify the declared
 protocol profile.
+
+The `@mcp-native/react-native/testing` entry point supplies fresh canonical adapter surfaces for
+the semantics most likely to vary across design systems. Those fixtures and local layout contracts
+test host implementations; they are not additional wire-level components or conformance claims.
 
 ## Candidate interpretations
 

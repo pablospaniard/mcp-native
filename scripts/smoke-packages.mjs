@@ -317,6 +317,7 @@ const reactNative = loaded.get("@mcp-native/react-native");
 const umbrella = loaded.get("mcp-native");
 const host = loaded.get("@mcp-native/host");
 const hostReactNative = localMode ? await import("@mcp-native/host/react-native") : undefined;
+const reactNativeTesting = localMode ? await import("@mcp-native/react-native/testing") : undefined;
 if (localMode) {
   for (const [moduleName, module, names] of [
     ["@mcp-native/a2ui", a2ui, ["A2UI_VERSION", "parseA2uiSurface", "resolveA2uiResourceFromToolResult"]],
@@ -336,6 +337,9 @@ for (const [name, value] of [
   ["A2uiSurfaceStore", a2ui.A2uiSurfaceStore],
   ["createWebViewDocument", webview.createWebViewDocument],
   ["A2uiV1NativeSurface", reactNative.A2uiV1NativeSurface],
+  ...(localMode
+    ? [["createA2uiV1NativeHost", reactNative.createA2uiV1NativeHost]]
+    : []),
   ["McpNativeMixedSurfaceCoordinator", umbrella.McpNativeMixedSurfaceCoordinator],
   ...(host === undefined
     ? []
@@ -347,6 +351,10 @@ for (const [name, value] of [
           ? []
           : [
               ["McpNativeHostProvider", hostReactNative.McpNativeHostProvider],
+              [
+                "McpNativeRegisteredHostResultView",
+                hostReactNative.McpNativeRegisteredHostResultView,
+              ],
               ["McpNativeHostResultView", hostReactNative.McpNativeHostResultView],
               ["useMcpNativeHost", hostReactNative.useMcpNativeHost],
             ]),
@@ -355,6 +363,12 @@ for (const [name, value] of [
   if (typeof value !== "function") {
     throw new Error(\`Missing migrated public API: \${name}\`);
   }
+}
+if (
+  reactNativeTesting !== undefined &&
+  typeof reactNativeTesting.createA2uiV1NativeCatalogConformanceCases !== "function"
+) {
+  throw new Error("Missing @mcp-native/react-native/testing conformance fixtures");
 }
 const oauthEntryPoint = import.meta.resolve("@mcp-native/mcp/oauth");
 if (!oauthEntryPoint.endsWith("/dist/oauth.js")) {
