@@ -126,7 +126,8 @@ and report stable `component-not-allowed`, `surface-invalid`, `render-plan-rejec
 runs structural/layout preflight without repeating resource authorization, then contains
 component-library render failures behind a reusable `A2uiV1NativeSurfaceBoundary`. The older
 `A2uiV1NativeSurface` plus separately constructed policy remains available as the manual low-level
-path.
+path. Its default recovery key tracks the host, effective parent layout, component graph, and data
+model so a corrected mount-affecting input retries automatically.
 
 The adapter maps `Row`, `Column`, static or dynamic `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. Optional host slots implement `Image`, `Icon`, `Divider`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, and `Modal`. Dynamic lists expand one validated template component per bound array item and remain inside the 1,024-node plan limit. The adapter resolves absolute and item-relative JSON Pointer values; translates relative typed bindings into absolute renderer-local pointers; evaluates bounded formatting, boolean, validation, and `@index` functions; maps supported layout and variants to owned props; and preserves event context and explicit accessibility fields. At the mounted boundary, components receive closed roles and state, hidden controls are excluded, and text scaling stays enabled. Supported checks expose `invalid`/`validationMessages`; invalid buttons cannot resolve or dispatch an event or local URL action. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
 

@@ -205,6 +205,8 @@ host-extension boundary.
 
 ### Changed
 
+- Require an exact local native registration for every allowed negotiated host-extension tuple, and
+  retry contained native surfaces when their effective parent layout changes.
 - Raise the tested React Native peer minimum from `0.76.0` to `0.86.0`; generated-host CI now tests
   the exact `0.86.0` minimum and current `0.87.1` latest boundary instead of adjacent patch lines.
 - Run generated Android and iOS native builds for both React Native boundaries on pull requests,

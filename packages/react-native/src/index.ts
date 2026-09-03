@@ -349,19 +349,20 @@ export function createA2uiV1NativeHost(options: A2uiV1NativeHostOptions): A2uiV1
   const allowedHostExtensionComponentNames = Object.freeze([
     ...(options.allowedHostExtensionComponentNames ?? []),
   ]);
+  const allowedHostExtensionSet = new Set(allowedHostExtensionComponentNames);
   if (allowedHostExtensionComponentNames.length > 0) {
     if (options.hostExtensions === undefined || options.hostExtensionPolicy === undefined) {
       throw new TypeError(
         "Allowed host extensions require an exact registry and host-extension policy",
       );
     }
-    for (const componentName of allowedHostExtensionComponentNames) {
-      const manifest = options.hostExtensions.manifests.find(
-        (candidate) => candidate.componentName === componentName,
-      );
-      if (manifest === undefined || !hasMatchingHostExtensionRegistration(components, manifest)) {
+    for (const manifest of options.hostExtensions.manifests) {
+      if (
+        allowedHostExtensionSet.has(manifest.componentName) &&
+        !hasMatchingHostExtensionRegistration(components, manifest)
+      ) {
         throw new TypeError(
-          `A2UI native host is missing an exact local registration for ${JSON.stringify(componentName)}`,
+          `A2UI native host is missing an exact local registration for ${JSON.stringify(manifest.componentName)} in catalog ${JSON.stringify(manifest.catalogId)} with schema ${JSON.stringify(manifest.schemaVersion)}`,
         );
       }
     }
@@ -395,7 +396,6 @@ export function createA2uiV1NativeHost(options: A2uiV1NativeHostOptions): A2uiV1
           options.hostExtensions,
           options.hostExtensionPolicy,
         );
-  const allowedHostExtensionSet = new Set(allowedHostExtensionComponentNames);
   const supportedHostExtensionCatalogIds = Object.freeze(
     installedHostExtensionCatalogIds.filter((catalogId) =>
       options.hostExtensions?.manifests
@@ -1090,6 +1090,7 @@ export function A2uiV1NativeHostSurface(props: A2uiV1NativeHostSurfaceProps): Re
     props.resetKey ??
     canonicalizeJson([
       nativeHostResetKeys.get(props.host) ?? 0,
+      props.parentLayout ?? "unbounded",
       props.surface.surfaceId,
       props.surface.dataModelRevision ?? null,
       props.surface.dataModel,

@@ -302,6 +302,37 @@ test("registered hosts advertise and preflight only exact allowed local extensio
   const report = inspectA2uiV1NativeMount(surface, host, { parentLayout: "scroll" });
   assert.equal(report.diagnostics[0].code, "layout-incompatible");
   assert.equal(report.diagnostics[0].componentName, componentName);
+
+  const secondManifest = parseA2uiV1HostExtensionManifest({
+    ...manifest,
+    catalogId: `${extensionId}@2`,
+    catalogVersion: "2",
+    schemaVersion: "2.0.0",
+  });
+  const multiVersionSettings = createA2uiV1HostExtensionCapabilitySettings(
+    [manifest, secondManifest],
+    "ios",
+  );
+  const multiVersionNegotiation = negotiateA2uiV1HostExtensions(
+    multiVersionSettings,
+    multiVersionSettings,
+  );
+  assert.equal(multiVersionNegotiation.kind, "negotiated");
+  const multiVersionRegistry = createA2uiV1HostExtensionRegistry({
+    platform: "ios",
+    manifests: [manifest, secondManifest],
+    negotiation: multiVersionNegotiation,
+  });
+  assert.throws(
+    () =>
+      createA2uiV1NativeHost({
+        components: { ...baseComponents, hostExtensions: [registration] },
+        hostExtensions: multiVersionRegistry,
+        allowedHostExtensionComponentNames: [componentName],
+        hostExtensionPolicy: () => ({ permissions: [], resources: [] }),
+      }),
+    /missing an exact local registration.*catalog.*@2.*schema.*2\.0\.0/,
+  );
 });
 
 test("mount preflight separates capability denial from resource-plan rejection", () => {
@@ -369,6 +400,37 @@ test("registered host surface contains failures and resets for component-only up
   assert.equal(root.container.queryAll((element) => element.type === "Fallback").length, 1);
   await act(() => root.render(render("fail", replacementHost)));
   assert.equal(root.container.queryAll((element) => element.type === "Text").length, 1);
+});
+
+test("registered host surface retries after the parent layout becomes compatible", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const host = createA2uiV1NativeHost({
+    components: baseComponents,
+    layoutContracts: {
+      Text: { allowedParents: ["bounded"], sizing: "intrinsic" },
+    },
+  });
+  const surface = createSurface([{ id: "root", component: "Text", text: "Ready" }]);
+  const errors = [];
+  const root = createRoot();
+  const render = (parentLayout) =>
+    createElement(A2uiV1NativeHostSurface, {
+      host,
+      surface,
+      parentLayout,
+      onAction() {},
+      onRenderError: (error) => errors.push(error),
+      fallback: createElement("Fallback", { value: "safe" }),
+    });
+
+  await act(() => root.render(render("scroll")));
+  assert.equal(root.container.queryAll((element) => element.type === "Fallback").length, 1);
+  assert.equal(errors.length, 1);
+  assert.ok(errors[0] instanceof A2uiV1NativeMountError);
+
+  await act(() => root.render(render("bounded")));
+  assert.equal(root.container.queryAll((element) => element.type === "Text").length, 1);
+  assert.equal(root.container.queryAll((element) => element.type === "Fallback").length, 0);
 });
 
 test("surface boundary contains a throwing error observer and defaults to no partial fallback", async (t) => {
