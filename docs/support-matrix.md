@@ -7,7 +7,7 @@ compatibility boundaries.
 
 | Surface          | Package requirement or profile                                                      | Automated evidence                                   |
 | ---------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Node.js          | repository and package tooling `>=22.12`                                            | Ubuntu and macOS workflows                           |
+| Node.js          | repository and package tooling `>=22.12`                                            | exact `22.12.0` floor in primary CI; macOS native CI |
 | TypeScript       | emitted declarations built with `7.0.2`                                             | monorepo build plus generated-host typecheck         |
 | React            | peer `>=18.1.0`; supplied by the host                                               | exact peer-floor and current-workspace consumers     |
 | Native host      | host-supplied components and platform integration; no framework peer                | pinned generated host on iOS and Android             |
@@ -23,3 +23,7 @@ The runnable example applications add end-to-end evidence for the primitives cat
 surfaces. Their pinned application dependencies keep each fixture reproducible; they do not create
 package dependencies or framework version guarantees. Direct SwiftUI and Compose renderers begin
 after `1.0.0` and will receive their own integration requirements.
+
+`tests/support-matrix.test.mjs` makes the Node and TypeScript toolchain, React and MCP SDK peers,
+official schema package pin, and absence of Expo or React Native package dependencies part of the
+normal CI gate. `npm run package:smoke` separately verifies the packed artifacts and upgrade path.
