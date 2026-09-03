@@ -22,7 +22,8 @@ what the mobile app owns, and where native A2UI and HTML MCP Apps fit.
 2. Check the [support policy](support-matrix.md) for React Native, React, Node.js, Android, and iOS
    requirements.
 3. Follow the package guide for the layer you are using:
-   [core](../packages/core/README.md), [MCP SDK adapter](../packages/mcp/README.md),
+   [high-level host](../packages/host/README.md), [core](../packages/core/README.md),
+   [MCP SDK adapter](../packages/mcp/README.md),
    [A2UI](../packages/a2ui/README.md), [React Native](../packages/react-native/README.md), or
    [WebView](../packages/webview/README.md).
 4. If one screen combines native and HTML regions, continue with

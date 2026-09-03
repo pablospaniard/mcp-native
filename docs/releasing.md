@@ -19,10 +19,10 @@ Before creating a release:
 `npm run release:verify` covers repository checks, exact version verification, and package smoke
 installation. Package smoke verifies every declared export, runtime and declaration source map,
 README, and exact MIT license in the packed artifacts. It installs the latest coordinated published
-`0.9.x` packages into a clean consumer, runs the documented migration-ready imports, replaces all
-six packages with the local candidate tarballs through an offline install, and runs the same
-consumer again. The maintained Expo Go todo app remains an optional application-level example; it
-is not a package release gate.
+`0.9.x` packages into a clean consumer and runs the documented migration-ready imports. It then
+replaces those six packages and adds the new `@mcp-native/host` package from local candidate
+tarballs through an offline install before running the consumer again. The maintained Expo Go todo
+app remains an optional application-level example; it is not a package release gate.
 
 Use the [`1.0.0` readiness checklist](1.0-readiness.md) to distinguish automated repository checks
 from the independent reviews and registry checks required for the stable release. Summarize the

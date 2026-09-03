@@ -19,9 +19,11 @@ body:
       label: Affected package
       options:
         - "@mcp-native/core"
+        - "@mcp-native/mcp"
         - "@mcp-native/a2ui"
         - "@mcp-native/react-native"
         - "@mcp-native/webview"
+        - "@mcp-native/host"
         - "mcp-native"
         - "Monorepo / tooling"
         - "Unknown"

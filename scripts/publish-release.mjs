@@ -9,6 +9,7 @@ export const releasePackagePaths = [
   "packages/a2ui/package.json",
   "packages/webview/package.json",
   "packages/react-native/package.json",
+  "packages/host/package.json",
   "packages/mcp-native/package.json",
 ];
 

@@ -229,7 +229,11 @@ SDK content blocks retain MCP's official discriminated shapes: text, image, audi
 
 The adapter validates and reconstructs each complete SDK result before mapping it. One result may
 contain at most 1,024 top-level tools, content blocks, or resource contents, with at most 64 icons
-or icon sizes per value and the core cumulative JSON string/key budget across the entire result.
+or icon sizes per value. Ordinary strings retain the core 65,536-code-unit per-value limit and
+1,048,576-code-unit cumulative result budget. A `resources/read` result permits only direct
+`contents[].text` bodies up to 2,097,152 code units and direct `contents[].blob` bodies up to
+2,796,207 code units, with a 4,194,304-code-unit cumulative string/key budget for the complete
+resource result. Downstream A2UI and MCP Apps parsers apply their narrower format-specific limits.
 SDK objects may materialize omitted optional properties as `undefined`; those object properties are
 discarded, while `undefined` array entries and all other non-JSON values fail closed.
 
@@ -252,20 +256,22 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 
 ## Public API
 
-| Export                                                                                                           | Purpose                                                                          |
-| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `McpSdkClientAdapter`                                                                                            | Implements the core `McpClient` boundary for a connected SDK client.             |
-| `McpSdkClientAdapterOptions`                                                                                     | Optional advertised `clientExtensions` snapshot retained for negotiation.        |
-| `createMcpSdkClientAdapter`                                                                                      | Factory returning an adapter for a connected SDK client.                         |
-| `McpSdkAdapterError`                                                                                             | Specific validation error for results that cannot safely map.                    |
-| `createMcpNativeClientOptions`, `McpNativeProtocolMode`                                                          | Exact official SDK options for automatic, modern-only, or legacy-only operation. |
-| `McpNativeClientCapabilityOptions`                                                                               | Explicit host-approved extension settings accepted by the options helper.        |
-| `MCP_NATIVE_PROTOCOL_REVISION`, `MCP_NATIVE_LEGACY_PROTOCOL_REVISION`, `MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS` | The current target and deliberately tested revision list.                        |
-| `McpNativeConnectionLifecycle`, `createMcpNativeConnectionLifecycle`                                             | Bounded host coordination around fresh official SDK connections.                 |
-| `McpNativeHostState`, `McpNativeOperationalEvent`, `McpNativeOperationalSink`                                    | Actionable UI states and a fixed redacted observability boundary.                |
-| `McpNativeConnectionLifecycleError`                                                                              | Stable timeout/cancellation category passed only to the host classifier.         |
-| The protected-HTTP exports below live at the explicit `@mcp-native/mcp/oauth` subpath so importing               |
-| the result adapter does not load a transport implementation:                                                     |
+| Export                                                                                                                  | Purpose                                                                          |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `McpSdkClientAdapter`                                                                                                   | Implements the core `McpClient` boundary for a connected SDK client.             |
+| `McpSdkClientAdapterOptions`                                                                                            | Optional advertised `clientExtensions` snapshot retained for negotiation.        |
+| `createMcpSdkClientAdapter`                                                                                             | Factory returning an adapter for a connected SDK client.                         |
+| `McpSdkAdapterError`                                                                                                    | Specific validation error for results that cannot safely map.                    |
+| `createMcpNativeClientOptions`, `McpNativeProtocolMode`                                                                 | Exact official SDK options for automatic, modern-only, or legacy-only operation. |
+| `McpNativeClientCapabilityOptions`                                                                                      | Explicit host-approved extension settings accepted by the options helper.        |
+| `MCP_NATIVE_PROTOCOL_REVISION`, `MCP_NATIVE_LEGACY_PROTOCOL_REVISION`, `MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS`        | The current target and deliberately tested revision list.                        |
+| `McpNativeConnectionLifecycle`, `createMcpNativeConnectionLifecycle`                                                    | Bounded host coordination around fresh official SDK connections.                 |
+| `McpNativeHostState`, `McpNativeOperationalEvent`, `McpNativeOperationalSink`                                           | Actionable UI states and a fixed redacted observability boundary.                |
+| `McpNativeConnectionLifecycleError`                                                                                     | Stable timeout/cancellation category passed only to the host classifier.         |
+| `parseMcpSdkTool`, `parseMcpSdkToolCallResult`, `parseMcpSdkReadResourceResult`                                         | Bounded validators for untrusted official-SDK-shaped values.                     |
+| `MCP_SDK_MAX_RESOURCE_TEXT_LENGTH`, `MCP_SDK_MAX_RESOURCE_BLOB_LENGTH`, `MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS` | Observable resource-result body and cumulative string limits.                    |
+| The protected-HTTP exports below live at the explicit `@mcp-native/mcp/oauth` subpath so importing                      |
+| the result adapter does not load a transport implementation:                                                            |
 
 | Export                                                                           | Purpose                                                                         |
 | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |

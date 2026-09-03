@@ -10,6 +10,7 @@ const packageDirectories = [
   "packages/a2ui",
   "packages/webview",
   "packages/react-native",
+  "packages/host",
   "packages/mcp-native",
 ];
 
@@ -61,7 +62,7 @@ if (process.argv.includes("--print")) {
     baseline,
     "Public API changed. Review compatibility and migration, then intentionally update docs/public-api-baseline.json.",
   );
-  console.log("Public API matches the Milestone 9 release-candidate baseline.");
+  console.log("Public API matches the reviewed release-candidate baseline.");
 }
 
 function sha256Json(value) {

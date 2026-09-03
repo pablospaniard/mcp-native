@@ -31,6 +31,12 @@ import {
 export const MCP_SDK_MAX_RESULT_ITEMS = 1_024;
 /** Maximum icons or declared icon sizes retained on one MCP value. */
 export const MCP_SDK_MAX_DECORATION_ITEMS = 64;
+/** Maximum UTF-16 code units accepted for one text resource body at the SDK boundary. */
+export const MCP_SDK_MAX_RESOURCE_TEXT_LENGTH = 2_097_152;
+/** Maximum UTF-16 code units accepted for one base64 resource body at the SDK boundary. */
+export const MCP_SDK_MAX_RESOURCE_BLOB_LENGTH = 2_796_207;
+/** Maximum cumulative string and key code units accepted from one resource result. */
+export const MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS = 4_194_304;
 import type {
   JsonObject,
   JsonValue,
@@ -166,37 +172,11 @@ export class McpSdkClientAdapter implements McpClient {
   }
 
   async callTool(name: string, arguments_: JsonObject): Promise<McpToolCallResult> {
-    const result = expectResultObject(
-      await this.#client.callTool({ name, arguments: arguments_ }),
-      "tool result",
-    );
-    const isError = optionalBoolean(result.isError, "tool result.isError");
-    const structuredContent =
-      result.structuredContent === undefined
-        ? undefined
-        : expectJsonValue(result.structuredContent, "tool result.structuredContent");
-
-    return {
-      content: expectArray(result.content, "tool result.content", MCP_SDK_MAX_RESULT_ITEMS).map(
-        (block, index) => mapContent(block, `tool result.content[${index}]`),
-      ),
-      ...(isError === undefined ? {} : { isError }),
-      ...(structuredContent === undefined ? {} : { structuredContent }),
-      ...mapResultMeta(result, "tool result"),
-    };
+    return parseMcpSdkToolCallResult(await this.#client.callTool({ name, arguments: arguments_ }));
   }
 
   async readResource(uri: string): Promise<McpReadResourceResult> {
-    const result = expectResultObject(await this.#client.readResource({ uri }), "resource result");
-    return {
-      contents: expectArray(
-        result.contents,
-        "resource result.contents",
-        MCP_SDK_MAX_RESULT_ITEMS,
-      ).map((resource, index) => mapResource(resource, `resource result.contents[${index}]`)),
-      ...mapCacheHints(result, "resource result"),
-      ...mapResultMeta(result, "resource result"),
-    };
+    return parseMcpSdkReadResourceResult(await this.#client.readResource({ uri }));
   }
 
   getServerExtensionSettings(): McpExtensionSettings {
@@ -219,6 +199,45 @@ export function createMcpSdkClientAdapter(
   options: McpSdkClientAdapterOptions = {},
 ): McpSdkClientAdapter {
   return new McpSdkClientAdapter(client, options);
+}
+
+/** Validates and reconstructs one untrusted tool from an official SDK result. */
+export function parseMcpSdkTool(value: unknown, path = "tool"): McpTool {
+  return mapTool(expectResultObject(value, path), path);
+}
+
+/** Validates and reconstructs one untrusted tool-call result from the official SDK boundary. */
+export function parseMcpSdkToolCallResult(value: unknown, path = "tool result"): McpToolCallResult {
+  const result = expectResultObject(value, path);
+  const isError = optionalBoolean(result.isError, `${path}.isError`);
+  const structuredContent =
+    result.structuredContent === undefined
+      ? undefined
+      : expectJsonValue(result.structuredContent, `${path}.structuredContent`);
+
+  return {
+    content: expectArray(result.content, `${path}.content`, MCP_SDK_MAX_RESULT_ITEMS).map(
+      (block, index) => mapContent(block, `${path}.content[${index}]`),
+    ),
+    ...(isError === undefined ? {} : { isError }),
+    ...(structuredContent === undefined ? {} : { structuredContent }),
+    ...mapResultMeta(result, path),
+  };
+}
+
+/** Validates and reconstructs one untrusted resource result from the official SDK boundary. */
+export function parseMcpSdkReadResourceResult(
+  value: unknown,
+  path = "resource result",
+): McpReadResourceResult {
+  const result = expectResultObject(value, path, resourceResultValidationLimits(path));
+  return {
+    contents: expectArray(result.contents, `${path}.contents`, MCP_SDK_MAX_RESULT_ITEMS).map(
+      (resource, index) => mapResource(resource, `${path}.contents[${index}]`),
+    ),
+    ...mapCacheHints(result, path),
+    ...mapResultMeta(result, path),
+  };
 }
 
 function mapContent(value: unknown, path: string): McpContent {
@@ -276,8 +295,8 @@ function mapContent(value: unknown, path: string): McpContent {
 function mapResource(value: unknown, path: string): McpResource {
   const resource = expectObject(value, path);
   const mimeType = optionalString(resource.mimeType, `${path}.mimeType`);
-  const text = optionalString(resource.text, `${path}.text`);
-  const blob = optionalString(resource.blob, `${path}.blob`);
+  const text = optionalString(resource.text, `${path}.text`, MCP_SDK_MAX_RESOURCE_TEXT_LENGTH);
+  const blob = optionalString(resource.blob, `${path}.blob`, MCP_SDK_MAX_RESOURCE_BLOB_LENGTH);
   const meta = optionalMetaObject(resource["_meta"], `${path}._meta`);
 
   if ((text === undefined) === (blob === undefined)) {
@@ -429,12 +448,40 @@ function expectObject(value: unknown, path: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function expectResultObject(value: unknown, path: string): Record<string, unknown> {
+interface SdkResultValidationLimits {
+  readonly maxStringLength: (path: string) => number;
+  readonly maxTotalStringCodeUnits: number;
+}
+
+const DEFAULT_SDK_RESULT_VALIDATION_LIMITS: SdkResultValidationLimits = {
+  maxStringLength: () => JSON_MAX_STRING_LENGTH,
+  maxTotalStringCodeUnits: JSON_MAX_TOTAL_STRING_CODE_UNITS,
+};
+
+function resourceResultValidationLimits(rootPath: string): SdkResultValidationLimits {
+  const escapedRootPath = rootPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const textPath = new RegExp(`^${escapedRootPath}\\.contents\\[\\d+\\]\\.text$`);
+  const blobPath = new RegExp(`^${escapedRootPath}\\.contents\\[\\d+\\]\\.blob$`);
+  return {
+    maxStringLength(path) {
+      if (textPath.test(path)) return MCP_SDK_MAX_RESOURCE_TEXT_LENGTH;
+      if (blobPath.test(path)) return MCP_SDK_MAX_RESOURCE_BLOB_LENGTH;
+      return JSON_MAX_STRING_LENGTH;
+    },
+    maxTotalStringCodeUnits: MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS,
+  };
+}
+
+function expectResultObject(
+  value: unknown,
+  path: string,
+  limits: SdkResultValidationLimits = DEFAULT_SDK_RESULT_VALIDATION_LIMITS,
+): Record<string, unknown> {
   try {
     const normalized = normalizeSdkResultValue(
       value,
       path,
-      { ancestors: new Set(), stringCodeUnits: 0, values: 0 },
+      { ancestors: new Set(), limits, stringCodeUnits: 0, values: 0 },
       0,
     );
     return expectObject(normalized, path);
@@ -446,6 +493,7 @@ function expectResultObject(value: unknown, path: string): Record<string, unknow
 
 interface SdkResultValidationState {
   readonly ancestors: Set<object>;
+  readonly limits: SdkResultValidationLimits;
   stringCodeUnits: number;
   values: number;
 }
@@ -513,13 +561,14 @@ function consumeSdkResultString(
   path: string,
   state: SdkResultValidationState,
 ): void {
-  if (value.length > JSON_MAX_STRING_LENGTH) {
-    throw new TypeError(`String at ${path} exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`);
+  const maximumLength = state.limits.maxStringLength(path);
+  if (value.length > maximumLength) {
+    throw new TypeError(`String at ${path} exceeds maximum length of ${maximumLength}`);
   }
   state.stringCodeUnits += value.length;
-  if (state.stringCodeUnits > JSON_MAX_TOTAL_STRING_CODE_UNITS) {
+  if (state.stringCodeUnits > state.limits.maxTotalStringCodeUnits) {
     throw new TypeError(
-      `JSON value exceeds maximum cumulative string/key length of ${JSON_MAX_TOTAL_STRING_CODE_UNITS}`,
+      `JSON value exceeds maximum cumulative string/key length of ${state.limits.maxTotalStringCodeUnits}`,
     );
   }
 }
@@ -538,20 +587,26 @@ function expectArray(
   return value;
 }
 
-function expectString(value: unknown, path: string): string {
+function expectString(
+  value: unknown,
+  path: string,
+  maximumLength = JSON_MAX_STRING_LENGTH,
+): string {
   if (typeof value !== "string") {
     throw new McpSdkAdapterError(`Expected a string at ${path}`);
   }
-  if (value.length > JSON_MAX_STRING_LENGTH) {
-    throw new McpSdkAdapterError(
-      `String at ${path} exceeds maximum length of ${JSON_MAX_STRING_LENGTH}`,
-    );
+  if (value.length > maximumLength) {
+    throw new McpSdkAdapterError(`String at ${path} exceeds maximum length of ${maximumLength}`);
   }
   return value;
 }
 
-function optionalString(value: unknown, path: string): string | undefined {
-  return value === undefined ? undefined : expectString(value, path);
+function optionalString(
+  value: unknown,
+  path: string,
+  maximumLength = JSON_MAX_STRING_LENGTH,
+): string | undefined {
+  return value === undefined ? undefined : expectString(value, path, maximumLength);
 }
 
 function optionalBoolean(value: unknown, path: string): boolean | undefined {

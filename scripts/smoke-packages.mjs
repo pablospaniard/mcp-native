@@ -15,8 +15,12 @@ const packages = [
   "@mcp-native/a2ui",
   "@mcp-native/webview",
   "@mcp-native/react-native",
+  "@mcp-native/host",
   "mcp-native",
 ];
+const publishedUpgradePackages = packages.filter(
+  (packageName) => packageName !== "@mcp-native/host",
+);
 const workspacePackageNames = new Set(packages);
 const workspacePackageDirectories = [
   "packages/core",
@@ -24,6 +28,7 @@ const workspacePackageDirectories = [
   "packages/a2ui",
   "packages/webview",
   "packages/react-native",
+  "packages/host",
   "packages/mcp-native",
 ];
 const expectedVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
@@ -63,6 +68,28 @@ try {
   ]) {
     if (!mixedDeclarations.includes(typeName)) {
       throw new Error(`mcp-native declarations are missing ${typeName}`);
+    }
+  }
+  const hostDeclarations = readFileSync("packages/host/dist/results.d.ts", "utf8");
+  for (const typeName of [
+    "McpNativeHostClient",
+    "McpNativeHostResult",
+    "MCP_NATIVE_HOST_EXTENSION_CAPABILITIES",
+    "resolveMcpNativeHostResult",
+  ]) {
+    if (!hostDeclarations.includes(typeName)) {
+      throw new Error(`@mcp-native/host declarations are missing ${typeName}`);
+    }
+  }
+  const mcpDeclarations = readFileSync("packages/mcp/dist/index.d.ts", "utf8");
+  for (const typeName of [
+    "MCP_SDK_MAX_RESOURCE_TEXT_LENGTH",
+    "MCP_SDK_MAX_RESOURCE_BLOB_LENGTH",
+    "MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS",
+    "parseMcpSdkReadResourceResult",
+  ]) {
+    if (!mcpDeclarations.includes(typeName)) {
+      throw new Error(`@mcp-native/mcp declarations are missing ${typeName}`);
     }
   }
   const oauthDeclarations = ["oauth", "oauth-error", "oauth-native"]
@@ -179,7 +206,15 @@ try {
   const smokeEntryPoint = join(consumerDirectory, "smoke.mjs");
   writeFileSync(
     smokeEntryPoint,
-    `const [core, mcp, a2ui, webview, reactNative, umbrella] = await Promise.all(${JSON.stringify(packages)}.map((specifier) => import(specifier)));
+    `const packageNames = process.argv[2] === "local" ? ${JSON.stringify(packages)} : ${JSON.stringify(publishedUpgradePackages)};
+const loaded = new Map(await Promise.all(packageNames.map(async (specifier) => [specifier, await import(specifier)])));
+const core = loaded.get("@mcp-native/core");
+const mcp = loaded.get("@mcp-native/mcp");
+const a2ui = loaded.get("@mcp-native/a2ui");
+const webview = loaded.get("@mcp-native/webview");
+const reactNative = loaded.get("@mcp-native/react-native");
+const umbrella = loaded.get("mcp-native");
+const host = loaded.get("@mcp-native/host");
 for (const [name, value] of [
   ["McpNativeRuntime", core.McpNativeRuntime],
   ["McpSdkClientAdapter", mcp.McpSdkClientAdapter],
@@ -187,6 +222,11 @@ for (const [name, value] of [
   ["createWebViewDocument", webview.createWebViewDocument],
   ["A2uiV1NativeSurface", reactNative.A2uiV1NativeSurface],
   ["McpNativeMixedSurfaceCoordinator", umbrella.McpNativeMixedSurfaceCoordinator],
+  ...(host === undefined
+    ? []
+    : [
+        ["resolveMcpNativeHostResult", host.resolveMcpNativeHostResult],
+      ]),
 ]) {
   if (typeof value !== "function") {
     throw new Error(\`Missing migrated public API: \${name}\`);
@@ -208,8 +248,8 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
   }
 }\n`,
   );
-  const runConsumerSmoke = () =>
-    execFileSync(process.execPath, [smokeEntryPoint], {
+  const runConsumerSmoke = (mode) =>
+    execFileSync(process.execPath, [smokeEntryPoint, mode], {
       cwd: consumerDirectory,
       env: npmEnvironment,
       stdio: "inherit",
@@ -231,7 +271,7 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
       "--fetch-retry-maxtimeout=120000",
       reactTarball,
       ...externalTarballs,
-      ...packages.map((packageName) => `${packageName}@${publishedUpgradeRange}`),
+      ...publishedUpgradePackages.map((packageName) => `${packageName}@${publishedUpgradeRange}`),
     ],
     {
       cwd: consumerDirectory,
@@ -240,10 +280,10 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
     },
   );
   const upgradeFromVersion = verifyPublishedUpgradeBaseline({
-    packageNames: packages,
+    packageNames: publishedUpgradePackages,
     readInstalledManifest,
   });
-  runConsumerSmoke();
+  runConsumerSmoke("published");
 
   execFileSync(
     "npm",
@@ -284,7 +324,7 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
       throw new Error(`${packageName} installed LICENSE does not match the repository license`);
     }
   }
-  runConsumerSmoke();
+  runConsumerSmoke("local");
 
   console.log(
     `Verified ${packages.length} installable package tarballs and the ${upgradeFromVersion} upgrade path.`,
