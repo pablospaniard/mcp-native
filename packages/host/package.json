@@ -34,6 +34,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./react-native": {
+      "types": "./dist/react-native.d.ts",
+      "import": "./dist/react-native.js",
+      "default": "./dist/react-native.js"
     }
   },
   "publishConfig": {
@@ -43,6 +48,15 @@
     "@mcp-native/a2ui": "^0.9.3",
     "@mcp-native/core": "^0.9.3",
     "@mcp-native/mcp": "^0.9.3",
+    "@mcp-native/react-native": "^0.9.3",
     "@mcp-native/webview": "^0.9.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.17",
+    "react": "19.2.8",
+    "test-renderer": "1.2.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.1.0"
   }
 }

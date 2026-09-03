@@ -6,6 +6,13 @@ their minor release line.
 
 ## Unreleased
 
+### Added
+
+- Add `@mcp-native/host/react-native` with a provider-owned controller lifecycle, immutable call
+  context, accessible operational and ordinary-content states, native A2UI mounting, and exact
+  fail-closed MCP Apps sandbox, bridge, crash recovery, and teardown ownership. React `>=18.1.0`
+  remains the only peer; the package does not depend on Expo or React Native.
+
 ## 0.9.3 - 2026-09-03
 
 Introduces the initial headless host orchestration package and widens renderer compatibility by

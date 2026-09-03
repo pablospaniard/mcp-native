@@ -58,9 +58,68 @@ extension negotiation. An ambiguous result or a failure after a standard path ha
 returns `invalid`; it is never retried through another renderer. Ordinary MCP content remains inert
 fallback data for the application to present safely.
 
-`resolveMcpNativeHostResult()` remains public for applications composing the low-level path. React
-Native mounting is the remaining `1.0.0` host-package implementation slice. Applications can
-continue using every focused `@mcp-native/*` package directly.
+`resolveMcpNativeHostResult()` remains public for applications composing the low-level path.
+Applications can continue using every focused `@mcp-native/*` package directly.
+
+## React Native provider and result renderer
+
+The optional `@mcp-native/host/react-native` entry point owns the controller lifecycle and renders
+the complete connection, discovery, call, and result state. The application still supplies its
+locally compiled component catalog, A2UI policy, and any MCP Apps WebView adapter.
+
+```tsx
+import {
+  McpNativeHostProvider,
+  McpNativeHostResultView,
+  useMcpNativeHost,
+} from "@mcp-native/host/react-native";
+
+const controller = createMcpNativeHostController({
+  createConnection,
+  classifyError,
+});
+
+function WeatherResult() {
+  const host = useMcpNativeHost();
+  return (
+    <>
+      <AppButton onPress={() => host.callTool("weather", { city: "Madrid" })} />
+      <McpNativeHostResultView
+        components={appNativeCatalog}
+        a2uiPolicy={appA2uiPolicy}
+        onA2uiAction={handleA2uiAction}
+        onError={reportLocalError}
+        mcpApps={appMcpAppsOptions}
+      />
+    </>
+  );
+}
+
+export function App() {
+  return (
+    <McpNativeHostProvider controller={controller} onError={reportLocalError}>
+      <WeatherResult />
+    </McpNativeHostProvider>
+  );
+}
+```
+
+The provider calls `start()` after mount, publishes immutable snapshots with
+`useSyncExternalStore`, retains the exact validated arguments for the active call, and calls
+`shutdown()` on unmount. The result view supplies fixed accessible loading, empty, retry, failure,
+and fallback states. Ordinary text is inert and bounded; errored tool text is not mounted. A2UI is
+rendered only through the supplied catalog.
+
+For MCP Apps, `mcpApps.View` must be a local wrapper around the application's installed WebView. It
+receives only the closed safe props, binds that WebView's `postMessage`, and reports both renderer
+and content-process crashes through `onCrash`. Supply host-authored `bridgeOptions`; the result view
+itself creates the bridge with the exact resolved resource, deny-default sandbox, discovered tools,
+and message channel, then sends tool input/result exactly once and tears the session down on unmount.
+Omit `mcpApps` to show a stable unavailable state instead of mounting HTML.
+
+React `>=18.1.0` is the only peer dependency. Neither this entry point nor the focused renderer
+imports React Native or depends on Expo; application framework and WebView versions remain owned by
+the host.
 
 ## Authorize surface actions once
 

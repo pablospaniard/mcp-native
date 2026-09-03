@@ -1,9 +1,9 @@
 # `0.9.x` host requirements and verified integrations
 
-React `>=18.1.0` is the only peer dependency of the native renderer and convenience package. Native
-components, platform integrations, and application frameworks are supplied by the host. MCP Native
-does not depend on Expo or import React Native, so their versions are not package compatibility
-boundaries.
+React `>=18.1.0` is the only peer dependency of the native renderer, high-level host, and convenience
+package. Native components, platform integrations, and application frameworks are supplied by the
+host. MCP Native does not depend on Expo or import React Native, so their versions are not package
+compatibility boundaries.
 
 | Surface          | Package requirement or profile                                                      | Automated evidence                                   |
 | ---------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------- |

@@ -18,9 +18,7 @@ const packages = [
   "@mcp-native/host",
   "mcp-native",
 ];
-const publishedUpgradePackages = packages.filter(
-  (packageName) => packageName !== "@mcp-native/host",
-);
+const publishedUpgradePackages = packages;
 const workspacePackageNames = new Set(packages);
 const workspacePackageDirectories = [
   "packages/core",
@@ -70,7 +68,7 @@ try {
       throw new Error(`mcp-native declarations are missing ${typeName}`);
     }
   }
-  const hostDeclarations = ["index", "controller", "results"]
+  const hostDeclarations = ["index", "controller", "react-native", "results"]
     .map((moduleName) => readFileSync(`packages/host/dist/${moduleName}.d.ts`, "utf8"))
     .join("\n");
   for (const typeName of [
@@ -79,6 +77,8 @@ try {
     "McpNativeHostSnapshot",
     "McpNativeHostClient",
     "McpNativeHostResult",
+    "McpNativeHostProvider",
+    "McpNativeHostResultView",
     "MCP_NATIVE_HOST_EXTENSION_CAPABILITIES",
     "createMcpNativeHostActionAuthorization",
     "resolveMcpNativeHostResult",
@@ -152,6 +152,9 @@ try {
     }
     if (packageName === "mcp-native") {
       additionalRequiredFiles.push("dist/mixed-surfaces.d.ts", "dist/mixed-surfaces.js");
+    }
+    if (packageName === "@mcp-native/host") {
+      additionalRequiredFiles.push("dist/react-native.d.ts", "dist/react-native.js");
     }
     verifyPackageArtifacts({
       packageName,
@@ -232,7 +235,8 @@ try {
   const smokeEntryPoint = join(consumerDirectory, "smoke.mjs");
   writeFileSync(
     smokeEntryPoint,
-    `const packageNames = process.argv[2] === "local" ? ${JSON.stringify(packages)} : ${JSON.stringify(publishedUpgradePackages)};
+    `const localMode = process.argv[2] === "local";
+const packageNames = localMode ? ${JSON.stringify(packages)} : ${JSON.stringify(publishedUpgradePackages)};
 const loaded = new Map(await Promise.all(packageNames.map(async (specifier) => [specifier, await import(specifier)])));
 const core = loaded.get("@mcp-native/core");
 const mcp = loaded.get("@mcp-native/mcp");
@@ -241,6 +245,7 @@ const webview = loaded.get("@mcp-native/webview");
 const reactNative = loaded.get("@mcp-native/react-native");
 const umbrella = loaded.get("mcp-native");
 const host = loaded.get("@mcp-native/host");
+const hostReactNative = localMode ? await import("@mcp-native/host/react-native") : undefined;
 for (const [name, value] of [
   ["McpNativeRuntime", core.McpNativeRuntime],
   ["McpSdkClientAdapter", mcp.McpSdkClientAdapter],
@@ -254,6 +259,13 @@ for (const [name, value] of [
         ["createMcpNativeHostController", host.createMcpNativeHostController],
         ["createMcpNativeHostActionAuthorization", host.createMcpNativeHostActionAuthorization],
         ["resolveMcpNativeHostResult", host.resolveMcpNativeHostResult],
+        ...(hostReactNative === undefined
+          ? []
+          : [
+              ["McpNativeHostProvider", hostReactNative.McpNativeHostProvider],
+              ["McpNativeHostResultView", hostReactNative.McpNativeHostResultView],
+              ["useMcpNativeHost", hostReactNative.useMcpNativeHost],
+            ]),
       ]),
 ]) {
   if (typeof value !== "function") {

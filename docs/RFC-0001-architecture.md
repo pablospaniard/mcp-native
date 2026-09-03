@@ -123,10 +123,13 @@ The implemented headless controller accepts fresh app-owned connection units and
 adapter, runtime, connection lifecycle, and result resolver. It automatically discovers tools after
 every connection, permits calls only against the exact active-connection definition, forwards
 cancellation, rejects stale generations, bounds listeners and unsettled work, and exposes immutable
-connection/tool/call snapshots. The host action-authorization helper presents separately validated
-A2UI actions and MCP Apps tool calls to one immutable application decision union, denies by default,
-and serializes reviews across both protocols. Protocol packages retain their own serialization,
-delivery, and lifecycle rules. React Native mounting remains above this headless boundary.
+connection/tool/call snapshots. The optional `/react-native` entry point owns that controller's
+mounted lifecycle and renders fixed accessible operational states, bounded inert ordinary content,
+validated A2UI through the host catalog, or MCP Apps through one exact host-created sandbox and
+bridge session. The host action-authorization helper presents separately validated A2UI actions and
+MCP Apps tool calls to one immutable application decision union, denies by default, and serializes
+reviews across both protocols. Protocol packages retain their own serialization, delivery, and
+lifecycle rules.
 
 ## Capability model
 

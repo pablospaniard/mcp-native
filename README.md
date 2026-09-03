@@ -19,10 +19,10 @@ MCP Native lets an MCP server describe a form, list, media view, or action flow 
 validates that description and renders it with its own React Native components. The server never
 ships React Native code or chooses a component from your bundle.
 
-MCP Native is currently in the 0.9 release-candidate line. Its low-level React Native host layers are
-ready to try. The 1.0 scope adds a high-level `@mcp-native/host` package for connect-call-render
-orchestration before the final independent reviews and long-term compatibility promise. Versioned
-standard-contract registration and application-defined custom input adapters remain post-1.0 work.
+MCP Native is currently in the 0.9 release-candidate line. Its low-level layers and high-level
+`@mcp-native/host` connect-call-render workflow are ready to try. Final independent reviews and the
+long-term compatibility promise remain before 1.0. Versioned standard-contract registration and
+application-defined custom input adapters remain post-1.0 work.
 
 ## The idea in one minute
 
@@ -142,6 +142,8 @@ All packages are ESM-only and include TypeScript declarations.
 - Stable MCP Apps 2026-01-26 discovery, resource loading, WebView policy, and bridge support.
 - A headless `@mcp-native/host` controller for connection, automatic discovery, calls, cancellation,
   reconnect, teardown, and deterministic A2UI, MCP Apps, ordinary-content, or invalid resolution.
+- A React provider and result renderer at `@mcp-native/host/react-native`, with accessible states,
+  bounded ordinary text, native A2UI mounting, and exact isolated MCP Apps lifecycle ownership.
 - A coordinator for native A2UI and isolated MCP Apps regions on the same host screen.
 - Generated Android and iOS integration builds, plus package, conformance, performance, and
   hostile-input tests.
@@ -157,7 +159,7 @@ New integrations should use the A2UI v1 Candidate APIs. The older custom 0.1 sur
 | [@mcp-native/a2ui](packages/a2ui)                 | A2UI negotiation, parsing, state, validation, and action envelopes                  |
 | [@mcp-native/react-native](packages/react-native) | Turning validated A2UI surfaces into host-owned native components                   |
 | [@mcp-native/webview](packages/webview)           | Hosting MCP Apps and other explicitly allowed HTML in a controlled WebView          |
-| [@mcp-native/host](packages/host)                 | Running the headless connect-discover-call-resolve host workflow                    |
+| [@mcp-native/host](packages/host)                 | Running the high-level connect-call-render workflow or its headless controller      |
 | [mcp-native](packages/mcp-native)                 | Using the runtime and UI layers from one convenience package                        |
 
 The package split is intentional: <code>@mcp-native/core</code> does not depend on React Native, A2UI, WebViews, or a particular MCP SDK.
