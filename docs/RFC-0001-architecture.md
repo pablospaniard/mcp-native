@@ -1,6 +1,6 @@
 # RFC-0001: MCP Native architecture
 
-- Status: Accepted; architecture retained through Milestone 9
+- Status: Accepted; architecture retained through Milestone 10
 - Protocol profiles: [MCP](protocol-support.md), [A2UI v1 Candidate](a2ui-v1-conformance.md), and
   [MCP Apps](mcp-apps-compatibility.md)
 - Date: 2026-08-25
@@ -20,6 +20,10 @@ boundary.
 RFC-0001 established the package boundaries and trust model retained by the current release
 candidate. See [Standards and compatibility](standards-compatibility.md) for the exact normative
 baselines, verified profiles, and planned extensions.
+
+Milestone 10 adds `@mcp-native/host` above these boundaries. That package composes official SDK
+connection, negotiation, result classification, resource loading, rendering, policy, and lifecycle;
+it does not move transport or UI dependencies into core or create a new server trust path.
 
 ## Non-negotiable security rule
 
@@ -107,6 +111,14 @@ support. See the [exact native host profile](mcp-apps-compatibility.md).
 
 Convenience package for the runtime and UI APIs. Transport adapters remain separately installable so applications do not acquire an SDK or transport dependency they do not use.
 
+### `@mcp-native/host` (`1.0.0` target)
+
+Owns the optional high-level connect-call-render workflow. It composes `@mcp-native/mcp`, core,
+A2UI, React Native, and WebView APIs; classifies supported negotiated results; supplies safe ordinary
+MCP fallback; and coordinates action policy, cancellation, reconnect, error state, and teardown. It
+does not reinterpret unknown formats, install custom server contracts, own application navigation,
+or grant device capabilities. The low-level packages remain independently usable.
+
 ## Capability model
 
 The host owns the effective component and action allowlists. A server can request only capabilities the host has declared. Unknown components, actions, MIME types, and protocol versions are rejected rather than silently interpreted. Binding strings are accepted as opaque host data and must be validated by the host before path-like writes.
@@ -134,7 +146,7 @@ That milestone established the following end-to-end flow:
 
 ## Current implementation status
 
-Milestones 0–9 are complete in the `0.9.x` release candidate. The frozen public API now covers the
+Milestones 0–9 are complete in the `0.9.x` release candidate. The frozen low-level public API covers the
 official SDK adapter and OAuth host boundary, the documented A2UI v1 Candidate profile and complete
 pinned basic catalog, compiled host extensions, the stable MCP Apps native-host profile, and
 host-owned mixed native/WebView composition. The original contract coverage remains in place:
@@ -195,6 +207,8 @@ return { content: [{ type: "text", text: "Saved" }] };
 
 ## Next work
 
+- implement and review the `@mcp-native/host` package as the remaining product-level `1.0.0`
+  foundation, preserving the existing dependency directions and fail-closed boundaries;
 - complete the independent security, accessibility, compatibility, protocol/schema, and native
   WebView reviews that gate `1.0.0`;
 - remove the deprecated root aliases for the custom `0.1` model according to the published
@@ -203,6 +217,8 @@ return { content: [{ type: "text", text: "Saved" }] };
   documented profile is updated;
 - extend MCP Apps with optional stable methods and browser-host double-iframe support as separate
   profiles;
+- add a post-1.0 registry for additional reviewed standard contracts and explicitly installed,
+  namespaced, versioned custom input adapters without fallback from failed standard validation;
 - extend the Expo Go proof with useful host-owned catalog mappings when needed; and
 - develop first-class SwiftUI, Jetpack Compose, and native capability-provider packages after
   `1.0.0`.

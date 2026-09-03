@@ -34,6 +34,13 @@ application keeps control of code, design, navigation, permissions, and transpor
    Validated user actions return to a host callback, where application policy decides whether and
    how to deliver them.
 
+For `1.0.0`, `@mcp-native/host` will compose this flow behind one optional high-level API: connect a
+compatible server, list and call tools, classify supported standard results, load resources, and
+render native A2UI, isolated MCP Apps, or safe ordinary MCP content. Applications that need direct
+control can continue to compose the focused packages themselves. The host will not guess or convert
+unknown formats. A public registry for additional standard contracts and explicitly installed custom
+input adapters is scheduled after `1.0.0`.
+
 “Server” therefore means the remote MCP participant that supplies tools, resources, and untrusted
 UI descriptions. “Host” means the installed application: it owns the MCP client, the native code,
 the component catalog, policy decisions, navigation, storage, permissions, and final pixels.

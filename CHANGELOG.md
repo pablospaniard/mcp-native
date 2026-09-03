@@ -8,6 +8,10 @@ their minor release line.
 
 ### Changed
 
+- Expand the `1.0.0` roadmap with a high-level `@mcp-native/host` package for plug-and-play
+  connect-call-render orchestration, and split all post-1.0 work into explicit milestones for
+  contract adapters, platform-neutral rendering, SwiftUI, Jetpack Compose, native capabilities, and
+  protocol evolution.
 - Add City Canvas, a polished two-screen Expo Go example that combines native A2UI with an isolated
   MCP Apps WebView, host-owned lifecycle coordination, and a policy-approved bridge tool call.
 - Restore the README's descriptive product heading and architecture diagrams, remove the lead

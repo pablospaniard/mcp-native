@@ -1,8 +1,10 @@
 # `1.0.0` release-candidate compatibility policy
 
-Milestone 9 froze the `0.9.x` release-candidate API described here. Teams can integrate against this
-contract now. Independent review may still require a documented correction before the stable tag;
-the long-term `1.x` compatibility guarantee begins with `1.0.0`.
+Milestone 9 froze the existing low-level `0.9.x` release-candidate API described here. Teams can
+integrate against that contract now. Milestone 10 adds and reviews the high-level
+`@mcp-native/host` API without removing the low-level path. Independent review may still require a
+documented correction before the stable tag; the long-term `1.x` compatibility guarantee begins
+with `1.0.0`.
 
 ## Stable compatibility surfaces
 
@@ -34,17 +36,21 @@ own documented profiles and will not silently expand the React Native server con
 `@mcp-native/core` stays independent of MCP SDK, A2UI, React Native, and WebView implementations.
 `@mcp-native/mcp` owns the official SDK adapter. `@mcp-native/a2ui` owns protocol parsing, state,
 validation, and semantic planning. `@mcp-native/react-native` owns React and React Native mounting.
-`@mcp-native/webview` owns generic HTML policy and the stable MCP Apps native adapter. The
+`@mcp-native/webview` owns generic HTML policy and the stable MCP Apps native adapter.
+`@mcp-native/host` is the top-level orchestration package and may depend on the official SDK adapter,
+runtime, protocol, renderer, and WebView layers to provide the connect-call-render workflow. The
 `mcp-native` convenience package may compose and re-export these layers, including the host-owned
 mixed-surface coordinator.
 
 Dependency inversion, server-selected executable code, unchecked prop spreading, generic native
 commands, or a cross-boundary WebView escape is not a compatible extension.
 
-## Freeze evidence
+## Freeze checks
 
-`npm run api:verify` builds every package and compares all declared package subpaths, runtime export
-names, and the complete emitted declaration surface with `docs/public-api-baseline.json`. Package
+`npm run api:verify` builds every existing package and compares all declared package subpaths,
+runtime export names, and the complete emitted declaration surface with
+`docs/public-api-baseline.json`. Milestone 10 must add the reviewed host-package surface to that
+baseline before the stable tag. Package
 smoke tests verify the declared exports, JavaScript and declaration source maps, README, and exact
 MIT license in every tarball. The same gate runs every supported subpath in a migration-ready clean
 consumer before and after an offline replacement of the latest coordinated published `0.9.x`
@@ -53,5 +59,6 @@ compatibility review and changelog/migration update.
 
 The [support matrix](support-matrix.md) records the release-candidate dependency lanes. The
 [migration guide](migration-to-1.0.md) records the only planned root-export removal. The
-[`1.0.0` readiness checklist](1.0-readiness.md) distinguishes automated evidence from the final
-reviews and publication actions.
+[`1.0.0` readiness checklist](1.0-readiness.md) distinguishes automated checks from the final
+reviews and publication actions. Check results may be summarized in a pull request or release;
+their raw output is not a required committed artifact.

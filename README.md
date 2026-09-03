@@ -19,7 +19,10 @@ MCP Native lets an MCP server describe a form, list, media view, or action flow 
 validates that description and renders it with its own React Native components. The server never
 ships React Native code or chooses a component from your bundle.
 
-MCP Native is currently in the 0.9 release-candidate line. The React Native feature set planned for 1.0 is in place and ready to try. The 1.0 release adds the long-term compatibility promise after the final independent reviews.
+MCP Native is currently in the 0.9 release-candidate line. Its low-level React Native host layers are
+ready to try. The 1.0 scope adds a high-level `@mcp-native/host` package for connect-call-render
+orchestration before the final independent reviews and long-term compatibility promise. Versioned
+standard-contract registration and application-defined custom input adapters remain post-1.0 work.
 
 ## The idea in one minute
 

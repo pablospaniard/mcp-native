@@ -13,13 +13,16 @@
 
 </div>
 
-`mcp-native` is the convenient way to use the runtime, A2UI, React Native, mixed-surface, and WebView
-APIs from one package. It re-exports the focused `@mcp-native/*` layers while leaving transport
-adapters as a separate installation choice.
+`mcp-native` is the current convenient way to use the runtime, A2UI, React Native, mixed-surface,
+and WebView APIs from one package. It re-exports the focused `@mcp-native/*` layers while leaving
+transport adapters as a separate installation choice. The `1.0.0` roadmap adds
+`@mcp-native/host` as an optional high-level connect-call-render package; these low-level APIs remain
+available for applications that need manual composition.
 
-The current 0.9 line contains the React Native feature set planned for 1.0 and is ready to try in an
-integration. New work should use A2UI v1 Candidate or the stable MCP Apps `2026-01-26` host flow;
-the custom A2UI 0.1 APIs live under `/legacy` for migration.
+The current 0.9 line contains the validated low-level React Native feature set and is ready to try in
+an integration. New work should use A2UI v1 Candidate or the stable MCP Apps `2026-01-26` host flow;
+the custom A2UI 0.1 APIs live under `/legacy` for migration. Public standard-contract registration
+and application-defined custom input adapters are explicitly deferred until after `1.0.0`.
 
 For the big picture, start with the [product guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/product-guide.md).
 
