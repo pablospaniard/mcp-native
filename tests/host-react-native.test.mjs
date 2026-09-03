@@ -253,7 +253,7 @@ test("provider rejects an overlapping call without replacing the active result c
   await act(async () => mounted.root.unmount());
 });
 
-test("provider preserves its result context when controller call preflight is rejected", async () => {
+test("provider preserves its result context when call validation or preflight is rejected", async () => {
   const mounted = await mountHost(
     createController({
       result(_name, arguments_) {
@@ -268,6 +268,18 @@ test("provider preserves its result context when controller call preflight is re
     await assert.rejects(
       () => mounted.host.callTool("unknown", { unit: "F" }),
       (error) => error instanceof McpNativeHostControllerError && error.code === "tool-not-listed",
+    );
+  });
+  assert.equal(mounted.host.activeCall, activeCall);
+  assert.deepEqual(textValues(mounted.root), ["Result", "Madrid: C"]);
+
+  await act(async () => {
+    await assert.rejects(
+      () => mounted.host.callTool("status", /** @type {*} */ (["private malformed input"])),
+      (error) =>
+        error instanceof McpNativeHostControllerError &&
+        error.code === "invalid-call" &&
+        !error.message.includes("private malformed input"),
     );
   });
   assert.equal(mounted.host.activeCall, activeCall);
