@@ -40,10 +40,81 @@ const npmEnvironment = {
 };
 
 try {
+  const declarationExportsName = (declarations, name) =>
+    new RegExp(`\\b${name}\\b`, "u").test(declarations);
+  const deprecatedDeclarationNames = (declarations) =>
+    new Set(
+      [
+        ...declarations.matchAll(
+          /\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*export\s+(?:declare\s+)?(?:const|function|interface|type)\s+([A-Za-z0-9_]+)/gu,
+        ),
+      ]
+        .filter((match) => match[1]?.includes("@deprecated"))
+        .map((match) => match[2]),
+    );
+  const a2uiDeclarations = readFileSync("packages/a2ui/dist/index.d.ts", "utf8");
+  const a2uiLegacyDeclarations = readFileSync("packages/a2ui/dist/legacy.d.ts", "utf8");
+  const a2uiLegacyNames = [
+    "A2UI_MAX_DEPTH",
+    "A2UI_MAX_NODES",
+    "A2UI_MAX_SOURCE_LENGTH",
+    "A2UI_MAX_STRING_LENGTH",
+    "A2UI_VERSION",
+    "A2uiButtonNode",
+    "A2uiContainerNode",
+    "A2uiNode",
+    "A2uiSurface",
+    "A2uiTextInputNode",
+    "A2uiTextNode",
+    "ResolvedA2uiResource",
+    "parseA2uiSurface",
+    "resolveA2uiResourceFromToolResult",
+  ];
+  const deprecatedA2uiLegacyNames = deprecatedDeclarationNames(a2uiLegacyDeclarations);
+  for (const typeName of a2uiLegacyNames) {
+    if (declarationExportsName(a2uiDeclarations, typeName)) {
+      throw new Error(`@mcp-native/a2ui root declarations still expose ${typeName}`);
+    }
+    if (!declarationExportsName(a2uiLegacyDeclarations, typeName)) {
+      throw new Error(`@mcp-native/a2ui legacy declarations are missing ${typeName}`);
+    }
+    if (!deprecatedA2uiLegacyNames.has(typeName)) {
+      throw new Error(`@mcp-native/a2ui legacy declarations do not deprecate ${typeName}`);
+    }
+  }
   const reactNativeDeclarations = readFileSync("packages/react-native/dist/index.d.ts", "utf8");
+  const reactNativeLegacyDeclarations = readFileSync(
+    "packages/react-native/dist/legacy.d.ts",
+    "utf8",
+  );
   for (const typeName of ["NativeAccessibilityRole", "NativeAccessibilityState"]) {
     if (!reactNativeDeclarations.includes(typeName)) {
       throw new Error(`@mcp-native/react-native declarations are missing ${typeName}`);
+    }
+  }
+  const reactNativeLegacyNames = [
+    "McpNativeActionDispatcherOptions",
+    "McpNativeDispatcher",
+    "McpNativeSurface",
+    "McpNativeSurfaceProps",
+    "NativeActionHandler",
+    "NativeBindingChangeHandler",
+    "createNativeRenderPlan",
+    "useMcpNativeActionDispatcher",
+    "useNativeRenderPlan",
+  ];
+  const deprecatedReactNativeLegacyNames = deprecatedDeclarationNames(
+    reactNativeLegacyDeclarations,
+  );
+  for (const typeName of reactNativeLegacyNames) {
+    if (declarationExportsName(reactNativeDeclarations, typeName)) {
+      throw new Error(`@mcp-native/react-native root declarations still expose ${typeName}`);
+    }
+    if (!declarationExportsName(reactNativeLegacyDeclarations, typeName)) {
+      throw new Error(`@mcp-native/react-native legacy declarations are missing ${typeName}`);
+    }
+    if (!deprecatedReactNativeLegacyNames.has(typeName)) {
+      throw new Error(`@mcp-native/react-native legacy declarations do not deprecate ${typeName}`);
     }
   }
   const webviewDeclarations = ["index", "apps", "bridge", "sandbox"]
@@ -246,6 +317,19 @@ const reactNative = loaded.get("@mcp-native/react-native");
 const umbrella = loaded.get("mcp-native");
 const host = loaded.get("@mcp-native/host");
 const hostReactNative = localMode ? await import("@mcp-native/host/react-native") : undefined;
+if (localMode) {
+  for (const [moduleName, module, names] of [
+    ["@mcp-native/a2ui", a2ui, ["A2UI_VERSION", "parseA2uiSurface", "resolveA2uiResourceFromToolResult"]],
+    ["@mcp-native/react-native", reactNative, ["McpNativeSurface", "createNativeRenderPlan", "useMcpNativeActionDispatcher", "useNativeRenderPlan"]],
+    ["mcp-native", umbrella, ["A2UI_VERSION", "parseA2uiSurface", "resolveA2uiResourceFromToolResult", "McpNativeSurface", "createNativeRenderPlan", "useMcpNativeActionDispatcher", "useNativeRenderPlan"]],
+  ]) {
+    for (const name of names) {
+      if (Object.hasOwn(module, name)) {
+        throw new Error(\`Legacy API remains exposed from \${moduleName}: \${name}\`);
+      }
+    }
+  }
+}
 for (const [name, value] of [
   ["McpNativeRuntime", core.McpNativeRuntime],
   ["McpSdkClientAdapter", mcp.McpSdkClientAdapter],

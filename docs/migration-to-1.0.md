@@ -1,12 +1,12 @@
 # Migration from `0.9.x` to `1.0.0`
 
-Milestone 9 establishes the release-candidate API and one deliberate cleanup: the deprecated custom
-A2UI `0.1` model will no longer appear in package root exports at `1.0.0`.
+Milestone 9 established the release-candidate API. The current development candidate completes its
+deliberate cleanup: the deprecated custom A2UI `0.1` model no longer appears in package root exports.
 
 ## Move legacy imports now
 
-During `0.9.x`, existing root imports continue to work, and explicit migration-only subpaths are
-available:
+Published `0.9.x` packages allowed root imports. Before upgrading to the current candidate, move
+those imports to the explicit migration-only subpaths:
 
 ```ts
 import { parseA2uiSurface } from "@mcp-native/a2ui/legacy";
@@ -20,15 +20,16 @@ Change imports before upgrading even if the application cannot yet migrate its s
 The legacy subpaths preserve the custom `version: "0.1"` meaning; they never reinterpret that input
 as A2UI v1.
 
-At `1.0.0`, deprecated legacy aliases are removed from package roots. The explicit `/legacy`
-subpaths remain isolated, frozen, and eligible only for security and critical correctness fixes.
-They receive no new A2UI v1 components, functions, capabilities, extensions, or renderer behavior.
+Deprecated legacy aliases are absent from the current candidate's package roots. The explicit
+`/legacy` subpaths remain isolated, frozen, and eligible only for security and critical correctness
+fixes. They receive no new A2UI v1 components, functions, capabilities, extensions, or renderer
+behavior.
 
 ## Automated upgrade path
 
 `npm run package:smoke` installs the latest coordinated stable `0.9.x` packages from npm into a
 clean consumer and runs modern APIs together with the explicit `/legacy` imports shown above. It
-then replaces those six dependencies and adds `@mcp-native/host` with locally packed
+then replaces all seven coordinated dependencies with locally packed
 release-candidate artifacts, confirms that npm selected each local tarball, and runs the consumer
 again. Mixed `0.9.x` package versions, retained registry dependencies, missing migration entry
 points, and stale installed versions fail the gate.

@@ -219,12 +219,8 @@ return { content: [{ type: "text", text: "Saved" }] };
 
 ## Next work
 
-- implement and review the `@mcp-native/host` package as the remaining product-level `1.0.0`
-  foundation, preserving the existing dependency directions and fail-closed boundaries;
 - complete the independent security, accessibility, compatibility, protocol/schema, and native
   WebView reviews that gate `1.0.0`;
-- remove the deprecated root aliases for the custom `0.1` model according to the published
-  [migration guide](migration-to-1.0.md), while retaining `/legacy`;
 - extend A2UI with renderer-function execution and capability transport placement after the
   documented profile is updated;
 - extend MCP Apps with optional stable methods and browser-host double-iframe support as separate

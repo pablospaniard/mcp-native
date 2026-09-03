@@ -151,7 +151,7 @@ protocol profile.
 
 The custom `A2UI_VERSION = "0.1"` surface is not an A2UI protocol version. Its parser, resolver,
 node types, limits, `McpNativeSurface`, and legacy render-plan helpers are deprecated and frozen to
-security and correctness fixes.
+security and correctness fixes. They are exported only from the explicit `/legacy` entry points.
 
 Migrate as follows:
 

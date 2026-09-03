@@ -6,15 +6,13 @@ import {
   validateA2uiV1SurfaceState,
 } from "@mcp-native/a2ui";
 import type {
-  A2uiNode,
-  A2uiSurface,
   A2uiV1ActionEnvelope,
   A2uiV1HostExtensionRegistry,
   A2uiV1SurfaceState,
   A2uiV1SurfaceValidationPolicy,
 } from "@mcp-native/a2ui";
-import { parseJsonObject, parseJsonValue, parseMcpNativeAction } from "@mcp-native/core";
-import type { JsonObject, JsonValue, McpNativeAction, McpToolCallResult } from "@mcp-native/core";
+import { parseJsonObject, parseJsonValue } from "@mcp-native/core";
+import type { JsonObject, JsonValue } from "@mcp-native/core";
 import {
   createElement,
   useCallback,
@@ -241,20 +239,6 @@ export interface NativeElement {
   readonly children?: readonly NativeElement[];
 }
 
-/** @deprecated Use `A2uiV1NativeSurface` and its official action envelope handler. */
-export type NativeActionHandler = (action: McpNativeAction) => void;
-
-/** @deprecated Use `A2uiV1NativeSurface` renderer-local data-model handling. */
-export type NativeBindingChangeHandler = (binding: string, value: string) => void;
-
-/** @deprecated Use `A2uiV1NativeSurfaceProps`. */
-export interface McpNativeSurfaceProps {
-  readonly surface: A2uiSurface;
-  readonly components: NativeComponentCatalog;
-  readonly onAction: NativeActionHandler;
-  readonly onBindingChange?: NativeBindingChangeHandler;
-}
-
 export type A2uiV1NativeActionHandler = (
   envelope: A2uiV1ActionEnvelope,
   dataModel?: JsonObject,
@@ -303,63 +287,6 @@ export interface A2uiV1NativeSurfaceProps {
   readonly locale?: string;
   /** Injectable RFC 3339 timestamp source for host clocks and deterministic tests. */
   readonly now?: () => string;
-}
-
-export interface McpNativeDispatcher {
-  dispatch(action: McpNativeAction): Promise<McpToolCallResult>;
-}
-
-export interface McpNativeActionDispatcherOptions {
-  readonly onError: (error: unknown) => void;
-  readonly onResult?: (result: McpToolCallResult) => void;
-}
-
-/** @deprecated Use `createA2uiV1NativeRenderPlan`. */
-export function createNativeRenderPlan(surface: A2uiSurface): NativeElement {
-  return renderNode(surface.root);
-}
-
-/** @deprecated Use `A2uiV1NativeSurface`. */
-export function useNativeRenderPlan(surface: A2uiSurface): NativeElement {
-  return useMemo(() => createNativeRenderPlan(surface), [surface]);
-}
-
-/**
- * Creates a stable, synchronous event handler for a runtime's asynchronous
- * action dispatcher. Synchronous throws and promise rejections are always
- * routed to the required error hook.
- */
-export function useMcpNativeActionDispatcher(
-  dispatcher: McpNativeDispatcher,
-  options: McpNativeActionDispatcherOptions,
-): NativeActionHandler {
-  const { onError, onResult } = options;
-
-  return useCallback(
-    (action) => {
-      void Promise.resolve()
-        .then(() => dispatcher.dispatch(action))
-        .then(
-          (result) => onResult?.(result),
-          (error: unknown) => onError(error),
-        );
-    },
-    [dispatcher, onError, onResult],
-  );
-}
-
-/** @deprecated Use `A2uiV1NativeSurface`. */
-export function McpNativeSurface({
-  surface,
-  components,
-  onAction,
-  onBindingChange,
-}: McpNativeSurfaceProps): ReactElement {
-  const plan = useNativeRenderPlan(surface);
-  return renderElement(plan, components, {
-    onAction,
-    ...(onBindingChange === undefined ? {} : { onBindingChange }),
-  });
 }
 
 /**
@@ -550,45 +477,9 @@ function currentTimestamp(): string {
   return new Date().toISOString();
 }
 
-function renderNode(node: A2uiNode): NativeElement {
-  switch (node.type) {
-    case "container":
-      return {
-        key: node.id,
-        component: "View",
-        props: {},
-        children: node.children.map(renderNode),
-      };
-    case "text":
-      return {
-        key: node.id,
-        component: "Text",
-        props: { children: node.text },
-      };
-    case "button":
-      return {
-        key: node.id,
-        component: "Button",
-        props: { title: node.label, action: node.action },
-      };
-    case "text-input":
-      return {
-        key: node.id,
-        component: "TextInput",
-        props: {
-          label: node.label,
-          ...(node.value === undefined ? {} : { value: node.value }),
-          ...(node.binding === undefined ? {} : { binding: node.binding }),
-        },
-      };
-  }
-}
-
 interface NativeRenderHandlers {
   /** A2UI v1-only selection of pinned semantic/style variants. */
   readonly useComponentVariants?: boolean;
-  readonly onAction?: NativeActionHandler;
-  readonly onBindingChange?: NativeBindingChangeHandler;
   readonly onV1BindingChange?: (binding: string, value: JsonValue) => void;
   readonly onV1Event?: (event: A2uiV1NativeEventDescriptor) => void;
   readonly onV1OpenUrl?: (request: A2uiV1NativeOpenUrlDescriptor) => void;
@@ -670,16 +561,11 @@ function renderElement(
           ...(invalid === undefined ? {} : { invalid }),
           ...(validationMessages === undefined ? {} : { validationMessages }),
           ...(value === undefined ? {} : { value }),
-          ...(binding === undefined ||
-          (handlers.onBindingChange === undefined && handlers.onV1BindingChange === undefined)
+          ...(binding === undefined || handlers.onV1BindingChange === undefined
             ? {}
             : {
                 onChangeText: (nextValue: string) => {
-                  if (handlers.onV1BindingChange !== undefined) {
-                    handlers.onV1BindingChange(binding, nextValue);
-                  } else {
-                    handlers.onBindingChange?.(binding, nextValue);
-                  }
+                  handlers.onV1BindingChange?.(binding, nextValue);
                 },
               }),
         },
@@ -1602,29 +1488,13 @@ function createButtonPressHandler(
   handlers: NativeRenderHandlers,
 ): () => void {
   const disabled = optionalBooleanProp(element, "disabled") === true;
-  const hasAction = Object.hasOwn(element.props, "action");
   const hasEvent = Object.hasOwn(element.props, "event");
   const hasOpenUrl = Object.hasOwn(element.props, "openUrl");
   const hasInvalidLocalOpenUrl = Object.hasOwn(element.props, "invalidLocalOpenUrl");
-  if (
-    Number(hasAction) + Number(hasEvent) + Number(hasOpenUrl) + Number(hasInvalidLocalOpenUrl) !==
-    1
-  ) {
+  if (Number(hasEvent) + Number(hasOpenUrl) + Number(hasInvalidLocalOpenUrl) !== 1) {
     throw new TypeError(
-      `Expected exactly one action, event, openUrl, or invalid local openUrl at native element ${element.key}`,
+      `Expected exactly one event, openUrl, or invalid local openUrl at native element ${element.key}`,
     );
-  }
-  if (hasAction) {
-    const action = expectActionProp(element);
-    if (handlers.onAction === undefined) {
-      throw new TypeError(`Missing native action handler for element ${element.key}`);
-    }
-    return disabled
-      ? () => undefined
-      : () => {
-          handlers.onElementActivate?.(element.key);
-          handlers.onAction?.(action);
-        };
   }
   if (hasEvent) {
     const event = expectV1EventProp(element);
@@ -1768,17 +1638,6 @@ function optionalAccessibilityLiveProp(
   throw new TypeError(
     `Expected an accessibility live value at native element ${element.key}.accessibilityLive`,
   );
-}
-
-function expectActionProp(element: NativeElement): McpNativeAction {
-  const value = element.props.action;
-  const path = `native element ${element.key}.action`;
-  try {
-    return parseMcpNativeAction(value, path);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : `Expected a tool action at ${path}`;
-    throw new TypeError(message, { cause: error });
-  }
 }
 
 function expectV1EventProp(element: NativeElement): A2uiV1NativeEventDescriptor {

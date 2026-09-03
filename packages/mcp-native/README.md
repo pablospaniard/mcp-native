@@ -47,8 +47,8 @@ and the [`@mcp-native/react-native` adapter documentation](https://github.com/pa
 
 ## Legacy custom `0.1` migration
 
-For `0.9.x`, migrate these imports to `mcp-native/legacy`. Root aliases are removed at `1.0.0`;
-the explicit legacy subpath stays frozen for migration and security fixes.
+The current release candidate exposes these APIs only from `mcp-native/legacy`. The explicit
+legacy subpath stays frozen for migration and security fixes.
 
 ```tsx
 import { McpNativeRuntime, createAllowlistActionPolicy, type McpClient } from "mcp-native";
@@ -113,7 +113,7 @@ The host supplies the locally bundled native components and explicitly allows th
 | Package                                                                              | What it provides                                                                  |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | MCP client contracts, runtime delegation, JSON types, and declared tool actions.  |
-| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Feature-scoped v1 Candidate adapter plus deprecated `0.1` migration APIs.         |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Feature-scoped v1 Candidate adapter plus deprecated `/legacy` migration APIs.     |
 | [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | Trusted plans, local v1 state/actions, hooks, and a host-owned component catalog. |
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | Stable Apps discovery, sandbox, native adapter, and JSON-RPC bridge.              |
 

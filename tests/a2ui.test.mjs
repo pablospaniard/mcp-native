@@ -2,10 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  A2UI_MAX_DEPTH,
-  A2UI_MAX_NODES,
-  A2UI_MAX_SOURCE_LENGTH,
-  A2UI_MAX_STRING_LENGTH,
   A2UI_MCP_BINDING_VERSION,
   A2UI_MCP_EXTENSION_CAPABILITIES,
   A2UI_MCP_EXTENSION_ID,
@@ -13,14 +9,20 @@ import {
   A2UI_MCP_SCHEMA_REVISION,
   A2UI_MCP_TRANSPORT,
   A2UI_MIME_TYPE,
-  A2UI_VERSION,
   A2uiParseError,
   A2uiResourceError,
   negotiateA2uiMcpBinding,
+} from "../packages/a2ui/dist/index.js";
+import {
+  A2UI_MAX_DEPTH,
+  A2UI_MAX_NODES,
+  A2UI_MAX_SOURCE_LENGTH,
+  A2UI_MAX_STRING_LENGTH,
+  A2UI_VERSION,
   parseA2uiSurface,
   resolveA2uiResourceFromToolResult,
-} from "../packages/a2ui/dist/index.js";
-import { createNativeRenderPlan } from "../packages/react-native/dist/index.js";
+} from "../packages/a2ui/dist/legacy.js";
+import { createNativeRenderPlan } from "../packages/react-native/dist/legacy.js";
 
 test("the project-owned A2UI binding requires an exact mutual capability match", () => {
   assert.deepEqual(

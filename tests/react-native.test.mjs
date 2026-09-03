@@ -8,7 +8,7 @@ import {
   McpNativeSurface,
   useMcpNativeActionDispatcher,
   useNativeRenderPlan,
-} from "../packages/react-native/dist/index.js";
+} from "../packages/react-native/dist/legacy.js";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 

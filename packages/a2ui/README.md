@@ -39,8 +39,8 @@ capabilities](#a2ui-v1-catalog-capabilities), and [complete profile](https://git
 
 The following APIs remain available for migration but are deprecated. New hosts should use the v1
 flow above; existing custom `0.1` integrations can follow the [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
-Use the explicit `/legacy` subpath during `0.9.x`; the deprecated root aliases are removed at
-`1.0.0` while the migration subpath stays frozen.
+The current release candidate exposes them only from the explicit `/legacy` subpath, which stays
+frozen for migration and security fixes.
 
 ```ts
 import { parseA2uiSurface } from "@mcp-native/a2ui/legacy";
@@ -198,12 +198,8 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 
 | Export                                                                                                    | Purpose                                                                 |
 | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `resolveA2uiResourceFromToolResult`                                                                       | Deprecated custom `0.1` resource resolver.                              |
-| `parseA2uiSurface`                                                                                        | Deprecated custom `0.1` surface parser.                                 |
 | `A2uiResourceError`, `A2uiParseError`                                                                     | Specific resolution and parsing failures.                               |
-| `A2UI_MIME_TYPE`, `A2UI_VERSION`                                                                          | Exact media type and legacy custom model version.                       |
-| `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                                                                        | Container-tree complexity limits.                                       |
-| `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH`                                                        | Serialized-input and string-field limits.                               |
+| `A2UI_MIME_TYPE`                                                                                          | Exact A2UI media type.                                                  |
 | `A2UI_MCP_EXTENSION_ID`, `A2UI_MCP_EXTENSION_CAPABILITIES`                                                | Exact project-owned extension declaration.                              |
 | `negotiateA2uiMcpBinding`, `A2uiMcpBindingNegotiation`, `A2uiMcpBindingGrant`                             | Exact-match negotiation with typed fallback reasons.                    |
 | `A2UI_MCP_BINDING_VERSION`, `A2UI_MCP_PROTOCOL_VERSION`, `A2UI_MCP_SCHEMA_REVISION`, `A2UI_MCP_TRANSPORT` | Pinned binding and Candidate transport values.                          |
@@ -223,9 +219,18 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 | `A2UI_V1_BASIC_CATALOG_ID`, catalog name constants                                                        | Exact pinned catalog identity and selectable host capabilities.         |
 | `resolveA2uiV1JsonlFromToolResult`, `ResolvedA2uiV1JsonlResource`                                         | Resolve a JSONL A2UI resource without using the `0.1` parser.           |
 | `A2UI_V1_PROTOCOL_VERSION`, `A2UI_V1_MAX_SOURCE_LENGTH`, `A2UI_V1_MAX_ENVELOPES`, store limit constants   | v1 protocol and complexity limits.                                      |
-| `ResolvedA2uiResource`                                                                                    | URI, MIME type, and validated surface returned by the resolver.         |
-| `A2uiSurface`, `A2uiNode`                                                                                 | Validated surface and node unions.                                      |
-| Node interfaces                                                                                           | Typed container, text, button, and text-input nodes.                    |
+
+### Legacy `/legacy` API
+
+| Export                                             | Purpose                                                        |
+| -------------------------------------------------- | -------------------------------------------------------------- |
+| `resolveA2uiResourceFromToolResult`                | Deprecated custom `0.1` resource resolver.                     |
+| `parseA2uiSurface`                                 | Deprecated custom `0.1` surface parser.                        |
+| `A2UI_VERSION`                                     | Exact legacy custom model version.                             |
+| `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                 | Legacy container-tree complexity limits.                       |
+| `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH` | Legacy serialized-input and string-field limits.               |
+| `ResolvedA2uiResource`                             | URI, MIME type, and validated legacy surface.                  |
+| `A2uiSurface`, `A2uiNode`, node interfaces         | Validated legacy surface, node union, and concrete node types. |
 
 ## Security behavior
 

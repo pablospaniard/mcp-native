@@ -76,7 +76,7 @@ The standards review confirmed these foundations, which remain part of the froze
 
 The custom `@mcp-native/a2ui` `0.1` object remains useful only for migration. It is deprecated and
 frozen except for security and critical correctness fixes. Milestone 9 isolates it behind explicit
-`/legacy` subpaths; deprecated root aliases remain through `0.9.x` and are removed at `1.0.0`.
+`/legacy` subpaths; the current release candidate removes its deprecated package-root aliases.
 
 ## Integration proof
 
@@ -415,7 +415,7 @@ A2UI delivery and MCP Apps bridge authorization callbacks.
 - [ ] Enforce the documented support matrix in CI and verify clean installation, declarations,
       exports, peer dependencies, source maps, licenses, provenance, and upgrade behavior from the
       latest `0.9.x` release candidate.
-- [ ] Remove or isolate the deprecated custom A2UI `0.1` public surface according to the published
+- [x] Remove or isolate the deprecated custom A2UI `0.1` public surface according to the published
       migration decision, with no silent wire-format reinterpretation.
 - [ ] Publish stable documentation: human introduction, host integration guide, component matrix,
       styling and design-system guide, host-extension guide, mixed-surface guide, security model,

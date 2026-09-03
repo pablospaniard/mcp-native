@@ -13,6 +13,12 @@ their minor release line.
   fail-closed MCP Apps sandbox, bridge, crash recovery, and teardown ownership. React `>=18.1.0`
   remains the only peer; the package does not depend on Expo or React Native.
 
+### Changed
+
+- Remove the deprecated custom A2UI `0.1` APIs from package-root exports while retaining the
+  frozen `@mcp-native/a2ui/legacy`, `@mcp-native/react-native/legacy`, and `mcp-native/legacy`
+  migration entry points.
+
 ## 0.9.3 - 2026-09-03
 
 Introduces the initial headless host orchestration package and widens renderer compatibility by
