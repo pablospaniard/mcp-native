@@ -71,6 +71,13 @@ export interface McpSdkRequestOptions {
   readonly signal?: AbortSignal;
 }
 
+/** Closed official-SDK cache policy available only to tool-list requests. */
+export type McpSdkCacheMode = "bypass" | "refresh" | "use";
+
+export interface McpSdkListToolsOptions extends McpSdkRequestOptions {
+  readonly cacheMode?: McpSdkCacheMode;
+}
+
 /** The exact MCP core revision targeted by MCP Native's modern compatibility lane. */
 export const MCP_NATIVE_PROTOCOL_REVISION = "2026-07-28" as const;
 
@@ -164,9 +171,9 @@ export class McpSdkClientAdapter implements McpClient {
     return this.#clientExtensions;
   }
 
-  async listTools(options: McpSdkRequestOptions = {}): Promise<McpListToolsResult> {
+  async listTools(options: McpSdkListToolsOptions = {}): Promise<McpListToolsResult> {
     return parseMcpSdkListToolsResult(
-      await this.#client.listTools(undefined, mapSdkRequestOptions(options)),
+      await this.#client.listTools(undefined, mapSdkListToolsOptions(options)),
     );
   }
 
@@ -275,17 +282,52 @@ function mapSdkRequestOptions(options: McpSdkRequestOptions): { signal?: AbortSi
   ) {
     throw new McpSdkAdapterError("SDK request options must be an object containing only signal");
   }
-  if (options.signal === undefined) return undefined;
+  const signal = validateSdkRequestSignal(options.signal);
+  return signal === undefined ? undefined : { signal };
+}
+
+function mapSdkListToolsOptions(
+  options: McpSdkListToolsOptions,
+): { signal?: AbortSignal; cacheMode?: McpSdkCacheMode } | undefined {
   if (
-    options.signal === null ||
-    typeof options.signal !== "object" ||
-    typeof options.signal.aborted !== "boolean" ||
-    typeof options.signal.addEventListener !== "function" ||
-    typeof options.signal.removeEventListener !== "function"
+    options === null ||
+    typeof options !== "object" ||
+    Array.isArray(options) ||
+    Object.keys(options).some((key) => key !== "cacheMode" && key !== "signal")
+  ) {
+    throw new McpSdkAdapterError(
+      "SDK tool-list options must be an object containing only cacheMode and signal",
+    );
+  }
+  const signal = validateSdkRequestSignal(options.signal);
+  const cacheMode = options.cacheMode;
+  if (
+    cacheMode !== undefined &&
+    cacheMode !== "bypass" &&
+    cacheMode !== "refresh" &&
+    cacheMode !== "use"
+  ) {
+    throw new McpSdkAdapterError("SDK tool-list cache mode is unsupported");
+  }
+  if (signal === undefined && cacheMode === undefined) return undefined;
+  return {
+    ...(signal === undefined ? {} : { signal }),
+    ...(cacheMode === undefined ? {} : { cacheMode }),
+  };
+}
+
+function validateSdkRequestSignal(signal: unknown): AbortSignal | undefined {
+  if (signal === undefined) return undefined;
+  if (
+    signal === null ||
+    typeof signal !== "object" ||
+    typeof (signal as AbortSignal).aborted !== "boolean" ||
+    typeof (signal as AbortSignal).addEventListener !== "function" ||
+    typeof (signal as AbortSignal).removeEventListener !== "function"
   ) {
     throw new McpSdkAdapterError("SDK request signal must be an AbortSignal");
   }
-  return { signal: options.signal };
+  return signal as AbortSignal;
 }
 
 function mapContent(value: unknown, path: string): McpContent {

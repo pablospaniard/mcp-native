@@ -12,7 +12,7 @@
       }
     },
     "@mcp-native/mcp": {
-      "declarationSha256": "94b06f7338a9e91c989e1a9f2b546f4fe27108fe0a2bd48134c467f636c9988b",
+      "declarationSha256": "f390df10c14eea1dbc1d33d3c4473cd2d28d959a1f3a020c884f496a63332d29",
       "exports": {
         ".": {
           "import": "./dist/index.js",
@@ -67,7 +67,7 @@
       }
     },
     "@mcp-native/host": {
-      "declarationSha256": "fb0e0155849144bf0afd4828c5329add7a7a344f7604a426a2c6fceb156e640d",
+      "declarationSha256": "2784f6d27cc55ac62ebe08ac5bd3086b26b436c33526cab9c3f0a2eab36ce527",
       "exports": {
         ".": {
           "import": "./dist/index.js",

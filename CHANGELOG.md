@@ -21,7 +21,7 @@ their minor release line.
 ### Changed
 
 - Forward optional validated `AbortSignal` request options from the MCP SDK adapter for tool
-  discovery, tool calls, and resource reads.
+  discovery, tool calls, and resource reads, plus the SDK's closed cache-mode set for tool discovery.
 - Bind host result negotiation and resource loading to one MCP client, preventing call sites from
   substituting capability maps that were not advertised or received on that connection.
 

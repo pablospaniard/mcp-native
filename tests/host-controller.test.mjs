@@ -336,6 +336,95 @@ test("reconnect clears stale tools and prevents a late old result from winning",
   await controller.shutdown();
 });
 
+test("a timed-out connection cannot replace the newer active connection when it resolves late", async () => {
+  let resolveFirstConnect;
+  let firstSignal;
+  let attempts = 0;
+  let firstCalls = 0;
+  let secondCalls = 0;
+  const controller = createMcpNativeHostController({
+    createConnection() {
+      attempts += 1;
+      const attempt = attempts;
+      const client = fakeClient({
+        async listTools() {
+          return { tools: [listedTool(`tool-${attempt}`)] };
+        },
+        async callTool() {
+          if (attempt === 1) firstCalls += 1;
+          else secondCalls += 1;
+          return { content: [{ type: "text", text: `attempt-${attempt}` }] };
+        },
+      });
+      return fakeConnection(client, {
+        connect(signal) {
+          if (attempt !== 1) return;
+          firstSignal = signal;
+          return new Promise((resolve) => {
+            resolveFirstConnect = resolve;
+          });
+        },
+      });
+    },
+    classifyError: retryable,
+    timeoutMs: 5,
+    maxAttempts: 2,
+    initialBackoffMs: 0,
+    maxBackoffMs: 0,
+  });
+
+  await controller.start();
+  assert.equal(attempts, 2);
+  assert.equal(firstSignal.aborted, false);
+  assert.deepEqual(
+    controller.getSnapshot().tools.result.tools.map((tool) => tool.name),
+    ["tool-2"],
+  );
+
+  resolveFirstConnect();
+  await nextTurn();
+  const result = await controller.callTool("tool-2");
+  assert.equal(result.result.content[0].text, "attempt-2");
+  assert.equal(firstCalls, 0);
+  assert.equal(secondCalls, 1);
+  await controller.shutdown();
+});
+
+test("refreshTools forces the official SDK adapter to replace a fresh cached tool list", async () => {
+  let advertisedName = "old-tool";
+  let cached;
+  let requests = 0;
+  const adapter = new McpSdkClientAdapter({
+    async listTools(_params, options) {
+      if (options?.cacheMode !== "refresh" && cached !== undefined) return cached;
+      requests += 1;
+      cached = { tools: [listedTool(advertisedName)], ttlMs: 60_000 };
+      return cached;
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return { contents: [] };
+    },
+  });
+  const controller = createMcpNativeHostController({
+    createConnection: () => fakeConnection(adapter),
+    classifyError: retryable,
+  });
+
+  await controller.start();
+  assert.equal(requests, 1);
+  advertisedName = "new-tool";
+  const refreshed = await controller.refreshTools();
+  assert.equal(requests, 2);
+  assert.deepEqual(
+    refreshed.tools.map((tool) => tool.name),
+    ["new-tool"],
+  );
+  await controller.shutdown();
+});
+
 test("host rejects ambiguous tool discovery and bounds abandoned operations and listeners", async () => {
   const duplicate = createMcpNativeHostController({
     createConnection: () =>

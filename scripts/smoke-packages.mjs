@@ -90,6 +90,8 @@ try {
     "MCP_SDK_MAX_RESOURCE_TEXT_LENGTH",
     "MCP_SDK_MAX_RESOURCE_BLOB_LENGTH",
     "MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS",
+    "McpSdkCacheMode",
+    "McpSdkListToolsOptions",
     "McpSdkRequestOptions",
     "parseMcpSdkListToolsResult",
     "parseMcpSdkReadResourceResult",

@@ -16,6 +16,7 @@ import {
   type McpNativeConnectionLifecycleOptions,
   type McpNativeHostState,
   type McpNativeManagedConnection,
+  type McpSdkListToolsOptions,
   type McpSdkRequestOptions,
 } from "@mcp-native/mcp";
 import type { A2uiV1EnvelopeParseOptions } from "@mcp-native/a2ui";
@@ -35,7 +36,7 @@ export interface McpNativeHostRequestOptions {
 
 /** Adapted client owned by one host connection unit. */
 export interface McpNativeHostOperationClient {
-  listTools(options?: McpNativeHostRequestOptions): Promise<McpListToolsResult>;
+  listTools(options?: McpSdkListToolsOptions): Promise<McpListToolsResult>;
   callTool(
     name: string,
     arguments_: JsonObject,
@@ -222,7 +223,7 @@ export class McpNativeHostController {
 
   refreshTools(options: McpNativeHostRequestOptions = {}): Promise<McpListToolsResult> {
     this.#assertRequestOptions(options);
-    return this.#discoverTools(this.#requireActiveConnection(), options.signal);
+    return this.#discoverTools(this.#requireActiveConnection(), options.signal, "refresh");
   }
 
   async callTool(
@@ -303,28 +304,38 @@ export class McpNativeHostController {
   #createManagedConnection(): McpNativeManagedConnection {
     const connection = validateHostConnection(this.#createConnection());
     const generation = ++this.#connectionGeneration;
+    let retired = false;
+    const retire = () => {
+      retired = true;
+      this.#clearConnection(generation);
+    };
     const closed =
       connection.closed === undefined
         ? undefined
         : Promise.resolve(connection.closed).then(
             (reason) => {
-              this.#clearConnection(generation);
+              retire();
               return reason;
             },
             (error: unknown) => {
-              this.#clearConnection(generation);
+              retire();
               throw error;
             },
           );
     return {
       connect: async (signal) => {
         await connection.connect(signal);
-        if (!signal.aborted && !this.#shutdown) {
+        if (
+          !retired &&
+          generation === this.#connectionGeneration &&
+          !signal.aborted &&
+          !this.#shutdown
+        ) {
           this.#activeConnection = { client: connection.client, generation };
         }
       },
       close: async () => {
-        this.#clearConnection(generation);
+        retire();
         await connection.close();
       },
       ...(closed === undefined ? {} : { closed }),
@@ -361,13 +372,18 @@ export class McpNativeHostController {
   async #discoverTools(
     active: ActiveConnection,
     externalSignal?: McpNativeHostAbortSignal,
+    cacheMode: NonNullable<McpSdkListToolsOptions["cacheMode"]> = "use",
   ): Promise<McpListToolsResult> {
     const operation = this.#beginOperation("discovery", active.generation, externalSignal);
     this.#toolsByName = new Map();
     this.#toolsState = Object.freeze({ kind: "loading" });
     this.#callState = Object.freeze({ kind: "idle" });
     this.#publish();
-    const requestClient = createRequestClient(active.client, operation.controller.signal);
+    const requestClient = createRequestClient(
+      active.client,
+      operation.controller.signal,
+      cacheMode,
+    );
     const rawOperation = Promise.resolve()
       .then(() => new McpNativeRuntime(requestClient).listTools())
       .then((result) => parseMcpSdkListToolsResult(result));
@@ -554,9 +570,10 @@ function validateHostConnection(value: McpNativeHostConnection): McpNativeHostCo
 function createRequestClient(
   client: McpNativeHostOperationClient,
   signal: McpNativeHostAbortSignal,
+  listToolsCacheMode: NonNullable<McpSdkListToolsOptions["cacheMode"]> = "use",
 ): McpClient & McpNativeHostOperationClient {
   return {
-    listTools: () => client.listTools({ signal }),
+    listTools: () => client.listTools({ signal, cacheMode: listToolsCacheMode }),
     callTool: (name, arguments_) => client.callTool(name, arguments_, { signal }),
     readResource: (uri) => client.readResource(uri, { signal }),
     getClientExtensionSettings: () => client.getClientExtensionSettings(),

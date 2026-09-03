@@ -43,7 +43,8 @@ The headless host controller snapshot, lifecycle methods, stable controller erro
 rediscovery behavior, one-active-operation rule, and cancellation/stale-result semantics are also
 proposed `1.x` compatibility surfaces. Tool calls are eligible only after the exact definition has
 been discovered on the active connection; reconnect clears both discovered tools and prior call
-state before automatically discovering again.
+state before automatically discovering again. Explicit `refreshTools()` ignores a still-fresh SDK
+cache entry and replaces it with a newly fetched, validated aggregate.
 
 ## Package boundaries
 
