@@ -119,7 +119,9 @@ For the runtime and UI packages through one entry point:
 npm install mcp-native react
 ```
 
-Add React Native 0.86 or newer when you mount native surfaces. The supported peer range is React Native <code>&gt;=0.86.0 &lt;1</code>.
+React <code>&gt;=18.1.0</code> is the only UI peer dependency. Native components and platform
+integrations come from the host application; the packages do not depend on Expo or import React
+Native.
 
 You can also install only the layers you need:
 
@@ -141,7 +143,8 @@ All packages are ESM-only and include TypeScript declarations.
 - A headless `@mcp-native/host` controller for connection, automatic discovery, calls, cancellation,
   reconnect, teardown, and deterministic A2UI, MCP Apps, ordinary-content, or invalid resolution.
 - A coordinator for native A2UI and isolated MCP Apps regions on the same host screen.
-- Generated Android and iOS builds at the React Native 0.86 minimum, plus package, conformance, performance, and hostile-input tests.
+- Generated Android and iOS integration builds, plus package, conformance, performance, and
+  hostile-input tests.
 
 New integrations should use the A2UI v1 Candidate APIs. The older custom 0.1 surface remains available from the explicit <code>/legacy</code> package paths for migration.
 
@@ -192,7 +195,7 @@ Start here:
 Go deeper when you need the exact contract:
 
 - [Capabilities](docs/capabilities.md)
-- [React Native support](docs/support-matrix.md)
+- [Host requirements and verified integrations](docs/support-matrix.md)
 - [A2UI profile](docs/a2ui-v1-conformance.md)
 - [MCP Apps profile](docs/mcp-apps-compatibility.md)
 - [Protocol support](docs/protocol-support.md)

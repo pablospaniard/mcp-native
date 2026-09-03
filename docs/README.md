@@ -58,7 +58,8 @@ not required reading for trying the library.
 ## Current status
 
 The 0.9 line contains the validated low-level React Native host layers and is ready for integration
-and evaluation. React Native 0.86 is the supported minimum; newer 0.x releases remain inside the
-declared peer range. Milestone 10 adds the high-level `@mcp-native/host` connect-call-render workflow,
-then completes review, validation, the documented legacy-root migration, and the long-term
-compatibility promise. Contract registries and custom input adapters remain post-1.0 work.
+and evaluation. React `>=18.1.0` is the renderer's only peer dependency; native components and
+platform integrations are supplied by the host. Milestone 10 adds the high-level `@mcp-native/host`
+connect-call-render workflow, then completes review, validation, the documented legacy-root
+migration, and the long-term compatibility promise. Contract registries and custom input adapters
+remain post-1.0 work.

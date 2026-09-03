@@ -22,10 +22,12 @@ The renderer implements the native portion of the documented A2UI v1 Candidate p
 ## Install
 
 ```bash
-npm install @mcp-native/react-native react react-native
+npm install @mcp-native/react-native react
 ```
 
-`@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React is a peer dependency. React Native `>=0.86.0 <1` is an optional peer because the renderer does not import it or choose a platform implementation; a native host supplies its locally bundled components.
+`@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React `>=18.1.0` is the
+only peer dependency. The renderer does not depend on Expo or import React Native; a native host
+supplies its locally bundled components and platform integrations.
 
 ## Start with the A2UI v1 renderer
 
@@ -132,11 +134,10 @@ actions, persistence, and accessibility boundary in a complete native workflow. 
 robustness gates](../../docs/a2ui-v1-performance.md) define repeatable Node.js render-plan budgets
 and fixed-seed generated-input coverage.
 
-For release/platform testing, `npm run native:host:prepare` generates an official temporary React
-Native `0.86.0` host at the package's minimum supported version. The host installs local package
-tarballs and the pinned accessibility, complete-catalog, media, and Codegen/Fabric extension
-fixtures. React Native versions `>=0.86.0 <1` are supported; the minimum-version gate prevents the
-declared floor from drifting upward as newer React Native releases arrive.
+For release/platform testing, `npm run native:host:prepare` generates a pinned temporary native
+host. It installs local package tarballs and the accessibility, complete-catalog, media, and
+Codegen/Fabric extension fixtures. This is reproducible integration evidence, not a package peer or
+native-framework version boundary.
 The [Expo Go integration proof](../../docs/native-accessibility-testing.md) documents the runnable
 app-level evidence. Generated hosts remain the automated package fixtures; the Expo app complements
 them with a workflow users can launch and inspect directly.
