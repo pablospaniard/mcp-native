@@ -74,11 +74,13 @@ try {
     .map((moduleName) => readFileSync(`packages/host/dist/${moduleName}.d.ts`, "utf8"))
     .join("\n");
   for (const typeName of [
+    "McpNativeHostActionAuthorization",
     "McpNativeHostController",
     "McpNativeHostSnapshot",
     "McpNativeHostClient",
     "McpNativeHostResult",
     "MCP_NATIVE_HOST_EXTENSION_CAPABILITIES",
+    "createMcpNativeHostActionAuthorization",
     "resolveMcpNativeHostResult",
   ]) {
     if (!hostDeclarations.includes(typeName)) {
@@ -234,6 +236,7 @@ for (const [name, value] of [
     ? []
     : [
         ["createMcpNativeHostController", host.createMcpNativeHostController],
+        ["createMcpNativeHostActionAuthorization", host.createMcpNativeHostActionAuthorization],
         ["resolveMcpNativeHostResult", host.resolveMcpNativeHostResult],
       ]),
 ]) {

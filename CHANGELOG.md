@@ -13,6 +13,10 @@ their minor release line.
 - Add a headless `McpNativeHostController` that owns fresh connection units, automatic validated tool
   discovery, exact discovered-tool calls, result resolution, cancellation, reconnect, stale-result
   rejection, bounded snapshots, and teardown.
+- Add one fail-closed `@mcp-native/host` action-authorization boundary for A2UI and MCP Apps. It
+  provides protocol-specific policy adapters over one immutable application decision request,
+  denies by default, and serializes reviews across both protocols without combining their delivery
+  semantics.
 - Export reusable official-SDK tool, tool-result, and resource-result validators from
   `@mcp-native/mcp` so the host boundary reconstructs untrusted values before classification and
   admits supported resource bodies above the generic JSON string limit under dedicated per-body and

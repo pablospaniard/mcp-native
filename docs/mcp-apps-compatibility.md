@@ -77,7 +77,9 @@ App-visible `tools/call` proxying is advertised only when the host supplies both
 policy and a tool handler. The bridge validates visibility and bounded arguments, then requires the
 policy to return exactly `true` before the handler runs. Request `_meta`, tool annotations, and
 visibility remain non-authorizing. `createConsentActionPolicy()` can provide per-dispatch review;
-direct trusted host calls remain a separate boundary.
+direct trusted host calls remain a separate boundary. High-level hosts can install
+`createMcpNativeHostActionAuthorization().authorizeMcpAppsToolCall` here so the same application
+decision callback also reviews A2UI actions without changing this bridge's validation or delivery.
 
 The optional resource `domain` field is host-specific. It is rejected unless the host supplies a
 synchronous approval callback and its platform adapter can actually provide that dedicated origin.
