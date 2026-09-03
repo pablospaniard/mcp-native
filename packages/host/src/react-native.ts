@@ -137,6 +137,7 @@ export function McpNativeHostProvider({
   const mountedRef = useRef(true);
   const ownershipGeneration = useRef(0);
   const [activeCall, setActiveCall] = useState<McpNativeHostActiveCall | undefined>();
+  const exposedActiveCall = snapshot.call.kind === "idle" ? undefined : activeCall;
 
   useEffect(() => {
     const generation = ++ownershipGeneration.current;
@@ -156,6 +157,12 @@ export function McpNativeHostProvider({
       });
     };
   }, [controller]);
+
+  useEffect(() => {
+    if (snapshot.call.kind === "idle") {
+      setActiveCall(undefined);
+    }
+  }, [snapshot.call]);
 
   const callTool = useCallback(
     async (
@@ -200,14 +207,14 @@ export function McpNativeHostProvider({
       Object.freeze({
         controller,
         snapshot,
-        ...(activeCall === undefined ? {} : { activeCall }),
+        ...(exposedActiveCall === undefined ? {} : { activeCall: exposedActiveCall }),
         callTool,
         cancelCurrentCall: () => controller.cancelCurrentCall(),
         refreshTools: (options?: McpNativeHostRequestOptions) => controller.refreshTools(options),
         retry: () => controller.retry(),
         setOnline: (online: boolean) => controller.setOnline(online),
       }),
-    [activeCall, callTool, controller, snapshot],
+    [callTool, controller, exposedActiveCall, snapshot],
   );
 
   return createElement(McpNativeHostReactContext.Provider, { value }, children);
