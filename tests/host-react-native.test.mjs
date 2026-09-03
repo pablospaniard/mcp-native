@@ -41,6 +41,7 @@ const retryable = () => ({ kind: "retryable", code: "network-unavailable" });
 
 function createController({
   tool = { name: "status", inputSchema: { type: "object" } },
+  tools = [tool],
   result = { content: [{ type: "text", text: "Ready" }] },
   readResource = async () => ({ contents: [] }),
   extensions = {},
@@ -49,7 +50,7 @@ function createController({
     createConnection: () => ({
       client: {
         async listTools() {
-          return { tools: [tool] };
+          return { tools };
         },
         async callTool(name, arguments_) {
           return typeof result === "function" ? result(name, arguments_) : result;
@@ -263,6 +264,24 @@ test("provider retains one controller through React Strict Mode effect replay", 
   await act(async () => root.unmount());
   await waitUntil(() => closes === 1);
   assert.equal(closes, 1);
+});
+
+test("empty tool discovery renders an explicit accessible state", async () => {
+  const mounted = await mountHost(createController({ tools: [] }));
+
+  assert.deepEqual(textValues(mounted.root), [
+    "No tools",
+    "The MCP server did not provide any tools.",
+  ]);
+  const state = mounted.root.container.queryAll((element) => element.type === "View")[0];
+  const [title, detail] = mounted.root.container.queryAll((element) => element.type === "Text");
+  assert.equal(state.props.accessible, false);
+  assert.equal(title.props.accessibilityRole, "text");
+  assert.equal(title.props.allowFontScaling, true);
+  assert.equal(detail.props.accessibilityLiveRegion, "polite");
+  assert.equal(detail.props.allowFontScaling, true);
+
+  await act(async () => mounted.root.unmount());
 });
 
 test("ordinary fallback is inert, bounded, and hides errored tool text", async () => {
