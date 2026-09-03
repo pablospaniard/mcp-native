@@ -1,21 +1,16 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
 
 import { parse as parseYaml } from "yaml";
 
-const publicManifestPaths = [
-  "packages/core/package.json",
-  "packages/mcp/package.json",
-  "packages/a2ui/package.json",
-  "packages/webview/package.json",
-  "packages/react-native/package.json",
-  "packages/host/package.json",
-  "packages/mcp-native/package.json",
-];
-
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
-const publicManifests = publicManifestPaths.map(readJson);
+const publicManifests = readdirSync("packages", { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => `packages/${entry.name}/package.json`)
+  .filter(existsSync)
+  .map(readJson)
+  .filter((manifest) => manifest.private !== true);
 const publicManifestByName = new Map(publicManifests.map((manifest) => [manifest.name, manifest]));
 
 test("the repository toolchain matches the documented support matrix", () => {
@@ -55,6 +50,7 @@ test("public package manifests preserve the documented dependency boundaries", (
     assert.deepEqual(manifest.peerDependencies, { react: ">=18.1.0" });
     assert.equal(manifest.peerDependenciesMeta, undefined);
     assert.equal(manifest.dependencies?.react, undefined);
+    assert.equal(manifest.optionalDependencies?.react, undefined);
   }
 
   for (const manifest of publicManifests) {
