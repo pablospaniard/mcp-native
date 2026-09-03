@@ -138,6 +138,34 @@ function textValues(root) {
     .map((element) => element.children.join(""));
 }
 
+async function initializeMcpAppsView(appProps) {
+  appProps.webViewProps.onMessage({
+    nativeEvent: {
+      data: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "ui/initialize",
+        params: {
+          appInfo: { name: "test-app", version: "1.0.0" },
+          appCapabilities: {},
+          protocolVersion: MCP_APPS_PROTOCOL_VERSION,
+        },
+      }),
+    },
+  });
+  await nextTurn();
+  appProps.webViewProps.onMessage({
+    nativeEvent: {
+      data: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "ui/notifications/initialized",
+        params: {},
+      }),
+    },
+  });
+  await nextTurn();
+}
+
 test("provider owns startup, snapshots, exact calls, and shutdown", async () => {
   let closes = 0;
   const controller = new McpNativeHostController({
@@ -251,6 +279,8 @@ test("ordinary fallback is inert, bounded, and hides errored tool text", async (
   );
   await act(async () => mounted.host.callTool("status"));
   const detail = textValues(mounted.root)[1];
+  const state = mounted.root.container.queryAll((element) => element.type === "View")[0];
+  assert.equal(state.props.accessible, false);
   assert.equal(detail.length, MCP_NATIVE_HOST_MAX_ORDINARY_TEXT_LENGTH);
   assert.match(detail, /\[Additional MCP content omitted\]$/);
   assert.doesNotMatch(detail, /example\.com/);
@@ -297,6 +327,8 @@ test("one negotiated A2UI result mounts through the local catalog", async () => 
   await act(async () => mounted.host.callTool("status"));
 
   assert.deepEqual(textValues(mounted.root), ["Native result"]);
+  const surfaceContainer = mounted.root.container.queryAll((element) => element.type === "View")[0];
+  assert.equal(surfaceContainer.props.accessible, false);
   assert.deepEqual(mounted.errors, []);
   await act(async () => mounted.root.unmount());
 });
@@ -368,7 +400,7 @@ test("MCP Apps session binds one sandbox, sends input and result, and closes", a
   function AppsView(props) {
     useEffect(
       () => props.bindPostMessage((message) => outbound.push(JSON.parse(message))),
-      [props],
+      [props.bindPostMessage],
     );
     return createElement("AppsView", props);
   }
@@ -478,6 +510,147 @@ test("MCP Apps session binds one sandbox, sends input and result, and closes", a
   assert.ok(outbound.some((message) => message.method === "ui/resource-teardown"));
 });
 
+test("MCP Apps retries retain their own transport and ignore stale failures", async () => {
+  const uri = "ui://weather/app";
+  const tool = {
+    name: "weather",
+    inputSchema: { type: "object" },
+    _meta: { ui: { resourceUri: uri } },
+  };
+  const outboundSessions = [];
+  let appProps;
+  function AppsView(props) {
+    appProps = props;
+    useEffect(() => {
+      const outbound = [];
+      outboundSessions.push(outbound);
+      return props.bindPostMessage((message) => outbound.push(JSON.parse(message)));
+    }, [props.bindPostMessage]);
+    return createElement("AppsView", props);
+  }
+  const mounted = await mountHost(
+    createController({
+      tool,
+      result: { content: [{ type: "text", text: "Sunny" }] },
+      extensions: MCP_NATIVE_HOST_EXTENSION_CAPABILITIES,
+      async readResource() {
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: MCP_APPS_MIME_TYPE,
+              text: "<!doctype html><html><head></head><body>Weather</body></html>",
+            },
+          ],
+        };
+      },
+    }),
+    resultViewProps({
+      mcpApps: {
+        View: AppsView,
+        bridgeOptions: { hostInfo: { name: "test-host", version: "1.0.0" } },
+      },
+    }),
+  );
+
+  await act(async () => mounted.host.callTool("weather"));
+  const firstAppProps = appProps;
+  await act(async () => initializeMcpAppsView(firstAppProps));
+  assert.equal(outboundSessions.length, 1);
+
+  firstAppProps.webViewProps.onMessage({ nativeEvent: { data: "not-json" } });
+  await act(async () => nextTurn());
+  const retry = mounted.root.container.queryAll((element) => element.type === "Button")[0];
+  await act(async () => retry.props.onPress());
+  await act(async () => waitUntil(() => outboundSessions.length === 2));
+  await nextTurn();
+  const replacementAppProps = appProps;
+  await act(async () => initializeMcpAppsView(replacementAppProps));
+  assert.ok(outboundSessions[1].some((message) => message.id === 1 && message.result));
+
+  firstAppProps.webViewProps.onMessage({ nativeEvent: { data: "not-json" } });
+  await act(async () => nextTurn());
+  assert.equal(mounted.root.container.queryAll((element) => element.type === "AppsView").length, 1);
+  assert.equal(mounted.errors.length, 1);
+  assert.equal(mounted.errors[0].code, "mcp-app-session-failed");
+  await act(async () => mounted.root.unmount());
+});
+
+test("MCP Apps session errors close the failed bridge before rendering recovery", async () => {
+  const uri = "ui://weather/app";
+  const tool = {
+    name: "weather",
+    inputSchema: { type: "object" },
+    _meta: { ui: { resourceUri: uri, visibility: ["model", "app"] } },
+  };
+  let appProps;
+  let proxiedCalls = 0;
+  function AppsView(props) {
+    appProps = props;
+    useEffect(() => props.bindPostMessage(() => {}), [props.bindPostMessage]);
+    return createElement("AppsView", props);
+  }
+  const mounted = await mountHost(
+    createController({
+      tool,
+      result: { content: [{ type: "text", text: "Sunny" }] },
+      extensions: MCP_NATIVE_HOST_EXTENSION_CAPABILITIES,
+      async readResource() {
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: MCP_APPS_MIME_TYPE,
+              text: "<!doctype html><html><head></head><body>Weather</body></html>",
+            },
+          ],
+        };
+      },
+    }),
+    resultViewProps({
+      mcpApps: {
+        View: AppsView,
+        bridgeOptions: {
+          hostInfo: { name: "test-host", version: "1.0.0" },
+          handlers: {
+            authorizeToolCall: () => true,
+            callTool: () => {
+              proxiedCalls += 1;
+              return { content: [] };
+            },
+          },
+        },
+      },
+    }),
+  );
+
+  await act(async () => mounted.host.callTool("weather"));
+  const failedAppProps = appProps;
+  await act(async () => initializeMcpAppsView(failedAppProps));
+  failedAppProps.webViewProps.onMessage({ nativeEvent: { data: "not-json" } });
+  await act(async () => nextTurn());
+  assert.deepEqual(textValues(mounted.root), [
+    "Interactive result unavailable",
+    "The isolated MCP Apps session could not continue.",
+  ]);
+
+  failedAppProps.webViewProps.onMessage({
+    nativeEvent: {
+      data: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: { name: "weather", arguments: {} },
+      }),
+    },
+  });
+  await act(async () => nextTurn());
+  assert.equal(proxiedCalls, 0);
+  assert.equal(mounted.errors.length, 1);
+  assert.equal(mounted.errors[0].code, "mcp-app-session-failed");
+  await act(async () => mounted.root.unmount());
+});
+
 test("malformed MCP Apps HTML fails closed before mounting a WebView", async () => {
   const uri = "ui://weather/app";
   const errors = [];
@@ -534,7 +707,7 @@ test("MCP Apps crashes close the session and expose a recoverable host state", a
   let appProps;
   function AppsView(props) {
     appProps = props;
-    useEffect(() => props.bindPostMessage(() => {}), [props]);
+    useEffect(() => props.bindPostMessage(() => {}), [props.bindPostMessage]);
     return createElement("AppsView", props);
   }
   const mounted = await mountHost(
@@ -577,6 +750,9 @@ test("MCP Apps crashes close the session and expose a recoverable host state", a
   assert.equal(mounted.errors[0].code, "mcp-app-crashed");
 
   const retry = mounted.root.container.queryAll((element) => element.type === "Button")[0];
+  const state = mounted.root.container.queryAll((element) => element.type === "View")[0];
+  assert.equal(state.props.accessible, false);
+  assert.equal(retry.props.accessible, true);
   await act(async () => retry.props.onPress());
   assert.equal(mounted.root.container.queryAll((element) => element.type === "AppsView").length, 1);
   await act(async () => mounted.root.unmount());

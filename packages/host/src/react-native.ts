@@ -433,7 +433,7 @@ function A2uiHostResult({
       ...(props.locale === undefined ? {} : { locale: props.locale }),
     }),
   );
-  return createElement(props.components.View, { accessible: true }, children);
+  return createElement(props.components.View, { accessible: false }, children);
 }
 
 interface McpAppsResultSessionProps {
@@ -459,22 +459,7 @@ function McpAppsResultSession({
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
   const mountedRef = useRef(true);
-  const postMessageRef = useRef<((serializedMessage: string) => void | Promise<void>) | undefined>(
-    undefined,
-  );
   const deliveredRef = useRef(false);
-  const bindPostMessage = useCallback(
-    (postMessage: (serializedMessage: string) => void | Promise<void>) => {
-      if (typeof postMessage !== "function") {
-        throw new TypeError("MCP Apps view must bind a postMessage function");
-      }
-      postMessageRef.current = postMessage;
-      return () => {
-        if (postMessageRef.current === postMessage) postMessageRef.current = undefined;
-      };
-    },
-    [],
-  );
   const reportSessionError = useCallback((error: unknown) => {
     if (!mountedRef.current) return;
     setFailed("session");
@@ -487,41 +472,94 @@ function McpAppsResultSession({
     };
   }, []);
   const setup = useMemo(() => {
+    const transport: {
+      current: ((serializedMessage: string) => void | Promise<void>) | undefined;
+    } = { current: undefined };
+    let bridge: McpAppsBridge | undefined;
+    let owned = true;
+    let sessionFailed = false;
     try {
       deliveredRef.current = false;
       const sandbox = createMcpAppsNativeSandbox(result.resource, sessionOptions.sandboxPolicy);
       const postMessage = (serializedMessage: string) => {
-        const mountedPostMessage = postMessageRef.current;
+        const mountedPostMessage = transport.current;
         if (mountedPostMessage === undefined) {
           throw new McpNativeHostRenderError("mcp-app-session-failed");
         }
         return mountedPostMessage(serializedMessage);
       };
-      const bridge = new McpAppsBridge({
+      bridge = new McpAppsBridge({
         ...sessionOptions.bridgeOptions,
         resource: result.resource,
         sandbox,
         postMessage,
         tools,
       });
+      const sessionBridge = bridge;
+      const close = () => {
+        transport.current = undefined;
+        sessionBridge.close();
+      };
+      const failSession = (error: unknown) => {
+        if (!owned || sessionFailed) return;
+        sessionFailed = true;
+        close();
+        reportSessionError(error);
+      };
+      const bindPostMessage = (
+        mountedPostMessage: (serializedMessage: string) => void | Promise<void>,
+      ) => {
+        if (typeof mountedPostMessage !== "function") {
+          throw new TypeError("MCP Apps view must bind a postMessage function");
+        }
+        if (!owned || sessionFailed) {
+          throw new McpNativeHostRenderError("mcp-app-session-failed");
+        }
+        transport.current = mountedPostMessage;
+        return () => {
+          if (transport.current === mountedPostMessage) transport.current = undefined;
+        };
+      };
       const webViewProps = createMcpAppsReactNativeWebViewProps(sandbox, {
         async onMessage(serializedMessage) {
-          await bridge.receive(serializedMessage);
-          if (bridge.state === "ready" && !deliveredRef.current) {
+          await sessionBridge.receive(serializedMessage);
+          if (sessionBridge.state === "ready" && !deliveredRef.current) {
             deliveredRef.current = true;
-            await bridge.sendToolInput(arguments_);
-            await bridge.sendToolResult(result.result);
+            await sessionBridge.sendToolInput(arguments_);
+            await sessionBridge.sendToolResult(result.result);
           }
         },
         ...(sessionOptions.onExternalLink === undefined
           ? {}
           : { onExternalLink: sessionOptions.onExternalLink }),
         onError(error) {
-          reportSessionError(error);
+          failSession(error);
         },
       });
-      return { bridge, webViewProps } as const;
+      return {
+        bindPostMessage,
+        dispose() {
+          if (!owned) return;
+          owned = false;
+          if (sessionBridge.state === "ready") {
+            void sessionBridge.requestResourceTeardown().then(close, close);
+          } else {
+            close();
+          }
+        },
+        onCrash() {
+          if (!owned || sessionFailed) return;
+          sessionFailed = true;
+          close();
+          onErrorRef.current(new McpNativeHostRenderError("mcp-app-crashed"));
+          setFailed("crashed");
+        },
+        webViewProps,
+      } as const;
     } catch (error) {
+      owned = false;
+      transport.current = undefined;
+      bridge?.close();
       return { error: asRenderError("mcp-app-session-failed", error) } as const;
     }
   }, [arguments_, generation, reportSessionError, result, sessionOptions, tools]);
@@ -531,18 +569,7 @@ function McpAppsResultSession({
       onErrorRef.current(setup.error);
       return;
     }
-    const bridge = setup.bridge;
-    return () => {
-      const close = () => {
-        postMessageRef.current = undefined;
-        bridge.close();
-      };
-      if (bridge.state === "ready") {
-        void bridge.requestResourceTeardown().then(close, close);
-      } else {
-        close();
-      }
-    };
+    return setup.dispose;
   }, [setup]);
 
   if ("error" in setup) {
@@ -571,16 +598,11 @@ function McpAppsResultSession({
     );
   }
 
-  const onCrash = () => {
-    setup.bridge.close();
-    onErrorRef.current(new McpNativeHostRenderError("mcp-app-crashed"));
-    setFailed("crashed");
-  };
   return createElement(sessionOptions.View, {
     key: generation,
     webViewProps: setup.webViewProps,
-    bindPostMessage,
-    onCrash,
+    bindPostMessage: setup.bindPostMessage,
+    onCrash: setup.onCrash,
   });
 }
 
@@ -665,9 +687,7 @@ function renderState(
   return createElement(
     components.View,
     {
-      accessible: true,
-      accessibilityLabel: title,
-      accessibilityLiveRegion: "polite",
+      accessible: false,
     },
     children,
   );
