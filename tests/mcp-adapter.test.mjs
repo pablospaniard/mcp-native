@@ -14,8 +14,8 @@ import {
   A2UI_MCP_EXTENSION_ID,
   A2UI_MIME_TYPE,
   negotiateA2uiMcpBinding,
-  resolveA2uiResourceFromToolResult,
 } from "../packages/a2ui/dist/index.js";
+import { resolveA2uiResourceFromToolResult } from "../packages/a2ui/dist/legacy.js";
 import { McpNativeRuntime } from "../packages/core/dist/index.js";
 import {
   createMcpSdkClientAdapter,

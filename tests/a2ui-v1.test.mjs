@@ -18,7 +18,6 @@ import {
   isA2uiMcpBindingGrant,
   negotiateA2uiMcpBinding,
   negotiateA2uiV1Capabilities,
-  parseA2uiSurface,
   parseA2uiV1AgentCapabilities,
   parseA2uiV1Envelope,
   parseA2uiV1Jsonl,
@@ -26,6 +25,7 @@ import {
   parseA2uiV1RendererToAgentEnvelope,
   resolveA2uiV1JsonlFromToolResult,
 } from "../packages/a2ui/dist/index.js";
+import { parseA2uiSurface } from "../packages/a2ui/dist/legacy.js";
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures/a2ui-v1");
 const bindingGrant = negotiateA2uiMcpBinding(

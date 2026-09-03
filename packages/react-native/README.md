@@ -37,7 +37,7 @@ host flow, catalog mapping, local state, validation, actions, media, and extensi
 
 ## Legacy custom `0.1` migration
 
-Use the explicit legacy subpaths during `0.9.x`. These APIs leave package roots at `1.0.0`; the
+The current release candidate exposes these APIs only from the explicit `/legacy` subpaths. The
 subpaths remain frozen for migration and security fixes.
 
 ```tsx
@@ -259,11 +259,7 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 
 | Export                                            | Purpose                                                                                                       |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `McpNativeSurface`                                | Mounts a validated surface using the host's component catalog.                                                |
 | `A2uiV1NativeSurface`                             | Mounts the supported v1 subset with local bindings and official action-envelope callbacks.                    |
-| `useMcpNativeActionDispatcher`                    | Adapts asynchronous runtime dispatch into a stable event callback with required error handling.               |
-| `useNativeRenderPlan`                             | Memoizes a trusted render plan for a validated surface identity.                                              |
-| `createNativeRenderPlan`                          | Converts a validated `A2uiSurface` into a `NativeElement` tree.                                               |
 | `createA2uiV1NativeRenderPlan`                    | Revalidates and adapts the supported v1 subset into a trusted `NativeElement` tree.                           |
 | `resolveA2uiV1NativeEvent`                        | Revalidates and resolves one reachable static or template-instance event against the latest local model.      |
 | `resolveA2uiV1NativeOpenUrl`                      | Revalidates and resolves one reachable HTTP(S) URL action against the latest local model.                     |
@@ -298,10 +294,20 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 | `NativeAccessibilityState`                        | Renderer-derived checked, disabled, expanded, and selected state subset.                                      |
 | `createNative*Adapter` helpers                    | Typed mappings from trusted semantic props into locally bundled component-library APIs.                       |
 | `NativeComponentPropMapper`                       | Generic mapper type used by all host component adapter helpers.                                               |
-| `NativeActionHandler`                             | Synchronous handler for a validated declared action.                                                          |
-| `NativeBindingChangeHandler`                      | Handler receiving a validated binding name and the next text value.                                           |
-| `McpNativeActionDispatcherOptions`                | Required action error callback and optional result callback.                                                  |
 | `NativeElement` / `NativeComponentName`           | Serializable trusted-plan node and its fixed component-name union.                                            |
+
+### Legacy `/legacy` API
+
+| Export                             | Purpose                                                                             |
+| ---------------------------------- | ----------------------------------------------------------------------------------- |
+| `McpNativeSurface`                 | Mounts a validated custom `0.1` surface using the host's component catalog.         |
+| `useMcpNativeActionDispatcher`     | Adapts legacy runtime dispatch into a stable callback with required error handling. |
+| `useNativeRenderPlan`              | Memoizes a trusted legacy render plan for a validated surface identity.             |
+| `createNativeRenderPlan`           | Converts a validated custom `0.1` surface into a `NativeElement` tree.              |
+| `NativeActionHandler`              | Synchronous handler for a validated declared legacy action.                         |
+| `NativeBindingChangeHandler`       | Handler receiving a validated legacy binding name and the next text value.          |
+| `McpNativeActionDispatcherOptions` | Required legacy action error callback and optional result callback.                 |
+| `McpNativeSurfaceProps`            | Props for mounting a validated custom `0.1` surface.                                |
 
 ## Legacy `0.1` mappings
 

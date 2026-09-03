@@ -207,7 +207,9 @@ Go deeper when you need the exact contract:
 
 ## Current roadmap
 
-Milestones 0–9 are complete. The project is now preparing 1.0: independent security, accessibility, public API, protocol/schema, and native WebView reviews; final release validation; the documented legacy-root migration; and coordinated publication.
+Milestones 0–9 are complete. The project is now preparing 1.0: independent security, accessibility,
+public API, protocol/schema, and native WebView reviews; final release validation; and coordinated
+publication. The documented legacy-root migration is complete.
 
 After 1.0, the planned work moves to first-class SwiftUI and Jetpack Compose renderers and a typed provider model for additional native capabilities.
 
