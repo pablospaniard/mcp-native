@@ -9,19 +9,18 @@ import type {
 import { A2uiParseError, A2uiResourceError } from "./errors.js";
 import { A2UI_MIME_TYPE, type A2uiResourceReader } from "./mime.js";
 
-/**
- * Frozen custom A2UI `0.1` proof surface.
- *
- * @deprecated Migrate to the pinned A2UI v1 Candidate APIs from `@mcp-native/a2ui`.
- * This explicit legacy entry point receives security fixes only and never gains v1 semantics.
- */
 export { A2uiParseError, A2uiResourceError } from "./errors.js";
 export { A2UI_MIME_TYPE, type A2uiResourceReader } from "./mime.js";
 
+/** @deprecated Use the pinned A2UI v1 Candidate APIs exported from `@mcp-native/a2ui`. */
 export const A2UI_VERSION = "0.1" as const;
+/** @deprecated Applies only to the frozen custom 0.1 surface model. */
 export const A2UI_MAX_DEPTH = 32;
+/** @deprecated Applies only to the frozen custom 0.1 surface model. */
 export const A2UI_MAX_NODES = 256;
+/** @deprecated Applies only to the frozen custom 0.1 surface model. */
 export const A2UI_MAX_SOURCE_LENGTH = 1_048_576;
+/** @deprecated Applies only to the frozen custom 0.1 surface model. */
 export const A2UI_MAX_STRING_LENGTH = 65_536;
 const A2UI_MAX_MCP_RESULT_ITEMS = 1_024;
 
@@ -29,22 +28,26 @@ interface A2uiNodeBase {
   readonly id: string;
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export interface A2uiContainerNode extends A2uiNodeBase {
   readonly type: "container";
   readonly children: readonly A2uiNode[];
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export interface A2uiTextNode extends A2uiNodeBase {
   readonly type: "text";
   readonly text: string;
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export interface A2uiButtonNode extends A2uiNodeBase {
   readonly type: "button";
   readonly label: string;
   readonly action: ToolAction;
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export interface A2uiTextInputNode extends A2uiNodeBase {
   readonly type: "text-input";
   readonly label: string;
@@ -52,19 +55,26 @@ export interface A2uiTextInputNode extends A2uiNodeBase {
   readonly binding?: string;
 }
 
+/** @deprecated Use A2UI v1 components and `A2uiV1SurfaceState`. */
 export type A2uiNode = A2uiButtonNode | A2uiContainerNode | A2uiTextInputNode | A2uiTextNode;
 
+/** @deprecated Use `A2uiV1SurfaceState` from the pinned Candidate adapter. */
 export interface A2uiSurface {
   readonly version: typeof A2UI_VERSION;
   readonly root: A2uiNode;
 }
 
+/** @deprecated Use `ResolvedA2uiV1JsonlResource`. */
 export interface ResolvedA2uiResource {
   readonly uri: string;
   readonly mimeType: typeof A2UI_MIME_TYPE;
   readonly surface: A2uiSurface;
 }
 
+/**
+ * Resolves and validates the frozen custom `0.1` resource convention.
+ * @deprecated Use `resolveA2uiV1JsonlFromToolResult` with an exact negotiated binding grant.
+ */
 export async function resolveA2uiResourceFromToolResult(
   reader: A2uiResourceReader,
   toolResult: McpToolCallResult,
@@ -108,6 +118,7 @@ export async function resolveA2uiResourceFromToolResult(
   };
 }
 
+/** @deprecated Use `parseA2uiV1Jsonl` or `parseA2uiV1Envelope`. */
 export function parseA2uiSurface(input: string | unknown): A2uiSurface {
   let value: unknown = input;
 

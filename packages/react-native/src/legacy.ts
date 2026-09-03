@@ -6,18 +6,14 @@ import { createElement, useCallback, useMemo, type ReactElement } from "react";
 import type { NativeComponentCatalog } from "./component-adapters.js";
 import type { NativeElement } from "./index.js";
 
-/**
- * Renderer for the frozen custom A2UI `0.1` proof surface.
- *
- * @deprecated Migrate to `A2uiV1NativeSurface`. This explicit subpath remains isolated and receives
- * security fixes only.
- */
-
 export type { NativeComponentName, NativeElement } from "./index.js";
 
+/** @deprecated Use `A2uiV1NativeSurface` and its official action envelope handler. */
 export type NativeActionHandler = (action: McpNativeAction) => void;
+/** @deprecated Use `A2uiV1NativeSurface` renderer-local data-model handling. */
 export type NativeBindingChangeHandler = (binding: string, value: string) => void;
 
+/** @deprecated Use `A2uiV1NativeSurfaceProps`. */
 export interface McpNativeSurfaceProps {
   readonly surface: A2uiSurface;
   readonly components: NativeComponentCatalog;
@@ -25,23 +21,28 @@ export interface McpNativeSurfaceProps {
   readonly onBindingChange?: NativeBindingChangeHandler;
 }
 
+/** @deprecated Use an application-owned A2UI v1 action transport. */
 export interface McpNativeDispatcher {
   dispatch(action: McpNativeAction): Promise<McpToolCallResult>;
 }
 
+/** @deprecated Use an application-owned A2UI v1 action transport. */
 export interface McpNativeActionDispatcherOptions {
   readonly onError: (error: unknown) => void;
   readonly onResult?: (result: McpToolCallResult) => void;
 }
 
+/** @deprecated Use `createA2uiV1NativeRenderPlan`. */
 export function createNativeRenderPlan(surface: A2uiSurface): NativeElement {
   return renderNode(surface.root);
 }
 
+/** @deprecated Use `A2uiV1NativeSurface`. */
 export function useNativeRenderPlan(surface: A2uiSurface): NativeElement {
   return useMemo(() => createNativeRenderPlan(surface), [surface]);
 }
 
+/** @deprecated Use an application-owned A2UI v1 action transport. */
 export function useMcpNativeActionDispatcher(
   dispatcher: McpNativeDispatcher,
   options: McpNativeActionDispatcherOptions,
@@ -60,6 +61,7 @@ export function useMcpNativeActionDispatcher(
   );
 }
 
+/** @deprecated Use `A2uiV1NativeSurface`. */
 export function McpNativeSurface({
   surface,
   components,

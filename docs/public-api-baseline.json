@@ -27,7 +27,7 @@
       }
     },
     "@mcp-native/a2ui": {
-      "declarationSha256": "272faf0f5badce92e7e3effca3e6b5d5357f35f82d010b972d51a914c80f33bc",
+      "declarationSha256": "f935d82713363636c6e1f2170e19b245cb7d06f3f5d15c6e4c080e80a86a6691",
       "exports": {
         ".": {
           "import": "./dist/index.js",
@@ -52,7 +52,7 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "f265959a37cfdb7dd9c031ee86dbcc2b7a3b7b21716677f0523052e8374988d3",
+      "declarationSha256": "e9f5e413c6b41f0cd1ada4b77956dea61db951a435b9bfa4ac4eed01ca82bc82",
       "exports": {
         ".": {
           "import": "./dist/index.js",
