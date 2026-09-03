@@ -29,6 +29,8 @@ their minor release line.
   state.
 - Clear retained React Native call arguments and results when tool rediscovery or a connection
   transition invalidates the controller's active call state.
+- Map malformed React Native provider call input to the controller's stable, redacted `invalid-call`
+  error without replacing the current result context.
 
 ## 0.9.3 - 2026-09-03
 

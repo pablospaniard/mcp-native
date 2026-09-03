@@ -170,7 +170,12 @@ export function McpNativeHostProvider({
       arguments_: JsonObject = {},
       options: McpNativeHostRequestOptions = {},
     ) => {
-      const action = parseMcpNativeAction({ type: "tool", name, arguments: arguments_ });
+      let action;
+      try {
+        action = parseMcpNativeAction({ type: "tool", name, arguments: arguments_ });
+      } catch {
+        throw new McpNativeHostControllerError("invalid-call");
+      }
       const ownedArguments = deepFreeze(action.arguments ?? {});
       if (callPending.current) {
         throw new McpNativeHostControllerError("operation-in-progress");
