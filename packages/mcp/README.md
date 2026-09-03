@@ -81,6 +81,10 @@ const adapter = new McpSdkClientAdapter(client, { clientExtensions });
 
 The official SDK places these settings in the `2026-07-28` per-request capability envelope. After connection, `McpSdkClientAdapter.getClientExtensionSettings()` returns the advertised snapshot passed into the adapter, and `getServerExtensionSettings()` returns the validated server declaration from `server/discover`. Pass those two maps to a core or extension-specific negotiator, or call `runtime.negotiateExtension(id)` so negotiation stays tied to what was actually advertised. The `2025-11-25` lane has no extension support claim.
 
+`listTools()`, `callTool()`, and `readResource()` accept an optional `{ signal }` argument and forward
+that exact host-owned `AbortSignal` to the official SDK. Unknown request options and malformed signal
+objects fail before an SDK operation starts.
+
 ## Protected Streamable HTTP
 
 `createMcpNativeOAuthProvider()` implements the security-sensitive host seams needed by the official
@@ -268,7 +272,8 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 | `McpNativeConnectionLifecycle`, `createMcpNativeConnectionLifecycle`                                                    | Bounded host coordination around fresh official SDK connections.                 |
 | `McpNativeHostState`, `McpNativeOperationalEvent`, `McpNativeOperationalSink`                                           | Actionable UI states and a fixed redacted observability boundary.                |
 | `McpNativeConnectionLifecycleError`                                                                                     | Stable timeout/cancellation category passed only to the host classifier.         |
-| `parseMcpSdkTool`, `parseMcpSdkToolCallResult`, `parseMcpSdkReadResourceResult`                                         | Bounded validators for untrusted official-SDK-shaped values.                     |
+| `parseMcpSdkTool`, `parseMcpSdkListToolsResult`, `parseMcpSdkToolCallResult`, `parseMcpSdkReadResourceResult`           | Bounded validators for untrusted official-SDK-shaped values.                     |
+| `McpSdkRequestOptions`                                                                                                  | Exact host-owned cancellation options forwarded into one SDK request.            |
 | `MCP_SDK_MAX_RESOURCE_TEXT_LENGTH`, `MCP_SDK_MAX_RESOURCE_BLOB_LENGTH`, `MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS` | Observable resource-result body and cumulative string limits.                    |
 | The protected-HTTP exports below live at the explicit `@mcp-native/mcp/oauth` subpath so importing                      |
 | the result adapter does not load a transport implementation:                                                            |

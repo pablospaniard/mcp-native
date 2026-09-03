@@ -70,8 +70,12 @@ try {
       throw new Error(`mcp-native declarations are missing ${typeName}`);
     }
   }
-  const hostDeclarations = readFileSync("packages/host/dist/results.d.ts", "utf8");
+  const hostDeclarations = ["index", "controller", "results"]
+    .map((moduleName) => readFileSync(`packages/host/dist/${moduleName}.d.ts`, "utf8"))
+    .join("\n");
   for (const typeName of [
+    "McpNativeHostController",
+    "McpNativeHostSnapshot",
     "McpNativeHostClient",
     "McpNativeHostResult",
     "MCP_NATIVE_HOST_EXTENSION_CAPABILITIES",
@@ -86,6 +90,8 @@ try {
     "MCP_SDK_MAX_RESOURCE_TEXT_LENGTH",
     "MCP_SDK_MAX_RESOURCE_BLOB_LENGTH",
     "MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS",
+    "McpSdkRequestOptions",
+    "parseMcpSdkListToolsResult",
     "parseMcpSdkReadResourceResult",
   ]) {
     if (!mcpDeclarations.includes(typeName)) {
@@ -225,6 +231,7 @@ for (const [name, value] of [
   ...(host === undefined
     ? []
     : [
+        ["createMcpNativeHostController", host.createMcpNativeHostController],
         ["resolveMcpNativeHostResult", host.resolveMcpNativeHostResult],
       ]),
 ]) {

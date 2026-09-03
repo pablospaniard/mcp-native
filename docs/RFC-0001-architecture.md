@@ -119,6 +119,13 @@ MCP fallback; and coordinates action policy, cancellation, reconnect, error stat
 does not reinterpret unknown formats, install custom server contracts, own application navigation,
 or grant device capabilities. The low-level packages remain independently usable.
 
+The implemented headless controller accepts fresh app-owned connection units and composes the MCP
+adapter, runtime, connection lifecycle, and result resolver. It automatically discovers tools after
+every connection, permits calls only against the exact active-connection definition, forwards
+cancellation, rejects stale generations, bounds listeners and unsettled work, and exposes immutable
+connection/tool/call snapshots. React Native mounting and unified surface-action policy remain above
+this headless boundary.
+
 ## Capability model
 
 The host owns the effective component and action allowlists. A server can request only capabilities the host has declared. Unknown components, actions, MIME types, and protocol versions are rejected rather than silently interpreted. Binding strings are accepted as opaque host data and must be validated by the host before path-like writes.

@@ -24,6 +24,11 @@ For `resources/read` only, direct `contents[].text` and `contents[].blob` bodies
 expanding URI, MIME, metadata, or other protocol strings; format-specific consumers still enforce
 their own narrower limits.
 
+The adapter accepts only an optional host-owned `AbortSignal` for `tools/list`, `tools/call`, and
+`resources/read` request options and forwards it unchanged to the official SDK. The high-level host
+controller uses this seam for explicit cancellation and connection replacement, while generation
+checks prevent a late cancelled result from entering its current snapshot.
+
 The generic extension capability substrate described below handles explicit mutual declarations.
 Tool definitions containing `execution` settings fail closed so task semantics are never silently
 removed.

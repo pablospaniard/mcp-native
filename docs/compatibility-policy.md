@@ -39,6 +39,12 @@ not a server or transport error string. The resolver receives one connection-bou
 resource reader and client/server extension snapshots are inseparable; it does not accept
 caller-supplied negotiation maps independently of that connection.
 
+The headless host controller snapshot, lifecycle methods, stable controller error codes, automatic
+rediscovery behavior, one-active-operation rule, and cancellation/stale-result semantics are also
+proposed `1.x` compatibility surfaces. Tool calls are eligible only after the exact definition has
+been discovered on the active connection; reconnect clears both discovered tools and prior call
+state before automatically discovering again.
+
 ## Package boundaries
 
 `@mcp-native/core` stays independent of MCP SDK, A2UI, React Native, and WebView implementations.

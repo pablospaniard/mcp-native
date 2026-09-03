@@ -10,6 +10,9 @@ their minor release line.
 
 - Add the initial `@mcp-native/host` workspace with a bounded, fail-closed result resolver for exact
   negotiated A2UI, exact negotiated MCP Apps, inert ordinary MCP content, and stable invalid results.
+- Add a headless `McpNativeHostController` that owns fresh connection units, automatic validated tool
+  discovery, exact discovered-tool calls, result resolution, cancellation, reconnect, stale-result
+  rejection, bounded snapshots, and teardown.
 - Export reusable official-SDK tool, tool-result, and resource-result validators from
   `@mcp-native/mcp` so the host boundary reconstructs untrusted values before classification and
   admits supported resource bodies above the generic JSON string limit under dedicated per-body and
@@ -17,6 +20,8 @@ their minor release line.
 
 ### Changed
 
+- Forward optional validated `AbortSignal` request options from the MCP SDK adapter for tool
+  discovery, tool calls, and resource reads.
 - Bind host result negotiation and resource loading to one MCP client, preventing call sites from
   substituting capability maps that were not advertised or received on that connection.
 

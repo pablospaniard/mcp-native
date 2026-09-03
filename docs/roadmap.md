@@ -367,22 +367,22 @@ The [`1.0.0` readiness checklist](1.0-readiness.md) separates checks already enf
 repository from the new host-package work, remaining independent reviews, migration step, and final
 publication actions.
 
-Implementation has started with the `@mcp-native/host` workspace and its closed, bounded result
-resolver. That slice validates SDK-shaped values, negotiates the two pinned UI profiles, resolves the
-selected resource through the same connection-bound client that owns both extension snapshots, and
-returns A2UI, MCP Apps, ordinary, or invalid without cross-format retry. The
-host-package gate remains open until connection, state, rendering, policy, and lifecycle are composed
-behind the stable high-level API.
+The `@mcp-native/host` workspace now includes a headless controller above its closed, bounded result
+resolver. It owns fresh connection units, automatic tool discovery, calls, cancellation, reconnect,
+stale-result rejection, teardown, and bounded immutable snapshots. Calls use only the exact tool
+definition and extension snapshots discovered on the active connection, then return A2UI, MCP Apps,
+ordinary, or invalid without cross-format retry. The host-package gate remains open until unified
+action authorization and React Native rendering are composed behind the high-level API.
 
 ### Host-package gate
 
-- [ ] Add `@mcp-native/host` as the top-level orchestration package above the existing package
+- [x] Add `@mcp-native/host` as the top-level orchestration package above the existing package
       boundaries. It may depend on the official SDK adapter and UI layers; `@mcp-native/core` must
       remain independent of MCP SDK, A2UI, React Native, and WebView implementations.
-- [ ] Provide one stable host API for connection, authentication handoff, tool discovery and calls,
+- [x] Provide one stable host API for connection, authentication handoff, tool discovery and calls,
       cancellation, reconnect, shutdown, and bounded operational state. Applications must still own
       server selection, secure-store and OS authentication-session implementations, and user policy.
-- [ ] Classify each tool result deterministically as negotiated A2UI, negotiated MCP Apps, ordinary
+- [x] Classify each tool result deterministically as negotiated A2UI, negotiated MCP Apps, ordinary
       MCP content, or invalid. Load linked resources, validate every server-controlled value, and
       produce a closed renderable-result union without MIME guessing or fallback from failed standard
       validation into another executable UI path.
@@ -396,7 +396,7 @@ behind the stable high-level API.
 - [ ] Keep the low-level packages public and independently usable. Document the choice between the
       plug-and-play host path and manual connection, negotiation, parsing, storage, policy, and
       rendering composition.
-- [ ] Add focused official-SDK integration and hostile-input tests for the supported host flow,
+- [x] Add focused official-SDK integration and hostile-input tests for the supported host flow,
       including connection, tool discovery and calls, result classification, cancellation,
       reconnect, teardown, and rejection of malformed, ambiguous, or oversized results.
 - [ ] Run the host package through the repository's normal build, lint, typecheck, public-API,
