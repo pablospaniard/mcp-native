@@ -229,7 +229,11 @@ test("a failed policy review releases the shared authorization boundary", async 
 
   await assert.rejects(
     () => authorization.authorizeMcpAppsToolCall({ type: "tool", name: "refresh" }),
-    /local review failed/,
+    (error) =>
+      error instanceof TypeError &&
+      error.message === "MCP native host action authorization policy failed" &&
+      error.cause instanceof Error &&
+      error.cause.message === "local review failed",
   );
   assert.equal(await authorization.authorizeA2uiAction(actionEnvelope()), true);
 });
@@ -302,4 +306,28 @@ test("MCP Apps retains tool visibility, bridge serialization, and delivery behin
   });
   assert.equal(fixture.sent.at(-1).error.code, -32001);
   assert.equal(reviewed.length, 2);
+});
+
+test("MCP Apps receives a stable error instead of an application policy failure", async () => {
+  const authorization = createMcpNativeHostActionAuthorization({
+    authorize() {
+      throw new Error("secure store failed for local-account@example.com");
+    },
+  });
+  const fixture = createAppsBridge(authorization);
+  await initializeAppsBridge(fixture);
+
+  await fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 20,
+    method: "tools/call",
+    params: { name: "refresh", arguments: { page: 1 } },
+  });
+
+  assert.deepEqual(fixture.sent.at(-1).error, {
+    code: -32602,
+    message: "MCP native host action authorization policy failed",
+  });
+  assert.doesNotMatch(JSON.stringify(fixture.sent.at(-1)), /local-account|secure store/i);
+  assert.equal(fixture.calls.length, 0);
 });

@@ -99,6 +99,8 @@ const bridge = new McpAppsBridge({
 
 Omitting `authorize` denies every action. Only the exact boolean `true` permits delivery, one policy
 review may run at a time across both protocols, and each request is reconstructed and deeply frozen.
+Application-policy failures surface as a stable host error while retaining the original exception as
+its local `cause`; raw application error messages are not exposed to an MCP App.
 Treat event names, tool names, arguments, context, metadata, annotations, and user-facing text as
 untrusted hints: match them against host-authored policy and consent descriptions. Direct calls made
 by trusted application code remain a separate boundary.

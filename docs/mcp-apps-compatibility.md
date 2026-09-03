@@ -78,7 +78,8 @@ policy and a tool handler. The bridge validates visibility and bounded arguments
 policy to return exactly `true` before the handler runs. Request `_meta`, tool annotations, and
 visibility remain non-authorizing. `createConsentActionPolicy()` can provide per-dispatch review;
 direct trusted host calls remain a separate boundary. High-level hosts can install
-`createMcpNativeHostActionAuthorization().authorizeMcpAppsToolCall` here so the same application
+`actionAuthorization.authorizeMcpAppsToolCall` from a configured
+`createMcpNativeHostActionAuthorization({ authorize })` instance here so the same application
 decision callback also reviews A2UI actions without changing this bridge's validation or delivery.
 
 The optional resource `domain` field is host-specific. It is rejected unless the host supplies a

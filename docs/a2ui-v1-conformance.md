@@ -162,7 +162,8 @@ Migrate as follows:
    host policy before rendering.
 4. Replace `McpNativeSurface` with `A2uiV1NativeSurface`; deliver validated action envelopes through
    an application-owned transport. High-level hosts can install
-   `createMcpNativeHostActionAuthorization().authorizeA2uiAction` in the A2UI delivery handler so
+   `actionAuthorization.authorizeA2uiAction` from a configured
+   `createMcpNativeHostActionAuthorization({ authorize })` instance in the A2UI delivery handler so
    the same application decision callback also reviews MCP Apps tool calls.
 5. Install only the optional native component slots your host implements completely, derive the
    advertised list with `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy })`, and supply an enforcing image

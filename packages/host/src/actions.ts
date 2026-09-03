@@ -63,7 +63,15 @@ export function createMcpNativeHostActionAuthorization(
     if (authorize === undefined || reviewRunning) return false;
     reviewRunning = true;
     try {
-      const decision = await authorize(createRequest());
+      const request = createRequest();
+      let decision: boolean;
+      try {
+        decision = await authorize(request);
+      } catch (error) {
+        throw new TypeError("MCP native host action authorization policy failed", {
+          cause: error,
+        });
+      }
       if (decision !== true && decision !== false) {
         throw new TypeError("MCP native host action authorization policy must return a boolean");
       }
