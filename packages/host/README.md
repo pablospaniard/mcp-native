@@ -3,6 +3,20 @@
 High-level MCP Native orchestration for applications that want to connect, discover tools, call one,
 and resolve its supported result through one fail-closed contract.
 
+Use this package when the application wants one owner for connection, discovery, calls, result
+classification, cancellation, reconnect, and teardown. Use the focused `@mcp-native/*` packages
+instead when the application needs to control those stages independently.
+
+## Install
+
+```bash
+npm install @mcp-native/host @mcp-native/mcp @modelcontextprotocol/client react
+```
+
+The example below uses `@mcp-native/mcp` to adapt the official client. A host may provide another
+implementation of the same closed connection contract, but it remains responsible for transport,
+server selection, authentication, secure storage, and platform integration.
+
 `McpNativeHostController` owns a fresh connection unit, bounded retry lifecycle, automatic tool
 discovery, one active operation, cancellation, reconnect, stale-result rejection, and teardown.
 Every call is bound to the exact tool definition discovered on the same connection. Its result is
@@ -64,6 +78,9 @@ fallback data for the application to present safely.
 Applications can continue using every focused `@mcp-native/*` package directly.
 
 ## React Native provider and result renderer
+
+This `/react-native` entry point is present on `main` under the changelog's Unreleased section. It
+is not exported by the npm `0.9.3` artifact.
 
 The optional `@mcp-native/host/react-native` entry point owns the controller lifecycle and renders
 the complete connection, discovery, call, and result state. Register the locally compiled catalog

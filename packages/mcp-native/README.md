@@ -2,7 +2,7 @@
 
 # mcp-native
 
-### One entry point for the MCP Native React Native host runtime
+### One entry point for the low-level MCP Native runtime and UI layers
 
 [![npm](https://img.shields.io/npm/v/mcp-native)](https://www.npmjs.com/package/mcp-native)
 [![downloads](https://img.shields.io/npm/dm/mcp-native)](https://www.npmjs.com/package/mcp-native)
@@ -13,11 +13,11 @@
 
 </div>
 
-`mcp-native` is the current convenient way to use the runtime, A2UI, React Native, mixed-surface,
-and WebView APIs from one package. It re-exports the focused `@mcp-native/*` layers while leaving
-transport adapters as a separate installation choice. `@mcp-native/host` provides the optional
-high-level connect-call-render path; these low-level APIs remain available for applications that
-need manual composition.
+`mcp-native` is the convenience entry point for the core, A2UI, React Native, mixed-surface, and
+WebView APIs. It does not include the official MCP SDK adapter or the high-level host. Install
+[`@mcp-native/mcp`](https://www.npmjs.com/package/@mcp-native/mcp) for the adapter or
+[`@mcp-native/host`](https://www.npmjs.com/package/@mcp-native/host) for the connect-call-render
+workflow. Use this package when the application wants to compose the low-level layers itself.
 
 The current 0.9 line contains the validated low-level React Native feature set and is ready to try in
 an integration. New work should use A2UI v1 Candidate or the stable MCP Apps `2026-01-26` host flow;
@@ -55,7 +55,7 @@ v1 JSONL lifecycle envelopes, maintain bounded ordered surface state, apply expl
 component/event/function policies, and mount the supported native subset through
 `A2uiV1NativeSurface`. The mounted surface keeps typed input edits renderer-local and returns validated
 official action envelopes to a host callback; it never selects a return transport. See the
-[complete v1 host-flow example](https://github.com/pablospaniard/mcp-native#a2ui-v1-candidate-host-flow)
+[A2UI package guide](https://github.com/pablospaniard/mcp-native/tree/main/packages/a2ui)
 and the [`@mcp-native/react-native` adapter documentation](https://github.com/pablospaniard/mcp-native/tree/main/packages/react-native#a2ui-v1-render-plan-adapter).
 
 ## Legacy custom `0.1` migration
@@ -134,7 +134,7 @@ Install an individual package instead when you only need one layer.
 
 Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospaniard/mcp-native/tree/main/packages/mcp) package to connect these APIs to the official MCP TypeScript SDK without forcing that SDK dependency on every `mcp-native` consumer.
 
-## Included in the current 0.9 line
+## Available across the current 0.9 package line
 
 - transport-independent MCP runtime contracts;
 - isolated migration support for the deprecated custom `0.1` surface;
@@ -164,8 +164,8 @@ Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospani
 
 For the release-by-release history, see the
 [changelog](https://github.com/pablospaniard/mcp-native/blob/main/CHANGELOG.md). The runnable
-[Expo Go todo app](../../examples/expo-go-todolist/README.md) shows the main A2UI and React Native
-pieces working together.
+[Expo Go todo app](https://github.com/pablospaniard/mcp-native/tree/main/examples/expo-go-todolist)
+shows the main A2UI and React Native pieces working together.
 
 ## Security model
 

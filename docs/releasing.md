@@ -20,9 +20,9 @@ Before creating a release:
 installation. Package smoke verifies every declared export, runtime and declaration source map,
 README, and exact MIT license in the packed artifacts. It installs the latest coordinated published
 `0.9.x` packages into a clean consumer and runs the documented migration-ready imports. It then
-replaces those six packages and adds the new `@mcp-native/host` package from local candidate
-tarballs through an offline install before running the consumer again. The maintained Expo Go todo
-app remains an optional application-level example; it is not a package release gate.
+replaces all seven packages with local candidate tarballs through an offline install before running
+the consumer again. The maintained Expo Go todo app remains an optional application-level example;
+it is not a package release gate.
 
 Use the [`1.0.0` readiness checklist](1.0-readiness.md) to distinguish automated repository checks
 from the independent reviews and registry checks required for the stable release. Summarize the
@@ -40,22 +40,28 @@ Release to its tag's immutable commit before it installs or executes release-pac
 
 ## Onboarding a new package
 
-npm trusted-publisher configuration is package-specific, and npm requires a package to exist in
-the registry before a trusted publisher can be configured. npm does not currently provide an
-organization-wide trust rule for future package names.
+npm trusted-publisher configuration is package-specific, and `npm trust` requires the package to
+exist in the registry before it can create the relationship.
 
 Before including a new package in a coordinated release:
 
 1. Perform a one-time bootstrap publish interactively with 2FA. Use a non-release version and a
    non-default dist-tag so the bootstrap artifact does not become `latest`.
-2. In the new package's npm settings, configure GitHub Actions trusted publishing with:
-   - organization or user: `pablospaniard`
-   - repository: `mcp-native`
-   - workflow filename: `release.yml`
-   - environment: `npm-release`
-   - allowed action: `npm publish`
-3. Disable token-based publishing for the package after verifying the trust configuration.
-4. Publish the first real package version only through the coordinated GitHub Release workflow.
+2. With npm `>=11.15.0`, account-level 2FA, and package write access, configure the exact GitHub
+   Actions relationship:
+
+   ```bash
+   npm trust github <package-name> \
+     --file release.yml \
+     --repo pablospaniard/mcp-native \
+     --env npm-release \
+     --allow-publish
+   ```
+
+3. Verify the relationship with `npm trust list <package-name>`. The npm website's package settings
+   provide the equivalent management path.
+4. Disable token-based publishing for the package after verifying the trust configuration.
+5. Publish the first real package version only through the coordinated GitHub Release workflow.
 
 This interactive bootstrap is an npm registry limitation, not a recurring release credential.
 Every real release remains tokenless, workflow-bound, and provenance-attested.

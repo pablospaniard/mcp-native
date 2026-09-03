@@ -21,7 +21,7 @@ RFC-0001 established the package boundaries and trust model retained by the curr
 candidate. See [Standards and compatibility](standards-compatibility.md) for the exact normative
 baselines, verified profiles, and planned extensions.
 
-Milestone 10 adds `@mcp-native/host` above these boundaries. That package composes official SDK
+Milestone 10 includes `@mcp-native/host` above these boundaries. That package composes official SDK
 connection, negotiation, result classification, resource loading, rendering, policy, and lifecycle;
 it does not move transport or UI dependencies into core or create a new server trust path.
 
@@ -33,39 +33,28 @@ All executable application code and native components are supplied by the host a
 
 ## Data flow
 
-```text
-MCP server
-    |
-    | tools/list, tools/call, resources/read
-    v
-official @modelcontextprotocol/client
-    |
-    v
-@mcp-native/mcp
-    | validated, JSON-safe contracts
-    v
-@mcp-native/core
-    |
-    +-- negotiated A2UI v1 JSONL resource_link
-    |       |
-    |       `-- resources/read --> validated text resource
-    |       |
-    |       v
-    |   @mcp-native/a2ui
-    |       |
-    |       v
-    |   validated surface
-    |       |
-    |       v
-    |   @mcp-native/react-native
-    |       |
-    |       v
-    |   host-owned native components
-    |
-    `-- HTML resource --> @mcp-native/webview --> policy-gated WebView
+```mermaid
+flowchart TD
+    Server["MCP server"] <-->|"tools/list · tools/call · resources/read"| Client["Official @modelcontextprotocol/client"]
+    Client <--> Adapter["@mcp-native/mcp<br/>validated SDK boundary"]
+    Adapter <--> Host["@mcp-native/host<br/>optional orchestration"]
+    Host <--> Core["@mcp-native/core<br/>runtime contracts and policy"]
+    Host --> Result{"Negotiated result"}
+    Result -->|"A2UI JSONL resource"| A2UI["@mcp-native/a2ui<br/>parse, state, validate"]
+    A2UI --> RN["@mcp-native/react-native<br/>trusted render plan"]
+    RN --> Native["Host-owned native components"]
+    Result -->|"MCP App resource"| Apps["@mcp-native/webview<br/>sandbox and bridge"]
+    Apps --> WebView["Host-owned WebView"]
+    Result -->|"Ordinary content"| Ordinary["Bounded inert host fallback"]
+    Result -->|"Invalid"| Error["Stable host-authored error"]
 ```
 
-User actions take the reverse path. A component emits a typed action; the core runtime validates the complete action and dispatches the corresponding `tools/call` through the connected MCP client only when the host's action policy explicitly allows it.
+Interactive paths remain protocol-specific. A2UI reconstructs and validates a declared action
+before a host callback decides whether to deliver it. MCP Apps validates bridge messages and tool
+visibility before its host authorization callback. The high-level host can present both to one
+application policy, but their serialization and delivery remain separate. The legacy core-runtime
+surface dispatch path independently validates a declared tool action and denies it unless its own
+host policy explicitly allows it.
 
 ## Package boundaries
 
@@ -124,7 +113,7 @@ support. See the [exact native host profile](mcp-apps-compatibility.md).
 
 Convenience package for the runtime and UI APIs. Transport adapters remain separately installable so applications do not acquire an SDK or transport dependency they do not use.
 
-### `@mcp-native/host` (`1.0.0` target)
+### `@mcp-native/host`
 
 Owns the optional high-level connect-call-render workflow. It composes `@mcp-native/mcp`, core,
 A2UI, React Native, and WebView APIs; classifies supported negotiated results; supplies safe ordinary
@@ -171,10 +160,11 @@ That milestone established the following end-to-end flow:
 
 ## Current implementation status
 
-Milestones 0–9 are complete in the `0.9.x` release candidate. The frozen low-level public API covers the
-official SDK adapter and OAuth host boundary, the documented A2UI v1 Candidate profile and complete
-pinned basic catalog, compiled host extensions, the stable MCP Apps native-host profile, and
-host-owned mixed native/WebView composition. The original contract coverage remains in place:
+Milestones 0–9 and the Milestone 10 host-package gate are complete in the `0.9.x` release candidate.
+The public API candidate covers the official SDK adapter and OAuth host boundary, the documented
+A2UI v1 Candidate profile and complete pinned basic catalog, compiled host extensions, the stable
+MCP Apps native-host profile, host-owned mixed native/WebView composition, and the optional
+high-level host workflow. The original contract coverage remains in place:
 
 - `@mcp-native/mcp` targets `@modelcontextprotocol/client` v2;
 - an integration test connects the official `Client` and `McpServer` through the SDK's linked in-memory transport;

@@ -1,65 +1,78 @@
 # MCP Native documentation
 
-You do not need to read every document in this folder to use MCP Native. Pick the path that matches
-what you are trying to do.
+Start with the [main README](../README.md) for the product overview, package choices, and architecture
+diagrams. This page routes implementation and review work to the document that owns the answer.
 
-## I want to see it first
+## Choose the package path
 
-Start with one of the Expo Go examples:
+| Goal                                                                 | Start here                                                                                                  |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Own connection, discovery, calls, and result routing through one API | [`@mcp-native/host`](../packages/host/README.md); React Native lifecycle integration is currently on `main` |
+| Compose the protocol and rendering stages yourself                   | [Host integration checklist](host-integration-checklist.md), then the focused package guides                |
+| Import the low-level runtime and UI layers from one module           | [`mcp-native`](../packages/mcp-native/README.md)                                                            |
+| Migrate custom A2UI `0.1` data                                       | [Migration to 1.0](migration-to-1.0.md) and the explicit `/legacy` entry points                             |
 
-- The [todo app](../examples/expo-go-todolist/README.md) is a focused native A2UI workflow with
-  three screenshots, local setup instructions, and complete code examples.
-- [City Canvas](../examples/expo-go-mixed-surfaces/README.md) is a polished two-screen app showing
-  a native A2UI region and isolated MCP Apps WebView working as host-owned siblings.
+Focused package guides: [core](../packages/core/README.md), [MCP SDK adapter](../packages/mcp/README.md),
+[A2UI](../packages/a2ui/README.md), [React Native](../packages/react-native/README.md), and
+[WebView](../packages/webview/README.md).
 
-Then read [What MCP Native does](product-guide.md) for the product model: what the server describes,
-what the mobile app owns, and where native A2UI and HTML MCP Apps fit.
+## Choose the result surface
 
-## I am integrating a React Native host
+| Result                                                   | Use                                      | Read                                                                  |
+| -------------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
+| Semantic native forms, lists, cards, media, and actions  | A2UI with a host-owned component catalog | [Product guide](product-guide.md) and [capabilities](capabilities.md) |
+| A locally compiled application-specific native component | A negotiated host extension              | [Media and host extensions](media-and-host-extensions.md)             |
+| Rich HTML or a web-focused visualization                 | An isolated MCP App                      | [MCP Apps compatibility](mcp-apps-compatibility.md)                   |
+| Native and HTML regions on one app-owned screen          | Separate sibling regions                 | [Mixed surfaces](mixed-surfaces.md)                                   |
+| Text or structured data with no supported UI claim       | Bounded inert ordinary-content rendering | [High-level host](../packages/host/README.md)                         |
 
-1. Use the [host integration checklist](host-integration-checklist.md) to plan the application-owned
-   pieces: transport, component catalog, policies, lifecycle, permissions, and error states.
-2. Check the [support policy](support-matrix.md) for React Native, React, Node.js, Android, and iOS
-   requirements.
-3. Follow the package guide for the layer you are using:
-   [high-level host](../packages/host/README.md), [core](../packages/core/README.md),
-   [MCP SDK adapter](../packages/mcp/README.md),
-   [A2UI](../packages/a2ui/README.md), [React Native](../packages/react-native/README.md), or
-   [WebView](../packages/webview/README.md).
-4. If one screen combines native and HTML regions, continue with
-   [mixed surfaces](mixed-surfaces.md).
+Unknown or ambiguous executable formats are not guessed. Application-defined input contracts are
+tracked after 1.0 and are not part of the current host.
 
-## I need the exact compatibility contract
+## Implement a production host
 
-- [Capabilities](capabilities.md) lists the native catalog, bindings, media, extensions, and renderer
-  boundaries in practical terms.
-- [Protocol support](protocol-support.md) records the MCP revisions and operations exercised by the
-  SDK adapter.
-- [A2UI conformance](a2ui-v1-conformance.md) records the pinned Candidate schemas and supported
-  lifecycle, catalog, functions, and renderer messages.
-- [MCP Apps compatibility](mcp-apps-compatibility.md) records the stable native host-adapter profile
-  and its WebView mapping.
-- [Standards and compatibility](standards-compatibility.md) is the combined evidence index.
+- [Host integration checklist](host-integration-checklist.md) — transport, catalogs, policy,
+  lifecycle, shell layout, permissions, and errors.
+- [Support matrix](support-matrix.md) — package requirements and automated integration evidence.
+- [Native OAuth testing](native-oauth-testing.md) — secure storage and OS authentication-session
+  responsibilities for protected HTTP.
+- [Native accessibility testing](native-accessibility-testing.md) — platform scenarios and the
+  runnable Expo proof.
+- [WCAG 2.2 native assessment](wcag-2.2-native-assessment.md) — library and application ownership.
+- [A2UI performance limits](a2ui-v1-performance.md) — bounded parsing, updates, rendering, and
+  retained memory.
 
-These pages are deliberately precise. They are reference material for implementation and review,
-not required reading for trying the library.
+Runnable examples:
 
-## I am preparing for production or 1.0
+- [Expo Go todo app](../examples/expo-go-todolist/README.md) — focused native A2UI workflow.
+- [City Canvas](../examples/expo-go-mixed-surfaces/README.md) — native A2UI and an isolated MCP App.
 
-- [Security policy](../SECURITY.md) explains the trust boundary and vulnerability-reporting process.
-- [Architecture](RFC-0001-architecture.md) records the package boundaries and decisions that changes
-  must preserve.
-- [Compatibility policy](compatibility-policy.md) defines the API and behavior promised for 1.x.
-- [Migration to 1.0](migration-to-1.0.md) covers the custom A2UI 0.1 legacy imports.
-- [1.0 readiness](1.0-readiness.md) separates automated evidence from the remaining independent
-  reviews and release actions.
-- [Roadmap](roadmap.md) keeps the completed milestone history and the post-1.0 direction.
+## Verify protocol claims
+
+- [Standards and compatibility](standards-compatibility.md) — combined source and evidence index.
+- [Protocol support](protocol-support.md) — supported MCP revisions and operations.
+- [MCP conformance](mcp-conformance.md) — exact pinned suite and selected scenarios.
+- [A2UI conformance](a2ui-v1-conformance.md) — exact Candidate pin, implemented features,
+  exclusions, and interpretations.
+- [A2UI-over-MCP binding](a2ui-mcp-binding.md) — project-owned negotiation and resource mapping.
+- [MCP Apps compatibility](mcp-apps-compatibility.md) — stable native host-adapter profile and
+  browser/native differences.
+
+## Review architecture or prepare a release
+
+- [RFC-0001](RFC-0001-architecture.md) — package boundaries, data flow, capability model, and threat
+  model.
+- [Compatibility policy](compatibility-policy.md) — proposed stable `1.x` API and behavior surface.
+- [1.0 readiness](1.0-readiness.md) — completed automation and remaining independent reviews and
+  publication actions.
+- [Roadmap](roadmap.md) — completed milestones, the stable-release gate, and undated post-1.0 work.
+- [Release process](releasing.md) — coordinated packages, trusted publishing, and provenance.
+- [Security policy](../SECURITY.md) — supported releases and private vulnerability reporting.
 
 ## Current status
 
-The 0.9 line contains the validated low-level React Native layers and the high-level
-`@mcp-native/host` connect-call-render workflow, ready for integration and evaluation. React
-`>=18.1.0` is the UI packages' only peer dependency; native components and platform integrations are
-supplied by the host. Milestone 10 next completes review, validation, and the long-term
-compatibility promise. The legacy-root migration is complete; contract registries and custom input
-adapters remain post-1.0 work.
+The published `0.9.3` line is the current release candidate. It includes the headless high-level host
+and the independently usable low-level packages. The `main` branch adds the unreleased React Native
+host provider and integration tooling recorded in the [changelog](../CHANGELOG.md). The Milestone 10
+host-package gate is complete; independent reviews, final validation, stable documentation and
+compatibility approval, versioning, and publication remain before `1.0.0`.

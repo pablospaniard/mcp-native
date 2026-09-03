@@ -83,9 +83,10 @@ locally compiled UIKit, Android View, SwiftUI, or Compose wrapper when the host 
 adapter, but MCP Native does not yet provide direct SwiftUI or Jetpack Compose renderers or promise
 cross-renderer parity.
 
-Direct SwiftUI and Jetpack Compose renderers are committed immediately after `1.0.0`. The same
-post-`1.0.0` program adds typed, advertised, policy-gated providers for the wider native platform
-capability space. “All native capabilities” means an extensible host-provider model, not exposing
+Direct SwiftUI and Jetpack Compose renderers are tracked after `1.0.0`, with a platform-neutral
+renderer foundation as their prerequisite. The post-`1.0.0` roadmap also tracks typed, advertised,
+policy-gated providers for the wider native platform capability space. No release numbers or dates
+are assigned. “All native capabilities” means an extensible host-provider model, not exposing
 arbitrary platform APIs or commands to a server.
 
 ## WebViews and mixed screens

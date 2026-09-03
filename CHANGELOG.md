@@ -27,6 +27,10 @@ their minor release line.
 
 ### Changed
 
+- Rewrite the documentation entry path around explicit package and result-routing decisions, add
+  Mermaid architecture diagrams, distinguish published `0.9.3` behavior from unreleased `main`
+  additions, align the Milestone 10 status, replace fragile package-README links, and update new
+  package onboarding for the current `npm trust` CLI.
 - Clarify that closed negotiated host extensions are available in the `0.9` line and are distinct
   from the broader post-1.0 standard-contract and custom-input registry.
 - Remove the deprecated custom A2UI `0.1` APIs from package-root exports while retaining the
