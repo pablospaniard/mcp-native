@@ -313,16 +313,27 @@ function renderSnapshot(
     return renderState(props.components, "Disconnected", detail);
   }
 
-  if (host.snapshot.tools.kind === "loading") {
+  const tools = host.snapshot.tools;
+  if (tools.kind === "idle" || tools.kind === "loading") {
     return renderState(props.components, "Loading tools", "Discovering available MCP tools.");
   }
-  if (host.snapshot.tools.kind === "error") {
+  if (tools.kind === "error") {
     return renderState(
       props.components,
       "Tools unavailable",
       "The MCP tool list could not be loaded.",
       () => void host.refreshTools().catch(props.onError),
     );
+  }
+  if (tools.result.tools.length === 0) {
+    if (tools.result.nextCursor !== undefined) {
+      return renderState(
+        props.components,
+        "Tool discovery incomplete",
+        "The MCP server returned another tool page that this host could not load.",
+      );
+    }
+    return renderState(props.components, "No tools", "The MCP server did not provide any tools.");
   }
 
   const call = host.snapshot.call;
@@ -346,7 +357,7 @@ function renderSnapshot(
     call.result,
     host.activeCall.arguments,
     host.activeCall.id,
-    host.snapshot.tools.kind === "ready" ? host.snapshot.tools.result.tools : [],
+    tools.result.tools,
     props,
   );
 }

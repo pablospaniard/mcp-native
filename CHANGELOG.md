@@ -21,6 +21,8 @@ their minor release line.
 - Enforce the documented support matrix in CI at the exact Node `22.12.0` floor, including the
   TypeScript/schema pins, React and MCP SDK peers, and absence of Expo or React Native package
   dependencies.
+- Render an explicit accessible empty state when an MCP server successfully returns no tools on its
+  final discovery page, without misclassifying an empty paginated response.
 
 ## 0.9.3 - 2026-09-03
 
