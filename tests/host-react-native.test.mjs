@@ -5,6 +5,7 @@ import { A2UI_MIME_TYPE, createA2uiV1BasicCatalogPolicy } from "../packages/a2ui
 import {
   MCP_NATIVE_HOST_EXTENSION_CAPABILITIES,
   McpNativeHostController,
+  McpNativeHostControllerError,
 } from "../packages/host/dist/index.js";
 import {
   MCP_NATIVE_HOST_MAX_ORDINARY_TEXT_LENGTH,
@@ -210,6 +211,43 @@ test("provider owns startup, snapshots, exact calls, and shutdown", async () => 
   await act(async () => mounted.root.unmount());
   await waitUntil(() => closes === 1);
   assert.equal(closes, 1);
+});
+
+test("provider rejects an overlapping call without replacing the active result context", async () => {
+  let resolveFirstCall;
+  const controller = createController({
+    result(_name, arguments_) {
+      return new Promise((resolve) => {
+        resolveFirstCall = () =>
+          resolve({ content: [{ type: "text", text: `Madrid: ${arguments_.unit}` }] });
+      });
+    },
+  });
+  const mounted = await mountHost(controller);
+  let firstCall;
+  await act(async () => {
+    firstCall = mounted.host.callTool("status", { unit: "C" });
+    await nextTurn();
+  });
+
+  await act(async () => {
+    await assert.rejects(
+      () => mounted.host.callTool("status", { unit: "F" }),
+      (error) =>
+        error instanceof McpNativeHostControllerError && error.code === "operation-in-progress",
+    );
+  });
+  assert.deepEqual(mounted.host.activeCall.arguments, { unit: "C" });
+  assert.deepEqual(textValues(mounted.root), ["Working", "The MCP tool is running."]);
+
+  await act(async () => {
+    resolveFirstCall();
+    await firstCall;
+  });
+  assert.deepEqual(mounted.host.activeCall.arguments, { unit: "C" });
+  assert.deepEqual(textValues(mounted.root), ["Result", "Madrid: C"]);
+
+  await act(async () => mounted.root.unmount());
 });
 
 test("provider retains one controller through React Strict Mode effect replay", async () => {
