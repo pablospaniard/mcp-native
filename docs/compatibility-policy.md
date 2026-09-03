@@ -31,6 +31,12 @@ in minor releases when old callers retain their behavior. Patch releases contain
 within a minor line. Post-`1.0.0` SwiftUI, Compose, and capability-provider packages will use their
 own documented profiles and will not silently expand the React Native server contract.
 
+The proposed host result surface is a closed union: `a2ui`, `mcp-app`, `ordinary`, or `invalid`.
+The two executable UI outcomes require exact mutual extension negotiation. A result claimed by both
+negotiated profiles is invalid, and failure after selecting either standard path never retries as
+ordinary content or through another renderer. Invalid results expose a stable host-authored code,
+not a server or transport error string.
+
 ## Package boundaries
 
 `@mcp-native/core` stays independent of MCP SDK, A2UI, React Native, and WebView implementations.

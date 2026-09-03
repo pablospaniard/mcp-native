@@ -166,24 +166,7 @@ export class McpSdkClientAdapter implements McpClient {
   }
 
   async callTool(name: string, arguments_: JsonObject): Promise<McpToolCallResult> {
-    const result = expectResultObject(
-      await this.#client.callTool({ name, arguments: arguments_ }),
-      "tool result",
-    );
-    const isError = optionalBoolean(result.isError, "tool result.isError");
-    const structuredContent =
-      result.structuredContent === undefined
-        ? undefined
-        : expectJsonValue(result.structuredContent, "tool result.structuredContent");
-
-    return {
-      content: expectArray(result.content, "tool result.content", MCP_SDK_MAX_RESULT_ITEMS).map(
-        (block, index) => mapContent(block, `tool result.content[${index}]`),
-      ),
-      ...(isError === undefined ? {} : { isError }),
-      ...(structuredContent === undefined ? {} : { structuredContent }),
-      ...mapResultMeta(result, "tool result"),
-    };
+    return parseMcpSdkToolCallResult(await this.#client.callTool({ name, arguments: arguments_ }));
   }
 
   async readResource(uri: string): Promise<McpReadResourceResult> {
@@ -219,6 +202,30 @@ export function createMcpSdkClientAdapter(
   options: McpSdkClientAdapterOptions = {},
 ): McpSdkClientAdapter {
   return new McpSdkClientAdapter(client, options);
+}
+
+/** Validates and reconstructs one untrusted tool from an official SDK result. */
+export function parseMcpSdkTool(value: unknown, path = "tool"): McpTool {
+  return mapTool(expectResultObject(value, path), path);
+}
+
+/** Validates and reconstructs one untrusted tool-call result from the official SDK boundary. */
+export function parseMcpSdkToolCallResult(value: unknown, path = "tool result"): McpToolCallResult {
+  const result = expectResultObject(value, path);
+  const isError = optionalBoolean(result.isError, `${path}.isError`);
+  const structuredContent =
+    result.structuredContent === undefined
+      ? undefined
+      : expectJsonValue(result.structuredContent, `${path}.structuredContent`);
+
+  return {
+    content: expectArray(result.content, `${path}.content`, MCP_SDK_MAX_RESULT_ITEMS).map(
+      (block, index) => mapContent(block, `${path}.content[${index}]`),
+    ),
+    ...(isError === undefined ? {} : { isError }),
+    ...(structuredContent === undefined ? {} : { structuredContent }),
+    ...mapResultMeta(result, path),
+  };
 }
 
 function mapContent(value: unknown, path: string): McpContent {

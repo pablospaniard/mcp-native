@@ -367,6 +367,12 @@ The [`1.0.0` readiness checklist](1.0-readiness.md) separates checks already enf
 repository from the new host-package work, remaining independent reviews, migration step, and final
 publication actions.
 
+Implementation has started with the `@mcp-native/host` workspace and its closed, bounded result
+resolver. That slice validates SDK-shaped values, negotiates the two pinned UI profiles, resolves the
+selected resource, and returns A2UI, MCP Apps, ordinary, or invalid without cross-format retry. The
+host-package gate remains open until connection, state, rendering, policy, and lifecycle are composed
+behind the stable high-level API.
+
 ### Host-package gate
 
 - [ ] Add `@mcp-native/host` as the top-level orchestration package above the existing package

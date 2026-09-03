@@ -7,12 +7,28 @@ import { parse } from "yaml";
 
 import {
   isPackageVersionPublished,
+  loadReleasePackages,
   publishMissingReleasePackages,
 } from "../scripts/publish-release.mjs";
 import { runReleaseVerification } from "../scripts/run-release-verification.mjs";
 
 const packageInfo = { name: "@mcp-native/example", version: "0.1.0" };
 const releaseVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
+
+test("the coordinated release includes the host after all of its package dependencies", () => {
+  assert.deepEqual(
+    loadReleasePackages().map(({ name }) => name),
+    [
+      "@mcp-native/core",
+      "@mcp-native/mcp",
+      "@mcp-native/a2ui",
+      "@mcp-native/webview",
+      "@mcp-native/react-native",
+      "@mcp-native/host",
+      "mcp-native",
+    ],
+  );
+});
 
 test("release recovery skips an exact version that is already published", async () => {
   const published = [];

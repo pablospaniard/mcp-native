@@ -138,6 +138,8 @@ All packages are ESM-only and include TypeScript declarations.
 - A validated adapter for the official MCP TypeScript SDK v2.
 - Protected Streamable HTTP OAuth helpers for native hosts.
 - Stable MCP Apps 2026-01-26 discovery, resource loading, WebView policy, and bridge support.
+- The first `@mcp-native/host` slice: deterministic, fail-closed A2UI, MCP Apps, ordinary-content,
+  and invalid result resolution.
 - A coordinator for native A2UI and isolated MCP Apps regions on the same host screen.
 - Generated Android and iOS builds at the React Native 0.86 minimum, plus package, conformance, performance, and hostile-input tests.
 
@@ -152,6 +154,7 @@ New integrations should use the A2UI v1 Candidate APIs. The older custom 0.1 sur
 | [@mcp-native/a2ui](packages/a2ui)                 | A2UI negotiation, parsing, state, validation, and action envelopes                  |
 | [@mcp-native/react-native](packages/react-native) | Turning validated A2UI surfaces into host-owned native components                   |
 | [@mcp-native/webview](packages/webview)           | Hosting MCP Apps and other explicitly allowed HTML in a controlled WebView          |
+| [@mcp-native/host](packages/host)                 | Resolving supported negotiated tool results through one closed host contract        |
 | [mcp-native](packages/mcp-native)                 | Using the runtime and UI layers from one convenience package                        |
 
 The package split is intentional: <code>@mcp-native/core</code> does not depend on React Native, A2UI, WebViews, or a particular MCP SDK.
@@ -239,6 +242,7 @@ mcp-native/
 │   ├── a2ui/
 │   ├── react-native/
 │   ├── webview/
+│   ├── host/
 │   └── mcp-native/
 └── tests/                     # Cross-package integration and boundary tests
 ```

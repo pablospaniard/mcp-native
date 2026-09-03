@@ -12,11 +12,11 @@
       }
     },
     "@mcp-native/mcp": {
-      "declarationSha256": "303880f2ceb7fd384fda976b0d26efb08fbda4f477f43c62ff4c360fe7c4c495",
+      "declarationSha256": "ff508788add74f7183e879992f0f2a873edb74361c4db4650e075a029208741d",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "18383b69de56fc53097b6b39a40a3cc660f948e137b11e51d9b2cb9076337921",
+          "runtimeSha256": "86384eef9d372ecc312d31ab05cf5d40687619f68d9a2c82c1e167c6ee7bb4f1",
           "types": "./dist/index.d.ts"
         },
         "./oauth": {
@@ -63,6 +63,16 @@
           "import": "./dist/legacy.js",
           "runtimeSha256": "f0a411ce5dc437fb22f1b60d6e5394935ad2098387f4e3533b8086eb641ad5f6",
           "types": "./dist/legacy.d.ts"
+        }
+      }
+    },
+    "@mcp-native/host": {
+      "declarationSha256": "3ba7e3e9ff3a488003d8a219afd90c0cc4ddc563dd45f493c334da56aa39a7f9",
+      "exports": {
+        ".": {
+          "import": "./dist/index.js",
+          "runtimeSha256": "c6c0d9606f1e1084c946a9c6e5444568a65d87e02a3d11815265950386fc7478",
+          "types": "./dist/index.d.ts"
         }
       }
     },

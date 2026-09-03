@@ -6,6 +6,13 @@ their minor release line.
 
 ## Unreleased
 
+### Added
+
+- Add the initial `@mcp-native/host` workspace with a bounded, fail-closed result resolver for exact
+  negotiated A2UI, exact negotiated MCP Apps, inert ordinary MCP content, and stable invalid results.
+- Export reusable official-SDK tool and tool-result validators from `@mcp-native/mcp` so the host
+  boundary reconstructs untrusted values before classification.
+
 ### Changed
 
 - Expand the `1.0.0` roadmap with a high-level `@mcp-native/host` package for plug-and-play

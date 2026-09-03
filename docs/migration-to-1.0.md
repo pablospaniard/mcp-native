@@ -28,10 +28,10 @@ They receive no new A2UI v1 components, functions, capabilities, extensions, or 
 
 `npm run package:smoke` installs the latest coordinated stable `0.9.x` packages from npm into a
 clean consumer and runs modern APIs together with the explicit `/legacy` imports shown above. It
-then replaces all six dependencies with locally packed release-candidate artifacts, confirms that
-npm selected each local tarball, and runs the same consumer again. Mixed `0.9.x` package versions,
-retained registry dependencies, missing migration entry points, and stale installed versions fail
-the gate.
+then replaces those six dependencies and adds `@mcp-native/host` with locally packed
+release-candidate artifacts, confirms that npm selected each local tarball, and runs the consumer
+again. Mixed `0.9.x` package versions, retained registry dependencies, missing migration entry
+points, and stale installed versions fail the gate.
 
 Pull-request CI runs this upgrade smoke test. The final `1.0.0` release commit therefore exercises
 the same path with the actual coordinated stable artifacts before publication.
