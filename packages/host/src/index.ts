@@ -1,3 +1,12 @@
+export { createMcpNativeHostActionAuthorization } from "./actions.js";
+export type {
+  McpNativeHostA2uiActionAuthorizationRequest,
+  McpNativeHostActionAuthorization,
+  McpNativeHostActionAuthorizationOptions,
+  McpNativeHostActionAuthorizationPolicy,
+  McpNativeHostActionAuthorizationRequest,
+  McpNativeHostMcpAppsActionAuthorizationRequest,
+} from "./actions.js";
 export {
   MCP_NATIVE_HOST_MAX_LISTENERS,
   MCP_NATIVE_HOST_MAX_PENDING_OPERATIONS,

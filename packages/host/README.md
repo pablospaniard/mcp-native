@@ -59,5 +59,48 @@ returns `invalid`; it is never retried through another renderer. Ordinary MCP co
 fallback data for the application to present safely.
 
 `resolveMcpNativeHostResult()` remains public for applications composing the low-level path. React
-Native mounting and unified A2UI/MCP Apps action authorization are the remaining `1.0.0`
-host-package slices. Applications can continue using every focused `@mcp-native/*` package directly.
+Native mounting is the remaining `1.0.0` host-package implementation slice. Applications can
+continue using every focused `@mcp-native/*` package directly.
+
+## Authorize surface actions once
+
+Use one application policy for actions originating from either supported interactive result. The
+returned callbacks fit the existing protocol-specific boundaries; A2UI still owns action-envelope
+validation and delivery, while MCP Apps still owns tool visibility, JSON-RPC serialization, and
+tool-call delivery.
+
+```ts
+import { createA2uiV1ActionDeliveryHandler } from "@mcp-native/a2ui";
+import { createMcpNativeHostActionAuthorization } from "@mcp-native/host";
+import { McpAppsBridge } from "@mcp-native/webview";
+
+const actionAuthorization = createMcpNativeHostActionAuthorization({
+  async authorize(request) {
+    if (request.kind === "a2ui") {
+      return approvedA2uiEvents.has(request.envelope.action.name);
+    }
+    return approveAppToolCall(request.action.name, request.action.arguments);
+  },
+});
+
+const handleA2uiAction = createA2uiV1ActionDeliveryHandler({
+  authorize: actionAuthorization.authorizeA2uiAction,
+  deliver: deliverA2uiActionToAgent,
+});
+
+const bridge = new McpAppsBridge({
+  // resource, sandbox, tools, hostInfo, and postMessage omitted here
+  handlers: {
+    authorizeToolCall: actionAuthorization.authorizeMcpAppsToolCall,
+    callTool: deliverMcpAppsToolCall,
+  },
+});
+```
+
+Omitting `authorize` denies every action. Only the exact boolean `true` permits delivery, one policy
+review may run at a time across both protocols, and each request is reconstructed and deeply frozen.
+Application-policy failures surface as a stable host error while retaining the original exception as
+its local `cause`; raw application error messages are not exposed to an MCP App.
+Treat event names, tool names, arguments, context, metadata, annotations, and user-facing text as
+untrusted hints: match them against host-authored policy and consent descriptions. Direct calls made
+by trusted application code remain a separate boundary.

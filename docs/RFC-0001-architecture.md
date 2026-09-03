@@ -4,7 +4,7 @@
 - Protocol profiles: [MCP](protocol-support.md), [A2UI v1 Candidate](a2ui-v1-conformance.md), and
   [MCP Apps](mcp-apps-compatibility.md)
 - Date: 2026-08-25
-- Last updated: 2026-09-02
+- Last updated: 2026-09-03
 
 ## Summary
 
@@ -123,14 +123,16 @@ The implemented headless controller accepts fresh app-owned connection units and
 adapter, runtime, connection lifecycle, and result resolver. It automatically discovers tools after
 every connection, permits calls only against the exact active-connection definition, forwards
 cancellation, rejects stale generations, bounds listeners and unsettled work, and exposes immutable
-connection/tool/call snapshots. React Native mounting and unified surface-action policy remain above
-this headless boundary.
+connection/tool/call snapshots. The host action-authorization helper presents separately validated
+A2UI actions and MCP Apps tool calls to one immutable application decision union, denies by default,
+and serializes reviews across both protocols. Protocol packages retain their own serialization,
+delivery, and lifecycle rules. React Native mounting remains above this headless boundary.
 
 ## Capability model
 
 The host owns the effective component and action allowlists. A server can request only capabilities the host has declared. Unknown components, actions, MIME types, and protocol versions are rejected rather than silently interpreted. Binding strings are accepted as opaque host data and must be validated by the host before path-like writes.
 
-`McpNativeRuntime.dispatch()` applies a host-provided action policy and denies every surface action when no policy is configured. The lower-level `callTool()` operation remains available to trusted host code after JSON argument validation and is intentionally outside the surface-action policy. Prefer `createAllowlistActionPolicy()` so surface authorization includes exact or predicated arguments rather than tool names alone. When user review is required on this core dispatch path, `createConsentActionPolicy()` matches the same closed tool/argument boundary and supplies one immutable, host-authored risk, capability, sensitive-data, and external-sharing descriptor per dispatch; every descriptor dimension must be declared explicitly. Unknown actions and overlapping reviews fail closed, approval is not retained, and server annotations never populate or grant the consent descriptor. This core helper does not automatically govern direct `callTool()`, MCP Apps host callbacks, or A2UI v1 renderer-to-agent delivery; each host boundary requires explicit policy integration.
+`McpNativeRuntime.dispatch()` applies a host-provided action policy and denies every surface action when no policy is configured. The lower-level `callTool()` operation remains available to trusted host code after JSON argument validation and is intentionally outside the surface-action policy. Prefer `createAllowlistActionPolicy()` so surface authorization includes exact or predicated arguments rather than tool names alone. When user review is required on this core dispatch path, `createConsentActionPolicy()` matches the same closed tool/argument boundary and supplies one immutable, host-authored risk, capability, sensitive-data, and external-sharing descriptor per dispatch; every descriptor dimension must be declared explicitly. Unknown actions and overlapping reviews fail closed, approval is not retained, and server annotations never populate or grant the consent descriptor. This core helper does not automatically govern direct `callTool()`, MCP Apps host callbacks, or A2UI v1 renderer-to-agent delivery. The high-level host package provides the explicit shared policy integration for the latter two paths; direct trusted calls remain separate.
 
 Future capabilities that touch sensitive device APIs must be brokered by the host and may require user approval. Server declarations alone never grant device access.
 

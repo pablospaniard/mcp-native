@@ -371,8 +371,9 @@ The `@mcp-native/host` workspace now includes a headless controller above its cl
 resolver. It owns fresh connection units, automatic tool discovery, calls, cancellation, reconnect,
 stale-result rejection, teardown, and bounded immutable snapshots. Calls use only the exact tool
 definition and extension snapshots discovered on the active connection, then return A2UI, MCP Apps,
-ordinary, or invalid without cross-format retry. The host-package gate remains open until unified
-action authorization and React Native rendering are composed behind the high-level API.
+ordinary, or invalid without cross-format retry. The host-package gate remains open until React
+Native rendering is composed behind the high-level API. A single fail-closed application action
+policy now supplies the protocol-specific A2UI delivery and MCP Apps bridge authorization callbacks.
 
 ### Host-package gate
 
@@ -390,7 +391,7 @@ action authorization and React Native rendering are composed behind the high-lev
       stable ownership boundary, tool-call state, one result renderer, safe primitive defaults,
       optional host-owned catalog overrides, accessible loading/error/empty/fallback states, and exact
       WebView lifecycle cleanup.
-- [ ] Route A2UI and MCP Apps actions through one documented application authorization boundary while
+- [x] Route A2UI and MCP Apps actions through one documented application authorization boundary while
       retaining protocol-specific validation, serialization, consent, and delivery rules. Unknown or
       sensitive actions remain denied until explicitly approved.
 - [ ] Keep the low-level packages public and independently usable. Document the choice between the
