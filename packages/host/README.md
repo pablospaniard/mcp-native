@@ -49,9 +49,11 @@ transport and server errors never enter the controller snapshot.
 
 Use `getSnapshot()` and `subscribe()` to observe connection, tool-discovery, and call state. Only one
 discovery or call runs at a time. `refreshTools()` forces the official SDK to replace a still-fresh
-cached list. An `AbortSignal` or `cancelCurrentCall()` reaches the official SDK; late results from a
-cancelled, timed-out, or replaced connection cannot update state. Unsettled work and live listeners
-are bounded. `setOnline()`, `retry()`, and `shutdown()` expose the lifecycle controls.
+cached list. The official SDK aggregates `listTools()` pagination when called without a cursor; the
+controller rejects any residual `nextCursor` as an incomplete tool list instead of exposing a
+partial call allowlist. An `AbortSignal` or `cancelCurrentCall()` reaches the official SDK; late
+results from a cancelled, timed-out, or replaced connection cannot update state. Unsettled work and
+live listeners are bounded. `setOnline()`, `retry()`, and `shutdown()` expose the lifecycle controls.
 
 MIME type alone never grants an executable UI path. A2UI and MCP Apps require exact mutual
 extension negotiation. An ambiguous result or a failure after a standard path has been selected
