@@ -42,6 +42,7 @@ const retryable = () => ({ kind: "retryable", code: "network-unavailable" });
 function createController({
   tool = { name: "status", inputSchema: { type: "object" } },
   tools = [tool],
+  nextCursor,
   result = { content: [{ type: "text", text: "Ready" }] },
   readResource = async () => ({ contents: [] }),
   extensions = {},
@@ -50,7 +51,7 @@ function createController({
     createConnection: () => ({
       client: {
         async listTools() {
-          return { tools };
+          return { tools, ...(nextCursor === undefined ? {} : { nextCursor }) };
         },
         async callTool(name, arguments_) {
           return typeof result === "function" ? result(name, arguments_) : result;
@@ -266,7 +267,7 @@ test("provider retains one controller through React Strict Mode effect replay", 
   assert.equal(closes, 1);
 });
 
-test("empty tool discovery renders an explicit accessible state", async () => {
+test("empty final tool discovery renders an explicit accessible state", async () => {
   const mounted = await mountHost(createController({ tools: [] }));
 
   assert.deepEqual(textValues(mounted.root), [
@@ -280,6 +281,18 @@ test("empty tool discovery renders an explicit accessible state", async () => {
   assert.equal(title.props.allowFontScaling, true);
   assert.equal(detail.props.accessibilityLiveRegion, "polite");
   assert.equal(detail.props.allowFontScaling, true);
+
+  await act(async () => mounted.root.unmount());
+});
+
+test("an empty paginated tool page does not claim that the server has no tools", async () => {
+  const mounted = await mountHost(createController({ tools: [], nextCursor: "next-page" }));
+
+  assert.deepEqual(textValues(mounted.root), [
+    "Tool discovery incomplete",
+    "The MCP server returned another tool page that this host could not load.",
+  ]);
+  assert.doesNotMatch(textValues(mounted.root).join(" "), /No tools/);
 
   await act(async () => mounted.root.unmount());
 });
