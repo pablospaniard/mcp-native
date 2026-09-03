@@ -1,8 +1,8 @@
 # Roadmap
 
 MCP Native has completed Milestones 0–9. The low-level React Native, A2UI, MCP Apps, MCP SDK, and
-policy boundaries planned for 1.0 are in place. Milestone 10 now adds a high-level host package so a
-consumer can connect a compatible MCP server, call a tool, and automatically render a supported
+policy boundaries planned for 1.0 are in place. Milestone 10 now includes a high-level host package
+so a consumer can connect a compatible MCP server, call a tool, and automatically render a supported
 standard result or safe ordinary-content fallback without manually composing those layers. Final
 review, validation, migration, documentation, and publication follow that host-package work.
 
@@ -367,13 +367,13 @@ The [`1.0.0` readiness checklist](1.0-readiness.md) separates checks already enf
 repository from the new host-package work, remaining independent reviews, migration step, and final
 publication actions.
 
-The `@mcp-native/host` workspace now includes a headless controller above its closed, bounded result
-resolver. It owns fresh connection units, automatic tool discovery, calls, cancellation, reconnect,
-stale-result rejection, teardown, and bounded immutable snapshots. Calls use only the exact tool
-definition and extension snapshots discovered on the active connection, then return A2UI, MCP Apps,
-ordinary, or invalid without cross-format retry. The host-package gate remains open until React
-Native rendering is composed behind the high-level API. A single fail-closed application action
-policy now supplies the protocol-specific A2UI delivery and MCP Apps bridge authorization callbacks.
+The `@mcp-native/host` workspace now includes a headless controller and an optional React Native
+provider/result renderer above its closed, bounded result resolver. It owns fresh connection units,
+automatic tool discovery, calls, cancellation, reconnect, stale-result rejection, teardown, and
+bounded immutable snapshots. Calls use only the exact tool definition and extension snapshots
+discovered on the active connection, then render A2UI, MCP Apps, ordinary, or invalid without
+cross-format retry. A single fail-closed application action policy supplies the protocol-specific
+A2UI delivery and MCP Apps bridge authorization callbacks.
 
 ### Host-package gate
 
@@ -387,20 +387,20 @@ policy now supplies the protocol-specific A2UI delivery and MCP Apps bridge auth
       MCP content, or invalid. Load linked resources, validate every server-controlled value, and
       produce a closed renderable-result union without MIME guessing or fallback from failed standard
       validation into another executable UI path.
-- [ ] Provide React Native integration for the complete host flow, including a provider or equivalent
+- [x] Provide React Native integration for the complete host flow, including a provider or equivalent
       stable ownership boundary, tool-call state, one result renderer, safe primitive defaults,
       optional host-owned catalog overrides, accessible loading/error/empty/fallback states, and exact
       WebView lifecycle cleanup.
 - [x] Route A2UI and MCP Apps actions through one documented application authorization boundary while
       retaining protocol-specific validation, serialization, consent, and delivery rules. Unknown or
       sensitive actions remain denied until explicitly approved.
-- [ ] Keep the low-level packages public and independently usable. Document the choice between the
+- [x] Keep the low-level packages public and independently usable. Document the choice between the
       plug-and-play host path and manual connection, negotiation, parsing, storage, policy, and
       rendering composition.
 - [x] Add focused official-SDK integration and hostile-input tests for the supported host flow,
       including connection, tool discovery and calls, result classification, cancellation,
       reconnect, teardown, and rejection of malformed, ambiguous, or oversized results.
-- [ ] Run the host package through the repository's normal build, lint, typecheck, public-API,
+- [x] Run the host package through the repository's normal build, lint, typecheck, public-API,
       dependency-boundary, package-smoke, and relevant native checks locally or in CI. Summarize the
       result in the pull request or release; do not commit generated applications, raw logs,
       screenshots, reports, matrices, or transcripts solely as release evidence.

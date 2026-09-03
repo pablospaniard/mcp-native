@@ -41,10 +41,12 @@ caller-supplied negotiation maps independently of that connection.
 
 The headless host controller snapshot, lifecycle methods, stable controller error codes, automatic
 rediscovery behavior, one-active-operation rule, and cancellation/stale-result semantics are also
-proposed `1.x` compatibility surfaces. Tool calls are eligible only after the exact definition has
-been discovered on the active connection; reconnect clears both discovered tools and prior call
-state before automatically discovering again. Explicit `refreshTools()` ignores a still-fresh SDK
-cache entry and replaces it with a newly fetched, validated aggregate.
+proposed `1.x` compatibility surfaces. The `/react-native` provider, hook, result renderer, stable
+render-error codes, fixed host states, ordinary-text bound, and exact MCP Apps ownership rules join
+that proposed surface. Tool calls are eligible only after the exact definition has been discovered
+on the active connection; reconnect clears both discovered tools and prior call state before
+automatically discovering again. Explicit `refreshTools()` ignores a still-fresh SDK cache entry and
+replaces it with a newly fetched, validated aggregate.
 
 ## Package boundaries
 
@@ -64,8 +66,8 @@ commands, or a cross-boundary WebView escape is not a compatible extension.
 
 `npm run api:verify` builds every existing package and compares all declared package subpaths,
 runtime export names, and the complete emitted declaration surface with
-`docs/public-api-baseline.json`. Milestone 10 must add the reviewed host-package surface to that
-baseline before the stable tag. Package
+`docs/public-api-baseline.json`. The reviewed host-package root and `/react-native` surface are
+included in that baseline before the stable tag. Package
 smoke tests verify the declared exports, JavaScript and declaration source maps, README, and exact
 MIT license in every tarball. The same gate runs every supported subpath in a migration-ready clean
 consumer before and after an offline replacement of the latest coordinated published `0.9.x`

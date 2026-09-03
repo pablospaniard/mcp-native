@@ -10,6 +10,7 @@
     { "path": "../core" },
     { "path": "../mcp" },
     { "path": "../a2ui" },
+    { "path": "../react-native" },
     { "path": "../webview" }
   ],
   "include": ["src/**/*.ts"]

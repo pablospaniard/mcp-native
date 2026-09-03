@@ -67,12 +67,17 @@
       }
     },
     "@mcp-native/host": {
-      "declarationSha256": "41166ecaae0f6d0c8669d50f655a6fb9b0220955b827719ffe18117cb8244791",
+      "declarationSha256": "59d6fc96969cc040a3d2f6d763636b08259cb7966f8fc9c606cd924a8e5bd190",
       "exports": {
         ".": {
           "import": "./dist/index.js",
           "runtimeSha256": "c6809c3990334ce04b282abe69101b15a10154bb3d75da96e3e3f2be6b6667cc",
           "types": "./dist/index.d.ts"
+        },
+        "./react-native": {
+          "import": "./dist/react-native.js",
+          "runtimeSha256": "5f7dbb3af026314a6970edbed1fe566ac45e21ee7167af690f1b1376e58efe6f",
+          "types": "./dist/react-native.d.ts"
         }
       }
     },
