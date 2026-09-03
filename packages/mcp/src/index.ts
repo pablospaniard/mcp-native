@@ -66,6 +66,18 @@ export interface McpSdkClientAdapterOptions {
   readonly clientExtensions?: unknown;
 }
 
+/** Host-owned cancellation options forwarded to one official SDK operation. */
+export interface McpSdkRequestOptions {
+  readonly signal?: AbortSignal;
+}
+
+/** Closed official-SDK cache policy available only to tool-list requests. */
+export type McpSdkCacheMode = "bypass" | "refresh" | "use";
+
+export interface McpSdkListToolsOptions extends McpSdkRequestOptions {
+  readonly cacheMode?: McpSdkCacheMode;
+}
+
 /** The exact MCP core revision targeted by MCP Native's modern compatibility lane. */
 export const MCP_NATIVE_PROTOCOL_REVISION = "2026-07-28" as const;
 
@@ -159,24 +171,29 @@ export class McpSdkClientAdapter implements McpClient {
     return this.#clientExtensions;
   }
 
-  async listTools(): Promise<McpListToolsResult> {
-    const result = expectResultObject(await this.#client.listTools(), "tools result");
-    return {
-      tools: expectArray(result.tools, "tools result.tools", MCP_SDK_MAX_RESULT_ITEMS).map(
-        (value, index) => mapTool(value, `tools result.tools[${index}]`),
-      ),
-      ...mapPagination(result, "tools result"),
-      ...mapCacheHints(result, "tools result"),
-      ...mapResultMeta(result, "tools result"),
-    };
+  async listTools(options: McpSdkListToolsOptions = {}): Promise<McpListToolsResult> {
+    return parseMcpSdkListToolsResult(
+      await this.#client.listTools(undefined, mapSdkListToolsOptions(options)),
+    );
   }
 
-  async callTool(name: string, arguments_: JsonObject): Promise<McpToolCallResult> {
-    return parseMcpSdkToolCallResult(await this.#client.callTool({ name, arguments: arguments_ }));
+  async callTool(
+    name: string,
+    arguments_: JsonObject,
+    options: McpSdkRequestOptions = {},
+  ): Promise<McpToolCallResult> {
+    return parseMcpSdkToolCallResult(
+      await this.#client.callTool({ name, arguments: arguments_ }, mapSdkRequestOptions(options)),
+    );
   }
 
-  async readResource(uri: string): Promise<McpReadResourceResult> {
-    return parseMcpSdkReadResourceResult(await this.#client.readResource({ uri }));
+  async readResource(
+    uri: string,
+    options: McpSdkRequestOptions = {},
+  ): Promise<McpReadResourceResult> {
+    return parseMcpSdkReadResourceResult(
+      await this.#client.readResource({ uri }, mapSdkRequestOptions(options)),
+    );
   }
 
   getServerExtensionSettings(): McpExtensionSettings {
@@ -204,6 +221,22 @@ export function createMcpSdkClientAdapter(
 /** Validates and reconstructs one untrusted tool from an official SDK result. */
 export function parseMcpSdkTool(value: unknown, path = "tool"): McpTool {
   return mapTool(expectResultObject(value, path), path);
+}
+
+/** Validates and reconstructs one untrusted tool-list result from the official SDK boundary. */
+export function parseMcpSdkListToolsResult(
+  value: unknown,
+  path = "tools result",
+): McpListToolsResult {
+  const result = expectResultObject(value, path);
+  return {
+    tools: expectArray(result.tools, `${path}.tools`, MCP_SDK_MAX_RESULT_ITEMS).map((tool, index) =>
+      mapTool(tool, `${path}.tools[${index}]`),
+    ),
+    ...mapPagination(result, path),
+    ...mapCacheHints(result, path),
+    ...mapResultMeta(result, path),
+  };
 }
 
 /** Validates and reconstructs one untrusted tool-call result from the official SDK boundary. */
@@ -238,6 +271,63 @@ export function parseMcpSdkReadResourceResult(
     ...mapCacheHints(result, path),
     ...mapResultMeta(result, path),
   };
+}
+
+function mapSdkRequestOptions(options: McpSdkRequestOptions): { signal?: AbortSignal } | undefined {
+  if (
+    options === null ||
+    typeof options !== "object" ||
+    Array.isArray(options) ||
+    Object.keys(options).some((key) => key !== "signal")
+  ) {
+    throw new McpSdkAdapterError("SDK request options must be an object containing only signal");
+  }
+  const signal = validateSdkRequestSignal(options.signal);
+  return signal === undefined ? undefined : { signal };
+}
+
+function mapSdkListToolsOptions(
+  options: McpSdkListToolsOptions,
+): { signal?: AbortSignal; cacheMode?: McpSdkCacheMode } | undefined {
+  if (
+    options === null ||
+    typeof options !== "object" ||
+    Array.isArray(options) ||
+    Object.keys(options).some((key) => key !== "cacheMode" && key !== "signal")
+  ) {
+    throw new McpSdkAdapterError(
+      "SDK tool-list options must be an object containing only cacheMode and signal",
+    );
+  }
+  const signal = validateSdkRequestSignal(options.signal);
+  const cacheMode = options.cacheMode;
+  if (
+    cacheMode !== undefined &&
+    cacheMode !== "bypass" &&
+    cacheMode !== "refresh" &&
+    cacheMode !== "use"
+  ) {
+    throw new McpSdkAdapterError("SDK tool-list cache mode is unsupported");
+  }
+  if (signal === undefined && cacheMode === undefined) return undefined;
+  return {
+    ...(signal === undefined ? {} : { signal }),
+    ...(cacheMode === undefined ? {} : { cacheMode }),
+  };
+}
+
+function validateSdkRequestSignal(signal: unknown): AbortSignal | undefined {
+  if (signal === undefined) return undefined;
+  if (
+    signal === null ||
+    typeof signal !== "object" ||
+    typeof (signal as AbortSignal).aborted !== "boolean" ||
+    typeof (signal as AbortSignal).addEventListener !== "function" ||
+    typeof (signal as AbortSignal).removeEventListener !== "function"
+  ) {
+    throw new McpSdkAdapterError("SDK request signal must be an AbortSignal");
+  }
+  return signal as AbortSignal;
 }
 
 function mapContent(value: unknown, path: string): McpContent {

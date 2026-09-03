@@ -1031,3 +1031,44 @@ test("the SDK adapter expands limits only for bounded resource bodies", async ()
     ),
   );
 });
+
+test("the SDK adapter forwards strict host request options", async () => {
+  const observed = [];
+  const adapter = new McpSdkClientAdapter({
+    async listTools(_params, options) {
+      observed.push(options);
+      return { tools: [] };
+    },
+    async callTool(_params, options) {
+      observed.push(options);
+      return { content: [] };
+    },
+    async readResource(_params, options) {
+      observed.push(options);
+      return { contents: [] };
+    },
+  });
+  const cancellation = new AbortController();
+
+  await adapter.listTools({ signal: cancellation.signal, cacheMode: "refresh" });
+  await adapter.callTool("noop", {}, { signal: cancellation.signal });
+  await adapter.readResource("ui://noop", { signal: cancellation.signal });
+  assert.deepEqual(
+    observed.map((options) => options.signal),
+    [cancellation.signal, cancellation.signal, cancellation.signal],
+  );
+  assert.equal(observed[0].cacheMode, "refresh");
+
+  await assert.rejects(
+    () => adapter.listTools({ signal: /** @type {any} */ ({ aborted: false }) }),
+    /AbortSignal/,
+  );
+  await assert.rejects(
+    () => adapter.callTool("noop", {}, /** @type {any} */ ({ timeout: 1 })),
+    /only signal/,
+  );
+  await assert.rejects(
+    () => adapter.listTools(/** @type {any} */ ({ cacheMode: "stale" })),
+    /cache mode is unsupported/,
+  );
+});
