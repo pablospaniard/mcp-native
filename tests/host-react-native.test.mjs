@@ -250,6 +250,40 @@ test("provider rejects an overlapping call without replacing the active result c
   await act(async () => mounted.root.unmount());
 });
 
+test("provider preserves its result context when controller call preflight is rejected", async () => {
+  const mounted = await mountHost(
+    createController({
+      result(_name, arguments_) {
+        return { content: [{ type: "text", text: `Madrid: ${arguments_.unit}` }] };
+      },
+    }),
+  );
+  await act(async () => mounted.host.callTool("status", { unit: "C" }));
+  const activeCall = mounted.host.activeCall;
+
+  await act(async () => {
+    await assert.rejects(
+      () => mounted.host.callTool("unknown", { unit: "F" }),
+      (error) => error instanceof McpNativeHostControllerError && error.code === "tool-not-listed",
+    );
+  });
+  assert.equal(mounted.host.activeCall, activeCall);
+  assert.deepEqual(textValues(mounted.root), ["Result", "Madrid: C"]);
+
+  const abortController = new AbortController();
+  abortController.abort();
+  await act(async () => {
+    await assert.rejects(
+      () => mounted.host.callTool("status", { unit: "F" }, { signal: abortController.signal }),
+      (error) => error instanceof McpNativeHostControllerError && error.code === "cancelled",
+    );
+  });
+  assert.equal(mounted.host.activeCall, activeCall);
+  assert.deepEqual(textValues(mounted.root), ["Result", "Madrid: C"]);
+
+  await act(async () => mounted.root.unmount());
+});
+
 test("provider retains one controller through React Strict Mode effect replay", async () => {
   let connects = 0;
   let closes = 0;

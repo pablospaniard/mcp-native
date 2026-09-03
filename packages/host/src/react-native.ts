@@ -169,10 +169,19 @@ export function McpNativeHostProvider({
         throw new McpNativeHostControllerError("operation-in-progress");
       }
       callPending.current = true;
-      const sequence = ++callSequence.current;
-      setActiveCall(Object.freeze({ id: sequence, name: action.name, arguments: ownedArguments }));
       try {
-        const result = await controller.callTool(action.name, ownedArguments, options);
+        const previousCallState = controller.getSnapshot().call;
+        const pendingResult = controller.callTool(action.name, ownedArguments, options);
+        // Accepted calls synchronously publish a fresh loading state before their promise is
+        // returned. An unchanged state means controller preflight rejected the call.
+        if (controller.getSnapshot().call === previousCallState) {
+          return await pendingResult;
+        }
+        const sequence = ++callSequence.current;
+        setActiveCall(
+          Object.freeze({ id: sequence, name: action.name, arguments: ownedArguments }),
+        );
+        const result = await pendingResult;
         if (mountedRef.current && callSequence.current === sequence) {
           setActiveCall(
             Object.freeze({ id: sequence, name: action.name, arguments: ownedArguments, result }),
