@@ -318,6 +318,8 @@ export class A2uiV1NativeMountError extends Error {
 }
 
 const nativeHosts = new WeakSet<A2uiV1NativeHost>();
+const nativeHostResetKeys = new WeakMap<A2uiV1NativeHost, number>();
+let nextNativeHostResetKey = 1;
 
 /**
  * Creates a frozen native host whose policy and advertised capabilities cannot drift from its
@@ -328,13 +330,13 @@ export function createA2uiV1NativeHost(options: A2uiV1NativeHostOptions): A2uiV1
     throw new TypeError("Expected A2UI native host options to be an object");
   }
   const components = freezeNativeComponentCatalog(options.components);
-  const supportedComponentNames = getA2uiV1NativeSupportedComponentNames(components, {
+  const installedComponentNames = getA2uiV1NativeSupportedComponentNames(components, {
     ...(options.imagePolicy === undefined ? {} : { imagePolicy: options.imagePolicy }),
     ...(options.mediaPolicy === undefined ? {} : { mediaPolicy: options.mediaPolicy }),
   });
-  const supportedSet = new Set(supportedComponentNames);
+  const supportedSet = new Set(installedComponentNames);
   const allowedComponentNames = Object.freeze([
-    ...(options.allowedComponentNames ?? supportedComponentNames),
+    ...(options.allowedComponentNames ?? installedComponentNames),
   ]);
   for (const name of allowedComponentNames) {
     if (!supportedSet.has(name)) {
@@ -376,6 +378,7 @@ export function createA2uiV1NativeHost(options: A2uiV1NativeHostOptions): A2uiV1
     ...(options.hostExtensions === undefined ? {} : { hostExtensions: options.hostExtensions }),
     allowedHostExtensionComponentNames,
   });
+  const supportedComponentNames = Object.freeze([...policy.allowedComponentNames]);
   const layoutContracts = freezeLayoutContracts(
     options.layoutContracts === undefined ? {} : options.layoutContracts,
     getInstalledNativeComponentNames(components),
@@ -414,6 +417,8 @@ export function createA2uiV1NativeHost(options: A2uiV1NativeHostOptions): A2uiV1
     hostExtensionLayoutContracts,
   });
   nativeHosts.add(host);
+  nativeHostResetKeys.set(host, nextNativeHostResetKey);
+  nextNativeHostResetKey += 1;
   return host;
 }
 
@@ -1084,9 +1089,11 @@ export function A2uiV1NativeHostSurface(props: A2uiV1NativeHostSurfaceProps): Re
   const resetKey =
     props.resetKey ??
     canonicalizeJson([
+      nativeHostResetKeys.get(props.host) ?? 0,
       props.surface.surfaceId,
       props.surface.dataModelRevision ?? null,
       props.surface.dataModel,
+      createComponentSourceKey(props.surface),
     ]);
   return createElement(
     A2uiV1NativeSurfaceBoundary,

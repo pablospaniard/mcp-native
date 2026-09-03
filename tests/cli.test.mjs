@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -66,6 +66,19 @@ test("catalog and extension scaffolds are valid and never overwrite", () => {
     const parsed = parseA2uiV1HostExtensionManifest(manifest);
     assert.equal(parsed.componentName, "com.example/data-grid:DataGrid");
     assert.match(readFileSync(join(directory, "DataGrid.tsx"), "utf8"), /semanticProps\.label/);
+
+    const existingComponentPath = join(directory, "Existing.tsx");
+    const pendingManifestPath = join(directory, "Existing.manifest.json");
+    writeFileSync(existingComponentPath, "// keep\n");
+    const partialCollision = spawnSync(
+      process.execPath,
+      [cli, "scaffold-extension", "com.example/existing", "Existing", directory],
+      { encoding: "utf8" },
+    );
+    assert.equal(partialCollision.status, 1);
+    assert.match(partialCollision.stderr, /Refusing to overwrite/);
+    assert.equal(existsSync(pendingManifestPath), false);
+    assert.equal(readFileSync(existingComponentPath, "utf8"), "// keep\n");
   } finally {
     rmSync(directory, { recursive: true });
   }

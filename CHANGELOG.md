@@ -14,7 +14,8 @@ their minor release line.
 - Add pre-React `inspectA2uiV1NativeMount`/`assertA2uiV1NativeMount` diagnostics, the registered
   `A2uiV1NativeHostSurface`, and a reusable redacted surface-wide render boundary with reset support.
 - Add `McpNativeRegisteredHostResultView` so the high-level React Native host consumes that same
-  registration without separately forwarding catalog and resource-policy props.
+  registration without separately forwarding catalog and resource-policy props, and enforces its
+  optional shell parent-layout contract before rendering A2UI results.
 - Add canonical design-system cases at `@mcp-native/react-native/testing` for Divider,
   ChoicePicker, Slider, Tabs, and Modal semantics.
 - Add the non-networked `mcp-native doctor`, `scaffold-catalog`, and `scaffold-extension` commands;

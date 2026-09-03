@@ -90,6 +90,7 @@ function WeatherResult() {
       <AppButton onPress={() => host.callTool("weather", { city: "Madrid" })} />
       <McpNativeRegisteredHostResultView
         nativeHost={appNativeHost}
+        parentLayout="scroll"
         onA2uiAction={handleA2uiAction}
         onError={reportLocalError}
         mcpApps={appMcpAppsOptions}
@@ -107,9 +108,11 @@ export function App() {
 }
 ```
 
-Use `inspectA2uiV1NativeMount(resultSurface, appNativeHost, { parentLayout })` before mounting when
-the shell needs to reject unsupported scrolling, fill-height, or overlay combinations explicitly.
-Direct low-level users can mount `A2uiV1NativeHostSurface`, which includes the same preflight and a
+The registered result view passes its optional `parentLayout` through the native-host preflight, so
+unsupported scrolling, fill-height, or overlay combinations fail before catalog rendering. Omission
+uses the native surface's `unbounded` default. Manual result composers can call
+`inspectA2uiV1NativeMount(resultSurface, appNativeHost, { parentLayout })` before mounting. Direct
+low-level users can mount `A2uiV1NativeHostSurface`, which includes the same preflight and a
 redacted, resettable render boundary.
 
 The provider calls `start()` after mount, publishes immutable snapshots with

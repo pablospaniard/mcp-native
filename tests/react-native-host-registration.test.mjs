@@ -8,10 +8,7 @@ import {
   negotiateA2uiV1HostExtensions,
   parseA2uiV1HostExtensionManifest,
 } from "../packages/a2ui/dist/index.js";
-import {
-  McpNativeHostResultView,
-  McpNativeRegisteredHostResultView,
-} from "../packages/host/dist/react-native.js";
+import { McpNativeRegisteredHostResultView } from "../packages/host/dist/react-native.js";
 import {
   A2uiV1NativeHostSurface,
   A2uiV1NativeMountError,
@@ -72,6 +69,13 @@ test("native host derives a frozen validation and capability source of truth", (
     "TextField",
   ]);
   assert.deepEqual(host.policy.allowedComponentNames, host.supportedComponentNames);
+
+  const narrowedHost = createA2uiV1NativeHost({
+    components,
+    allowedComponentNames: ["Text", "Divider"],
+  });
+  assert.deepEqual(narrowedHost.supportedComponentNames, ["Text", "Divider"]);
+  assert.deepEqual(narrowedHost.supportedComponentNames, narrowedHost.policy.allowedComponentNames);
 
   components.Divider = undefined;
   assert.notEqual(host.components.Divider, undefined);
@@ -134,14 +138,16 @@ test("native host definitions reject malformed catalogs and layout contracts", (
   );
 });
 
-test("high-level registered result view forwards the complete native host registration", () => {
+test("high-level registered result view retains the complete native host registration", () => {
   const nativeHost = createA2uiV1NativeHost({ components: baseComponents });
   const element = McpNativeRegisteredHostResultView({
     nativeHost,
+    parentLayout: "scroll",
     onA2uiAction() {},
     onError() {},
   });
-  assert.equal(element.type, McpNativeHostResultView);
+  assert.equal(element.props.nativeHost, nativeHost);
+  assert.equal(element.props.parentLayout, "scroll");
   assert.equal(element.props.components, nativeHost.components);
   assert.equal(element.props.a2uiPolicy, nativeHost.policy);
   assert.throws(
@@ -329,7 +335,7 @@ test("mount preflight separates capability denial from resource-plan rejection",
   );
 });
 
-test("registered host surface contains and redacts catalog failures, then resets", async (t) => {
+test("registered host surface contains failures and resets for component-only updates", async (t) => {
   t.mock.method(console, "error", () => {});
   function ThrowingText(props) {
     if (props.children === "fail") throw new Error("private design-system details");
@@ -338,25 +344,30 @@ test("registered host surface contains and redacts catalog failures, then resets
   const host = createA2uiV1NativeHost({
     components: { ...baseComponents, Text: ThrowingText },
   });
+  const replacementHost = createA2uiV1NativeHost({ components: baseComponents });
   const errors = [];
   const root = createRoot();
-  const render = (text, resetKey) =>
+  const render = (text, selectedHost = host) =>
     createElement(A2uiV1NativeHostSurface, {
-      host,
+      host: selectedHost,
       surface: createSurface([{ id: "root", component: "Text", text }]),
       onAction() {},
       onRenderError: (error) => errors.push(error),
       fallback: createElement("Fallback", { value: "safe" }),
-      resetKey,
     });
 
-  await act(() => root.render(render("fail", "first")));
+  await act(() => root.render(render("fail")));
   assert.equal(root.container.queryAll((element) => element.type === "Fallback").length, 1);
   assert.equal(errors.length, 1);
   assert.ok(errors[0] instanceof A2uiV1NativeRenderError);
   assert.doesNotMatch(errors[0].message, /private design-system details/);
 
-  await act(() => root.render(render("recovered", "second")));
+  await act(() => root.render(render("recovered")));
+  assert.equal(root.container.queryAll((element) => element.type === "Text").length, 1);
+
+  await act(() => root.render(render("fail")));
+  assert.equal(root.container.queryAll((element) => element.type === "Fallback").length, 1);
+  await act(() => root.render(render("fail", replacementHost)));
   assert.equal(root.container.queryAll((element) => element.type === "Text").length, 1);
 });
 

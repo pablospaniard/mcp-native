@@ -139,12 +139,20 @@ function scaffoldExtension(commandArguments) {
   const outputDirectory = resolve(directoryArgument);
   const manifestPath = join(outputDirectory, `${componentName}.manifest.json`);
   const componentPath = join(outputDirectory, `${componentName}.tsx`);
+  assertNewFiles([manifestPath, componentPath]);
   writeNewFile(
     manifestPath,
     `${JSON.stringify(extensionManifest(extensionId, componentName), null, 2)}\n`,
   );
   writeNewFile(componentPath, extensionComponentTemplate(componentName));
   process.stdout.write(`Created ${manifestPath}\nCreated ${componentPath}\n`);
+}
+
+function assertNewFiles(paths) {
+  const existingPath = paths.find(existsSync);
+  if (existingPath !== undefined) {
+    throw new Error(`Refusing to overwrite existing file ${existingPath}`);
+  }
 }
 
 function writeNewFile(path, content) {

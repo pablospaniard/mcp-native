@@ -72,7 +72,7 @@
       }
     },
     "@mcp-native/host": {
-      "declarationSha256": "f11ac3ee5ff1f3de626bbf73b54df7f81a99a8e48cc65e9c5227b391ee0b4a18",
+      "declarationSha256": "86d7a8a5075bd61288498c8dd513b7c8f9b1a0b1532b9ddedad1b25258af92e4",
       "exports": {
         ".": {
           "import": "./dist/index.js",
