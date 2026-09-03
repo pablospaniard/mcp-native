@@ -35,7 +35,9 @@ The proposed host result surface is a closed union: `a2ui`, `mcp-app`, `ordinary
 The two executable UI outcomes require exact mutual extension negotiation. A result claimed by both
 negotiated profiles is invalid, and failure after selecting either standard path never retries as
 ordinary content or through another renderer. Invalid results expose a stable host-authored code,
-not a server or transport error string.
+not a server or transport error string. The resolver receives one connection-bound client whose
+resource reader and client/server extension snapshots are inseparable; it does not accept
+caller-supplied negotiation maps independently of that connection.
 
 ## Package boundaries
 

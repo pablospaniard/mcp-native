@@ -72,12 +72,24 @@ try {
   }
   const hostDeclarations = readFileSync("packages/host/dist/results.d.ts", "utf8");
   for (const typeName of [
+    "McpNativeHostClient",
     "McpNativeHostResult",
     "MCP_NATIVE_HOST_EXTENSION_CAPABILITIES",
     "resolveMcpNativeHostResult",
   ]) {
     if (!hostDeclarations.includes(typeName)) {
       throw new Error(`@mcp-native/host declarations are missing ${typeName}`);
+    }
+  }
+  const mcpDeclarations = readFileSync("packages/mcp/dist/index.d.ts", "utf8");
+  for (const typeName of [
+    "MCP_SDK_MAX_RESOURCE_TEXT_LENGTH",
+    "MCP_SDK_MAX_RESOURCE_BLOB_LENGTH",
+    "MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS",
+    "parseMcpSdkReadResourceResult",
+  ]) {
+    if (!mcpDeclarations.includes(typeName)) {
+      throw new Error(`@mcp-native/mcp declarations are missing ${typeName}`);
     }
   }
   const oauthDeclarations = ["oauth", "oauth-error", "oauth-native"]

@@ -23,6 +23,8 @@ import {
   MCP_NATIVE_LEGACY_PROTOCOL_REVISION,
   MCP_NATIVE_PROTOCOL_REVISION,
   MCP_NATIVE_SUPPORTED_PROTOCOL_REVISIONS,
+  MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS,
+  MCP_SDK_MAX_RESOURCE_TEXT_LENGTH,
   MCP_SDK_MAX_RESULT_ITEMS,
   McpSdkAdapterError,
   McpSdkClientAdapter,
@@ -983,5 +985,49 @@ test("the SDK adapter bounds aggregate result collections and strings", async ()
   await assert.rejects(
     () => oversizedStrings.callTool("large", {}),
     /maximum cumulative string\/key length/,
+  );
+});
+
+test("the SDK adapter expands limits only for bounded resource bodies", async () => {
+  const oversizedUri = new McpSdkClientAdapter({
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      return {
+        contents: [{ uri: "u".repeat(65_537), text: "body" }],
+      };
+    },
+  });
+  await assert.rejects(
+    () => oversizedUri.readResource("ui://large-uri"),
+    /resource result\.contents\[0\]\.uri exceeds maximum length of 65536/,
+  );
+
+  const cumulativeBodies = new McpSdkClientAdapter({
+    async listTools() {
+      return { tools: [] };
+    },
+    async callTool() {
+      return { content: [] };
+    },
+    async readResource() {
+      const text = "x".repeat(MCP_SDK_MAX_RESOURCE_TEXT_LENGTH - 2);
+      return {
+        contents: [
+          { uri: "ui://one", text },
+          { uri: "ui://two", text },
+        ],
+      };
+    },
+  });
+  await assert.rejects(
+    () => cumulativeBodies.readResource("ui://cumulative"),
+    new RegExp(
+      `maximum cumulative string/key length of ${MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS}`,
+    ),
   );
 });

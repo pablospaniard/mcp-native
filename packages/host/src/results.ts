@@ -26,8 +26,16 @@ export const MCP_NATIVE_HOST_EXTENSION_CAPABILITIES: McpExtensionSettings = Obje
   ...MCP_APPS_EXTENSION_CAPABILITIES,
 });
 
-export interface McpNativeHostResourceReader {
+/**
+ * Connection-bound MCP client surface required by the host result resolver.
+ *
+ * Resource reads and both extension snapshots must come from the same connected client so callers
+ * cannot manufacture mutual negotiation independently of the connection that produced the result.
+ */
+export interface McpNativeHostClient {
   readResource(uri: string): Promise<McpReadResourceResult>;
+  getClientExtensionSettings(): McpExtensionSettings;
+  getServerExtensionSettings(): McpExtensionSettings;
 }
 
 export type McpNativeHostInvalidResultCode =
@@ -71,12 +79,8 @@ export interface ResolveMcpNativeHostResultOptions {
   readonly tool: unknown;
   /** Untrusted SDK-shaped tool result. */
   readonly result: unknown;
-  /** Resource reader bound to the same MCP server connection as the tool call. */
-  readonly reader: McpNativeHostResourceReader;
-  /** Exact extensions advertised by the client. Defaults to the built-in host map. */
-  readonly clientExtensions?: unknown;
-  /** Exact extension settings reported by the connected server. */
-  readonly serverExtensions: unknown;
+  /** Client bound to the MCP connection that produced the tool and result. */
+  readonly client: McpNativeHostClient;
   readonly a2uiParseOptions?: A2uiV1EnvelopeParseOptions;
 }
 
@@ -94,9 +98,11 @@ export async function resolveMcpNativeHostResult(
     options === null ||
     typeof options !== "object" ||
     Array.isArray(options) ||
-    options.reader === null ||
-    typeof options.reader !== "object" ||
-    typeof options.reader.readResource !== "function"
+    options.client === null ||
+    typeof options.client !== "object" ||
+    typeof options.client.readResource !== "function" ||
+    typeof options.client.getClientExtensionSettings !== "function" ||
+    typeof options.client.getServerExtensionSettings !== "function"
   ) {
     return invalid("invalid-input");
   }
@@ -113,9 +119,10 @@ export async function resolveMcpNativeHostResult(
   let a2uiNegotiation;
   let appsNegotiation;
   try {
-    const clientExtensions = options.clientExtensions ?? MCP_NATIVE_HOST_EXTENSION_CAPABILITIES;
-    a2uiNegotiation = negotiateA2uiMcpBinding(clientExtensions, options.serverExtensions);
-    appsNegotiation = negotiateMcpApps(clientExtensions, options.serverExtensions);
+    const clientExtensions = options.client.getClientExtensionSettings();
+    const serverExtensions = options.client.getServerExtensionSettings();
+    a2uiNegotiation = negotiateA2uiMcpBinding(clientExtensions, serverExtensions);
+    appsNegotiation = negotiateMcpApps(clientExtensions, serverExtensions);
   } catch {
     return invalid("invalid-extension-settings");
   }
@@ -142,7 +149,7 @@ export async function resolveMcpNativeHostResult(
   if (selectsA2ui) {
     try {
       const resource = await resolveA2uiV1JsonlFromToolResult(
-        options.reader,
+        options.client,
         result,
         a2uiNegotiation,
         options.a2uiParseOptions,
@@ -157,7 +164,7 @@ export async function resolveMcpNativeHostResult(
 
   if (appsNegotiation.kind === "negotiated" && appsResourceDeclared) {
     try {
-      const resource = await loadMcpAppsResource(tool, options.reader, appsNegotiation);
+      const resource = await loadMcpAppsResource(tool, options.client, appsNegotiation);
       deepFreeze(resource);
       deepFreeze(result);
       return Object.freeze({ kind: "mcp-app", resource, result });

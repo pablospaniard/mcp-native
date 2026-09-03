@@ -16,11 +16,15 @@ import {
 const resolved = await resolveMcpNativeHostResult({
   tool,
   result,
-  reader: mcpClient,
-  clientExtensions: MCP_NATIVE_HOST_EXTENSION_CAPABILITIES,
-  serverExtensions,
+  client: mcpClient,
 });
 ```
+
+`mcpClient` must be the connection-bound `McpSdkClientAdapter` that performed resource reads and
+retains the client and server extension snapshots. Advertise
+`MCP_NATIVE_HOST_EXTENSION_CAPABILITIES` when constructing the official SDK client and pass that
+same map into the adapter. The resolver deliberately does not accept separate capability maps, so a
+call site cannot manufacture negotiation for a connection that did not advertise a profile.
 
 MIME type alone never grants an executable UI path. A2UI and MCP Apps require exact mutual
 extension negotiation. An ambiguous result or a failure after a standard path has been selected

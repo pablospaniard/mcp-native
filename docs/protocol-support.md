@@ -16,6 +16,14 @@ The verified adapter boundary covers:
 - `resources/read`;
 - the tool, schema, annotation, content, resource, `_meta`, pagination, and cache-hint fields represented by the core contracts.
 
+All SDK-shaped results are reconstructed under explicit JSON work limits. Ordinary strings are
+limited to 65,536 UTF-16 code units and one result to 1,048,576 cumulative string/key code units.
+For `resources/read` only, direct `contents[].text` and `contents[].blob` bodies have limits of
+2,097,152 and 2,796,207 code units respectively, and the complete resource result is capped at
+4,194,304 cumulative code units. This admits the supported standard resource sizes without
+expanding URI, MIME, metadata, or other protocol strings; format-specific consumers still enforce
+their own narrower limits.
+
 The generic extension capability substrate described below handles explicit mutual declarations.
 Tool definitions containing `execution` settings fail closed so task semantics are never silently
 removed.

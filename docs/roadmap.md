@@ -369,7 +369,8 @@ publication actions.
 
 Implementation has started with the `@mcp-native/host` workspace and its closed, bounded result
 resolver. That slice validates SDK-shaped values, negotiates the two pinned UI profiles, resolves the
-selected resource, and returns A2UI, MCP Apps, ordinary, or invalid without cross-format retry. The
+selected resource through the same connection-bound client that owns both extension snapshots, and
+returns A2UI, MCP Apps, ordinary, or invalid without cross-format retry. The
 host-package gate remains open until connection, state, rendering, policy, and lifecycle are composed
 behind the stable high-level API.
 
