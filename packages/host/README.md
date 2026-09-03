@@ -109,9 +109,10 @@ export function App() {
 The provider calls `start()` after mount, publishes immutable snapshots with
 `useSyncExternalStore`, retains the exact validated arguments for the active call, and calls
 `shutdown()` on unmount. An overlapping call or a call rejected during controller preflight does not
-replace the current render context. The result view supplies fixed accessible loading, empty, retry,
-failure, and fallback states. Ordinary text is inert and bounded; errored tool text is not mounted.
-A2UI is rendered only through the supplied catalog.
+replace the current render context; rediscovery or a connection reset clears that context. The
+result view supplies fixed accessible loading, empty, retry, failure, and fallback states. Ordinary
+text is inert and bounded; errored tool text is not mounted. A2UI is rendered only through the
+supplied catalog.
 
 For MCP Apps, `mcpApps.View` must be a local wrapper around the application's installed WebView. It
 receives only the closed safe props, binds that WebView's `postMessage`, and reports both renderer

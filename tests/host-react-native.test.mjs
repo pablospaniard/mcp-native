@@ -95,8 +95,10 @@ async function waitUntil(predicate, remainingTurns = 20) {
 
 async function mountHost(controller, viewProps = resultViewProps(), expectedToolsKind = "ready") {
   let host;
+  const observedHosts = [];
   function Probe() {
     host = useMcpNativeHost();
+    observedHosts.push(host);
     return null;
   }
   const errors = [];
@@ -128,6 +130,7 @@ async function mountHost(controller, viewProps = resultViewProps(), expectedTool
   });
   return {
     errors,
+    observedHosts,
     get host() {
       return host;
     },
@@ -280,6 +283,47 @@ test("provider preserves its result context when controller call preflight is re
   });
   assert.equal(mounted.host.activeCall, activeCall);
   assert.deepEqual(textValues(mounted.root), ["Result", "Madrid: C"]);
+
+  await act(async () => mounted.root.unmount());
+});
+
+test("provider clears stale call context when discovery or connection state resets", async () => {
+  const mounted = await mountHost(
+    createController({
+      result(_name, arguments_) {
+        return { content: [{ type: "text", text: `Madrid: ${arguments_.unit}` }] };
+      },
+    }),
+  );
+
+  await act(async () => mounted.host.callTool("status", { unit: "C" }));
+  assert.equal(mounted.host.activeCall.result.kind, "ordinary");
+  const beforeRefresh = mounted.observedHosts.length;
+  await act(async () => mounted.host.refreshTools());
+  assert.equal(mounted.host.activeCall, undefined);
+  assert.equal(
+    mounted.observedHosts
+      .slice(beforeRefresh)
+      .some((host) => host.snapshot.call.kind === "idle" && host.activeCall !== undefined),
+    false,
+  );
+  assert.deepEqual(textValues(mounted.root), ["Ready", "Choose an available MCP tool."]);
+
+  await act(async () => mounted.host.callTool("status", { unit: "F" }));
+  assert.equal(mounted.host.activeCall.result.kind, "ordinary");
+  const beforeDisconnect = mounted.observedHosts.length;
+  await act(async () => mounted.host.setOnline(false));
+  assert.equal(mounted.host.activeCall, undefined);
+  assert.equal(
+    mounted.observedHosts
+      .slice(beforeDisconnect)
+      .some((host) => host.snapshot.call.kind === "idle" && host.activeCall !== undefined),
+    false,
+  );
+  assert.deepEqual(textValues(mounted.root), ["Disconnected", "The device is offline."]);
+  await act(async () => mounted.host.setOnline(true));
+  assert.equal(mounted.host.activeCall, undefined);
+  assert.deepEqual(textValues(mounted.root), ["Ready", "Choose an available MCP tool."]);
 
   await act(async () => mounted.root.unmount());
 });

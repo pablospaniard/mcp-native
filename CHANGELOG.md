@@ -27,6 +27,8 @@ their minor release line.
 - Preserve the active React Native result context when an overlapping tool call or controller
   preflight is rejected, so the previous successful result cannot become stuck in the preparing
   state.
+- Clear retained React Native call arguments and results when tool rediscovery or a connection
+  transition invalidates the controller's active call state.
 
 ## 0.9.3 - 2026-09-03
 
