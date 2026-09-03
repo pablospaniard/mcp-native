@@ -24,6 +24,13 @@ function requirePackedFile(packageName, packedFiles, path) {
   }
 }
 
+function collectBinTargets(value) {
+  const targets = typeof value === "string" ? [value] : Object.values(value ?? {});
+  return targets.map((path) =>
+    typeof path === "string" && path.startsWith("./") ? path.slice(2) : path,
+  );
+}
+
 export function verifyPackageArtifacts({
   packageName,
   packageDirectory,
@@ -61,6 +68,7 @@ export function verifyPackageArtifacts({
     "README.md",
     "package.json",
     ...collectExportTargets(manifest.exports),
+    ...collectBinTargets(manifest.bin),
     ...additionalRequiredFiles,
   ]);
   for (const path of requiredFiles) {

@@ -7,7 +7,10 @@ import {
   type McpToolCallResult,
 } from "@mcp-native/core";
 import {
+  A2uiV1NativeHostSurface,
   A2uiV1NativeSurface,
+  isA2uiV1NativeHost,
+  type A2uiV1NativeHost,
   type A2uiV1NativeActionHandler,
   type A2uiV1NativeHostExtensionEventDescriptor,
   type A2uiV1NativeHostExtensionPolicy,
@@ -16,6 +19,7 @@ import {
   type A2uiV1NativeOpenUrlHandler,
   type A2uiV1NativeOpenUrlPolicy,
   type NativeComponentCatalog,
+  type NativeSurfaceParentLayout,
 } from "@mcp-native/react-native";
 import {
   McpAppsBridge,
@@ -275,11 +279,52 @@ export interface McpNativeHostResultViewProps {
   readonly locale?: string;
 }
 
+export type McpNativeRegisteredHostResultViewProps = Omit<
+  McpNativeHostResultViewProps,
+  "a2uiPolicy" | "components" | "hostExtensionPolicy" | "imagePolicy" | "mediaPolicy"
+> & {
+  readonly nativeHost: A2uiV1NativeHost;
+  /** Layout category supplied by the shell that contains each rendered A2UI surface. */
+  readonly parentLayout?: NativeSurfaceParentLayout;
+};
+
+interface McpNativeHostResultViewInternalProps extends McpNativeHostResultViewProps {
+  readonly nativeHost?: A2uiV1NativeHost;
+  readonly parentLayout?: NativeSurfaceParentLayout;
+}
+
+/** Renders high-level host state through one immutable registered native host. */
+export function McpNativeRegisteredHostResultView({
+  nativeHost,
+  ...props
+}: McpNativeRegisteredHostResultViewProps): ReactElement {
+  if (!isA2uiV1NativeHost(nativeHost)) {
+    throw new TypeError("Expected a native host created by createA2uiV1NativeHost");
+  }
+  return createElement(McpNativeHostResultViewInternal, {
+    ...props,
+    components: nativeHost.components,
+    a2uiPolicy: nativeHost.policy,
+    ...(nativeHost.imagePolicy === undefined ? {} : { imagePolicy: nativeHost.imagePolicy }),
+    ...(nativeHost.mediaPolicy === undefined ? {} : { mediaPolicy: nativeHost.mediaPolicy }),
+    ...(nativeHost.hostExtensionPolicy === undefined
+      ? {}
+      : { hostExtensionPolicy: nativeHost.hostExtensionPolicy }),
+    nativeHost,
+  });
+}
+
 /**
  * Renders the complete high-level call state through host-installed primitives. Server-controlled
  * values never select a component, WebView configuration, error message, or executable fallback.
  */
 export function McpNativeHostResultView(props: McpNativeHostResultViewProps): ReactElement {
+  return createElement(McpNativeHostResultViewInternal, props);
+}
+
+function McpNativeHostResultViewInternal(
+  props: McpNativeHostResultViewInternalProps,
+): ReactElement {
   const host = useMcpNativeHost();
   const resetKey = createResultResetKey(host.snapshot, host.activeCall);
   return createElement(
@@ -299,14 +344,14 @@ function McpNativeHostResultContent({
   props,
 }: {
   readonly host: McpNativeHostReactContextValue;
-  readonly props: McpNativeHostResultViewProps;
+  readonly props: McpNativeHostResultViewInternalProps;
 }): ReactElement {
   return renderSnapshot(host, props);
 }
 
 function renderSnapshot(
   host: McpNativeHostReactContextValue,
-  props: McpNativeHostResultViewProps,
+  props: McpNativeHostResultViewInternalProps,
 ): ReactElement {
   const connection = host.snapshot.connection;
   if (connection.kind === "loading") {
@@ -391,7 +436,7 @@ function renderResolvedResult(
   arguments_: JsonObject,
   resultKey: number,
   tools: readonly McpTool[],
-  props: McpNativeHostResultViewProps,
+  props: McpNativeHostResultViewInternalProps,
 ): ReactElement {
   switch (result.kind) {
     case "invalid":
@@ -434,7 +479,7 @@ function A2uiHostResult({
 }: {
   readonly result: Extract<McpNativeHostResult, { kind: "a2ui" }>;
   readonly resultKey: number;
-  readonly props: McpNativeHostResultViewProps;
+  readonly props: McpNativeHostResultViewInternalProps;
 }): ReactElement {
   const surfaces = useMemo(() => {
     const store = new A2uiSurfaceStore({
@@ -448,9 +493,31 @@ function A2uiHostResult({
   if (surfaces.length === 0) {
     return renderState(props.components, "Empty result", "The A2UI result contains no surface.");
   }
-  const children = surfaces.map((surface) =>
-    createElement(A2uiV1NativeSurface, {
-      key: `${resultKey}:${surface.surfaceId}`,
+  const children = surfaces.map((surface) => {
+    const key = `${resultKey}:${surface.surfaceId}`;
+    if (props.nativeHost !== undefined) {
+      return createElement(A2uiV1NativeHostSurface, {
+        key,
+        host: props.nativeHost,
+        surface,
+        onAction: props.onA2uiAction,
+        onRenderError: props.onError,
+        fallback: renderState(
+          props.components,
+          "Result unavailable",
+          "The validated result could not be rendered.",
+        ),
+        ...(props.parentLayout === undefined ? {} : { parentLayout: props.parentLayout }),
+        ...(props.openUrlPolicy === undefined ? {} : { openUrlPolicy: props.openUrlPolicy }),
+        ...(props.onOpenUrl === undefined ? {} : { onOpenUrl: props.onOpenUrl }),
+        ...(props.onHostExtensionEvent === undefined
+          ? {}
+          : { onHostExtensionEvent: props.onHostExtensionEvent }),
+        ...(props.locale === undefined ? {} : { locale: props.locale }),
+      });
+    }
+    return createElement(A2uiV1NativeSurface, {
+      key,
       surface,
       policy: props.a2uiPolicy,
       components: props.components,
@@ -466,8 +533,8 @@ function A2uiHostResult({
         ? {}
         : { onHostExtensionEvent: props.onHostExtensionEvent }),
       ...(props.locale === undefined ? {} : { locale: props.locale }),
-    }),
-  );
+    });
+  });
   return createElement(props.components.View, { accessible: false }, children);
 }
 

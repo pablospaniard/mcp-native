@@ -22,7 +22,8 @@ ships React Native code or chooses a component from your bundle.
 MCP Native is currently in the 0.9 release-candidate line. Its low-level layers and high-level
 `@mcp-native/host` connect-call-render workflow are ready to try. Final independent reviews and the
 long-term compatibility promise remain before 1.0. Versioned standard-contract registration and
-application-defined custom input adapters remain post-1.0 work.
+application-defined custom input adapters remain post-1.0 work. Closed, negotiated host-extension
+components are available now; they are distinct from that future input-contract registry.
 
 ## The idea in one minute
 

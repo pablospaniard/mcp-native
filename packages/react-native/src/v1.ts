@@ -238,6 +238,25 @@ export function createA2uiV1NativeRenderPlanForLocalEdits(
   return createNativeRenderPlan(surface, policy, options, true);
 }
 
+/** Internal registered-host preflight that never invokes resource authorization callbacks. */
+export function createA2uiV1NativeStructuralRenderPlan(
+  surface: A2uiV1SurfaceState,
+  policy: A2uiV1SurfaceValidationPolicy,
+): NativeElement {
+  const context = createAdapterContext(
+    surface,
+    policy,
+    undefined,
+    undefined,
+    false,
+    undefined,
+    undefined,
+    undefined,
+    false,
+  );
+  return adaptComponent("root", "root", context, undefined);
+}
+
 function createNativeRenderPlan(
   surface: A2uiV1SurfaceState,
   policy: A2uiV1SurfaceValidationPolicy,

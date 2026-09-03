@@ -15,6 +15,12 @@ networking, storage, accessibility, and operations choices.
   enforcing policies to discovery and mounting; do not advertise `Image`, `Video`, or `AudioPlayer`
   for a loader/player that cannot enforce its exact grant. Treat them as render-time resource
   authorization; action and `openUrl` reconstruction will not invoke them again.
+- Prefer `createA2uiV1NativeHost` so the installed catalog, resource policies, validation policy,
+  extension registrations, and advertised capabilities have one immutable owner. If composing the
+  low-level APIs manually, prove that these independent inputs cannot drift.
+- Run `inspectA2uiV1NativeMount` before React and pass the actual `bounded`, `unbounded`, or `scroll`
+  shell layout. Reject missing registrations and unsupported parent-layout combinations instead of
+  discovering them through component render failures.
 - Parse local extension manifests, negotiate exact tuples, create the platform registry, and pass
   that same opaque registry through parsing, storage, validation, discovery, and mounting. Derive
   extension catalog IDs only with `getA2uiV1NativeSupportedHostExtensionCatalogIds` after installing
@@ -53,6 +59,12 @@ networking, storage, accessibility, and operations choices.
   semantics through loading, consent, retry, and error transitions.
 - Make installed tabs expose separate selectable items. Make installed modals trap focus, support
   platform escape/back dismissal, restore focus to their trigger, and tear down hidden content.
+- Run every installed design-system mapping through the canonical
+  `@mcp-native/react-native/testing` cases, plus application-level screenshots and interaction tests.
+  In particular, verify both Divider axes and Slider wire `steps` to trusted `step` normalization.
+- Wrap direct low-level surfaces in `A2uiV1NativeSurfaceBoundary` or use
+  `A2uiV1NativeHostSurface`. Keep the default failure surface-wide so an incomplete actionable form
+  is never left mounted; supply only host-authored fallback text.
 - Make media controls honor user activation, backgrounding, external-route, interruption, teardown,
   and accessibility policy. Exercise each local extension's manifest-declared behavior and platform
   fallback.
@@ -107,6 +119,8 @@ networking, storage, accessibility, and operations choices.
 ## Release evidence
 
 - Run `npm run check` and `npm run package:smoke` against the exact dependency lockfile.
+- Run `npx mcp-native doctor` in the consuming application and resolve package-range errors. Review
+  its Metro/workspace warnings against the application's actual bundler configuration.
 - Exercise supported iOS and Android hosts across connect, timeout, cancellation, background/resume,
   offline/online, reconnect, consent denial/revocation/expiry, OAuth cancel/recovery/scope upgrade,
   accessibility, and graceful shutdown.

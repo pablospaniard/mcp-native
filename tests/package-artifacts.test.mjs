@@ -112,6 +112,15 @@ test("package artifacts reject a missing exported file", () => {
   assert.throws(() => fixture.verify(), /tarball is missing dist\/feature\.js/);
 });
 
+test("package artifacts reject a missing executable", () => {
+  const fixture = createFixture();
+  const manifest = JSON.parse(fixture.artifacts.get("package.json"));
+  manifest.bin = { example: "./bin/example.mjs" };
+  fixture.artifacts.set("package.json", `${JSON.stringify(manifest)}\n`);
+
+  assert.throws(() => fixture.verify(), /tarball is missing bin\/example\.mjs/);
+});
+
 test("package artifacts reject exports without a matching default runtime fallback", () => {
   const fixture = createFixture();
   const manifest = JSON.parse(fixture.artifacts.get("package.json"));

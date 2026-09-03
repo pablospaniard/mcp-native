@@ -1,4 +1,5 @@
 import {
+  createA2uiV1BasicCatalogPolicy,
   createA2uiV1ActionEnvelope,
   getA2uiV1HostExtensionManifestFingerprint,
   isA2uiV1HostExtensionRegistry,
@@ -7,6 +8,7 @@ import {
 } from "@mcp-native/a2ui";
 import type {
   A2uiV1ActionEnvelope,
+  A2uiV1HostExtensionManifest,
   A2uiV1HostExtensionRegistry,
   A2uiV1SurfaceState,
   A2uiV1SurfaceValidationPolicy,
@@ -14,6 +16,7 @@ import type {
 import { parseJsonObject, parseJsonValue } from "@mcp-native/core";
 import type { JsonObject, JsonValue } from "@mcp-native/core";
 import {
+  Component,
   createElement,
   useCallback,
   useEffect,
@@ -22,6 +25,7 @@ import {
   useState,
   type ComponentType,
   type ReactElement,
+  type ReactNode,
 } from "react";
 
 import type {
@@ -30,6 +34,8 @@ import type {
   NativeChoicePickerComponentProps,
   NativeChoicePickerOption,
   NativeComponentCatalog,
+  NativeComponentLayoutContract,
+  NativeComponentLayoutContracts,
   NativeIconComponentProps,
   NativeImageComponentProps,
   NativeImageResourcePolicy,
@@ -42,6 +48,7 @@ import type {
   NativeViewComponentProps,
   NativeViewStyle,
   NativeViewVariant,
+  NativeSurfaceParentLayout,
 } from "./component-adapters.js";
 import {
   A2UI_V1_NATIVE_ICON_NAMES,
@@ -53,6 +60,7 @@ import {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
   createA2uiV1NativeRenderPlan,
   createA2uiV1NativeRenderPlanForLocalEdits,
+  createA2uiV1NativeStructuralRenderPlan,
   parseA2uiV1NativeOpenUrlDescriptor,
   resolveA2uiV1NativeEvent,
   resolveA2uiV1NativeOpenUrl,
@@ -97,6 +105,9 @@ export type {
   NativeChoicePickerOption,
   NativeChoicePickerVariant,
   NativeComponentCatalog,
+  NativeCatalogComponentName,
+  NativeComponentLayoutContract,
+  NativeComponentLayoutContracts,
   NativeComponentVariants,
   NativeDateTimeInputComponentProps,
   NativeDividerComponentProps,
@@ -123,6 +134,7 @@ export type {
   NativeViewStyle,
   NativeViewVariant,
   NativeVideoComponentProps,
+  NativeSurfaceParentLayout,
 } from "./component-adapters.js";
 
 export type NativeComponentName =
@@ -226,6 +238,556 @@ export function getA2uiV1NativeSupportedHostExtensionCatalogIds(
     }
   }
   return Object.freeze([...catalogIds]);
+}
+
+export interface A2uiV1NativeHostOptions {
+  readonly components: NativeComponentCatalog;
+  /** Omission allows every component that is both installed and policy-ready. */
+  readonly allowedComponentNames?: readonly string[];
+  readonly allowedEventNames?: readonly string[];
+  readonly allowedFunctionNames?: readonly string[];
+  readonly hostExtensions?: A2uiV1HostExtensionRegistry;
+  readonly allowedHostExtensionComponentNames?: readonly string[];
+  readonly imagePolicy?: A2uiV1NativeImagePolicy;
+  readonly mediaPolicy?: A2uiV1NativeMediaPolicy;
+  readonly hostExtensionPolicy?: A2uiV1NativeHostExtensionPolicy;
+  /** Optional verified layout declarations for installed basic-catalog adapters. */
+  readonly layoutContracts?: NativeComponentLayoutContracts;
+  /** Layout declarations for exact locally registered extension component names. */
+  readonly hostExtensionLayoutContracts?: Readonly<Record<string, NativeComponentLayoutContract>>;
+}
+
+/** One immutable source of truth for native catalog validation, discovery, and mounting. */
+export interface A2uiV1NativeHost {
+  readonly components: NativeComponentCatalog;
+  readonly policy: A2uiV1SurfaceValidationPolicy;
+  readonly supportedComponentNames: readonly string[];
+  readonly supportedHostExtensionCatalogIds: readonly string[];
+  readonly imagePolicy?: A2uiV1NativeImagePolicy;
+  readonly mediaPolicy?: A2uiV1NativeMediaPolicy;
+  readonly hostExtensionPolicy?: A2uiV1NativeHostExtensionPolicy;
+  readonly layoutContracts: NativeComponentLayoutContracts;
+  readonly hostExtensionLayoutContracts: Readonly<Record<string, NativeComponentLayoutContract>>;
+}
+
+export type A2uiV1NativeMountDiagnosticCode =
+  | "component-not-allowed"
+  | "layout-incompatible"
+  | "missing-component"
+  | "missing-extension-registration"
+  | "render-plan-rejected"
+  | "surface-invalid";
+
+export interface A2uiV1NativeMountDiagnostic {
+  readonly code: A2uiV1NativeMountDiagnosticCode;
+  readonly message: string;
+  readonly componentName?: string;
+  readonly nativeElementKey?: string;
+  readonly parentLayout?: NativeSurfaceParentLayout;
+  readonly sourceComponentId?: string;
+}
+
+export interface A2uiV1NativeMountReport {
+  readonly ok: boolean;
+  readonly diagnostics: readonly A2uiV1NativeMountDiagnostic[];
+  readonly requiredNativeComponentNames: readonly NativeComponentName[];
+}
+
+export interface InspectA2uiV1NativeMountOptions {
+  /** External parent supplied by the application shell. Defaults to `unbounded`. */
+  readonly parentLayout?: NativeSurfaceParentLayout;
+}
+
+/** Stable mount failure with no raw server, transport, or adapter exception in its message. */
+export class A2uiV1NativeMountError extends Error {
+  readonly code: A2uiV1NativeMountDiagnosticCode;
+  readonly diagnostic: A2uiV1NativeMountDiagnostic;
+  readonly report: A2uiV1NativeMountReport;
+
+  constructor(report: A2uiV1NativeMountReport, options?: ErrorOptions) {
+    const diagnostic = report.diagnostics[0];
+    if (diagnostic === undefined) {
+      throw new TypeError("A native mount error requires at least one diagnostic");
+    }
+    super(diagnostic.message, options);
+    this.name = "A2uiV1NativeMountError";
+    this.code = diagnostic.code;
+    this.diagnostic = diagnostic;
+    this.report = report;
+  }
+}
+
+const nativeHosts = new WeakSet<A2uiV1NativeHost>();
+const nativeHostResetKeys = new WeakMap<A2uiV1NativeHost, number>();
+let nextNativeHostResetKey = 1;
+
+/**
+ * Creates a frozen native host whose policy and advertised capabilities cannot drift from its
+ * installed catalog or required resource policies.
+ */
+export function createA2uiV1NativeHost(options: A2uiV1NativeHostOptions): A2uiV1NativeHost {
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new TypeError("Expected A2UI native host options to be an object");
+  }
+  const components = freezeNativeComponentCatalog(options.components);
+  const installedComponentNames = getA2uiV1NativeSupportedComponentNames(components, {
+    ...(options.imagePolicy === undefined ? {} : { imagePolicy: options.imagePolicy }),
+    ...(options.mediaPolicy === undefined ? {} : { mediaPolicy: options.mediaPolicy }),
+  });
+  const supportedSet = new Set(installedComponentNames);
+  const allowedComponentNames = Object.freeze([
+    ...(options.allowedComponentNames ?? installedComponentNames),
+  ]);
+  for (const name of allowedComponentNames) {
+    if (!supportedSet.has(name)) {
+      throw new TypeError(
+        `A2UI native host cannot allow uninstalled or policy-unready component ${JSON.stringify(name)}`,
+      );
+    }
+  }
+
+  const allowedHostExtensionComponentNames = Object.freeze([
+    ...(options.allowedHostExtensionComponentNames ?? []),
+  ]);
+  const allowedHostExtensionSet = new Set(allowedHostExtensionComponentNames);
+  if (allowedHostExtensionComponentNames.length > 0) {
+    if (options.hostExtensions === undefined || options.hostExtensionPolicy === undefined) {
+      throw new TypeError(
+        "Allowed host extensions require an exact registry and host-extension policy",
+      );
+    }
+    for (const manifest of options.hostExtensions.manifests) {
+      if (
+        allowedHostExtensionSet.has(manifest.componentName) &&
+        !hasMatchingHostExtensionRegistration(components, manifest)
+      ) {
+        throw new TypeError(
+          `A2UI native host is missing an exact local registration for ${JSON.stringify(manifest.componentName)} in catalog ${JSON.stringify(manifest.catalogId)} with schema ${JSON.stringify(manifest.schemaVersion)}`,
+        );
+      }
+    }
+  }
+
+  const policy = createA2uiV1BasicCatalogPolicy({
+    allowedComponentNames,
+    ...(options.allowedEventNames === undefined
+      ? {}
+      : { allowedEventNames: options.allowedEventNames }),
+    ...(options.allowedFunctionNames === undefined
+      ? {}
+      : { allowedFunctionNames: options.allowedFunctionNames }),
+    ...(options.hostExtensions === undefined ? {} : { hostExtensions: options.hostExtensions }),
+    allowedHostExtensionComponentNames,
+  });
+  const supportedComponentNames = Object.freeze([...policy.allowedComponentNames]);
+  const layoutContracts = freezeLayoutContracts(
+    options.layoutContracts === undefined ? {} : options.layoutContracts,
+    getInstalledNativeComponentNames(components),
+  );
+  const hostExtensionLayoutContracts = freezeHostExtensionLayoutContracts(
+    options.hostExtensionLayoutContracts === undefined ? {} : options.hostExtensionLayoutContracts,
+    new Set(allowedHostExtensionComponentNames),
+  );
+  const installedHostExtensionCatalogIds =
+    options.hostExtensions === undefined
+      ? Object.freeze([])
+      : getA2uiV1NativeSupportedHostExtensionCatalogIds(
+          components,
+          options.hostExtensions,
+          options.hostExtensionPolicy,
+        );
+  const supportedHostExtensionCatalogIds = Object.freeze(
+    installedHostExtensionCatalogIds.filter((catalogId) =>
+      options.hostExtensions?.manifests
+        .filter((manifest) => manifest.catalogId === catalogId)
+        .every((manifest) => allowedHostExtensionSet.has(manifest.componentName)),
+    ),
+  );
+  const host = Object.freeze({
+    components,
+    policy,
+    supportedComponentNames,
+    supportedHostExtensionCatalogIds,
+    ...(options.imagePolicy === undefined ? {} : { imagePolicy: options.imagePolicy }),
+    ...(options.mediaPolicy === undefined ? {} : { mediaPolicy: options.mediaPolicy }),
+    ...(options.hostExtensionPolicy === undefined
+      ? {}
+      : { hostExtensionPolicy: options.hostExtensionPolicy }),
+    layoutContracts,
+    hostExtensionLayoutContracts,
+  });
+  nativeHosts.add(host);
+  nativeHostResetKeys.set(host, nextNativeHostResetKey);
+  nextNativeHostResetKey += 1;
+  return host;
+}
+
+/** Returns whether a value is a genuine immutable host created by this package. */
+export function isA2uiV1NativeHost(value: unknown): value is A2uiV1NativeHost {
+  return value !== null && typeof value === "object" && nativeHosts.has(value as A2uiV1NativeHost);
+}
+
+/** Inspects the exact expanded plan and local registrations without entering React rendering. */
+export function inspectA2uiV1NativeMount(
+  surface: A2uiV1SurfaceState,
+  host: A2uiV1NativeHost,
+  options: InspectA2uiV1NativeMountOptions = {},
+): A2uiV1NativeMountReport {
+  return inspectA2uiV1NativeMountInternal(surface, host, options, true);
+}
+
+function inspectA2uiV1NativeMountInternal(
+  surface: A2uiV1SurfaceState,
+  host: A2uiV1NativeHost,
+  options: InspectA2uiV1NativeMountOptions,
+  authorizeResources: boolean,
+): A2uiV1NativeMountReport {
+  if (!isA2uiV1NativeHost(host)) {
+    throw new TypeError("Expected an A2UI native host created by createA2uiV1NativeHost");
+  }
+  const parentLayout = parseParentLayout(options.parentLayout ?? "unbounded");
+  const deniedComponent = findDeniedSurfaceComponent(surface, host.policy);
+  if (deniedComponent !== undefined) {
+    return freezeMountReport(
+      [],
+      [
+        createMountDiagnostic("component-not-allowed", {
+          componentName: deniedComponent.componentName,
+          sourceComponentId: deniedComponent.sourceComponentId,
+        }),
+      ],
+    );
+  }
+  let validated: A2uiV1SurfaceState;
+  try {
+    validated = validateA2uiV1SurfaceState(surface, host.policy);
+  } catch {
+    return freezeMountReport([], [createMountDiagnostic("surface-invalid")]);
+  }
+  let plan: NativeElement;
+  try {
+    plan = authorizeResources
+      ? createA2uiV1NativeRenderPlan(validated, host.policy, {
+          ...(host.imagePolicy === undefined ? {} : { imagePolicy: host.imagePolicy }),
+          ...(host.mediaPolicy === undefined ? {} : { mediaPolicy: host.mediaPolicy }),
+          ...(host.hostExtensionPolicy === undefined
+            ? {}
+            : { hostExtensionPolicy: host.hostExtensionPolicy }),
+        })
+      : createA2uiV1NativeStructuralRenderPlan(validated, host.policy);
+  } catch {
+    return freezeMountReport([], [createMountDiagnostic("render-plan-rejected")]);
+  }
+
+  const diagnostics: A2uiV1NativeMountDiagnostic[] = [];
+  const required = new Set<NativeComponentName>();
+  inspectNativeElement(plan, host, parentLayout, required, diagnostics);
+  return freezeMountReport([...required], diagnostics);
+}
+
+/** Throws a structured stable error when a surface cannot mount through the registered host. */
+export function assertA2uiV1NativeMount(
+  surface: A2uiV1SurfaceState,
+  host: A2uiV1NativeHost,
+  options: InspectA2uiV1NativeMountOptions = {},
+): A2uiV1NativeMountReport {
+  const report = inspectA2uiV1NativeMount(surface, host, options);
+  if (!report.ok) {
+    throw new A2uiV1NativeMountError(report);
+  }
+  return report;
+}
+
+const NATIVE_CATALOG_COMPONENT_NAMES = Object.freeze([
+  "AudioPlayer",
+  "Button",
+  "CheckBox",
+  "ChoicePicker",
+  "DateTimeInput",
+  "Divider",
+  "Icon",
+  "Image",
+  "Modal",
+  "Slider",
+  "Tabs",
+  "Text",
+  "TextInput",
+  "Video",
+  "View",
+] as const);
+
+function freezeNativeComponentCatalog(catalog: NativeComponentCatalog): NativeComponentCatalog {
+  if (catalog === null || typeof catalog !== "object" || Array.isArray(catalog)) {
+    throw new TypeError("Expected native component catalog to be an object");
+  }
+  for (const name of ["Button", "Text", "TextInput", "View"] as const) {
+    if (catalog[name] === undefined) {
+      throw new TypeError(`Native component catalog is missing required component ${name}`);
+    }
+  }
+  const variants =
+    catalog.variants === undefined
+      ? undefined
+      : Object.freeze(
+          Object.fromEntries(
+            Object.entries(catalog.variants).map(([name, entries]) => [
+              name,
+              entries === undefined ? undefined : Object.freeze({ ...entries }),
+            ]),
+          ),
+        );
+  return Object.freeze({
+    ...catalog,
+    ...(catalog.hostExtensions === undefined
+      ? {}
+      : { hostExtensions: Object.freeze([...catalog.hostExtensions]) }),
+    ...(variants === undefined ? {} : { variants }),
+  });
+}
+
+function getInstalledNativeComponentNames(components: NativeComponentCatalog): ReadonlySet<string> {
+  const installed = new Set<string>();
+  for (const name of NATIVE_CATALOG_COMPONENT_NAMES) {
+    if (components[name] !== undefined) installed.add(name);
+  }
+  return installed;
+}
+
+function hasMatchingHostExtensionRegistration(
+  components: NativeComponentCatalog,
+  manifest: A2uiV1HostExtensionManifest,
+): boolean {
+  const matching =
+    components.hostExtensions?.filter(
+      (registration) =>
+        isNativeHostExtensionRegistration(registration) &&
+        registration.manifest.extensionId === manifest.extensionId &&
+        registration.manifest.catalogId === manifest.catalogId &&
+        registration.manifest.schemaVersion === manifest.schemaVersion &&
+        registration.manifest.componentName === manifest.componentName &&
+        registration.manifestFingerprint === getA2uiV1HostExtensionManifestFingerprint(manifest),
+    ) ?? [];
+  return matching.length === 1;
+}
+
+function freezeLayoutContracts(
+  contracts: NativeComponentLayoutContracts,
+  installed: ReadonlySet<string>,
+): NativeComponentLayoutContracts {
+  if (contracts === null || typeof contracts !== "object" || Array.isArray(contracts)) {
+    throw new TypeError("Expected native layout contracts to be an object");
+  }
+  const result: Partial<Record<string, NativeComponentLayoutContract>> = {};
+  for (const [name, contract] of Object.entries(contracts)) {
+    if (!(NATIVE_CATALOG_COMPONENT_NAMES as readonly string[]).includes(name)) {
+      throw new TypeError(`Unknown native layout-contract component ${JSON.stringify(name)}`);
+    }
+    if (!installed.has(name)) {
+      throw new TypeError(
+        `Native layout contract targets uninstalled component ${JSON.stringify(name)}`,
+      );
+    }
+    result[name] = freezeLayoutContract(contract, `layoutContracts.${name}`);
+  }
+  return Object.freeze(result) as NativeComponentLayoutContracts;
+}
+
+function freezeHostExtensionLayoutContracts(
+  contracts: Readonly<Record<string, NativeComponentLayoutContract>>,
+  allowed: ReadonlySet<string>,
+): Readonly<Record<string, NativeComponentLayoutContract>> {
+  if (contracts === null || typeof contracts !== "object" || Array.isArray(contracts)) {
+    throw new TypeError("Expected host-extension layout contracts to be an object");
+  }
+  const result: Record<string, NativeComponentLayoutContract> = {};
+  for (const [name, contract] of Object.entries(contracts)) {
+    if (!allowed.has(name)) {
+      throw new TypeError(
+        `Host-extension layout contract targets unavailable component ${JSON.stringify(name)}`,
+      );
+    }
+    result[name] = freezeLayoutContract(contract, `hostExtensionLayoutContracts.${name}`);
+  }
+  return Object.freeze(result);
+}
+
+function freezeLayoutContract(
+  value: NativeComponentLayoutContract,
+  path: string,
+): NativeComponentLayoutContract {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError(`Expected ${path} to be an object`);
+  }
+  const keys = Object.keys(value);
+  if (
+    keys.some(
+      (key) =>
+        key !== "allowedParents" &&
+        key !== "ownsScrolling" &&
+        key !== "presentation" &&
+        key !== "sizing",
+    )
+  ) {
+    throw new TypeError(`Unsupported field in ${path}`);
+  }
+  if (!Array.isArray(value.allowedParents) || value.allowedParents.length === 0) {
+    throw new TypeError(`Expected ${path}.allowedParents to be a non-empty array`);
+  }
+  const allowedParents = value.allowedParents.map(parseParentLayout);
+  if (new Set(allowedParents).size !== allowedParents.length) {
+    throw new TypeError(`Duplicate parent layout in ${path}.allowedParents`);
+  }
+  if (value.sizing !== "fill" && value.sizing !== "intrinsic") {
+    throw new TypeError(`Expected ${path}.sizing to be fill or intrinsic`);
+  }
+  if (
+    value.presentation !== undefined &&
+    value.presentation !== "inline" &&
+    value.presentation !== "overlay"
+  ) {
+    throw new TypeError(`Expected ${path}.presentation to be inline or overlay`);
+  }
+  if (value.ownsScrolling !== undefined && typeof value.ownsScrolling !== "boolean") {
+    throw new TypeError(`Expected ${path}.ownsScrolling to be a boolean`);
+  }
+  return Object.freeze({
+    allowedParents: Object.freeze(allowedParents),
+    sizing: value.sizing,
+    ...(value.presentation === undefined ? {} : { presentation: value.presentation }),
+    ...(value.ownsScrolling === undefined ? {} : { ownsScrolling: value.ownsScrolling }),
+  });
+}
+
+function parseParentLayout(value: unknown): NativeSurfaceParentLayout {
+  if (value !== "bounded" && value !== "scroll" && value !== "unbounded") {
+    throw new TypeError("Expected parent layout to be bounded, scroll, or unbounded");
+  }
+  return value;
+}
+
+function inspectNativeElement(
+  element: NativeElement,
+  host: A2uiV1NativeHost,
+  parentLayout: NativeSurfaceParentLayout,
+  required: Set<NativeComponentName>,
+  diagnostics: A2uiV1NativeMountDiagnostic[],
+): void {
+  required.add(element.component);
+  if (element.component === "HostExtension") {
+    const componentName =
+      typeof element.props.componentName === "string" ? element.props.componentName : undefined;
+    const manifest =
+      componentName === undefined
+        ? undefined
+        : host.policy.hostExtensions?.manifests.find(
+            (candidate) => candidate.componentName === componentName,
+          );
+    if (
+      manifest === undefined ||
+      !hasMatchingHostExtensionRegistration(host.components, manifest)
+    ) {
+      diagnostics.push(
+        createMountDiagnostic("missing-extension-registration", {
+          ...(componentName === undefined ? {} : { componentName }),
+          nativeElementKey: element.key,
+        }),
+      );
+    }
+    const contract =
+      componentName === undefined ? undefined : host.hostExtensionLayoutContracts[componentName];
+    inspectLayoutContract(contract, componentName, element.key, parentLayout, diagnostics);
+  } else {
+    if (selectInstalledComponent(host.components, element.component) === undefined) {
+      diagnostics.push(
+        createMountDiagnostic("missing-component", {
+          componentName: element.component,
+          nativeElementKey: element.key,
+        }),
+      );
+    }
+    const contract = host.layoutContracts[element.component];
+    inspectLayoutContract(contract, element.component, element.key, parentLayout, diagnostics);
+  }
+  for (const child of element.children ?? []) {
+    inspectNativeElement(child, host, parentLayout, required, diagnostics);
+  }
+}
+
+function selectInstalledComponent(
+  components: NativeComponentCatalog,
+  name: Exclude<NativeComponentName, "HostExtension">,
+): ComponentType<object> | undefined {
+  return components[name] as ComponentType<object> | undefined;
+}
+
+function inspectLayoutContract(
+  contract: NativeComponentLayoutContract | undefined,
+  componentName: string | undefined,
+  nativeElementKey: string,
+  parentLayout: NativeSurfaceParentLayout,
+  diagnostics: A2uiV1NativeMountDiagnostic[],
+): void {
+  if (contract === undefined || contract.allowedParents.includes(parentLayout)) return;
+  diagnostics.push(
+    createMountDiagnostic("layout-incompatible", {
+      ...(componentName === undefined ? {} : { componentName }),
+      nativeElementKey,
+      parentLayout,
+    }),
+  );
+}
+
+function createMountDiagnostic(
+  code: A2uiV1NativeMountDiagnosticCode,
+  details: Omit<A2uiV1NativeMountDiagnostic, "code" | "message"> = {},
+): A2uiV1NativeMountDiagnostic {
+  const messages: Record<A2uiV1NativeMountDiagnosticCode, string> = {
+    "component-not-allowed": "The surface requests a component this native host does not allow.",
+    "layout-incompatible": "A native component does not support the supplied parent layout.",
+    "missing-component": "The native catalog is missing a component required by the surface.",
+    "missing-extension-registration":
+      "The native catalog is missing an exact extension registration required by the surface.",
+    "render-plan-rejected": "The validated surface could not produce an authorized render plan.",
+    "surface-invalid": "The A2UI surface is invalid for this native host.",
+  };
+  return Object.freeze({ code, message: messages[code], ...details });
+}
+
+function findDeniedSurfaceComponent(
+  surface: A2uiV1SurfaceState,
+  policy: A2uiV1SurfaceValidationPolicy,
+): { readonly componentName: string; readonly sourceComponentId: string } | undefined {
+  if (!(surface.components instanceof Map)) return undefined;
+  const allowedBasic = new Set(policy.allowedComponentNames);
+  const allowedExtensions = new Set(policy.allowedHostExtensionComponentNames ?? []);
+  for (const [id, component] of surface.components) {
+    if (typeof component.component !== "string") continue;
+    const basic = (A2UI_V1_NATIVE_COMPONENT_NAMES as readonly string[]).includes(
+      component.component,
+    );
+    if (
+      (basic && !allowedBasic.has(component.component)) ||
+      (!basic && !allowedExtensions.has(component.component))
+    ) {
+      return { componentName: component.component, sourceComponentId: id };
+    }
+  }
+  return undefined;
+}
+
+function freezeMountReport(
+  requiredNativeComponentNames: readonly NativeComponentName[],
+  diagnostics: readonly A2uiV1NativeMountDiagnostic[],
+): A2uiV1NativeMountReport {
+  const orderedRequired = Object.freeze(
+    [...new Set(requiredNativeComponentNames)].sort(),
+  ) as readonly NativeComponentName[];
+  const frozenDiagnostics = Object.freeze([...diagnostics]);
+  return Object.freeze({
+    ok: frozenDiagnostics.length === 0,
+    diagnostics: frozenDiagnostics,
+    requiredNativeComponentNames: orderedRequired,
+  });
 }
 
 /**
@@ -437,6 +999,151 @@ export function A2uiV1NativeSurface({
       ? {}
       : { onV1OpenUrl: handleOpenUrl }),
     ...(onHostExtensionEvent === undefined ? {} : { onV1HostExtensionEvent: onHostExtensionEvent }),
+  });
+}
+
+export type A2uiV1NativeRenderErrorCode = "native-surface-render-failed";
+
+/** Stable render failure that does not expose a component-library exception in its message. */
+export class A2uiV1NativeRenderError extends Error {
+  readonly code: A2uiV1NativeRenderErrorCode;
+
+  constructor(options?: ErrorOptions) {
+    super("The validated native surface could not be rendered.", options);
+    this.name = "A2uiV1NativeRenderError";
+    this.code = "native-surface-render-failed";
+  }
+}
+
+export interface A2uiV1NativeSurfaceBoundaryProps {
+  readonly children?: ReactNode;
+  /** Host-authored fallback. Omission renders no partial surface after failure. */
+  readonly fallback?: ReactNode;
+  readonly onError: (error: A2uiV1NativeMountError | A2uiV1NativeRenderError) => void;
+  /** Changing this value clears a prior failure for a replacement surface. */
+  readonly resetKey: string;
+}
+
+interface A2uiV1NativeSurfaceBoundaryState {
+  readonly failed: boolean;
+  readonly resetKey: string;
+}
+
+/** Reusable fail-closed boundary for applications that mount the low-level surface directly. */
+export class A2uiV1NativeSurfaceBoundary extends Component<
+  A2uiV1NativeSurfaceBoundaryProps,
+  A2uiV1NativeSurfaceBoundaryState
+> {
+  override state: A2uiV1NativeSurfaceBoundaryState = {
+    failed: false,
+    resetKey: this.props.resetKey,
+  };
+
+  static getDerivedStateFromError(): Partial<A2uiV1NativeSurfaceBoundaryState> {
+    return { failed: true };
+  }
+
+  static getDerivedStateFromProps(
+    props: A2uiV1NativeSurfaceBoundaryProps,
+    state: A2uiV1NativeSurfaceBoundaryState,
+  ): Partial<A2uiV1NativeSurfaceBoundaryState> | null {
+    return props.resetKey === state.resetKey ? null : { failed: false, resetKey: props.resetKey };
+  }
+
+  override componentDidCatch(error: unknown): void {
+    const reported =
+      error instanceof A2uiV1NativeMountError
+        ? error
+        : new A2uiV1NativeRenderError({ cause: error });
+    try {
+      this.props.onError(reported);
+    } catch {
+      // A broken observer must not turn a contained catalog failure into another render failure.
+    }
+  }
+
+  override render(): ReactNode {
+    return this.state.failed ? (this.props.fallback ?? null) : this.props.children;
+  }
+}
+
+export interface A2uiV1NativeHostSurfaceProps {
+  readonly host: A2uiV1NativeHost;
+  readonly surface: A2uiV1SurfaceState;
+  readonly onAction: A2uiV1NativeActionHandler;
+  readonly onRenderError: (error: A2uiV1NativeMountError | A2uiV1NativeRenderError) => void;
+  readonly fallback?: ReactNode;
+  readonly parentLayout?: NativeSurfaceParentLayout;
+  readonly resetKey?: string;
+  readonly openUrlPolicy?: A2uiV1NativeOpenUrlPolicy;
+  readonly onOpenUrl?: A2uiV1NativeOpenUrlHandler;
+  readonly onHostExtensionEvent?: (event: A2uiV1NativeHostExtensionEventDescriptor) => void;
+  readonly onDataModelChange?: (dataModel: JsonObject) => void;
+  readonly actionMetadata?: JsonObject;
+  readonly locale?: string;
+  readonly now?: () => string;
+}
+
+/** Preflights and mounts through one immutable host, with surface-wide render containment. */
+export function A2uiV1NativeHostSurface(props: A2uiV1NativeHostSurfaceProps): ReactElement {
+  const resetKey =
+    props.resetKey ??
+    canonicalizeJson([
+      nativeHostResetKeys.get(props.host) ?? 0,
+      props.parentLayout ?? "unbounded",
+      props.surface.surfaceId,
+      props.surface.dataModelRevision ?? null,
+      props.surface.dataModel,
+      createComponentSourceKey(props.surface),
+    ]);
+  return createElement(
+    A2uiV1NativeSurfaceBoundary,
+    {
+      resetKey,
+      onError: props.onRenderError,
+      ...(props.fallback === undefined ? {} : { fallback: props.fallback }),
+    },
+    createElement(A2uiV1NativeHostSurfaceContent, props),
+  );
+}
+
+function A2uiV1NativeHostSurfaceContent({
+  host,
+  surface,
+  parentLayout,
+  onAction,
+  openUrlPolicy,
+  onOpenUrl,
+  onHostExtensionEvent,
+  onDataModelChange,
+  actionMetadata,
+  locale,
+  now,
+}: A2uiV1NativeHostSurfaceProps): ReactElement {
+  const report = inspectA2uiV1NativeMountInternal(
+    surface,
+    host,
+    { ...(parentLayout === undefined ? {} : { parentLayout }) },
+    false,
+  );
+  if (!report.ok) throw new A2uiV1NativeMountError(report);
+  return createElement(A2uiV1NativeSurface, {
+    surface,
+    policy: host.policy,
+    components: host.components,
+    onAction,
+    ...(openUrlPolicy === undefined ? {} : { openUrlPolicy }),
+    ...(onOpenUrl === undefined ? {} : { onOpenUrl }),
+    ...(host.imagePolicy === undefined ? {} : { imagePolicy: host.imagePolicy }),
+    ...(host.mediaPolicy === undefined ? {} : { mediaPolicy: host.mediaPolicy }),
+    ...(host.hostExtensionPolicy === undefined
+      ? {}
+      : { hostExtensionPolicy: host.hostExtensionPolicy }),
+    ...(onHostExtensionEvent === undefined ? {} : { onHostExtensionEvent }),
+    ...(onDataModelChange === undefined ? {} : { onDataModelChange }),
+    ...(actionMetadata === undefined ? {} : { actionMetadata }),
+    ...(locale === undefined ? {} : { locale }),
+    ...(now === undefined ? {} : { now }),
   });
 }
 

@@ -95,27 +95,43 @@ This example uses deprecated custom `0.1` APIs. The application host decides how
 
 ## A2UI v1 render-plan adapter
 
-Use the v1 adapter only with an explicit host policy. It revalidates the snapshot before resolving data-model bindings or creating a trusted plan.
+Prefer one immutable native-host registration so catalog slots, resource policies, validation, and
+advertised capabilities cannot drift:
 
-```ts
-import { createA2uiV1BasicCatalogPolicy } from "@mcp-native/a2ui";
-import {
-  A2UI_V1_NATIVE_COMPONENT_NAMES,
-  createA2uiV1NativeRenderPlan,
-} from "@mcp-native/react-native";
+```tsx
+import { A2uiV1NativeHostSurface, createA2uiV1NativeHost } from "@mcp-native/react-native";
+import { Button, Text, TextInput, View } from "react-native";
 
-const policy = createA2uiV1BasicCatalogPolicy({
-  allowedComponentNames: A2UI_V1_NATIVE_COMPONENT_NAMES,
+const nativeHost = createA2uiV1NativeHost({
+  components: { Button, Text, TextInput, View },
   allowedEventNames: ["save_profile"],
+  allowedFunctionNames: [],
 });
 
 const surface = store.get("profile");
-const plan = surface && createA2uiV1NativeRenderPlan(surface, policy);
+const mounted = surface && (
+  <A2uiV1NativeHostSurface
+    host={nativeHost}
+    surface={surface}
+    onAction={deliverAction}
+    onRenderError={reportLocalError}
+    fallback={<Text>Result unavailable</Text>}
+  />
+);
 ```
+
+`inspectA2uiV1NativeMount` and `assertA2uiV1NativeMount` can run at ingestion time, before React,
+and report stable `component-not-allowed`, `surface-invalid`, `render-plan-rejected`, `missing-component`,
+`missing-extension-registration`, or `layout-incompatible` diagnostics. The registered surface
+runs structural/layout preflight without repeating resource authorization, then contains
+component-library render failures behind a reusable `A2uiV1NativeSurfaceBoundary`. The older
+`A2uiV1NativeSurface` plus separately constructed policy remains available as the manual low-level
+path. Its default recovery key tracks the host, effective parent layout, component graph, and data
+model so a corrected mount-affecting input retries automatically.
 
 The adapter maps `Row`, `Column`, static or dynamic `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. Optional host slots implement `Image`, `Icon`, `Divider`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, and `Modal`. Dynamic lists expand one validated template component per bound array item and remain inside the 1,024-node plan limit. The adapter resolves absolute and item-relative JSON Pointer values; translates relative typed bindings into absolute renderer-local pointers; evaluates bounded formatting, boolean, validation, and `@index` functions; maps supported layout and variants to owned props; and preserves event context and explicit accessibility fields. At the mounted boundary, components receive closed roles and state, hidden controls are excluded, and text scaling stays enabled. Supported checks expose `invalid`/`validationMessages`; invalid buttons cannot resolve or dispatch an event or local URL action. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
 
-The complete catalog is exactly `AudioPlayer`, `Button`, `Card`, `CheckBox`, `ChoicePicker`, `Column`, `DateTimeInput`, `Divider`, `Icon`, `Image`, `List`, `Modal`, `Row`, `Slider`, `Tabs`, `Text`, `TextField`, and `Video`. Use `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })` when building host capability metadata: the four base primitives imply the seven structural/text/input names, each optional slot adds only its matching A2UI name, `Image` additionally requires the image policy, and both media slots require the media policy. A missing slot or required policy fails closed before mounting.
+The complete catalog is exactly `AudioPlayer`, `Button`, `Card`, `CheckBox`, `ChoicePicker`, `Column`, `DateTimeInput`, `Divider`, `Icon`, `Image`, `List`, `Modal`, `Row`, `Slider`, `Tabs`, `Text`, `TextField`, and `Video`. `createA2uiV1NativeHost` derives the exact supported intersection and rejects any allowlist entry that lacks its slot or required policy. Low-level callers can still use `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })` directly. A surface requesting anything outside that intersection fails during validation or explicit mount preflight, before catalog rendering.
 
 `Video` and `AudioPlayer` receive only a canonical URL, explicitly selected semantic/accessibility
 fields, and a complete host grant for origins, redirects, MIME types, bytes, autoplay, background
@@ -127,6 +143,16 @@ Namespaced local components use `createNativeHostExtensionRegistration` plus a n
 registry and an exact `hostExtensionPolicy` grant. Advertise their catalog IDs with
 `getA2uiV1NativeSupportedHostExtensionCatalogIds` only after the local registration and policy are
 installed. See the [media and extension guide](../../docs/media-and-host-extensions.md).
+
+Host adapters may declare verified layout contracts with `allowedParents`, `sizing`, optional
+overlay presentation, and scroll ownership. Pass the shell's `bounded`, `scroll`, or `unbounded`
+parent category to preflight or `A2uiV1NativeHostSurface`; an incompatible component is rejected
+instead of being mounted into a layout where it can collapse or obscure siblings. Keep catalogs and
+adapter factories at module scope so local component state remains stable.
+
+The `@mcp-native/react-native/testing` subpath provides fresh Divider, ChoicePicker, Slider, Tabs,
+and Modal conformance surfaces with expected semantic behaviors. Render every installed adapter in
+the application's own native test stack, including its supported parent-layout categories.
 
 These mappings have automated host-boundary coverage. The runnable [Expo Go todo
 app](../../examples/expo-go-todolist/README.md) demonstrates the lifecycle, catalog, bindings,
@@ -259,6 +285,11 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 
 | Export                                            | Purpose                                                                                                       |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `createA2uiV1NativeHost`                          | Freezes catalog, policies, capabilities, extensions, and layout declarations into one owner.                  |
+| `inspectA2uiV1NativeMount`                        | Returns stable pre-React diagnostics and required native slots for one expanded surface.                      |
+| `assertA2uiV1NativeMount`                         | Throws `A2uiV1NativeMountError` when the explicit mount inspection is not accepted.                           |
+| `A2uiV1NativeHostSurface`                         | Preflights and mounts through a registered host with surface-wide render containment.                         |
+| `A2uiV1NativeSurfaceBoundary`                     | Reusable redacted and resettable error boundary for direct low-level integrations.                            |
 | `A2uiV1NativeSurface`                             | Mounts the supported v1 subset with local bindings and official action-envelope callbacks.                    |
 | `createA2uiV1NativeRenderPlan`                    | Revalidates and adapts the supported v1 subset into a trusted `NativeElement` tree.                           |
 | `resolveA2uiV1NativeEvent`                        | Revalidates and resolves one reachable static or template-instance event against the latest local model.      |
@@ -266,6 +297,7 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 | `A2UI_V1_NATIVE_COMPONENT_NAMES`                  | Exact basic-catalog component names implemented by the current native adapter.                                |
 | `getA2uiV1NativeSupportedComponentNames`          | Exact advertisable intersection derived from installed and policy-ready basic-catalog slots.                  |
 | `getA2uiV1NativeSupportedHostExtensionCatalogIds` | Exact extension catalogs backed by an opaque registry, local registration, and policy.                        |
+| `@mcp-native/react-native/testing`                | Fresh canonical surfaces and expected behaviors for application-owned adapter conformance tests.              |
 | `A2UI_V1_NATIVE_ICON_NAMES`                       | Pinned semantic names accepted by the native icon boundary.                                                   |
 | `A2UI_V1_NATIVE_MAX_RENDER_NODES`                 | Bound on expanded v1 render-plan nodes.                                                                       |
 | `A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH`              | Per-action bound on canonical HTTP(S) URL length.                                                             |

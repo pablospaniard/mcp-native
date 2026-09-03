@@ -34,6 +34,12 @@ application keeps control of code, design, navigation, permissions, and transpor
    Validated user actions return to a host callback, where application policy decides whether and
    how to deliver them.
 
+For React Native, `createA2uiV1NativeHost` is the preferred catalog boundary. It freezes the local
+catalog and derives validation and advertised support from the same installed slots and resource
+policies. `inspectA2uiV1NativeMount` checks the expanded surface and declared parent-layout support
+before React rendering; `A2uiV1NativeHostSurface` performs structural/layout preflight without
+duplicating resource authorization and contains adapter failures behind a host-authored fallback.
+
 For `1.0.0`, `@mcp-native/host` will compose this flow behind one optional high-level API: connect a
 compatible server, list and call tools, classify supported standard results, load resources, and
 render native A2UI, isolated MCP Apps, or safe ordinary MCP content. Applications that need direct
@@ -57,6 +63,11 @@ it. A library is not accepted automatically, and the server cannot import one. S
 same rule: the app may use StyleSheet, utility classes, tokens, themes, or a design-system styling
 framework internally, but raw server-supplied style objects and class names do not cross the trust
 boundary.
+
+Use the canonical cases from `@mcp-native/react-native/testing` to exercise divider axes, choice
+modes, slider partitions, tabs, modal lifecycle, accessibility, and every supported shell layout in
+the application's actual component library. Layout declarations are host-owned metadata: they may
+reject unsupported bounded, unbounded, or scrolling parents but cannot grant server capabilities.
 
 The implemented renderer is React Native. It covers the pinned A2UI basic catalog and supports
 locally compiled Fabric extensions. Direct SwiftUI and Jetpack Compose renderers, followed by the

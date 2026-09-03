@@ -84,6 +84,19 @@ module or class names, raw styles, generic actions, commands, and unchecked prop
 and rejected. Parsed schemas and validated semantic props are recursively frozen, and policy
 requests are immutable snapshots.
 
+This host-extension mechanism is available in the current `0.9` line. It is not the post-`1.0`
+public registry for arbitrary standard contracts or custom input formats. Generate a safe local
+starting point with:
+
+```bash
+npx mcp-native scaffold-extension com.example/data-grid DataGrid src/mcp
+```
+
+The generated files are deliberately local and refuse to overwrite existing work. Data grids,
+charts, maps, and other domain widgets should remain leaf extensions with closed bounded props;
+they must not bring a component-library dependency into MCP Native or accept server-selected
+modules, renderers, styles, child graphs, or commands.
+
 ## Compatibility manifest
 
 The manifest is local JSON with these required fields:

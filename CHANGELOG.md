@@ -8,6 +8,18 @@ their minor release line.
 
 ### Added
 
+- Add `createA2uiV1NativeHost` as one immutable source for installed React Native components,
+  validation policy, resource policies, negotiated extensions, advertised capabilities, and
+  host-authored layout contracts.
+- Add pre-React `inspectA2uiV1NativeMount`/`assertA2uiV1NativeMount` diagnostics, the registered
+  `A2uiV1NativeHostSurface`, and a reusable redacted surface-wide render boundary with reset support.
+- Add `McpNativeRegisteredHostResultView` so the high-level React Native host consumes that same
+  registration without separately forwarding catalog and resource-policy props, and enforces its
+  optional shell parent-layout contract before rendering A2UI results.
+- Add canonical design-system cases at `@mcp-native/react-native/testing` for Divider,
+  ChoicePicker, Slider, Tabs, and Modal semantics.
+- Add the non-networked `mcp-native doctor`, `scaffold-catalog`, and `scaffold-extension` commands;
+  scaffolds refuse to overwrite existing files.
 - Add `@mcp-native/host/react-native` with a provider-owned controller lifecycle, immutable call
   context, accessible operational and ordinary-content states, native A2UI mounting, and exact
   fail-closed MCP Apps sandbox, bridge, crash recovery, and teardown ownership. React `>=18.1.0`
@@ -15,6 +27,8 @@ their minor release line.
 
 ### Changed
 
+- Clarify that closed negotiated host extensions are available in the `0.9` line and are distinct
+  from the broader post-1.0 standard-contract and custom-input registry.
 - Remove the deprecated custom A2UI `0.1` APIs from package-root exports while retaining the
   frozen `@mcp-native/a2ui/legacy`, `@mcp-native/react-native/legacy`, and `mcp-native/legacy`
   migration entry points.
@@ -191,6 +205,8 @@ host-extension boundary.
 
 ### Changed
 
+- Require an exact local native registration for every allowed negotiated host-extension tuple, and
+  retry contained native surfaces when their effective parent layout changes.
 - Raise the tested React Native peer minimum from `0.76.0` to `0.86.0`; generated-host CI now tests
   the exact `0.86.0` minimum and current `0.87.1` latest boundary instead of adjacent patch lines.
 - Run generated Android and iOS native builds for both React Native boundaries on pull requests,

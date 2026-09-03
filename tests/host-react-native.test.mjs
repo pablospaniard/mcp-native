@@ -10,11 +10,16 @@ import {
 import {
   MCP_NATIVE_HOST_MAX_ORDINARY_TEXT_LENGTH,
   McpNativeHostProvider,
+  McpNativeRegisteredHostResultView,
   McpNativeHostRenderError,
   McpNativeHostResultView,
   useMcpNativeHost,
 } from "../packages/host/dist/react-native.js";
-import { A2UI_V1_NATIVE_COMPONENT_NAMES } from "../packages/react-native/dist/index.js";
+import {
+  A2UI_V1_NATIVE_COMPONENT_NAMES,
+  A2uiV1NativeMountError,
+  createA2uiV1NativeHost,
+} from "../packages/react-native/dist/index.js";
 import { MCP_APPS_MIME_TYPE, MCP_APPS_PROTOCOL_VERSION } from "../packages/webview/dist/index.js";
 import { StrictMode, act, createElement, useEffect } from "react";
 import { createRoot } from "test-renderer";
@@ -93,7 +98,12 @@ async function waitUntil(predicate, remainingTurns = 20) {
   await waitUntil(predicate, remainingTurns - 1);
 }
 
-async function mountHost(controller, viewProps = resultViewProps(), expectedToolsKind = "ready") {
+async function mountHost(
+  controller,
+  viewProps = resultViewProps(),
+  expectedToolsKind = "ready",
+  ResultView = McpNativeHostResultView,
+) {
   let host;
   const observedHosts = [];
   function Probe() {
@@ -113,7 +123,7 @@ async function mountHost(controller, viewProps = resultViewProps(), expectedTool
         },
         [
           createElement(Probe, { key: "probe" }),
-          createElement(McpNativeHostResultView, {
+          createElement(ResultView, {
             key: "result",
             ...viewProps,
             onError: (error) => {
@@ -500,6 +510,61 @@ test("one negotiated A2UI result mounts through the local catalog", async () => 
   const surfaceContainer = mounted.root.container.queryAll((element) => element.type === "View")[0];
   assert.equal(surfaceContainer.props.accessible, false);
   assert.deepEqual(mounted.errors, []);
+  await act(async () => mounted.root.unmount());
+});
+
+test("registered high-level A2UI results enforce native host layout contracts", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const uri = "ui://surface/layout";
+  const controller = createController({
+    result: {
+      content: [{ type: "resource_link", name: "surface", uri, mimeType: A2UI_MIME_TYPE }],
+    },
+    extensions: MCP_NATIVE_HOST_EXTENSION_CAPABILITIES,
+    async readResource() {
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: A2UI_MIME_TYPE,
+            text: `${JSON.stringify({
+              version: "v1.0",
+              createSurface: {
+                surfaceId: "layout",
+                components: [{ id: "root", component: "Divider", axis: "horizontal" }],
+              },
+            })}\n`,
+          },
+        ],
+      };
+    },
+  });
+  const nativeHost = createA2uiV1NativeHost({
+    components: { ...components, Divider: hostComponent("Divider") },
+    layoutContracts: {
+      Divider: { allowedParents: ["bounded"], sizing: "intrinsic" },
+    },
+  });
+  const mounted = await mountHost(
+    controller,
+    {
+      nativeHost,
+      parentLayout: "scroll",
+      onA2uiAction() {},
+      onError() {},
+    },
+    "ready",
+    McpNativeRegisteredHostResultView,
+  );
+
+  await act(async () => mounted.host.callTool("status"));
+  assert.deepEqual(textValues(mounted.root), [
+    "Result unavailable",
+    "The validated result could not be rendered.",
+  ]);
+  assert.equal(mounted.errors.length, 1);
+  assert.ok(mounted.errors[0] instanceof A2uiV1NativeMountError);
+  assert.equal(mounted.errors[0].code, "layout-incompatible");
   await act(async () => mounted.root.unmount());
 });
 

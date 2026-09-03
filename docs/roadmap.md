@@ -25,6 +25,12 @@ The product boundary is:
 | Host extensions        | A namespaced, versioned semantic component already advertised by the host | Registration, schema, implementation, prop/event mapping, limits, fallback, and platform support    |
 | MCP Apps               | A validated `ui://` MCP App resource                                      | Isolated WebView creation, placement, bridge policy, navigation, storage, permissions, and teardown |
 
+The `0.9.x` integration-polish work now includes one immutable React Native host registration,
+pre-React mount diagnostics, host-owned layout compatibility declarations, reusable surface-wide
+render containment, canonical adapter conformance cases, and non-overwriting catalog/extension
+scaffolds. These are additive host ergonomics; they do not change the pinned A2UI wire catalog or
+permit server-selected code, layout, components, or fallback behavior.
+
 The release sequence is cumulative. The first three rows are shipped; the 0.9 line is now the
 candidate for the stable contract:
 
@@ -48,6 +54,9 @@ candidate for the stable contract:
 - `@mcp-native/host` composes the official MCP adapter, runtime, supported A2UI and MCP Apps paths,
   ordinary MCP fallback, React Native mounting, lifecycle, and error states behind one documented
   workflow without moving SDK, renderer, or WebView dependencies into `@mcp-native/core`.
+- React Native adopters can derive policy and advertised capabilities from one frozen catalog,
+  preflight the shell parent layout, and test adapters against shared semantic fixtures before
+  mounting server-controlled surfaces.
 - The v1 host automatically handles only its documented built-in standard profiles. A public registry
   for additional standard revisions and application-defined custom input contracts begins after
   `1.0.0`; v1 never guesses or silently converts an unknown server format.

@@ -19,7 +19,11 @@
     "url": "git+https://github.com/pablospaniard/mcp-native.git",
     "directory": "packages/mcp-native"
   },
+  "bin": {
+    "mcp-native": "./bin/mcp-native.mjs"
+  },
   "files": [
+    "bin",
     "dist",
     "LICENSE",
     "README.md"
