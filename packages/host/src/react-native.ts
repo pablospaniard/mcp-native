@@ -326,13 +326,6 @@ function renderSnapshot(
     );
   }
   if (tools.result.tools.length === 0) {
-    if (tools.result.nextCursor !== undefined) {
-      return renderState(
-        props.components,
-        "Tool discovery incomplete",
-        "The MCP server returned another tool page that this host could not load.",
-      );
-    }
     return renderState(props.components, "No tools", "The MCP server did not provide any tools.");
   }
 

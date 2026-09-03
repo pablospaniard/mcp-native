@@ -92,7 +92,7 @@ async function waitUntil(predicate, remainingTurns = 20) {
   await waitUntil(predicate, remainingTurns - 1);
 }
 
-async function mountHost(controller, viewProps = resultViewProps()) {
+async function mountHost(controller, viewProps = resultViewProps(), expectedToolsKind = "ready") {
   let host;
   function Probe() {
     host = useMcpNativeHost();
@@ -123,7 +123,7 @@ async function mountHost(controller, viewProps = resultViewProps()) {
     );
   });
   await act(async () => {
-    await waitUntil(() => host?.snapshot.tools.kind === "ready");
+    await waitUntil(() => host?.snapshot.tools.kind === expectedToolsKind);
   });
   return {
     errors,
@@ -285,14 +285,24 @@ test("empty final tool discovery renders an explicit accessible state", async ()
   await act(async () => mounted.root.unmount());
 });
 
-test("an empty paginated tool page does not claim that the server has no tools", async () => {
-  const mounted = await mountHost(createController({ tools: [], nextCursor: "next-page" }));
+test("an incomplete paginated tool list renders a retryable error", async () => {
+  const mounted = await mountHost(
+    createController({ tools: [], nextCursor: "next-page" }),
+    resultViewProps(),
+    "error",
+  );
 
   assert.deepEqual(textValues(mounted.root), [
-    "Tool discovery incomplete",
-    "The MCP server returned another tool page that this host could not load.",
+    "Tools unavailable",
+    "The MCP tool list could not be loaded.",
   ]);
   assert.doesNotMatch(textValues(mounted.root).join(" "), /No tools/);
+  assert.deepEqual(mounted.host.snapshot.tools, { kind: "error", code: "invalid-tool-list" });
+  const retry = mounted.root.container.queryAll((element) => element.type === "Button")[0];
+  assert.equal(retry.props.accessibilityLabel, "Retry");
+  await act(async () => retry.props.onPress());
+  await act(async () => nextTurn());
+  assert.equal(mounted.errors[0].code, "invalid-tool-list");
 
   await act(async () => mounted.root.unmount());
 });

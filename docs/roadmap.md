@@ -372,8 +372,10 @@ provider/result renderer above its closed, bounded result resolver. It owns fres
 automatic tool discovery, calls, cancellation, reconnect, stale-result rejection, teardown, and
 bounded immutable snapshots. Calls use only the exact tool definition and extension snapshots
 discovered on the active connection, then render A2UI, MCP Apps, ordinary, or invalid without
-cross-format retry. A single fail-closed application action policy supplies the protocol-specific
-A2UI delivery and MCP Apps bridge authorization callbacks.
+cross-format retry. Automatic discovery accepts only the pinned SDK's complete bounded pagination
+aggregate and rejects residual cursors before exposing a tool allowlist. A single fail-closed
+application action policy supplies the protocol-specific A2UI delivery and MCP Apps bridge
+authorization callbacks.
 
 ### Host-package gate
 

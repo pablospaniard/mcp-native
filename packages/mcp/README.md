@@ -85,6 +85,10 @@ The official SDK places these settings in the `2026-07-28` per-request capabilit
 forward it unchanged to the official SDK. `listTools()` also accepts the SDK's closed `cacheMode`
 set: `"use"`, `"refresh"`, or `"bypass"`. The other operations reject that field. Unknown request
 options, unsupported cache modes, and malformed signal objects fail before an SDK operation starts.
+The adapter invokes `client.listTools()` without a cursor, so the pinned official SDK walks every
+page up to its configured `listMaxPages` limit and returns one aggregate without `nextCursor`.
+Low-level result parsing still preserves pagination fields supplied by compatible client
+implementations; the high-level host rejects such a partial result rather than exposing it.
 
 ## Protected Streamable HTTP
 

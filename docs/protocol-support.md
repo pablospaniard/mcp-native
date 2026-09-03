@@ -28,7 +28,11 @@ The adapter accepts an optional host-owned `AbortSignal` for `tools/list`, `tool
 `resources/read` request options and forwards it unchanged to the official SDK. `tools/list` alone
 also accepts the SDK's closed `use`, `refresh`, or `bypass` cache-mode set. The high-level host
 controller forces `refresh` for explicit rediscovery and uses generation plus retirement checks to
-prevent a late cancelled, timed-out, or replaced connection from entering its current snapshot.
+prevent a late cancelled, timed-out, or replaced connection from entering its current snapshot. The
+adapter calls the pinned SDK's no-cursor `listTools()` path, which aggregates pagination under the
+SDK's `listMaxPages` bound. As a project interpretation, the high-level host accepts only that
+complete aggregate: any residual `nextCursor` makes discovery invalid, so no partial tool allowlist
+can be rendered or called. Low-level contracts continue to preserve pagination for manual callers.
 
 The generic extension capability substrate described below handles explicit mutual declarations.
 Tool definitions containing `execution` settings fail closed so task semantics are never silently

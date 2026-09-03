@@ -392,6 +392,12 @@ export class McpNativeHostController {
     try {
       const result = await raceWithAbort(rawOperation, operation.controller.signal);
       if (!this.#isCurrent(operation)) throw new HostOperationCancelledError();
+      // The official SDK aggregates every page when listTools() is called without a cursor.
+      // A residual cursor therefore means this client returned only a partial discovery result;
+      // never expose a partial allowlist to calls or renderers.
+      if (result.nextCursor !== undefined) {
+        throw new McpNativeHostControllerError("invalid-tool-list");
+      }
       const toolsByName = new Map<string, McpTool>();
       for (const tool of result.tools) {
         if (toolsByName.has(tool.name)) {

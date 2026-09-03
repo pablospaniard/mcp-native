@@ -425,7 +425,7 @@ test("refreshTools forces the official SDK adapter to replace a fresh cached too
   await controller.shutdown();
 });
 
-test("host rejects ambiguous tool discovery and bounds abandoned operations and listeners", async () => {
+test("host rejects ambiguous or incomplete tool discovery", async () => {
   const duplicate = createMcpNativeHostController({
     createConnection: () =>
       fakeConnection(
@@ -441,6 +441,30 @@ test("host rejects ambiguous tool discovery and bounds abandoned operations and 
   assert.deepEqual(duplicate.getSnapshot().tools, { kind: "error", code: "invalid-tool-list" });
   await duplicate.shutdown();
 
+  const incomplete = createMcpNativeHostController({
+    createConnection: () =>
+      fakeConnection(
+        fakeClient({
+          async listTools() {
+            return { tools: [listedTool("partial")], nextCursor: "next-page" };
+          },
+        }),
+      ),
+    classifyError: retryable,
+  });
+  await incomplete.start();
+  assert.deepEqual(incomplete.getSnapshot().tools, {
+    kind: "error",
+    code: "invalid-tool-list",
+  });
+  await assert.rejects(
+    () => incomplete.callTool("partial"),
+    (error) => error instanceof McpNativeHostControllerError && error.code === "not-ready",
+  );
+  await incomplete.shutdown();
+});
+
+test("host bounds abandoned operations and listeners", async () => {
   const abandoned = createMcpNativeHostController({
     createConnection: () =>
       fakeConnection(
