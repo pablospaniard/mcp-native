@@ -24,11 +24,16 @@ function requirePackedFile(packageName, packedFiles, path) {
   }
 }
 
-function collectBinTargets(value) {
+function collectBinTargets(packageName, value) {
   const targets = typeof value === "string" ? [value] : Object.values(value ?? {});
-  return targets.map((path) =>
-    typeof path === "string" && path.startsWith("./") ? path.slice(2) : path,
-  );
+  return targets.map((path) => {
+    if (typeof path !== "string" || path.length === 0 || path.startsWith("./")) {
+      throw new Error(
+        `${packageName} manifest bin targets must use npm-normalized relative paths without ./`,
+      );
+    }
+    return path;
+  });
 }
 
 export function verifyPackageArtifacts({
@@ -68,7 +73,7 @@ export function verifyPackageArtifacts({
     "README.md",
     "package.json",
     ...collectExportTargets(manifest.exports),
-    ...collectBinTargets(manifest.bin),
+    ...collectBinTargets(packageName, manifest.bin),
     ...additionalRequiredFiles,
   ]);
   for (const path of requiredFiles) {
