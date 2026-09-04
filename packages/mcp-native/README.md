@@ -28,10 +28,10 @@ For the big picture, start with the [product guide](https://github.com/pablospan
 
 ## Install
 
-Until the stable `1.0.0` release, select the beta package explicitly:
+Until the stable `1.0.0` release, select the RC package explicitly:
 
 ```bash
-npm install mcp-native@beta react
+npm install mcp-native@rc react
 ```
 
 React `>=18.1.0` is the only peer dependency. Native components and platform integrations are

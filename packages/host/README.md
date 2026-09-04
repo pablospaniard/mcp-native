@@ -9,10 +9,10 @@ instead when the application needs to control those stages independently.
 
 ## Install
 
-Until the stable `1.0.0` release, select the coordinated beta packages explicitly:
+Until the stable `1.0.0` release, select the coordinated RC packages explicitly:
 
 ```bash
-npm install @mcp-native/host@beta @mcp-native/mcp@beta @modelcontextprotocol/client react
+npm install @mcp-native/host@rc @mcp-native/mcp@rc @modelcontextprotocol/client react
 ```
 
 The example below uses `@mcp-native/mcp` to adapt the official client. A host may provide another

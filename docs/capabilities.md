@@ -103,9 +103,9 @@ navigate, or bridge a WebView from A2UI. See the [mixed-surface guide](mixed-sur
 
 ## Where the project is now
 
-The `1.0.0-beta` line contains the complete React Native feature set planned for 1.0 and is ready
-for integration and evaluation. The remaining work is final validation and publication of the
-long-term 1.x compatibility promise.
+The `1.0.0-rc` line contains the complete React Native feature set planned for 1.0 and is ready
+for integration and evaluation. The remaining work is final ecosystem validation before
+publication of the long-term 1.x compatibility promise under the stable `1.0.0` tag.
 
 The runnable [Expo Go todo app](../examples/expo-go-todolist/README.md) provides application-level
 native evidence alongside the automated package and protocol gates.
