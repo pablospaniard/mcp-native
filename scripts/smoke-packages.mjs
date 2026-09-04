@@ -477,6 +477,7 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
     cwd: consumerDirectory,
     encoding: "utf8",
     env: npmEnvironment,
+    shell: process.platform === "win32",
   });
   if (!cliHelp.includes("mcp-native doctor")) {
     throw new Error("mcp-native installed executable did not return its documented help");
