@@ -615,9 +615,8 @@ function A2uiHostResult({
 }
 
 /**
- * Wraps rendered interactive content (an A2UI surface tree or an MCP Apps WebView session) without
- * becoming a single accessibility element that hides its interactive descendants. Readiness is
- * announced once per mount through the host-owned callback.
+ * Wraps a validated A2UI surface without becoming a single accessibility element that hides its
+ * interactive descendants. Readiness is announced once per mount through the host-owned callback.
  */
 function InteractiveResultAnnouncer({
   View,
@@ -658,6 +657,8 @@ function McpAppsResultSession({
   const [failed, setFailed] = useState<"crashed" | "session" | undefined>();
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
+  const onAnnounceRef = useRef(onAnnounce);
+  onAnnounceRef.current = onAnnounce;
   const mountedRef = useRef(true);
   const deliveredRef = useRef(false);
   const reportSessionError = useCallback((error: unknown) => {
@@ -727,6 +728,9 @@ function McpAppsResultSession({
             deliveredRef.current = true;
             await sessionBridge.sendToolInput(arguments_);
             await sessionBridge.sendToolResult(result.result);
+            if (mountedRef.current) {
+              reportHostAnnouncement(onAnnounceRef.current, "Interactive app content ready");
+            }
           }
         },
         ...(sessionOptions.onExternalLink === undefined
@@ -806,16 +810,16 @@ function McpAppsResultSession({
     );
   }
 
-  return createElement(InteractiveResultAnnouncer, {
-    View: components.View,
-    onAnnounce,
-    children: createElement(sessionOptions.View, {
+  return createElement(
+    components.View,
+    { accessible: false },
+    createElement(sessionOptions.View, {
       key: generation,
       webViewProps: setup.webViewProps,
       bindPostMessage: setup.bindPostMessage,
       onCrash: setup.onCrash,
     }),
-  });
+  );
 }
 
 interface HostRenderBoundaryProps {

@@ -9,8 +9,10 @@ instead when the application needs to control those stages independently.
 
 ## Install
 
+Until the stable `1.0.0` release, select the coordinated beta packages explicitly:
+
 ```bash
-npm install @mcp-native/host @mcp-native/mcp @modelcontextprotocol/client react
+npm install @mcp-native/host@beta @mcp-native/mcp@beta @modelcontextprotocol/client react
 ```
 
 The example below uses `@mcp-native/mcp` to adapt the official client. A host may provide another
@@ -78,9 +80,6 @@ fallback data for the application to present safely.
 Applications can continue using every focused `@mcp-native/*` package directly.
 
 ## React Native provider and result renderer
-
-This `/react-native` entry point is present on `main` under the changelog's Unreleased section. It
-is not exported by the npm `0.9.3` artifact.
 
 The optional `@mcp-native/host/react-native` entry point owns the controller lifecycle and renders
 the complete connection, discovery, call, and result state. Register the locally compiled catalog

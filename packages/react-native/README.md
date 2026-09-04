@@ -17,12 +17,14 @@ components supplied by your application. It supports the complete pinned A2UI ba
 policy-gated media, and locally compiled host extensions. Your app keeps control of the component
 implementations, visual design, and action delivery.
 
-The renderer implements the native portion of the documented A2UI v1 Candidate profile. The v1 adapter converts the complete pinned basic catalog, including bounded dynamic lists and policy-gated media, into the host-owned `NativeElement` boundary. Exactly negotiated local host extensions use a separate closed registration boundary. The custom `0.1` surface remains available through migration APIs. See the [feature-scoped A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md) for exact coverage.
+The renderer implements the native portion of the documented A2UI v1 Candidate profile. The v1 adapter converts the complete pinned basic catalog, including bounded dynamic lists and policy-gated media, into the host-owned `NativeElement` boundary. Exactly negotiated local host extensions use a separate closed registration boundary. See the [feature-scoped A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md) for exact coverage.
 
 ## Install
 
+Until the stable `1.0.0` release, select the beta package explicitly:
+
 ```bash
-npm install @mcp-native/react-native react
+npm install @mcp-native/react-native@beta react
 ```
 
 `@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React `>=18.1.0` is the
@@ -34,64 +36,6 @@ supplies its locally bundled components and platform integrations.
 New integrations mount `A2uiV1NativeSurface` with an explicit catalog policy and locally bundled
 components. Continue with the [v1 render-plan adapter](#a2ui-v1-render-plan-adapter) for the complete
 host flow, catalog mapping, local state, validation, actions, media, and extension support.
-
-## Legacy custom `0.1` migration
-
-The current release candidate exposes these APIs only from the explicit `/legacy` subpaths. The
-subpaths remain frozen for migration and security fixes.
-
-```tsx
-import { parseA2uiSurface } from "@mcp-native/a2ui/legacy";
-import type { McpNativeRuntime } from "@mcp-native/core";
-import { McpNativeSurface, useMcpNativeActionDispatcher } from "@mcp-native/react-native/legacy";
-import { Button, Text, TextInput, View } from "react-native";
-
-const components = { Button, Text, TextInput, View };
-
-const surface = parseA2uiSurface({
-  version: "0.1",
-  root: {
-    id: "card",
-    type: "container",
-    children: [
-      { id: "title", type: "text", text: "Ready to continue?" },
-      {
-        id: "continue",
-        type: "button",
-        label: "Continue",
-        action: { type: "tool", name: "continue_flow" },
-      },
-    ],
-  },
-});
-
-function Example({ runtime }: { runtime: McpNativeRuntime }) {
-  const onAction = useMcpNativeActionDispatcher(runtime, {
-    onError(error) {
-      console.error("MCP action failed", error);
-    },
-  });
-
-  return (
-    <McpNativeSurface
-      surface={surface}
-      components={components}
-      onAction={onAction}
-      onBindingChange={(binding, value) => {
-        console.log("binding changed", binding, value);
-      }}
-    />
-  );
-}
-```
-
-The renderer uses only the currently allowed component names:
-
-```ts
-type NativeComponentName = "Button" | "Text" | "TextInput" | "View";
-```
-
-This example uses deprecated custom `0.1` APIs. The application host decides how each name maps to a locally bundled component and how declared button actions reach `McpNativeRuntime`. `onBindingChange` reports a validated binding name and the next text value for that legacy surface. New hosts should use `A2uiV1NativeSurface`.
 
 ## A2UI v1 render-plan adapter
 
@@ -246,8 +190,7 @@ Each override receives the same explicitly selected primitive props as its base 
 entries fall back to their base component; omitted A2UI hints select their pinned defaults. The renderer consumes structural and style hints while
 choosing a local component and never forwards `variant`, a server-provided style object, or an
 arbitrary native prop. Hosts can combine variant slots with the typed adapter helpers when a design
-system uses a different prop API. Variant slots apply only to `A2uiV1NativeSurface`; the custom `0.1`
-`McpNativeSurface` always uses the four base primitives, even when the same host catalog is reused.
+system uses a different prop API.
 
 Create adapter components and the catalog at module scope, as above, or memoize them with stable dependencies. Each factory call intentionally creates a new React component type; calling one during every host render would remount that catalog entry and discard its component-local state. Generated adapters include descriptive React DevTools display names.
 
@@ -333,28 +276,6 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 | `NativeComponentPropMapper`                       | Generic mapper type used by all host component adapter helpers.                                               |
 | `NativeElement` / `NativeComponentName`           | Serializable trusted-plan node and its fixed component-name union.                                            |
 
-### Legacy `/legacy` API
-
-| Export                             | Purpose                                                                             |
-| ---------------------------------- | ----------------------------------------------------------------------------------- |
-| `McpNativeSurface`                 | Mounts a validated custom `0.1` surface using the host's component catalog.         |
-| `useMcpNativeActionDispatcher`     | Adapts legacy runtime dispatch into a stable callback with required error handling. |
-| `useNativeRenderPlan`              | Memoizes a trusted legacy render plan for a validated surface identity.             |
-| `createNativeRenderPlan`           | Converts a validated custom `0.1` surface into a `NativeElement` tree.              |
-| `NativeActionHandler`              | Synchronous handler for a validated declared legacy action.                         |
-| `NativeBindingChangeHandler`       | Handler receiving a validated legacy binding name and the next text value.          |
-| `McpNativeActionDispatcherOptions` | Required legacy action error callback and optional result callback.                 |
-| `McpNativeSurfaceProps`            | Props for mounting a validated custom `0.1` surface.                                |
-
-## Legacy `0.1` mappings
-
-| Surface node | Native component | Host props and event behavior                                                             |
-| ------------ | ---------------- | ----------------------------------------------------------------------------------------- |
-| `container`  | `View`           | Nested trusted children                                                                   |
-| `text`       | `Text`           | Validated `children`, closed `text` role, and enabled font scaling                        |
-| `button`     | `Button`         | `title`, label, closed `button` role/state, and `onPress` for its validated action        |
-| `text-input` | `TextInput`      | Label/placeholder, enabled font scaling, optional value, and binding-aware `onChangeText` |
-
 ## Trust boundary
 
 - The server cannot select components outside the catalog.
@@ -367,7 +288,6 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 - Rendered component props are selected explicitly; unchecked server props are never spread into host components.
 - Accessibility roles, native state, focus eligibility, and font scaling are renderer-derived; server data cannot replace them.
 - The host must explicitly map components, enforce permissions, and choose the renderer-to-agent transport; emitting an envelope does not grant network or device access.
-- Asynchronous action failures cannot become unhandled rejections because `useMcpNativeActionDispatcher` requires an error callback.
 - Styling variants preserve pinned allowlists and never spread unchecked server props; future component expansion must retain the same boundary.
 
 See [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui) for parsing and [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core) for action dispatch. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.

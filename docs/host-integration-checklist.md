@@ -85,7 +85,9 @@ the A2UI parser/store, and connection lifecycle by hand:
   cannot reach platform accessibility APIs, since `@mcp-native/host` and `@mcp-native/react-native`
   intentionally carry no `react-native` dependency. Note that `accessibilityLiveRegion` on Android is
   the only automatic platform signal and iOS has no equivalent, so screen reader users on iOS get no
-  announcement at all unless `onAnnounce` is wired.
+  announcement at all unless `onAnnounce` is wired. A2UI readiness is announced after its validated
+  surface mounts; MCP Apps readiness is announced only after protocol initialization and successful
+  initial tool-input/result delivery.
 - `McpNativeHostResultView` does not move focus itself across loading/result/error transitions.
   Hosts whose platform UX requires focus to follow the active state must do so explicitly (e.g. by
   focusing a ref keyed to the rendered state) around the view.

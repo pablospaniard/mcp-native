@@ -728,6 +728,7 @@ test("MCP Apps session binds one sandbox, sends input and result, and closes", a
   };
   const toolResult = { content: [{ type: "text", text: "Sunny" }] };
   const outbound = [];
+  const announcements = [];
 
   function AppsView(props) {
     useEffect(
@@ -755,6 +756,7 @@ test("MCP Apps session binds one sandbox, sends input and result, and closes", a
       },
     }),
     resultViewProps({
+      onAnnounce: (message) => announcements.push(message),
       mcpApps: {
         View: AppsView,
         bridgeOptions: {
@@ -777,6 +779,7 @@ test("MCP Apps session binds one sandbox, sends input and result, and closes", a
   });
   const app = mounted.root.container.queryAll((element) => element.type === "AppsView")[0];
   assert.ok(app, `errors=${mounted.errors.map((error) => error.code ?? error).join(",")}`);
+  assert.equal(announcements.includes("Interactive app content ready"), false);
 
   await act(async () => {
     app.props.webViewProps.onMessage({
@@ -794,6 +797,10 @@ test("MCP Apps session binds one sandbox, sends input and result, and closes", a
       },
     });
     await nextTurn();
+  });
+  assert.equal(announcements.includes("Interactive app content ready"), false);
+
+  await act(async () => {
     app.props.webViewProps.onMessage({
       nativeEvent: {
         data: JSON.stringify({
@@ -803,7 +810,14 @@ test("MCP Apps session binds one sandbox, sends input and result, and closes", a
         }),
       },
     });
-    await nextTurn();
+    await waitUntil(() => announcements.includes("Interactive app content ready"));
+  });
+  assert.equal(
+    announcements.filter((message) => message === "Interactive app content ready").length,
+    1,
+  );
+
+  await act(async () => {
     app.props.webViewProps.onMessage({
       nativeEvent: {
         data: JSON.stringify({

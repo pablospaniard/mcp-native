@@ -18,8 +18,10 @@ application policy. It does not depend on A2UI, React Native, WebViews, or a par
 
 ## Install
 
+Until the stable `1.0.0` release, select the beta package explicitly:
+
 ```bash
-npm install @mcp-native/core
+npm install @mcp-native/core@beta
 ```
 
 The package is ESM-only and includes TypeScript declarations.
@@ -140,32 +142,6 @@ Profiles and their identifiers are host-authored. Every profile must explicitly 
 Wrap the policy with `createExpiringGrantActionPolicy()` when the host offers remembered approval. Its app-owned grant key must bind the policy revision, server/account partition, tool, and argument class. Stored records are validated, expired records are removed, evaluation is serialized, and a grant is saved only after exact approval. Set a zero duration for allow-once and call `revokeMcpNativeConsentGrant()` from the host's user-visible revoke, logout, server-removal, and policy-migration paths.
 
 `actionPolicy` protects `McpNativeRuntime.dispatch()`. Set `trustedToolPolicy` to protect direct `callTool()` operations with the same or another explicit policy; omission preserves the lower-level trusted seam. MCP Apps requires its own `authorizeToolCall` callback and A2UI v1 delivery requires `createA2uiV1ActionDeliveryHandler`, because those packages own different protocol boundaries.
-
-## Legacy MCP result migration
-
-The initial `0.0.x` API returned one `McpResource` directly from `readResource`. The official SDK returns a content collection, so implementations now return `McpReadResourceResult`:
-
-```ts
-// Before
-return { uri, text: "Hello" };
-
-// Current RFC-0001 contract
-return { contents: [{ uri, text: "Hello" }] };
-```
-
-Preserving the collection avoids silently discarding valid resource items.
-
-Tool listings likewise preserve result metadata and cache hints, so `listTools()` now returns an object:
-
-```ts
-// Before
-return [{ name: "save", inputSchema: { type: "object" } }];
-
-// Current RFC-0001 contract
-return { tools: [{ name: "save", inputSchema: { type: "object" } }] };
-```
-
-Content blocks now use MCP's official discriminated fields. Replace `{ type: "text", data: { text } }` with `{ type: "text", text }`; resource links similarly expose `name`, `uri`, and `mimeType` directly.
 
 ## Design boundaries
 

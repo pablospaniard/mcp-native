@@ -60,9 +60,14 @@ export async function isPackageVersionPublished(
 }
 
 export function publishWorkspace({ name, version }, { run = spawnSync } = {}) {
-  const result = run("npm", ["publish", "--workspace", name, "--access", "public"], {
-    stdio: "inherit",
-  });
+  const distTag = getNpmReleaseDistTag(version);
+  const result = run(
+    "npm",
+    ["publish", "--workspace", name, "--access", "public", "--tag", distTag],
+    {
+      stdio: "inherit",
+    },
+  );
 
   if (result.error) {
     throw result.error;
@@ -71,6 +76,21 @@ export function publishWorkspace({ name, version }, { run = spawnSync } = {}) {
   if (result.status !== 0) {
     throw new Error(`Publishing ${name}@${version} failed with exit code ${result.status}`);
   }
+}
+
+/** Returns an explicit npm dist-tag without allowing a prerelease to become `latest`. */
+export function getNpmReleaseDistTag(version) {
+  const match =
+    /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?$/u.exec(
+      version,
+    );
+  if (match === null) {
+    throw new Error(`Cannot select an npm dist-tag for invalid release version ${version}`);
+  }
+  const prerelease = match[4];
+  if (prerelease === undefined) return "latest";
+  const [channel] = prerelease.split(".");
+  return channel === "alpha" || channel === "beta" || channel === "rc" ? channel : "next";
 }
 
 export async function publishMissingReleasePackages({

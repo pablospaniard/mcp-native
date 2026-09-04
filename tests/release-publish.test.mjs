@@ -6,9 +6,12 @@ import test from "node:test";
 import { parse } from "yaml";
 
 import {
+  getNpmReleaseDistTag,
   isPackageVersionPublished,
   loadReleasePackages,
   publishMissingReleasePackages,
+  publishWorkspace,
+  releasePackagePaths,
 } from "../scripts/publish-release.mjs";
 import { runReleaseVerification } from "../scripts/run-release-verification.mjs";
 
@@ -89,10 +92,87 @@ test("registry metadata must match the exact requested version", async () => {
   );
 });
 
+test("publishing selects explicit stable and prerelease npm dist-tags", () => {
+  const invocations = [];
+  const run = (command, args, options) => {
+    invocations.push({ command, args, options });
+    return { status: 0 };
+  };
+
+  publishWorkspace({ name: "@mcp-native/example", version: "1.0.0-beta.1" }, { run });
+  publishWorkspace({ name: "@mcp-native/example", version: "1.0.0" }, { run });
+
+  assert.deepEqual(invocations, [
+    {
+      command: "npm",
+      args: [
+        "publish",
+        "--workspace",
+        "@mcp-native/example",
+        "--access",
+        "public",
+        "--tag",
+        "beta",
+      ],
+      options: { stdio: "inherit" },
+    },
+    {
+      command: "npm",
+      args: [
+        "publish",
+        "--workspace",
+        "@mcp-native/example",
+        "--access",
+        "public",
+        "--tag",
+        "latest",
+      ],
+      options: { stdio: "inherit" },
+    },
+  ]);
+  assert.equal(getNpmReleaseDistTag("1.0.0-1"), "next");
+  assert.equal(getNpmReleaseDistTag("1.0.0-v1.2"), "next");
+  assert.throws(() => getNpmReleaseDistTag("not-semver"), /invalid release version/);
+});
+
+test("prerelease installation commands select the matching npm dist-tag", () => {
+  const distTag = getNpmReleaseDistTag(releaseVersion);
+  if (distTag === "latest") return;
+
+  const releasePackageNames = loadReleasePackages().map(({ name }) => name);
+  const readmePaths = [
+    "README.md",
+    ...releasePackagePaths.map((manifestPath) => manifestPath.replace("package.json", "README.md")),
+  ];
+
+  for (const readmePath of readmePaths) {
+    const installCommands = readFileSync(readmePath, "utf8")
+      .split("\n")
+      .filter((line) => line.startsWith("npm install "));
+
+    for (const command of installCommands) {
+      const dependencies = command.split(/\s+/u).slice(2);
+      for (const packageName of releasePackageNames) {
+        const documentedDependency = dependencies.find(
+          (dependency) => dependency === packageName || dependency.startsWith(`${packageName}@`),
+        );
+        if (documentedDependency !== undefined) {
+          assert.equal(
+            documentedDependency,
+            `${packageName}@${distTag}`,
+            `${readmePath}: ${command}`,
+          );
+        }
+      }
+    }
+  }
+});
+
 test("the recovery workflow resolves a published release to an immutable commit", () => {
   const workflow = parse(readFileSync(".github/workflows/release.yml", "utf8"));
   const publishJob = workflow.jobs.publish;
   const steps = publishJob.steps;
+  const resolveRelease = steps.find(({ name }) => name === "Resolve published release");
   const releaseCheckout = steps.find(({ name }) => name === "Check out immutable release commit");
   const verifyRelease = steps.find(
     ({ run }) => run === "node ../automation/scripts/run-release-verification.mjs",
@@ -100,6 +180,17 @@ test("the recovery workflow resolves a published release to an immutable commit"
 
   assert.equal(publishJob.environment, "npm-release");
   assert.match(publishJob.if, /github\.ref == 'refs\/heads\/main'/);
+  const patternLine = resolveRelease.run
+    .split("\n")
+    .find((line) => line.includes('REQUESTED_TAG}" =~ '));
+  const workflowPatternSource = patternLine
+    ?.slice(patternLine.indexOf(" =~ ") + 4)
+    .split(" ", 1)[0];
+  assert.ok(workflowPatternSource, "release workflow must expose its exact tag pattern");
+  const workflowTagPattern = new RegExp(workflowPatternSource, "u");
+  assert.match("v1.0.0", workflowTagPattern);
+  assert.match("v1.0.0-beta.1", workflowTagPattern);
+  assert.doesNotMatch("v1.0.0-beta.01", workflowTagPattern);
   assert.equal(releaseCheckout.with.ref, "${{ steps.release.outputs.commit }}");
   assert.equal(releaseCheckout.with["persist-credentials"], false);
   assert.equal(verifyRelease.env.MCP_NATIVE_RELEASE_TAG, "${{ steps.release.outputs.tag }}");
@@ -132,7 +223,7 @@ test("release recovery rejects an invalid tag before starting verification", () 
           throw new Error("must not run");
         },
       }),
-    /exact stable semantic version/,
+    /exact semantic version/,
   );
 });
 

@@ -2,14 +2,15 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const stableReleaseTagPattern = /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/;
+const releaseTagPattern =
+  /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?$/;
 
 export function runReleaseVerification({
   releaseTag = process.env.MCP_NATIVE_RELEASE_TAG,
   run = spawnSync,
 } = {}) {
-  if (typeof releaseTag !== "string" || !stableReleaseTagPattern.test(releaseTag)) {
-    throw new Error("Release tag must be an exact stable semantic version.");
+  if (typeof releaseTag !== "string" || !releaseTagPattern.test(releaseTag)) {
+    throw new Error("Release tag must be an exact semantic version.");
   }
 
   const result = run("npm", ["run", "release:verify"], {

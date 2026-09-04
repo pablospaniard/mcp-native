@@ -28,9 +28,8 @@ application keeps control of code, design, navigation, permissions, and transpor
 | A new server-defined document or component protocol           | Not supported by v1  | Track it through the post-1.0 contract-adapter work; do not guess from MIME type or metadata    |
 
 Use `@mcp-native/host` when one owner should connect, discover, call, classify, and render. Compose
-the focused packages directly when the application needs separate control of those stages.
-The headless controller is published in `0.9.3`; the `/react-native` provider and result renderer
-are currently unreleased additions on `main`.
+the focused packages directly when the application needs separate control of those stages. The
+`/react-native` entry point provides the provider and result renderer for that controller.
 
 ## The end-to-end flow
 

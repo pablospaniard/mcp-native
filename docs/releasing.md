@@ -12,7 +12,7 @@ Before creating a release:
    that version.
 2. Confirm every package has `pablospaniard/mcp-native` and `release.yml` configured as its npm
    trusted publisher, with the `npm-release` environment and `npm publish` allowed.
-3. Run `npm run release:verify` and verify the release tag with
+3. Run `npm run release:verify` and verify the stable or prerelease tag with
    `GITHUB_REF_NAME=v<version> node scripts/verify-release-version.mjs`.
 4. Merge the release pull request and publish the matching GitHub Release.
 
@@ -29,14 +29,17 @@ from the independent reviews and registry checks required for the stable release
 result in the pull request or release. Do not commit raw logs, screenshots, generated applications,
 review reports, matrices, or transcripts solely to serve as release evidence.
 
-The release workflow publishes packages in dependency order. It first checks whether each exact
-version already exists, so an interrupted release can be resumed without attempting to overwrite
-immutable npm versions. A maintainer can manually dispatch the same workflow with the existing
-release tag to resume publication.
+The release workflow publishes packages in dependency order. Stable versions use the explicit npm
+`latest` dist-tag. The recognized `alpha`, `beta`, and `rc` prerelease channels use their matching
+tag; every other prerelease uses `next`, so prereleases never replace `latest`. The workflow first
+checks whether each exact version already exists, so an interrupted release can be resumed without
+attempting to overwrite immutable npm versions. A maintainer can manually dispatch the same
+workflow with the existing release tag to resume publication.
 
 The `npm-release` GitHub environment is a release trust boundary. Configure required reviewers and
-allow deployments only from `main` and stable `v*` tags. The workflow resolves a published GitHub
-Release to its tag's immutable commit before it installs or executes release-package code.
+allow deployments only from `main` and reviewed `v*` release tags. The workflow resolves a
+published GitHub Release to its tag's immutable commit before it installs or executes
+release-package code.
 
 ## Onboarding a new package
 

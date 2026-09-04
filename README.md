@@ -19,11 +19,9 @@ MCP Native is a policy-gated host runtime, not a remote component loader. An MCP
 a semantic component that the app advertised, such as `Button` or `TextField`. It cannot select the
 React Native implementation, import code, pass arbitrary props or styles, or gain device access.
 
-The published `0.9.3` release is the current 1.0 candidate. It includes the headless
-`@mcp-native/host` controller and independently usable low-level packages. The `main` branch also
-contains the unreleased React Native host provider, registered catalog workflow, and integration
-tooling listed in the [changelog](CHANGELOG.md). Independent reviews, final release validation, and
-publication of the long-term `1.x` compatibility promise remain before `1.0.0`.
+MCP Native includes a headless `@mcp-native/host` controller, its React Native provider and
+registered catalog workflow, and independently usable low-level packages. See the
+[changelog](CHANGELOG.md) for release history.
 
 ## When to use it
 
@@ -39,12 +37,11 @@ Native props or styles, or expose native APIs directly. Those paths are intentio
 
 ## Choose an integration path
 
-| Need                                                                      | Use                                                                                  | Why                                                                                    |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| Connect, discover tools, call, classify, and render through one lifecycle | [`@mcp-native/host`](packages/host)                                                  | Recommended high-level path; React Native lifecycle integration is currently on `main` |
-| Control connection, parsing, state, or rendering yourself                 | Focused `@mcp-native/*` packages                                                     | Keeps each boundary independently composable                                           |
-| Import the low-level runtime and UI layers from one module                | [`mcp-native`](packages/mcp-native)                                                  | Convenience re-export; it does not include the MCP SDK adapter or high-level host      |
-| Migrate the deprecated custom A2UI `0.1` surface                          | `mcp-native/legacy`, `@mcp-native/a2ui/legacy`, or `@mcp-native/react-native/legacy` | Explicit compatibility path only                                                       |
+| Need                                                                      | Use                                 | Why                                                                               |
+| ------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------- |
+| Connect, discover tools, call, classify, and render through one lifecycle | [`@mcp-native/host`](packages/host) | Recommended high-level path, including React Native lifecycle integration         |
+| Control connection, parsing, state, or rendering yourself                 | Focused `@mcp-native/*` packages    | Keeps each boundary independently composable                                      |
+| Import the low-level runtime and UI layers from one module                | [`mcp-native`](packages/mcp-native) | Convenience re-export; it does not include the MCP SDK adapter or high-level host |
 
 ```mermaid
 flowchart TD
@@ -91,26 +88,26 @@ never becomes a native component and receives no device permission by implicatio
 
 ## Install
 
-For the published `0.9.3` headless high-level flow:
+Until the stable `1.0.0` release, select the coordinated beta packages explicitly. The unqualified
+`latest` dist-tag remains on the stable `0.9.x` line.
+
+For the headless high-level flow, including its React Native provider:
 
 ```bash
-npm install @mcp-native/host @mcp-native/mcp @modelcontextprotocol/client react
+npm install @mcp-native/host@beta @mcp-native/mcp@beta @modelcontextprotocol/client react
 ```
-
-The `@mcp-native/host/react-native` entry point documented on `main` is part of the unreleased
-changes and is not exported by the npm `0.9.3` artifact.
 
 For manual composition through one low-level entry point:
 
 ```bash
-npm install mcp-native react
+npm install mcp-native@beta react
 ```
 
 Or install only the focused layers you use:
 
 ```bash
-npm install @mcp-native/core @mcp-native/a2ui @mcp-native/react-native
-npm install @mcp-native/webview
+npm install @mcp-native/core@beta @mcp-native/a2ui@beta @mcp-native/react-native@beta
+npm install @mcp-native/webview@beta
 ```
 
 All packages are ESM-only and include TypeScript declarations. React `>=18.1.0` is the only UI peer
