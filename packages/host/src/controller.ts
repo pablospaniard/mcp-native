@@ -19,7 +19,7 @@ import {
   type McpSdkListToolsOptions,
   type McpSdkRequestOptions,
 } from "@mcp-native/mcp";
-import type { A2uiV1EnvelopeParseOptions } from "@mcp-native/a2ui";
+import type { EnvelopeParseOptions } from "@mcp-native/a2ui";
 
 import { resolveMcpNativeHostResult, type McpNativeHostResult } from "./results.js";
 
@@ -107,7 +107,7 @@ export type McpNativeHostControllerOptions = Omit<
 > & {
   /** Creates a fresh SDK client/transport/adapter unit for every connection attempt. */
   readonly createConnection: () => McpNativeHostConnection;
-  readonly a2uiParseOptions?: A2uiV1EnvelopeParseOptions;
+  readonly a2uiParseOptions?: EnvelopeParseOptions;
 };
 
 interface ActiveConnection {
@@ -148,7 +148,7 @@ class HostOperationCancelledError extends Error {}
  */
 export class McpNativeHostController {
   readonly #createConnection: () => McpNativeHostConnection;
-  readonly #a2uiParseOptions: A2uiV1EnvelopeParseOptions | undefined;
+  readonly #a2uiParseOptions: EnvelopeParseOptions | undefined;
   readonly #lifecycle: McpNativeConnectionLifecycle;
   readonly #listeners = new Set<() => void>();
   readonly #pendingOperations = new Set<Promise<unknown>>();

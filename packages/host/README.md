@@ -83,7 +83,7 @@ Applications can continue using every focused `@mcp-native/*` package directly.
 
 The optional `@mcp-native/host/react-native` entry point owns the controller lifecycle and renders
 the complete connection, discovery, call, and result state. Register the locally compiled catalog
-once with `createA2uiV1NativeHost`; its derived `components` and `policy` keep result rendering and
+once with `createHost`; its derived `components` and `policy` keep result rendering and
 capability advertising aligned. The application still owns action delivery and any MCP Apps
 WebView adapter.
 
@@ -127,8 +127,8 @@ export function App() {
 The registered result view passes its optional `parentLayout` through the native-host preflight, so
 unsupported scrolling, fill-height, or overlay combinations fail before catalog rendering. Omission
 uses the native surface's `unbounded` default. Manual result composers can call
-`inspectA2uiV1NativeMount(resultSurface, appNativeHost, { parentLayout })` before mounting. Direct
-low-level users can mount `A2uiV1NativeHostSurface`, which includes the same preflight and a
+`inspectMount(resultSurface, appNativeHost, { parentLayout })` before mounting. Direct
+low-level users can mount `HostSurface`, which includes the same preflight and a
 redacted, resettable render boundary.
 
 The provider calls `start()` after mount, publishes immutable snapshots with
@@ -159,7 +159,7 @@ validation and delivery, while MCP Apps still owns tool visibility, JSON-RPC ser
 tool-call delivery.
 
 ```ts
-import { createA2uiV1ActionDeliveryHandler } from "@mcp-native/a2ui";
+import { createActionDeliveryHandler } from "@mcp-native/a2ui";
 import { createMcpNativeHostActionAuthorization } from "@mcp-native/host";
 import { McpAppsBridge } from "@mcp-native/webview";
 
@@ -172,7 +172,7 @@ const actionAuthorization = createMcpNativeHostActionAuthorization({
   },
 });
 
-const handleA2uiAction = createA2uiV1ActionDeliveryHandler({
+const handleA2uiAction = createActionDeliveryHandler({
   authorize: actionAuthorization.authorizeA2uiAction,
   deliver: deliverA2uiActionToAgent,
 });

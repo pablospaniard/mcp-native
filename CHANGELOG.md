@@ -6,6 +6,17 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+### Added
+
+- Add concise current-profile names across the A2UI and React Native package roots, plus explicit
+  `a2ui` and `reactNative` namespaces in the `mcp-native` convenience package.
+
+### Changed
+
+- Make names such as `SurfaceStore`, `parseEnvelope`, `createHost`, and `HostSurface` canonical in
+  documentation and examples. Existing `A2ui*`, `A2uiV1*`, and `A2UI_V1_*` names remain
+  source-compatible aliases throughout `1.x`; protocol literals and schema pins are unchanged.
+
 ## 1.0.0-beta.2 - 2026-09-04
 
 Corrects the npm manifest normalization discovered while verifying the first beta publication.

@@ -1,4 +1,4 @@
-import { A2uiSurfaceStore, type A2uiV1SurfaceValidationPolicy } from "@mcp-native/a2ui";
+import { SurfaceStore, type SurfaceValidationPolicy } from "@mcp-native/a2ui";
 import {
   parseMcpNativeAction,
   type JsonObject,
@@ -7,17 +7,17 @@ import {
   type McpToolCallResult,
 } from "@mcp-native/core";
 import {
-  A2uiV1NativeHostSurface,
-  A2uiV1NativeSurface,
-  isA2uiV1NativeHost,
-  type A2uiV1NativeHost,
-  type A2uiV1NativeActionHandler,
-  type A2uiV1NativeHostExtensionEventDescriptor,
-  type A2uiV1NativeHostExtensionPolicy,
-  type A2uiV1NativeImagePolicy,
-  type A2uiV1NativeMediaPolicy,
-  type A2uiV1NativeOpenUrlHandler,
-  type A2uiV1NativeOpenUrlPolicy,
+  HostSurface,
+  Surface,
+  isHost,
+  type Host,
+  type ActionHandler,
+  type HostExtensionEventDescriptor,
+  type HostExtensionPolicy,
+  type ImagePolicy,
+  type MediaPolicy,
+  type OpenUrlHandler,
+  type OpenUrlPolicy,
   type NativeComponentCatalog,
   type NativeSurfaceParentLayout,
 } from "@mcp-native/react-native";
@@ -268,8 +268,8 @@ export interface McpNativeHostMcpAppsRendererOptions {
 
 export interface McpNativeHostResultViewProps {
   readonly components: NativeComponentCatalog;
-  readonly a2uiPolicy: A2uiV1SurfaceValidationPolicy;
-  readonly onA2uiAction: A2uiV1NativeActionHandler;
+  readonly a2uiPolicy: SurfaceValidationPolicy;
+  readonly onA2uiAction: ActionHandler;
   readonly onError: (error: unknown) => void;
   /**
    * Optional cross-platform accessibility announcement sink. Wire this to
@@ -278,12 +278,12 @@ export interface McpNativeHostResultViewProps {
    */
   readonly onAnnounce?: ((message: string) => void) | undefined;
   readonly mcpApps?: McpNativeHostMcpAppsRendererOptions;
-  readonly openUrlPolicy?: A2uiV1NativeOpenUrlPolicy;
-  readonly onOpenUrl?: A2uiV1NativeOpenUrlHandler;
-  readonly imagePolicy?: A2uiV1NativeImagePolicy;
-  readonly mediaPolicy?: A2uiV1NativeMediaPolicy;
-  readonly hostExtensionPolicy?: A2uiV1NativeHostExtensionPolicy;
-  readonly onHostExtensionEvent?: (event: A2uiV1NativeHostExtensionEventDescriptor) => void;
+  readonly openUrlPolicy?: OpenUrlPolicy;
+  readonly onOpenUrl?: OpenUrlHandler;
+  readonly imagePolicy?: ImagePolicy;
+  readonly mediaPolicy?: MediaPolicy;
+  readonly hostExtensionPolicy?: HostExtensionPolicy;
+  readonly onHostExtensionEvent?: (event: HostExtensionEventDescriptor) => void;
   readonly locale?: string;
 }
 
@@ -291,13 +291,13 @@ export type McpNativeRegisteredHostResultViewProps = Omit<
   McpNativeHostResultViewProps,
   "a2uiPolicy" | "components" | "hostExtensionPolicy" | "imagePolicy" | "mediaPolicy"
 > & {
-  readonly nativeHost: A2uiV1NativeHost;
+  readonly nativeHost: Host;
   /** Layout category supplied by the shell that contains each rendered A2UI surface. */
   readonly parentLayout?: NativeSurfaceParentLayout;
 };
 
 interface McpNativeHostResultViewInternalProps extends McpNativeHostResultViewProps {
-  readonly nativeHost?: A2uiV1NativeHost;
+  readonly nativeHost?: Host;
   readonly parentLayout?: NativeSurfaceParentLayout;
 }
 
@@ -306,8 +306,8 @@ export function McpNativeRegisteredHostResultView({
   nativeHost,
   ...props
 }: McpNativeRegisteredHostResultViewProps): ReactElement {
-  if (!isA2uiV1NativeHost(nativeHost)) {
-    throw new TypeError("Expected a native host created by createA2uiV1NativeHost");
+  if (!isHost(nativeHost)) {
+    throw new TypeError("Expected a native host created by createHost");
   }
   return createElement(McpNativeHostResultViewInternal, {
     ...props,
@@ -550,7 +550,7 @@ function A2uiHostResult({
   readonly props: McpNativeHostResultViewInternalProps;
 }): ReactElement {
   const surfaces = useMemo(() => {
-    const store = new A2uiSurfaceStore({
+    const store = new SurfaceStore({
       ...(props.a2uiPolicy.hostExtensions === undefined
         ? {}
         : { hostExtensions: props.a2uiPolicy.hostExtensions }),
@@ -567,7 +567,7 @@ function A2uiHostResult({
   const children = surfaces.map((surface) => {
     const key = `${resultKey}:${surface.surfaceId}`;
     if (props.nativeHost !== undefined) {
-      return createElement(A2uiV1NativeHostSurface, {
+      return createElement(HostSurface, {
         key,
         host: props.nativeHost,
         surface,
@@ -588,7 +588,7 @@ function A2uiHostResult({
         ...(props.locale === undefined ? {} : { locale: props.locale }),
       });
     }
-    return createElement(A2uiV1NativeSurface, {
+    return createElement(Surface, {
       key,
       surface,
       policy: props.a2uiPolicy,

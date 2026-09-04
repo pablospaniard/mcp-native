@@ -1,9 +1,9 @@
 import {
-  A2uiSurfaceStore,
-  createA2uiV1BasicCatalogPolicy,
-  type A2uiV1Component,
-  type A2uiV1CreateSurfaceEnvelope,
-  type A2uiV1SurfaceState,
+  SurfaceStore,
+  createBasicCatalogPolicy,
+  type Component,
+  type CreateSurfaceEnvelope,
+  type SurfaceState,
 } from "@mcp-native/a2ui";
 import type { JsonObject } from "@mcp-native/core";
 
@@ -12,7 +12,7 @@ import type { CityVibe } from "./types";
 export const EXPLORE_SURFACE_ID = "city-canvas-explore";
 export const SUMMARY_SURFACE_ID = "city-canvas-summary";
 
-export const citySurfacePolicy = createA2uiV1BasicCatalogPolicy({
+export const citySurfacePolicy = createBasicCatalogPolicy({
   allowedComponentNames: ["Button", "Card", "ChoicePicker", "Column", "Divider", "Row", "Text"],
   allowedEventNames: ["open_live_plan"],
 });
@@ -54,9 +54,9 @@ export function createCityActionMetadata(platform: string): JsonObject {
   return { extensions: { example: "expo-go-mixed-surfaces", platform } };
 }
 
-export function createExploreSurface(vibe: CityVibe): A2uiV1SurfaceState {
+export function createExploreSurface(vibe: CityVibe): SurfaceState {
   const details = getCityVibeDetails(vibe);
-  const components: A2uiV1Component[] = [
+  const components: Component[] = [
     { id: "root", component: "Card", child: "content" },
     {
       id: "content",
@@ -119,9 +119,9 @@ export function createExploreSurface(vibe: CityVibe): A2uiV1SurfaceState {
   });
 }
 
-export function createSummarySurface(vibe: CityVibe): A2uiV1SurfaceState {
+export function createSummarySurface(vibe: CityVibe): SurfaceState {
   const details = getCityVibeDetails(vibe);
-  const components: A2uiV1Component[] = [
+  const components: Component[] = [
     { id: "root", component: "Card", child: "summary" },
     {
       id: "summary",
@@ -150,8 +150,8 @@ export function createSummarySurface(vibe: CityVibe): A2uiV1SurfaceState {
   });
 }
 
-function createValidatedSurface(envelope: A2uiV1CreateSurfaceEnvelope): A2uiV1SurfaceState {
-  const store = new A2uiSurfaceStore();
+function createValidatedSurface(envelope: CreateSurfaceEnvelope): SurfaceState {
+  const store = new SurfaceStore();
   store.apply(envelope);
   const surface = store.getValidated(envelope.createSurface.surfaceId, citySurfacePolicy);
   if (surface === undefined) throw new Error("The city lifecycle did not create its surface");

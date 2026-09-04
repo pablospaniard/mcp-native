@@ -1,10 +1,10 @@
 import {
-  A2UI_MCP_EXTENSION_CAPABILITIES,
-  A2UI_MIME_TYPE,
-  negotiateA2uiMcpBinding,
-  resolveA2uiV1JsonlFromToolResult,
-  type A2uiV1EnvelopeParseOptions,
-  type ResolvedA2uiV1JsonlResource,
+  MCP_EXTENSION_CAPABILITIES,
+  MIME_TYPE,
+  negotiateMcpBinding,
+  resolveJsonlFromToolResult,
+  type EnvelopeParseOptions,
+  type ResolvedJsonlResource,
 } from "@mcp-native/a2ui";
 import type {
   McpExtensionSettings,
@@ -22,7 +22,7 @@ import {
 
 /** Exact built-in extension map advertised by the v1 host result resolver. */
 export const MCP_NATIVE_HOST_EXTENSION_CAPABILITIES: McpExtensionSettings = Object.freeze({
-  ...A2UI_MCP_EXTENSION_CAPABILITIES,
+  ...MCP_EXTENSION_CAPABILITIES,
   ...MCP_APPS_EXTENSION_CAPABILITIES,
 });
 
@@ -48,7 +48,7 @@ export type McpNativeHostInvalidResultCode =
 export interface McpNativeHostA2uiResult {
   readonly kind: "a2ui";
   readonly result: McpToolCallResult;
-  readonly resource: ResolvedA2uiV1JsonlResource;
+  readonly resource: ResolvedJsonlResource;
 }
 
 export interface McpNativeHostMcpAppsResult {
@@ -81,7 +81,7 @@ export interface ResolveMcpNativeHostResultOptions {
   readonly result: unknown;
   /** Client bound to the MCP connection that produced the tool and result. */
   readonly client: McpNativeHostClient;
-  readonly a2uiParseOptions?: A2uiV1EnvelopeParseOptions;
+  readonly a2uiParseOptions?: EnvelopeParseOptions;
 }
 
 /**
@@ -121,14 +121,14 @@ export async function resolveMcpNativeHostResult(
   try {
     const clientExtensions = options.client.getClientExtensionSettings();
     const serverExtensions = options.client.getServerExtensionSettings();
-    a2uiNegotiation = negotiateA2uiMcpBinding(clientExtensions, serverExtensions);
+    a2uiNegotiation = negotiateMcpBinding(clientExtensions, serverExtensions);
     appsNegotiation = negotiateMcpApps(clientExtensions, serverExtensions);
   } catch {
     return invalid("invalid-extension-settings");
   }
 
   const hasA2uiClaim = result.content.some(
-    (block) => block.type === "resource_link" && block.mimeType === A2UI_MIME_TYPE,
+    (block) => block.type === "resource_link" && block.mimeType === MIME_TYPE,
   );
   const selectsA2ui = a2uiNegotiation.kind === "negotiated" && hasA2uiClaim;
 
@@ -148,7 +148,7 @@ export async function resolveMcpNativeHostResult(
 
   if (selectsA2ui) {
     try {
-      const resource = await resolveA2uiV1JsonlFromToolResult(
+      const resource = await resolveJsonlFromToolResult(
         options.client,
         result,
         a2uiNegotiation,

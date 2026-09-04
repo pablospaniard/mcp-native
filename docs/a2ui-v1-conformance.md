@@ -33,7 +33,7 @@ closed messages, non-JSON values, and malformed identifiers fail closed. Generic
 that the pinned schema explicitly leaves open are preserved as bounded inert JSON.
 
 The project-owned [A2UI-over-MCP binding](a2ui-mcp-binding.md) defines JSONL transport only for the
-ordered agent-to-renderer lifecycle. `createA2uiV1ActionDeliveryHandler` provides a fail-closed,
+ordered agent-to-renderer lifecycle. `createActionDeliveryHandler` provides a fail-closed,
 serialized authorization boundary for action delivery, but the actual renderer-to-agent transport
 and the MCP placement of A2UI capability objects remain host-owned.
 
@@ -51,10 +51,10 @@ The React Native adapter implements these basic-catalog components:
   package APIs.
 
 A host must advertise only the intersection returned by
-`getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })` for its installed
+`getSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })` for its installed
 and policy-ready catalog. Optional slots remain optional at the TypeScript catalog boundary; a
 surface using an omitted slot or required resource policy fails before that component can mount.
-`createA2uiV1NativeHost` now derives this intersection and the corresponding validation policy from
+`createHost` now derives this intersection and the corresponding validation policy from
 one frozen registration. Its explicit mount inspection expands the same bounded plan and reports
 stable host diagnostics before React; this changes no Candidate schema or catalog interpretation.
 
@@ -133,9 +133,9 @@ test host implementations; they are not additional wire-level components or conf
   the exact grant to the installed component. A grant is not proof that a third-party player
   enforced it.
 - The pinned agent capabilities JSON Schema does not itself mark `supportedCatalogIds` as required.
-  `packages/a2ui/src/v1/capabilities.ts`'s `parseA2uiV1AgentCapabilities` enforces it as required
-  beyond the schema and fails closed when it is absent, because capability negotiation
-  (`negotiateA2uiV1Capabilities`) is meaningless without an explicit agent-declared catalog set to
+  The package-root `parseAgentCapabilities` boundary enforces it as required beyond the schema and
+  fails closed when it is absent, because capability negotiation
+  (`negotiateCapabilities`) is meaningless without an explicit agent-declared catalog set to
   intersect against. This is a deliberate stricter-than-schema deviation, not a parser defect.
 - `callRendererFunction` and `agentFunctionResponse` are recognized but explicitly unsupported
   message kinds (`packages/a2ui/src/v1/parse.ts`'s `UNSUPPORTED_KEYS`): envelopes containing either
@@ -173,16 +173,16 @@ Migrate as follows:
 
 1. Negotiate the project-owned A2UI-over-MCP binding instead of inferring support from a MIME type.
 2. Replace `resolveA2uiResourceFromToolResult` or `parseA2uiSurface` with
-   `resolveA2uiV1JsonlFromToolResult`, `parseA2uiV1Jsonl`, or `parseA2uiV1Envelope`.
-3. Apply lifecycle messages through `A2uiSurfaceStore` and call `getValidated` with an explicit
+   `resolveJsonlFromToolResult`, `parseJsonl`, or `parseEnvelope`.
+3. Apply lifecycle messages through `SurfaceStore` and call `getValidated` with an explicit
    host policy before rendering.
-4. Replace `McpNativeSurface` with `A2uiV1NativeSurface`; deliver validated action envelopes through
+4. Replace `McpNativeSurface` with `Surface`; deliver validated action envelopes through
    an application-owned transport. High-level hosts can install
    `actionAuthorization.authorizeA2uiAction` from a configured
    `createMcpNativeHostActionAuthorization({ authorize })` instance in the A2UI delivery handler so
    the same application decision callback also reviews MCP Apps tool calls.
 5. Install only the optional native component slots your host implements completely, derive the
-   advertised list with `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy })`, and supply an enforcing image
+   advertised list with `getSupportedComponentNames(catalog, { imagePolicy })`, and supply an enforcing image
    policy/loader before advertising `Image`.
 
 There is no automatic conversion: the custom nested node tree and official component graph have

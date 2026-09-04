@@ -11,19 +11,19 @@ networking, storage, accessibility, and operations choices.
 - Advertise only extensions and A2UI catalog IDs the installed host fully implements. Require exact
   mutual negotiation; never infer support from MIME types, metadata, or content.
 - Derive native component names with
-  `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })`. Supply the same
+  `getSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })`. Supply the same
   enforcing policies to discovery and mounting; do not advertise `Image`, `Video`, or `AudioPlayer`
   for a loader/player that cannot enforce its exact grant. Treat them as render-time resource
   authorization; action and `openUrl` reconstruction will not invoke them again.
-- Prefer `createA2uiV1NativeHost` so the installed catalog, resource policies, validation policy,
+- Prefer `createHost` so the installed catalog, resource policies, validation policy,
   extension registrations, and advertised capabilities have one immutable owner. If composing the
   low-level APIs manually, prove that these independent inputs cannot drift.
-- Run `inspectA2uiV1NativeMount` before React and pass the actual `bounded`, `unbounded`, or `scroll`
+- Run `inspectMount` before React and pass the actual `bounded`, `unbounded`, or `scroll`
   shell layout. Reject missing registrations and unsupported parent-layout combinations instead of
   discovering them through component render failures.
 - Parse local extension manifests, negotiate exact tuples, create the platform registry, and pass
   that same opaque registry through parsing, storage, validation, discovery, and mounting. Derive
-  extension catalog IDs only with `getA2uiV1NativeSupportedHostExtensionCatalogIds` after installing
+  extension catalog IDs only with `getSupportedHostExtensionCatalogIds` after installing
   a helper-created local registration and exact capability policy.
 - Validate every SDK result through `McpSdkClientAdapter`, every A2UI lifecycle stream through the
   v1 parser/store, and every MCP Apps resource through the Apps loader and sandbox.
@@ -42,10 +42,10 @@ the A2UI parser/store, and connection lifecycle by hand:
   provider's subtree.
 - Render the full state machine — connecting, empty, denied, retryable/terminal error, tool
   loading/result/error — with `McpNativeHostResultView` (or `McpNativeRegisteredHostResultView`
-  when using `createA2uiV1NativeHost`). It already applies the accessibility, retry, and busy-state
+  when using `createHost`). It already applies the accessibility, retry, and busy-state
   behavior described below; do not reimplement that state machine in application code.
 - Pair this with `createMcpNativeHostActionAuthorization` (`@mcp-native/host`) for the equivalent
-  higher-level action-authorization seam to `authorizeToolCall`/`createA2uiV1ActionDeliveryHandler`.
+  higher-level action-authorization seam to `authorizeToolCall`/`createActionDeliveryHandler`.
 - The `onError` callback receives an `McpNativeHostRenderError` (and controller errors) with a
   stable `.code` (`"a2ui-render-failed"`, `"mcp-app-crashed"`, `"mcp-app-session-failed"`,
   `"result-render-failed"`) and a fixed, non-sensitive `.message`; discriminate on `.code` /
@@ -57,7 +57,7 @@ the A2UI parser/store, and connection lifecycle by hand:
 - Give `McpNativeRuntime.dispatch()` an explicit policy. If direct host `callTool()` operations also
   need review, set `trustedToolPolicy`; omission is a deliberately trusted seam.
 - Require `authorizeToolCall` beside every MCP Apps `callTool` handler, and route A2UI actions through
-  `createA2uiV1ActionDeliveryHandler` before application transport delivery.
+  `createActionDeliveryHandler` before application transport delivery.
 - Build consent descriptions only from app-authored risk, capability, sensitive-data, and external-
   sharing profiles. Server annotations, labels, and descriptions are non-authorizing hints.
 - Use `createExpiringGrantActionPolicy` only with a host-authored key that includes the policy
@@ -96,8 +96,8 @@ the A2UI parser/store, and connection lifecycle by hand:
 - Run every installed design-system mapping through the canonical
   `@mcp-native/react-native/testing` cases, plus application-level screenshots and interaction tests.
   In particular, verify both Divider axes and Slider wire `steps` to trusted `step` normalization.
-- Wrap direct low-level surfaces in `A2uiV1NativeSurfaceBoundary` or use
-  `A2uiV1NativeHostSurface`. Keep the default failure surface-wide so an incomplete actionable form
+- Wrap direct low-level surfaces in `SurfaceBoundary` or use
+  `HostSurface`. Keep the default failure surface-wide so an incomplete actionable form
   is never left mounted; supply only host-authored fallback text.
 - Make media controls honor user activation, backgrounding, external-route, interruption, teardown,
   and accessibility policy. Exercise each local extension's manifest-declared behavior and platform

@@ -43,7 +43,7 @@ const components: NativeComponentCatalog = {
   })),
 };
 
-const mediaPolicy: A2uiV1NativeMediaPolicy = ({ kind, sourceOrigin }) =>
+const mediaPolicy: MediaPolicy = ({ kind, sourceOrigin }) =>
   sourceOrigin === "https://media.example.com"
     ? {
         sourceOrigin,
@@ -67,8 +67,8 @@ The safe end-to-end flow is:
 1. The host author writes a compatibility manifest and a local React Native/Fabric component.
 2. The host and server advertise the same exact extension, catalog, schema, and component tuple
    under `io.mcp-native/a2ui-host-extensions`, profile version `1`.
-3. `negotiateA2uiV1HostExtensions` computes the exact intersection. Inline catalogs stay disabled.
-4. `createA2uiV1HostExtensionRegistry` creates an opaque registry only from a genuine successful
+3. `negotiateHostExtensions` computes the exact intersection. Inline catalogs stay disabled.
+4. `createHostExtensionRegistry` creates an opaque registry only from a genuine successful
    negotiation and matching local manifests for the current platform.
 5. The parser, surface store, and pre-render policy use that registry to validate every extension
    component and to enforce its cumulative update limit.

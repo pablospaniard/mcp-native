@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createA2uiV1ActionEnvelope } from "@mcp-native/a2ui";
-import { createA2uiV1NativeRenderPlan } from "@mcp-native/react-native";
+import { createActionEnvelope } from "@mcp-native/a2ui";
+import { createRenderPlan } from "@mcp-native/react-native";
 
 import { createInitialTodoState, MAX_TODOS } from "./domain";
 import {
@@ -28,7 +28,7 @@ test("the example creates a validated A2UI v1 lifecycle surface", () => {
 });
 
 test("the example action metadata fits the official renderer envelope", () => {
-  const envelope = createA2uiV1ActionEnvelope({
+  const envelope = createActionEnvelope({
     context: {},
     metadata: createTodoActionMetadata("ios"),
     name: "add_todo",
@@ -43,7 +43,7 @@ test("the example action metadata fits the official renderer envelope", () => {
 
 test("the full todo surface expands into a bounded trusted native plan", () => {
   const surface = createValidatedTodoSurface(createInitialTodoState());
-  const plan = createA2uiV1NativeRenderPlan(surface, todoSurfacePolicy);
+  const plan = createRenderPlan(surface, todoSurfacePolicy);
   assert.equal(plan.component, "View");
   assert.equal(plan.key, "root");
   assert.ok(JSON.stringify(plan).includes("delete_todo"));

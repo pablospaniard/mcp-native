@@ -157,7 +157,7 @@ test("high-level registered result view retains the complete native host registr
         onA2uiAction() {},
         onError() {},
       }),
-    /createA2uiV1NativeHost/,
+    /createHost/,
   );
 });
 

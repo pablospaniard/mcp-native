@@ -28,10 +28,15 @@ npm install @mcp-native/a2ui@beta
 
 `@mcp-native/core` is installed as a dependency. The package is ESM-only and includes TypeScript declarations.
 
+The package root is the namespace for the current supported A2UI profile, so public names are
+concise (`SurfaceStore`, `parseEnvelope`, `Envelope`). Exact `"v1.0"` wire values and schema pins do
+not change. Earlier prefixed exports remain compatible aliases throughout `1.x`; see the
+[migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
+
 ## Start with A2UI v1 Candidate
 
 New integrations negotiate the project-owned MCP binding, resolve the pinned JSONL lifecycle
-stream, apply it to `A2uiSurfaceStore`, and validate the resulting snapshot against the host's
+stream, apply it to `SurfaceStore`, and validate the resulting snapshot against the host's
 catalog policy. Continue with the [binding example](#a2ui-over-mcp-capability-binding), [catalog
 capabilities](#a2ui-v1-catalog-capabilities), and [complete profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
 
@@ -40,9 +45,9 @@ capabilities](#a2ui-v1-catalog-capabilities), and [complete profile](https://git
 The package exports a project-owned binding under `io.github.pablospaniard/mcp-native-a2ui`. It is enabled only when both peers advertise the exact binding version, A2UI Candidate revision, JSONL resource transport, and MIME type:
 
 ```ts
-import { A2UI_MCP_EXTENSION_CAPABILITIES, negotiateA2uiMcpBinding } from "@mcp-native/a2ui";
+import { MCP_EXTENSION_CAPABILITIES, negotiateMcpBinding } from "@mcp-native/a2ui";
 
-const result = negotiateA2uiMcpBinding(
+const result = negotiateMcpBinding(
   adapter.getClientExtensionSettings(),
   adapter.getServerExtensionSettings(),
 );
@@ -56,16 +61,16 @@ A2UI's agent and renderer capability objects are separate from the project-owned
 
 ```ts
 import {
-  createA2uiV1RendererCapabilities,
-  negotiateA2uiV1Capabilities,
-  parseA2uiV1AgentCapabilities,
+  createRendererCapabilities,
+  negotiateCapabilities,
+  parseAgentCapabilities,
 } from "@mcp-native/a2ui";
 
-const rendererCapabilities = createA2uiV1RendererCapabilities({
+const rendererCapabilities = createRendererCapabilities({
   supportedCatalogIds: ["https://example.com/catalogs/native-v1"],
 });
-const agentCapabilities = parseA2uiV1AgentCapabilities(untrustedAgentMetadata);
-const catalogs = negotiateA2uiV1Capabilities(agentCapabilities, rendererCapabilities);
+const agentCapabilities = parseAgentCapabilities(untrustedAgentMetadata);
+const catalogs = negotiateCapabilities(agentCapabilities, rendererCapabilities);
 ```
 
 These APIs close fields the pinned schemas leave permissive, require the protocol's normative agent catalog list, reject empty or duplicate IDs, and keep inline catalogs disabled. A host must advertise only catalogs it fully implements. The React Native adapter implements the complete basic catalog but still derives capability names from installed, policy-ready component slots; component-name coverage alone is not grounds to advertise functions or policies the host did not install.
@@ -83,57 +88,57 @@ After mutual negotiation, hosts can resolve a JSONL resource and apply lifecycle
 
 ```ts
 import {
-  A2UI_MCP_EXTENSION_CAPABILITIES,
-  A2uiSurfaceStore,
-  createA2uiV1BasicCatalogPolicy,
-  negotiateA2uiMcpBinding,
-  resolveA2uiV1JsonlFromToolResult,
+  MCP_EXTENSION_CAPABILITIES,
+  SurfaceStore,
+  createBasicCatalogPolicy,
+  negotiateMcpBinding,
+  resolveJsonlFromToolResult,
 } from "@mcp-native/a2ui";
 
-const binding = negotiateA2uiMcpBinding(
-  A2UI_MCP_EXTENSION_CAPABILITIES,
+const binding = negotiateMcpBinding(
+  MCP_EXTENSION_CAPABILITIES,
   adapter.getServerExtensionSettings(),
 );
-const { envelopes } = await resolveA2uiV1JsonlFromToolResult(runtime, toolResult, binding);
-const store = new A2uiSurfaceStore();
+const { envelopes } = await resolveJsonlFromToolResult(runtime, toolResult, binding);
+const store = new SurfaceStore();
 store.applyAll(envelopes);
 
 const surface = store.getValidated(
   "surface-id",
-  createA2uiV1BasicCatalogPolicy({
+  createBasicCatalogPolicy({
     allowedComponentNames: ["Column", "Text", "Button"],
     allowedEventNames: ["continue"],
   }),
 );
 ```
 
-Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` agent-to-renderer envelopes are accepted by the lifecycle parser. Raw store snapshots may be incomplete while ordered updates arrive. Store snapshots include a host-owned `dataModelRevision` that changes only after an accepted agent data-model update, allowing renderers to preserve local edits across equivalent fresh snapshots. A batch is capped at 1,024 envelopes and at the store-wide JSON-value and string-work budgets; envelopes are parsed sequentially and any failure rolls back the batch. The store bounds retained surfaces and components, plus cumulative retained JSON values and string/key code units across all surfaces; component replacements update those budgets incrementally. `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, component placement rules, and any negotiated extension registry. The React Native package adapts and mounts every basic-catalog component, including bounded dynamic lists, typed renderer-local bindings, formatting, pure boolean and validation functions, supported checks, required image/media grants, host-policy-gated HTTP(S) `openUrl`, and closed local extensions after revalidation. `createA2uiV1ActionEnvelope` constructs actions, while `parseA2uiV1RendererToAgentEnvelope` validates all four pinned renderer-to-agent message kinds as owned data. `createA2uiV1ActionDeliveryHandler` adds a serialized, fail-closed authorization boundary before a host-owned action transport; policy and delivery receive separate owned copies. An overlapping action is denied before its untrusted envelope or data model is parsed and therefore is not passed to `onDenied`. Parsing does not execute functions, select transport, or grant device access. See the [exact conformance profile and migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
+Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` agent-to-renderer envelopes are accepted by the lifecycle parser. Raw store snapshots may be incomplete while ordered updates arrive. Store snapshots include a host-owned `dataModelRevision` that changes only after an accepted agent data-model update, allowing renderers to preserve local edits across equivalent fresh snapshots. A batch is capped at 1,024 envelopes and at the store-wide JSON-value and string-work budgets; envelopes are parsed sequentially and any failure rolls back the batch. The store bounds retained surfaces and components, plus cumulative retained JSON values and string/key code units across all surfaces; component replacements update those budgets incrementally. `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, component placement rules, and any negotiated extension registry. The React Native package adapts and mounts every basic-catalog component, including bounded dynamic lists, typed renderer-local bindings, formatting, pure boolean and validation functions, supported checks, required image/media grants, host-policy-gated HTTP(S) `openUrl`, and closed local extensions after revalidation. `createActionEnvelope` constructs actions, while `parseRendererToAgentEnvelope` validates all four pinned renderer-to-agent message kinds as owned data. `createActionDeliveryHandler` adds a serialized, fail-closed authorization boundary before a host-owned action transport; policy and delivery receive separate owned copies. An overlapping action is denied before its untrusted envelope or data model is parsed and therefore is not passed to `onDenied`. Parsing does not execute functions, select transport, or grant device access. See the [exact conformance profile and migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
 
 ## Public API
 
-| Export                                                                                                    | Purpose                                                                 |
-| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `A2uiResourceError`, `A2uiParseError`                                                                     | Specific resolution and parsing failures.                               |
-| `A2UI_MIME_TYPE`                                                                                          | Exact A2UI media type.                                                  |
-| `A2UI_MCP_EXTENSION_ID`, `A2UI_MCP_EXTENSION_CAPABILITIES`                                                | Exact project-owned extension declaration.                              |
-| `negotiateA2uiMcpBinding`, `A2uiMcpBindingNegotiation`, `A2uiMcpBindingGrant`                             | Exact-match negotiation with typed fallback reasons.                    |
-| `A2UI_MCP_BINDING_VERSION`, `A2UI_MCP_PROTOCOL_VERSION`, `A2UI_MCP_SCHEMA_REVISION`, `A2UI_MCP_TRANSPORT` | Pinned binding and Candidate transport values.                          |
-| `parseA2uiV1AgentCapabilities`, `parseA2uiV1RendererCapabilities`                                         | Strict pinned-schema capability metadata boundaries.                    |
-| `createA2uiV1RendererCapabilities`, `negotiateA2uiV1Capabilities`                                         | Host-owned declarations and exact shared-catalog negotiation.           |
-| Host-extension profile constants, manifest parser, capability parser, and negotiation                     | Exact project-owned local-extension declaration and mutual tuple match. |
-| `createA2uiV1HostExtensionRegistry`, registry getters and validators                                      | Opaque platform registry plus closed component/event validation.        |
-| `parseA2uiV1Envelope`, `parseA2uiV1Jsonl`                                                                 | Schema-validate v1 lifecycle envelopes and JSONL batches.               |
-| `A2uiSurfaceStore`                                                                                        | Ordered lifecycle state plus policy-gated `getValidated`.               |
-| `A2UI_V1_MAX_STORE_VALUES`, `A2UI_V1_MAX_STORE_STRING_CODE_UNITS`                                         | Cumulative retained-state limits for one surface store.                 |
-| `createA2uiV1BasicCatalogPolicy`, `A2uiV1SurfaceValidationPolicy`                                         | Explicit host allowlists for components, events, and functions.         |
-| `validateA2uiV1SurfaceState`                                                                              | Revalidate a complete snapshot at another public trust boundary.        |
-| `createA2uiV1ActionEnvelope`, `A2uiV1ActionEnvelope`                                                      | Construct an owned, pinned-schema renderer action for host transport.   |
-| `createA2uiV1ActionDeliveryHandler`                                                                       | Authorize each action before host-owned transport delivery.             |
-| `parseA2uiV1RendererToAgentEnvelope`, renderer-to-agent envelope types                                    | Parse every pinned renderer message as owned, non-authorizing data.     |
-| `evaluateA2uiV1FormatString`                                                                              | Evaluate interpolation and report parser-counted work to budgets.       |
-| `A2UI_V1_BASIC_CATALOG_ID`, catalog name constants                                                        | Exact pinned catalog identity and selectable host capabilities.         |
-| `resolveA2uiV1JsonlFromToolResult`, `ResolvedA2uiV1JsonlResource`                                         | Resolve a JSONL A2UI resource from a tool result.                       |
-| `A2UI_V1_PROTOCOL_VERSION`, `A2UI_V1_MAX_SOURCE_LENGTH`, `A2UI_V1_MAX_ENVELOPES`, store limit constants   | v1 protocol and complexity limits.                                      |
+| Export                                                                                | Purpose                                                                 |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `ResourceError`, `ParseError`                                                         | Specific resolution and parsing failures.                               |
+| `MIME_TYPE`                                                                           | Exact A2UI media type.                                                  |
+| `MCP_EXTENSION_ID`, `MCP_EXTENSION_CAPABILITIES`                                      | Exact project-owned extension declaration.                              |
+| `negotiateMcpBinding`, `McpBindingNegotiation`, `McpBindingGrant`                     | Exact-match negotiation with typed fallback reasons.                    |
+| `MCP_BINDING_VERSION`, `MCP_PROTOCOL_VERSION`, `MCP_SCHEMA_REVISION`, `MCP_TRANSPORT` | Pinned binding and Candidate transport values.                          |
+| `parseAgentCapabilities`, `parseRendererCapabilities`                                 | Strict pinned-schema capability metadata boundaries.                    |
+| `createRendererCapabilities`, `negotiateCapabilities`                                 | Host-owned declarations and exact shared-catalog negotiation.           |
+| Host-extension profile constants, manifest parser, capability parser, and negotiation | Exact project-owned local-extension declaration and mutual tuple match. |
+| `createHostExtensionRegistry`, registry getters and validators                        | Opaque platform registry plus closed component/event validation.        |
+| `parseEnvelope`, `parseJsonl`                                                         | Schema-validate v1 lifecycle envelopes and JSONL batches.               |
+| `SurfaceStore`                                                                        | Ordered lifecycle state plus policy-gated `getValidated`.               |
+| `MAX_STORE_VALUES`, `MAX_STORE_STRING_CODE_UNITS`                                     | Cumulative retained-state limits for one surface store.                 |
+| `createBasicCatalogPolicy`, `SurfaceValidationPolicy`                                 | Explicit host allowlists for components, events, and functions.         |
+| `validateSurfaceState`                                                                | Revalidate a complete snapshot at another public trust boundary.        |
+| `createActionEnvelope`, `ActionEnvelope`                                              | Construct an owned, pinned-schema renderer action for host transport.   |
+| `createActionDeliveryHandler`                                                         | Authorize each action before host-owned transport delivery.             |
+| `parseRendererToAgentEnvelope`, renderer-to-agent envelope types                      | Parse every pinned renderer message as owned, non-authorizing data.     |
+| `evaluateFormatString`                                                                | Evaluate interpolation and report parser-counted work to budgets.       |
+| `BASIC_CATALOG_ID`, catalog name constants                                            | Exact pinned catalog identity and selectable host capabilities.         |
+| `resolveJsonlFromToolResult`, `ResolvedJsonlResource`                                 | Resolve a JSONL A2UI resource from a tool result.                       |
+| `PROTOCOL_VERSION`, `MAX_SOURCE_LENGTH`, `MAX_ENVELOPES`, store limit constants       | Current protocol and complexity limits.                                 |
 
 ## Security behavior
 

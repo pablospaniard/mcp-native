@@ -31,9 +31,14 @@ npm install @mcp-native/react-native@beta react
 only peer dependency. The renderer does not depend on Expo or import React Native; a native host
 supplies its locally bundled components and platform integrations.
 
+The package root is the namespace for the current native renderer profile, so public names are
+concise (`Surface`, `HostSurface`, `createHost`). Exact A2UI `"v1.0"` wire values and schema pins do
+not change. Earlier prefixed exports remain compatible aliases throughout `1.x`; see the
+[migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
+
 ## Start with the A2UI v1 renderer
 
-New integrations mount `A2uiV1NativeSurface` with an explicit catalog policy and locally bundled
+New integrations mount `Surface` with an explicit catalog policy and locally bundled
 components. Continue with the [v1 render-plan adapter](#a2ui-v1-render-plan-adapter) for the complete
 host flow, catalog mapping, local state, validation, actions, media, and extension support.
 
@@ -43,10 +48,10 @@ Prefer one immutable native-host registration so catalog slots, resource policie
 advertised capabilities cannot drift:
 
 ```tsx
-import { A2uiV1NativeHostSurface, createA2uiV1NativeHost } from "@mcp-native/react-native";
+import { HostSurface, createHost } from "@mcp-native/react-native";
 import { Button, Text, TextInput, View } from "react-native";
 
-const nativeHost = createA2uiV1NativeHost({
+const nativeHost = createHost({
   components: { Button, Text, TextInput, View },
   allowedEventNames: ["save_profile"],
   allowedFunctionNames: [],
@@ -54,7 +59,7 @@ const nativeHost = createA2uiV1NativeHost({
 
 const surface = store.get("profile");
 const mounted = surface && (
-  <A2uiV1NativeHostSurface
+  <HostSurface
     host={nativeHost}
     surface={surface}
     onAction={deliverAction}
@@ -64,19 +69,19 @@ const mounted = surface && (
 );
 ```
 
-`inspectA2uiV1NativeMount` and `assertA2uiV1NativeMount` can run at ingestion time, before React,
+`inspectMount` and `assertMount` can run at ingestion time, before React,
 and report stable `component-not-allowed`, `surface-invalid`, `render-plan-rejected`, `missing-component`,
 `missing-extension-registration`, or `layout-incompatible` diagnostics. The registered surface
 runs structural/layout preflight without repeating resource authorization, then contains
 component-library render failures and throwing or rejected error observers behind a reusable
-`A2uiV1NativeSurfaceBoundary`. The older
-`A2uiV1NativeSurface` plus separately constructed policy remains available as the manual low-level
+`SurfaceBoundary`. The older
+`Surface` plus separately constructed policy remains available as the manual low-level
 path. Its default recovery key tracks the host, effective parent layout, component graph, and data
 model so a corrected mount-affecting input retries automatically.
 
 The adapter maps `Row`, `Column`, static or dynamic `List`, and `Card` to `View`; `Text` to `Text`; `Button` with a `Text` child to `Button`; and `TextField` to `TextInput`. Optional host slots implement `Image`, `Icon`, `Divider`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, and `Modal`. Dynamic lists expand one validated template component per bound array item and remain inside the 1,024-node plan limit. The adapter resolves absolute and item-relative JSON Pointer values; translates relative typed bindings into absolute renderer-local pointers; evaluates bounded formatting, boolean, validation, and `@index` functions; maps supported layout and variants to owned props; and preserves event context and explicit accessibility fields. At the mounted boundary, components receive closed roles and state, hidden controls are excluded, and text scaling stays enabled. Supported checks expose `invalid`/`validationMessages`; invalid buttons cannot resolve or dispatch an event or local URL action. Main-axis `stretch` and negative weight, which React Native flex layout cannot represent faithfully, fail closed.
 
-The complete catalog is exactly `AudioPlayer`, `Button`, `Card`, `CheckBox`, `ChoicePicker`, `Column`, `DateTimeInput`, `Divider`, `Icon`, `Image`, `List`, `Modal`, `Row`, `Slider`, `Tabs`, `Text`, `TextField`, and `Video`. `createA2uiV1NativeHost` derives the exact supported intersection and rejects any allowlist entry that lacks its slot or required policy. Low-level callers can still use `getA2uiV1NativeSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })` directly. A surface requesting anything outside that intersection fails during validation or explicit mount preflight, before catalog rendering.
+The complete catalog is exactly `AudioPlayer`, `Button`, `Card`, `CheckBox`, `ChoicePicker`, `Column`, `DateTimeInput`, `Divider`, `Icon`, `Image`, `List`, `Modal`, `Row`, `Slider`, `Tabs`, `Text`, `TextField`, and `Video`. `createHost` derives the exact supported intersection and rejects any allowlist entry that lacks its slot or required policy. Low-level callers can still use `getSupportedComponentNames(catalog, { imagePolicy, mediaPolicy })` directly. A surface requesting anything outside that intersection fails during validation or explicit mount preflight, before catalog rendering.
 
 `Video` and `AudioPlayer` receive only a canonical URL, explicitly selected semantic/accessibility
 fields, and a complete host grant for origins, redirects, MIME types, bytes, autoplay, background
@@ -86,12 +91,12 @@ the separate image policy.
 
 Namespaced local components use `createNativeHostExtensionRegistration` plus a negotiated opaque
 registry and an exact `hostExtensionPolicy` grant. Advertise their catalog IDs with
-`getA2uiV1NativeSupportedHostExtensionCatalogIds` only after the local registration and policy are
+`getSupportedHostExtensionCatalogIds` only after the local registration and policy are
 installed. See the [media and extension guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/media-and-host-extensions.md).
 
 Host adapters may declare verified layout contracts with `allowedParents`, `sizing`, optional
 overlay presentation, and scroll ownership. Pass the shell's `bounded`, `scroll`, or `unbounded`
-parent category to preflight or `A2uiV1NativeHostSurface`; an incompatible component is rejected
+parent category to preflight or `HostSurface`; an incompatible component is rejected
 instead of being mounted into a layout where it can collapse or obscure siblings. Keep catalogs and
 adapter factories at module scope so local component state remains stable.
 
@@ -194,13 +199,13 @@ system uses a different prop API.
 
 Create adapter components and the catalog at module scope, as above, or memoize them with stable dependencies. Each factory call intentionally creates a new React component type; calling one during every host render would remount that catalog entry and discard its component-local state. Generated adapters include descriptive React DevTools display names.
 
-Use `A2uiV1NativeSurface` to mount the installed subset with typed renderer-local state and official action envelopes:
+Use `Surface` to mount the installed subset with typed renderer-local state and official action envelopes:
 
 ```tsx
-import { A2uiV1NativeSurface } from "@mcp-native/react-native";
+import { Surface } from "@mcp-native/react-native";
 import { Linking } from "react-native";
 
-<A2uiV1NativeSurface
+<Surface
   surface={surface}
   policy={policy}
   components={{ Button, Text, TextInput, View }}
@@ -223,7 +228,7 @@ Bound `TextField`, `CheckBox`, `ChoicePicker`, `Slider`, and `DateTimeInput` cha
 
 `Image` additionally requires `imagePolicy`. During render-plan construction, the synchronous callback receives an HTTP(S) URL after canonicalization and must return `false` or an exact grant containing allowed redirect origins, maximum redirects, transfer bytes, decoded width, height and pixels, plus `default` or `no-store` cache mode. The renderer validates and freezes that grant, then passes it to the installed image component as `resourcePolicy`. The image component must enforce every field before and during loading; a permissive platform image primitive is not sufficient merely because it accepts a URI. Credentials, non-HTTP(S) schemes, malformed origins, oversized URLs, invalid grants, and denied requests fail closed. One expanded plan permits at most 64 images, 100 MiB of total granted transfer bytes, and 268,435,456 total granted decoded pixels. The image-count check runs before the host policy, preventing a large component graph from amplifying authorization callbacks. Event and `openUrl` reconstruction revalidates server-controlled image URLs but does not invoke image authorization again.
 
-`Icon` accepts only the exported `A2UI_V1_NATIVE_ICON_NAMES` semantic set and requires a host-owned mapping. SVG paths, module or font names, arbitrary glyphs, and platform symbols from the server are rejected. `Tabs` owns only its selected index. `Modal` owns open/closed state and requires a `Button` trigger; activating it opens local content and still resolves the declared Button action. The installed modal owns focus entry/trapping, escape or platform-back dismissal through `onRequestClose`, and restoration to its trigger. Dismissal emits no agent action.
+`Icon` accepts only the exported `ICON_NAMES` semantic set and requires a host-owned mapping. SVG paths, module or font names, arbitrary glyphs, and platform symbols from the server are rejected. `Tabs` owns only its selected index. `Modal` owns open/closed state and requires a `Button` trigger; activating it opens local content and still resolves the declared Button action. The installed modal owns focus entry/trapping, escape or platform-back dismissal through `onRequestClose`, and restoration to its trigger. Dismissal emits no agent action.
 
 `openUrl` is a local Button action, not an agent event. The host must allow the function name in the catalog policy and provide both `openUrlPolicy` and `onOpenUrl`. The adapter re-resolves the URL against current local state during the originating press, canonicalizes it, rejects non-HTTP(S), relative, credential-bearing, whitespace-containing, control-containing, Unicode-format-containing, or oversized values, and invokes the opener only when the synchronous policy returns exactly `true`. Invalid initial server values reject the surface; temporary invalid renderer-local text edits instead disable the affected Button until the value becomes valid, and strict resolution runs again before an enabled press can reach host policy. No URL handler is imported or called by this package. Each URL is capped at 8,192 UTF-16 code units and one expanded pass is capped at 1,048,576 URL code units.
 
@@ -231,50 +236,50 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 
 ## Public API
 
-| Export                                            | Purpose                                                                                                       |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `createA2uiV1NativeHost`                          | Freezes catalog, policies, capabilities, extensions, and layout declarations into one owner.                  |
-| `inspectA2uiV1NativeMount`                        | Returns stable pre-React diagnostics and required native slots for one expanded surface.                      |
-| `assertA2uiV1NativeMount`                         | Throws `A2uiV1NativeMountError` when the explicit mount inspection is not accepted.                           |
-| `A2uiV1NativeHostSurface`                         | Preflights and mounts through a registered host with surface-wide render containment.                         |
-| `A2uiV1NativeSurfaceBoundary`                     | Reusable redacted and resettable error boundary for direct low-level integrations.                            |
-| `A2uiV1NativeSurface`                             | Mounts the supported v1 subset with local bindings and official action-envelope callbacks.                    |
-| `createA2uiV1NativeRenderPlan`                    | Revalidates and adapts the supported v1 subset into a trusted `NativeElement` tree.                           |
-| `resolveA2uiV1NativeEvent`                        | Revalidates and resolves one reachable static or template-instance event against the latest local model.      |
-| `resolveA2uiV1NativeOpenUrl`                      | Revalidates and resolves one reachable HTTP(S) URL action against the latest local model.                     |
-| `A2UI_V1_NATIVE_COMPONENT_NAMES`                  | Exact basic-catalog component names implemented by the current native adapter.                                |
-| `getA2uiV1NativeSupportedComponentNames`          | Exact advertisable intersection derived from installed and policy-ready basic-catalog slots.                  |
-| `getA2uiV1NativeSupportedHostExtensionCatalogIds` | Exact extension catalogs backed by an opaque registry, local registration, and policy.                        |
-| `@mcp-native/react-native/testing`                | Fresh canonical surfaces and expected behaviors for application-owned adapter conformance tests.              |
-| `A2UI_V1_NATIVE_ICON_NAMES`                       | Pinned semantic names accepted by the native icon boundary.                                                   |
-| `A2UI_V1_NATIVE_MAX_RENDER_NODES`                 | Bound on expanded v1 render-plan nodes.                                                                       |
-| `A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH`              | Per-action bound on canonical HTTP(S) URL length.                                                             |
-| `A2UI_V1_NATIVE_MAX_IMAGE_URL_LENGTH`             | Per-image bound on canonical HTTP(S) URL length.                                                              |
-| `A2UI_V1_NATIVE_MAX_IMAGES`                       | Surface-wide bound on reachable expanded image instances.                                                     |
-| `A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_BYTES`            | Surface-wide bound on the sum of granted image transfer-byte budgets.                                         |
-| `A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS`           | Surface-wide bound on the sum of granted decoded-pixel budgets.                                               |
-| `A2UI_V1_NATIVE_MAX_MEDIA`                        | Surface-wide bound on reachable expanded media instances.                                                     |
-| `A2UI_V1_NATIVE_MAX_TOTAL_MEDIA_BYTES`            | Surface-wide bound on the sum of granted media transfer-byte budgets.                                         |
-| `A2uiV1NativeEventDescriptor`                     | Resolved trusted-plan event data used by mounted dispatch or custom hosts.                                    |
-| `A2uiV1NativeOpenUrlDescriptor`                   | Canonical URL plus surface, component, and optional template-instance identity.                               |
-| `A2uiV1NativeRenderPlanOptions`                   | Optional local model/locale plus required-when-used image, media, and extension policies.                     |
-| `A2uiV1NativeEventResolutionOptions`              | Optional template instance key and matching host-owned BCP 47 locale.                                         |
-| `A2uiV1NativeOpenUrlResolutionOptions`            | Optional template instance key and matching host-owned BCP 47 locale for URL resolution.                      |
-| `A2uiV1NativeActionHandler`                       | Host callback receiving the validated action envelope and, when opted in, the local data model.               |
-| `A2uiV1NativeOpenUrlPolicy`                       | Synchronous host predicate authorizing one canonical URL during its Button press.                             |
-| `A2uiV1NativeOpenUrlHandler`                      | Host-owned callback that opens an authorized URL through a platform API.                                      |
-| `A2uiV1NativeImagePolicy` / `Grant`               | Deny-by-default image authorization callback and exact resource budgets.                                      |
-| `A2uiV1NativeMediaPolicy` / `Grant`               | Deny-by-default media authorization callback and exact resource/playback budgets.                             |
-| `A2uiV1NativeHostExtensionPolicy`                 | Exact resource/permission grant for one validated local extension instance.                                   |
-| `createNativeHostExtensionRegistration`           | Opaque binding from one parsed local manifest to one locally imported component and prop mapper.              |
-| `NativeComponentCatalog`                          | Four required base primitives, optional closed basic-catalog slots, and opaque local extension registrations. |
-| `NativeComponentVariants`                         | Optional overrides for supported structure and pinned style hints, with base fallbacks.                       |
-| `Native*Variant` types                            | Closed view, text, button, text-input, image, and choice-picker variant keys.                                 |
-| `NativeAccessibilityRole`                         | Renderer-derived closed role union for supported semantics.                                                   |
-| `NativeAccessibilityState`                        | Renderer-derived checked, disabled, expanded, and selected state subset.                                      |
-| `createNative*Adapter` helpers                    | Typed mappings from trusted semantic props into locally bundled component-library APIs.                       |
-| `NativeComponentPropMapper`                       | Generic mapper type used by all host component adapter helpers.                                               |
-| `NativeElement` / `NativeComponentName`           | Serializable trusted-plan node and its fixed component-name union.                                            |
+| Export                                  | Purpose                                                                                                       |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `createHost`                            | Freezes catalog, policies, capabilities, extensions, and layout declarations into one owner.                  |
+| `inspectMount`                          | Returns stable pre-React diagnostics and required native slots for one expanded surface.                      |
+| `assertMount`                           | Throws `MountError` when the explicit mount inspection is not accepted.                                       |
+| `HostSurface`                           | Preflights and mounts through a registered host with surface-wide render containment.                         |
+| `SurfaceBoundary`                       | Reusable redacted and resettable error boundary for direct low-level integrations.                            |
+| `Surface`                               | Mounts the supported v1 subset with local bindings and official action-envelope callbacks.                    |
+| `createRenderPlan`                      | Revalidates and adapts the supported v1 subset into a trusted `NativeElement` tree.                           |
+| `resolveEvent`                          | Revalidates and resolves one reachable static or template-instance event against the latest local model.      |
+| `resolveOpenUrl`                        | Revalidates and resolves one reachable HTTP(S) URL action against the latest local model.                     |
+| `COMPONENT_NAMES`                       | Exact basic-catalog component names implemented by the current native adapter.                                |
+| `getSupportedComponentNames`            | Exact advertisable intersection derived from installed and policy-ready basic-catalog slots.                  |
+| `getSupportedHostExtensionCatalogIds`   | Exact extension catalogs backed by an opaque registry, local registration, and policy.                        |
+| `@mcp-native/react-native/testing`      | Fresh canonical surfaces and expected behaviors for application-owned adapter conformance tests.              |
+| `ICON_NAMES`                            | Pinned semantic names accepted by the native icon boundary.                                                   |
+| `MAX_RENDER_NODES`                      | Bound on expanded current-profile render-plan nodes.                                                          |
+| `MAX_OPEN_URL_LENGTH`                   | Per-action bound on canonical HTTP(S) URL length.                                                             |
+| `MAX_IMAGE_URL_LENGTH`                  | Per-image bound on canonical HTTP(S) URL length.                                                              |
+| `MAX_IMAGES`                            | Surface-wide bound on reachable expanded image instances.                                                     |
+| `MAX_TOTAL_IMAGE_BYTES`                 | Surface-wide bound on the sum of granted image transfer-byte budgets.                                         |
+| `MAX_TOTAL_IMAGE_PIXELS`                | Surface-wide bound on the sum of granted decoded-pixel budgets.                                               |
+| `MAX_MEDIA`                             | Surface-wide bound on reachable expanded media instances.                                                     |
+| `MAX_TOTAL_MEDIA_BYTES`                 | Surface-wide bound on the sum of granted media transfer-byte budgets.                                         |
+| `EventDescriptor`                       | Resolved trusted-plan event data used by mounted dispatch or custom hosts.                                    |
+| `OpenUrlDescriptor`                     | Canonical URL plus surface, component, and optional template-instance identity.                               |
+| `RenderPlanOptions`                     | Optional local model/locale plus required-when-used image, media, and extension policies.                     |
+| `EventResolutionOptions`                | Optional template instance key and matching host-owned BCP 47 locale.                                         |
+| `OpenUrlResolutionOptions`              | Optional template instance key and matching host-owned BCP 47 locale for URL resolution.                      |
+| `ActionHandler`                         | Host callback receiving the validated action envelope and, when opted in, the local data model.               |
+| `OpenUrlPolicy`                         | Synchronous host predicate authorizing one canonical URL during its Button press.                             |
+| `OpenUrlHandler`                        | Host-owned callback that opens an authorized URL through a platform API.                                      |
+| `ImagePolicy` / `Grant`                 | Deny-by-default image authorization callback and exact resource budgets.                                      |
+| `MediaPolicy` / `Grant`                 | Deny-by-default media authorization callback and exact resource/playback budgets.                             |
+| `HostExtensionPolicy`                   | Exact resource/permission grant for one validated local extension instance.                                   |
+| `createNativeHostExtensionRegistration` | Opaque binding from one parsed local manifest to one locally imported component and prop mapper.              |
+| `NativeComponentCatalog`                | Four required base primitives, optional closed basic-catalog slots, and opaque local extension registrations. |
+| `NativeComponentVariants`               | Optional overrides for supported structure and pinned style hints, with base fallbacks.                       |
+| `Native*Variant` types                  | Closed view, text, button, text-input, image, and choice-picker variant keys.                                 |
+| `NativeAccessibilityRole`               | Renderer-derived closed role union for supported semantics.                                                   |
+| `NativeAccessibilityState`              | Renderer-derived checked, disabled, expanded, and selected state subset.                                      |
+| `createNative*Adapter` helpers          | Typed mappings from trusted semantic props into locally bundled component-library APIs.                       |
+| `NativeComponentPropMapper`             | Generic mapper type used by all host component adapter helpers.                                               |
+| `NativeElement` / `NativeComponentName` | Serializable trusted-plan node and its fixed component-name union.                                            |
 
 ## Trust boundary
 

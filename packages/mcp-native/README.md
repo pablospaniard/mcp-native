@@ -37,6 +37,18 @@ npm install mcp-native@beta react
 React `>=18.1.0` is the only peer dependency. Native components and platform integrations are
 supplied by the host application. The package is ESM-only and includes TypeScript declarations.
 
+Use the `a2ui` and `reactNative` namespaces when composing both concise package APIs from this entry
+point:
+
+```ts
+import { a2ui, reactNative } from "mcp-native";
+
+const store = new a2ui.SurfaceStore();
+const Surface = reactNative.HostSurface;
+```
+
+Direct named re-exports and the previous prefixed compatibility aliases remain available.
+
 Run the bundled local diagnostics or generate safe starting points without network access:
 
 ```bash
@@ -54,7 +66,7 @@ and supply explicit policy.
 The package re-exports the APIs needed to negotiate the project-owned binding, resolve official
 v1 JSONL lifecycle envelopes, maintain bounded ordered surface state, apply explicit host
 component/event/function policies, and mount the supported native subset through
-`A2uiV1NativeSurface`. The mounted surface keeps typed input edits renderer-local and returns validated
+`Surface`. The mounted surface keeps typed input edits renderer-local and returns validated
 official action envelopes to a host callback; it never selects a return transport. See the
 [A2UI package guide](https://github.com/pablospaniard/mcp-native/tree/main/packages/a2ui)
 and the [`@mcp-native/react-native` adapter documentation](https://github.com/pablospaniard/mcp-native/tree/main/packages/react-native#a2ui-v1-render-plan-adapter).

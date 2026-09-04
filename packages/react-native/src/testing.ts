@@ -174,3 +174,7 @@ export function createA2uiV1NativeCatalogConformanceCases(): readonly A2uiV1Nati
     }),
   );
 }
+
+/** Concise public names for catalog conformance testing. */
+export { createA2uiV1NativeCatalogConformanceCases as createCatalogConformanceCases };
+export type { A2uiV1NativeCatalogConformanceCase as CatalogConformanceCase };
