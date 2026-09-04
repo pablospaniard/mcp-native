@@ -5,12 +5,12 @@ diagrams. This page routes implementation and review work to the document that o
 
 ## Choose the package path
 
-| Goal                                                                 | Start here                                                                                                  |
-| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Own connection, discovery, calls, and result routing through one API | [`@mcp-native/host`](../packages/host/README.md); React Native lifecycle integration is currently on `main` |
-| Compose the protocol and rendering stages yourself                   | [Host integration checklist](host-integration-checklist.md), then the focused package guides                |
-| Import the low-level runtime and UI layers from one module           | [`mcp-native`](../packages/mcp-native/README.md)                                                            |
-| Migrate custom A2UI `0.1` data                                       | [Migration to 1.0](migration-to-1.0.md) and the explicit `/legacy` entry points                             |
+| Goal                                                                 | Start here                                                                                     |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Own connection, discovery, calls, and result routing through one API | [`@mcp-native/host`](../packages/host/README.md), including React Native lifecycle integration |
+| Compose the protocol and rendering stages yourself                   | [Host integration checklist](host-integration-checklist.md), then the focused package guides   |
+| Import the low-level runtime and UI layers from one module           | [`mcp-native`](../packages/mcp-native/README.md)                                               |
+| Migrate custom A2UI `0.1` data                                       | [Migration to 1.0](migration-to-1.0.md) and the explicit `/legacy` entry points                |
 
 Focused package guides: [core](../packages/core/README.md), [MCP SDK adapter](../packages/mcp/README.md),
 [A2UI](../packages/a2ui/README.md), [React Native](../packages/react-native/README.md), and
@@ -71,8 +71,7 @@ Runnable examples:
 
 ## Current status
 
-The published `0.9.3` line is the current release candidate. It includes the headless high-level host
-and the independently usable low-level packages. The `main` branch adds the unreleased React Native
-host provider and integration tooling recorded in the [changelog](../CHANGELOG.md). The Milestone 10
-host-package gate is complete; independent reviews, final validation, stable documentation and
-compatibility approval, versioning, and publication remain before `1.0.0`.
+MCP Native is in the `1.0.0-beta` release line, which includes the headless high-level host, its
+React Native provider, and the independently usable low-level packages; see the
+[changelog](../CHANGELOG.md) for release history. The five independent sign-off reviews are
+complete; final validation, versioning, and publication remain before the stable `1.0.0` tag.

@@ -132,7 +132,7 @@ test("release recovery rejects an invalid tag before starting verification", () 
           throw new Error("must not run");
         },
       }),
-    /exact stable semantic version/,
+    /exact semantic version/,
   );
 });
 

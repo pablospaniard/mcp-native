@@ -19,11 +19,10 @@ WebView APIs. It does not include the official MCP SDK adapter or the high-level
 [`@mcp-native/host`](https://www.npmjs.com/package/@mcp-native/host) for the connect-call-render
 workflow. Use this package when the application wants to compose the low-level layers itself.
 
-The current 0.9 line contains the validated low-level React Native feature set and is ready to try in
-an integration. New work should use A2UI v1 Candidate or the stable MCP Apps `2026-01-26` host flow;
-the custom A2UI 0.1 APIs live under `/legacy` for migration. Public standard-contract registration
-and application-defined custom input adapters are explicitly deferred until after `1.0.0`.
-Negotiated, locally compiled semantic host extensions are already supported.
+This package contains the validated low-level React Native feature set: A2UI v1 Candidate and the
+stable MCP Apps `2026-01-26` host flow. Public standard-contract registration and
+application-defined custom input adapters remain post-1.0 work. Negotiated, locally compiled
+semantic host extensions are already supported.
 
 For the big picture, start with the [product guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/product-guide.md).
 
@@ -58,75 +57,12 @@ official action envelopes to a host callback; it never selects a return transpor
 [A2UI package guide](https://github.com/pablospaniard/mcp-native/tree/main/packages/a2ui)
 and the [`@mcp-native/react-native` adapter documentation](https://github.com/pablospaniard/mcp-native/tree/main/packages/react-native#a2ui-v1-render-plan-adapter).
 
-## Legacy custom `0.1` migration
-
-The current release candidate exposes these APIs only from `mcp-native/legacy`. The explicit
-legacy subpath stays frozen for migration and security fixes.
-
-```tsx
-import { McpNativeRuntime, createAllowlistActionPolicy, type McpClient } from "mcp-native";
-import {
-  McpNativeSurface,
-  parseA2uiSurface,
-  useMcpNativeActionDispatcher,
-} from "mcp-native/legacy";
-import { Button, Text, TextInput, View } from "react-native";
-
-const components = { Button, Text, TextInput, View };
-
-const client: McpClient = {
-  async listTools() {
-    return { tools: [] };
-  },
-  async callTool(name, arguments_) {
-    return {
-      content: [{ type: "text", text: `Called ${name}` }],
-      structuredContent: { name, arguments: arguments_ },
-    };
-  },
-  async readResource(uri) {
-    return { contents: [{ uri, text: "" }] };
-  },
-};
-
-const runtime = new McpNativeRuntime(client, {
-  actionPolicy: createAllowlistActionPolicy([{ name: "continue_flow" }]),
-});
-
-const surface = parseA2uiSurface({
-  version: "0.1",
-  root: {
-    id: "welcome",
-    type: "container",
-    children: [
-      { id: "title", type: "text", text: "Hello from MCP" },
-      {
-        id: "continue",
-        type: "button",
-        label: "Continue",
-        action: { type: "tool", name: "continue_flow" },
-      },
-    ],
-  },
-});
-
-function NativeScreen() {
-  const onAction = useMcpNativeActionDispatcher(runtime, {
-    onError: (error) => console.error("MCP action failed", error),
-  });
-
-  return <McpNativeSurface surface={surface} components={components} onAction={onAction} />;
-}
-```
-
-The host supplies the locally bundled native components and explicitly allows the tools a surface may dispatch, including their arguments. Without an `actionPolicy`, surface action dispatch is denied; trusted host code can still call `callTool()` directly after JSON validation. MCP Native never downloads and executes server-provided React Native JavaScript.
-
 ## Included packages
 
 | Package                                                                              | What it provides                                                                  |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | MCP client contracts, runtime delegation, JSON types, and declared tool actions.  |
-| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Feature-scoped v1 Candidate adapter plus deprecated `/legacy` migration APIs.     |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Feature-scoped v1 Candidate negotiation, parsing, and surface state.              |
 | [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | Trusted plans, local v1 state/actions, hooks, and a host-owned component catalog. |
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | Stable Apps discovery, sandbox, native adapter, and JSON-RPC bridge.              |
 
@@ -134,10 +70,9 @@ Install an individual package instead when you only need one layer.
 
 Use the separately installable [`@mcp-native/mcp`](https://github.com/pablospaniard/mcp-native/tree/main/packages/mcp) package to connect these APIs to the official MCP TypeScript SDK without forcing that SDK dependency on every `mcp-native` consumer.
 
-## Available across the current 0.9 package line
+## Available across the package line
 
 - transport-independent MCP runtime contracts;
-- isolated migration support for the deprecated custom `0.1` surface;
 - declared tool-action dispatch;
 - strict A2UI resource-link resolution from tool results;
 - schema-validated A2UI v1 JSONL lifecycle state and explicit host policies;

@@ -172,7 +172,7 @@ Remote inputs are `{ uri, mimeType }` references (not MCP text/blob resource bod
 | `createMcpAppsNativeDeliveryScript`                          | Deliver JSON data through the fixed local native bridge shim.                   |
 | `McpAppsBridge`                                              | Run the bounded stable View/host JSON-RPC lifecycle.                            |
 | `isMcpAppsBridgeBinding`                                     | Verify the exact resource/sandbox identities used to construct a bridge.        |
-| `isHtmlResource` / `createWebViewDocument`                   | Legacy generic HTML detection and deny-by-default document policy.              |
+| `isHtmlResource` / `createWebViewDocument`                   | Generic HTML detection and deny-by-default document policy.                     |
 | `McpAppsError` / `McpAppsBridgeError` / `WebViewPolicyError` | Controlled validation and policy failures.                                      |
 
 The stable Apps path accepts only `text/html;profile=mcp-app`. The separate generic helpers support

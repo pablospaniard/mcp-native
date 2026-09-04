@@ -1,12 +1,8 @@
-# Migration from `0.9.x` to `1.0.0`
+# Migration to `1.0.0`
 
-Milestone 9 established the release-candidate API. The current development candidate completes its
-deliberate cleanup: the deprecated custom A2UI `0.1` model no longer appears in package root exports.
-
-## Move legacy imports now
-
-Published `0.9.x` packages allowed root imports. Before upgrading to the current candidate, move
-those imports to the explicit migration-only subpaths:
+The deprecated custom A2UI `0.1` model does not appear in package root exports. Applications with
+existing `0.1` documents can still reach the frozen parser and renderer through the explicit
+`/legacy` subpaths:
 
 ```ts
 import { parseA2uiSurface } from "@mcp-native/a2ui/legacy";
@@ -16,14 +12,11 @@ import { McpNativeSurface } from "@mcp-native/react-native/legacy";
 import { McpNativeSurface, parseA2uiSurface } from "mcp-native/legacy";
 ```
 
-Change imports before upgrading even if the application cannot yet migrate its stored documents.
-The legacy subpaths preserve the custom `version: "0.1"` meaning; they never reinterpret that input
-as A2UI v1.
-
-Deprecated legacy aliases are absent from the current candidate's package roots. The explicit
-`/legacy` subpaths remain isolated, frozen, and eligible only for security and critical correctness
-fixes. They receive no new A2UI v1 components, functions, capabilities, extensions, or renderer
-behavior.
+The `/legacy` subpaths preserve the custom `version: "0.1"` meaning; they never reinterpret that
+input as A2UI v1. They remain isolated, frozen, and eligible only for security and critical
+correctness fixes, and receive no new A2UI v1 components, functions, capabilities, extensions, or
+renderer behavior. New integrations should use the A2UI v1 Candidate flow instead; see the
+[A2UI package guide](https://github.com/pablospaniard/mcp-native/tree/main/packages/a2ui).
 
 ## Keep MCP Apps WebView isolation props
 

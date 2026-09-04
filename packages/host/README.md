@@ -79,9 +79,6 @@ Applications can continue using every focused `@mcp-native/*` package directly.
 
 ## React Native provider and result renderer
 
-This `/react-native` entry point is present on `main` under the changelog's Unreleased section. It
-is not exported by the npm `0.9.3` artifact.
-
 The optional `@mcp-native/host/react-native` entry point owns the controller lifecycle and renders
 the complete connection, discovery, call, and result state. Register the locally compiled catalog
 once with `createA2uiV1NativeHost`; its derived `components` and `policy` keep result rendering and

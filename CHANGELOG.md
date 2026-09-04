@@ -1,10 +1,19 @@
 # Changelog
 
-All notable changes to MCP Native are documented here. Until the project reaches `1.0.0`,
-breaking public API changes increment the minor version; patch releases remain compatible within
-their minor release line.
+All notable changes to MCP Native are documented here. From `1.0.0`, breaking public API changes
+increment the major version and follow the [compatibility policy](docs/compatibility-policy.md);
+patch and minor releases remain compatible within their release line.
 
 ## Unreleased
+
+## 1.0.0-beta.1 - 2026-09-04
+
+First `1.0.0` release candidate. Promotes the headless `@mcp-native/host` controller and its React
+Native provider to the primary integration path and completes the independent security, public API,
+protocol/schema, accessibility, and native WebView isolation reviews. The deprecated custom A2UI
+`0.1` surface remains available only through the frozen `/legacy` entry points documented in
+[`docs/migration-to-1.0.md`](docs/migration-to-1.0.md); it is no longer described as part of the
+current API.
 
 ### Added
 

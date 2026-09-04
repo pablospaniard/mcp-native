@@ -14,10 +14,8 @@
 
 `@mcp-native/a2ui` turns A2UI lifecycle messages into validated surface state that a host can safely
 render. It covers the documented A2UI v1 Candidate profile: pinned schemas, catalog capabilities,
-lifecycle messages, renderer messages, and the project-owned MCP binding.
-
-New integrations should start with the v1 flow below. The older custom 0.1 APIs remain available
-from `/legacy` for migration. The [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md)
+lifecycle messages, renderer messages, and the project-owned MCP binding. The
+[A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md)
 contains the exact protocol coverage and limits.
 
 ## Install
@@ -34,80 +32,6 @@ New integrations negotiate the project-owned MCP binding, resolve the pinned JSO
 stream, apply it to `A2uiSurfaceStore`, and validate the resulting snapshot against the host's
 catalog policy. Continue with the [binding example](#a2ui-over-mcp-capability-binding), [catalog
 capabilities](#a2ui-v1-catalog-capabilities), and [complete profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
-
-## Legacy custom `0.1` migration example
-
-The following APIs remain available for migration but are deprecated. New hosts should use the v1
-flow above; existing custom `0.1` integrations can follow the [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
-The current release candidate exposes them only from the explicit `/legacy` subpath, which stays
-frozen for migration and security fixes.
-
-```ts
-import { parseA2uiSurface } from "@mcp-native/a2ui/legacy";
-
-const surface = parseA2uiSurface({
-  version: "0.1",
-  root: {
-    id: "welcome",
-    type: "container",
-    children: [
-      { id: "title", type: "text", text: "Welcome" },
-      {
-        id: "name",
-        type: "text-input",
-        label: "Display name",
-        binding: "profile.displayName",
-      },
-      {
-        id: "save",
-        type: "button",
-        label: "Save",
-        action: {
-          type: "tool",
-          name: "save_profile",
-          arguments: { source: "onboarding" },
-        },
-      },
-    ],
-  },
-});
-```
-
-The parser also accepts a JSON string:
-
-```ts
-const surface = parseA2uiSurface(
-  '{"version":"0.1","root":{"id":"title","type":"text","text":"Hello"}}',
-);
-```
-
-## Resolve a tool-result resource
-
-An MCP tool may return a `resource_link` for a declarative surface. Pass the connected runtime or any `A2uiResourceReader` to the resolver:
-
-```ts
-import { resolveA2uiResourceFromToolResult } from "@mcp-native/a2ui/legacy";
-
-const toolResult = await runtime.callTool("open_profile");
-const resolved = await resolveA2uiResourceFromToolResult(runtime, toolResult);
-
-console.log(resolved.uri);
-console.log(resolved.surface.root);
-```
-
-Resolution succeeds only when:
-
-1. the tool result is not marked as an error;
-2. it contains exactly one `resource_link` with MIME type `application/a2ui+json`;
-3. `resources/read` returns exactly one item with the same URI and MIME type;
-4. that item contains text, not a blob;
-5. the text passes `parseA2uiSurface`.
-
-Other tool content and non-A2UI resource links may coexist with the surface link. MCP Native never guesses a MIME type or chooses between multiple matching surfaces.
-
-The legacy `application/a2ui+json` resource convention comes from earlier A2UI-over-MCP work. The [A2UI v1.0 Candidate protocol](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md) is transport-agnostic and uses a stream of `v1.0` envelopes. New integrations use the negotiated v1 JSONL flow documented below.
-
-The official v1.0 surface-store state now has a strict React Native adapter, including bounded dynamic lists, local string state, supported catalog functions, and host-callback action envelopes, into the internal trusted render plan. This does not evolve the custom `0.1` object into a competing wire protocol. See the [compatibility matrix and conformance roadmap](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md).
 
 ## A2UI-over-MCP capability binding
 
@@ -181,18 +105,7 @@ const surface = store.getValidated(
 );
 ```
 
-Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` agent-to-renderer envelopes are accepted by the lifecycle parser. Raw store snapshots may be incomplete while ordered updates arrive. Store snapshots include a host-owned `dataModelRevision` that changes only after an accepted agent data-model update, allowing renderers to preserve local edits across equivalent fresh snapshots. A batch is capped at 1,024 envelopes and at the store-wide JSON-value and string-work budgets; envelopes are parsed sequentially and any failure rolls back the batch. The store bounds retained surfaces and components, plus cumulative retained JSON values and string/key code units across all surfaces; component replacements update those budgets incrementally. `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, component placement rules, and any negotiated extension registry. The React Native package adapts and mounts every basic-catalog component, including bounded dynamic lists, typed renderer-local bindings, formatting, pure boolean and validation functions, supported checks, required image/media grants, host-policy-gated HTTP(S) `openUrl`, and closed local extensions after revalidation. `createA2uiV1ActionEnvelope` constructs actions, while `parseA2uiV1RendererToAgentEnvelope` validates all four pinned renderer-to-agent message kinds as owned data. `createA2uiV1ActionDeliveryHandler` adds a serialized, fail-closed authorization boundary before a host-owned action transport; policy and delivery receive separate owned copies. An overlapping action is denied before its untrusted envelope or data model is parsed and therefore is not passed to `onDenied`. Parsing does not execute functions, select transport, or grant device access. The deprecated custom `0.1` resolver remains isolated and never receives a failed v1 stream. See the [exact conformance profile and migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
-
-## Deprecated custom `0.1` surface
-
-| Node         | Required fields         | Purpose                                                |
-| ------------ | ----------------------- | ------------------------------------------------------ |
-| `container`  | `id`, `children`        | Groups nested surface nodes.                           |
-| `text`       | `id`, `text`            | Declares trusted text content.                         |
-| `button`     | `id`, `label`, `action` | Declares a tool action for host-controlled dispatch.   |
-| `text-input` | `id`, `label`           | Declares an input with optional `value` and `binding`. |
-
-The only supported action is `{ type: "tool", name, arguments? }`. Arguments must contain JSON-safe values.
+Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` agent-to-renderer envelopes are accepted by the lifecycle parser. Raw store snapshots may be incomplete while ordered updates arrive. Store snapshots include a host-owned `dataModelRevision` that changes only after an accepted agent data-model update, allowing renderers to preserve local edits across equivalent fresh snapshots. A batch is capped at 1,024 envelopes and at the store-wide JSON-value and string-work budgets; envelopes are parsed sequentially and any failure rolls back the batch. The store bounds retained surfaces and components, plus cumulative retained JSON values and string/key code units across all surfaces; component replacements update those budgets incrementally. `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, component placement rules, and any negotiated extension registry. The React Native package adapts and mounts every basic-catalog component, including bounded dynamic lists, typed renderer-local bindings, formatting, pure boolean and validation functions, supported checks, required image/media grants, host-policy-gated HTTP(S) `openUrl`, and closed local extensions after revalidation. `createA2uiV1ActionEnvelope` constructs actions, while `parseA2uiV1RendererToAgentEnvelope` validates all four pinned renderer-to-agent message kinds as owned data. `createA2uiV1ActionDeliveryHandler` adds a serialized, fail-closed authorization boundary before a host-owned action transport; policy and delivery receive separate owned copies. An overlapping action is denied before its untrusted envelope or data model is parsed and therefore is not passed to `onDenied`. Parsing does not execute functions, select transport, or grant device access. See the [exact conformance profile and migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
 
 ## Public API
 
@@ -217,20 +130,8 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 | `parseA2uiV1RendererToAgentEnvelope`, renderer-to-agent envelope types                                    | Parse every pinned renderer message as owned, non-authorizing data.     |
 | `evaluateA2uiV1FormatString`                                                                              | Evaluate interpolation and report parser-counted work to budgets.       |
 | `A2UI_V1_BASIC_CATALOG_ID`, catalog name constants                                                        | Exact pinned catalog identity and selectable host capabilities.         |
-| `resolveA2uiV1JsonlFromToolResult`, `ResolvedA2uiV1JsonlResource`                                         | Resolve a JSONL A2UI resource without using the `0.1` parser.           |
+| `resolveA2uiV1JsonlFromToolResult`, `ResolvedA2uiV1JsonlResource`                                         | Resolve a JSONL A2UI resource from a tool result.                       |
 | `A2UI_V1_PROTOCOL_VERSION`, `A2UI_V1_MAX_SOURCE_LENGTH`, `A2UI_V1_MAX_ENVELOPES`, store limit constants   | v1 protocol and complexity limits.                                      |
-
-### Legacy `/legacy` API
-
-| Export                                             | Purpose                                                        |
-| -------------------------------------------------- | -------------------------------------------------------------- |
-| `resolveA2uiResourceFromToolResult`                | Deprecated custom `0.1` resource resolver.                     |
-| `parseA2uiSurface`                                 | Deprecated custom `0.1` surface parser.                        |
-| `A2UI_VERSION`                                     | Exact legacy custom model version.                             |
-| `A2UI_MAX_DEPTH`, `A2UI_MAX_NODES`                 | Legacy container-tree complexity limits.                       |
-| `A2UI_MAX_SOURCE_LENGTH`, `A2UI_MAX_STRING_LENGTH` | Legacy serialized-input and string-field limits.               |
-| `ResolvedA2uiResource`                             | URI, MIME type, and validated legacy surface.                  |
-| `A2uiSurface`, `A2uiNode`, node interfaces         | Validated legacy surface, node union, and concrete node types. |
 
 ## Security behavior
 
@@ -253,7 +154,7 @@ The only supported action is `{ type: "tool", name, arguments? }`. Arguments mus
 
 ## Next layer
 
-Use [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) to adapt the supported v1 subset or the custom `0.1` surface into a trusted native render plan. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
+Use [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) to adapt the supported v1 catalog into a trusted native render plan. Install [`mcp-native`](https://www.npmjs.com/package/mcp-native) for the combined runtime and UI APIs.
 
 ## License
 
