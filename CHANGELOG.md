@@ -6,6 +6,17 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+## 1.0.0-beta.2 - 2026-09-04
+
+Corrects the npm manifest normalization discovered while verifying the first beta publication.
+
+### Fixed
+
+- Normalize the `mcp-native` executable target so npm 11 retains the `mcp-native` command and
+  `npx mcp-native@beta doctor` works from the published package.
+- Reject executable targets that npm would remove during publication in the package-artifact smoke
+  gate, and exercise the installed command link in a clean consumer.
+
 ## 1.0.0-beta.1 - 2026-09-04
 
 First `1.0.0` release candidate. Promotes the headless `@mcp-native/host` controller and its React
