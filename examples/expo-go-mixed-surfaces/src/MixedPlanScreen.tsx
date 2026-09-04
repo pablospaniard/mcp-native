@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import { A2uiV1NativeSurface } from "@mcp-native/react-native";
+import { Surface } from "@mcp-native/react-native";
 import {
   createMcpAppsNativeDeliveryScript,
   createMcpAppsNativeSandbox,
@@ -250,7 +250,7 @@ function MixedPlanSession({
           }}
           style={styles.nativeRegion}
         >
-          <A2uiV1NativeSurface
+          <Surface
             components={cityCatalog}
             onAction={() => undefined}
             policy={citySurfacePolicy}

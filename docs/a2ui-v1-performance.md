@@ -38,7 +38,7 @@ measurements; a faster workstation result alone is not sufficient reason to rela
 network service or a probabilistic dependency. The regular test and coverage gates exercise:
 
 - 750 arbitrary bounded JSON values through both A2UI envelope directions, requiring exact message
-  ownership for accepted values and controlled `A2uiParseError` rejection otherwise;
+  ownership for accepted values and controlled `ParseError` rejection otherwise;
 - 125 generated lifecycle streams with object/string equivalence, ownership checks, ordered updates,
   and monotonic revisions;
 - 150 valid dynamic-list surfaces with bounded expansion, stable unique keys, and trusted component

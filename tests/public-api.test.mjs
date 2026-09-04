@@ -5,19 +5,19 @@ import * as a2uiRoot from "../packages/a2ui/dist/index.js";
 import * as umbrellaRoot from "../packages/mcp-native/dist/index.js";
 import * as reactNativeRoot from "../packages/react-native/dist/index.js";
 import {
-  A2UI_MCP_EXTENSION_CAPABILITIES,
-  A2UI_MCP_EXTENSION_ID,
-  A2UI_MIME_TYPE,
-  A2UI_V1_BASIC_CATALOG_ID,
-  A2UI_V1_BASIC_COMPONENT_NAMES,
-  A2UI_V1_HOST_EXTENSION_PROFILE_ID,
-  A2UI_V1_MAX_COMPONENTS,
-  A2UI_V1_MAX_SURFACES,
-  A2UI_V1_NATIVE_COMPONENT_NAMES,
-  A2UI_V1_NATIVE_MAX_MEDIA,
-  A2UI_V1_NATIVE_MAX_RENDER_NODES,
-  A2uiV1NativeSurface,
-  A2uiSurfaceStore,
+  MCP_EXTENSION_CAPABILITIES,
+  MCP_EXTENSION_ID,
+  MIME_TYPE,
+  BASIC_CATALOG_ID,
+  BASIC_COMPONENT_NAMES,
+  HOST_EXTENSION_PROFILE_ID,
+  MAX_COMPONENTS,
+  MAX_SURFACES,
+  COMPONENT_NAMES,
+  MAX_MEDIA,
+  MAX_RENDER_NODES,
+  Surface,
+  SurfaceStore,
   JSON_MAX_DEPTH,
   JSON_MAX_STRING_LENGTH,
   JSON_MAX_VALUES,
@@ -36,12 +36,12 @@ import {
   McpNativeRuntime,
   createAllowlistActionPolicy,
   createConsentActionPolicy,
-  createA2uiV1BasicCatalogPolicy,
-  createA2uiV1ActionDeliveryHandler,
-  createA2uiV1ActionEnvelope,
-  createA2uiV1RendererCapabilities,
-  createA2uiV1HostExtensionRegistry,
-  createA2uiV1NativeRenderPlan,
+  createBasicCatalogPolicy,
+  createActionDeliveryHandler,
+  createActionEnvelope,
+  createRendererCapabilities,
+  createHostExtensionRegistry,
+  createRenderPlan,
   createNativeButtonAdapter,
   createNativeAudioPlayerAdapter,
   createNativeHostExtensionRegistration,
@@ -54,30 +54,30 @@ import {
   createMcpNativeMixedA2uiRegion,
   createMcpNativeMixedMcpAppsRegion,
   createWebViewDocument,
-  evaluateA2uiV1FormatString,
-  isA2uiMcpBindingGrant,
+  evaluateFormatString,
+  isMcpBindingGrant,
   isMcpAppsGrant,
   isMcpAppsNativeSandboxConfiguration,
   loadMcpAppsResource,
   negotiateMcpApps,
-  negotiateA2uiMcpBinding,
-  negotiateA2uiV1Capabilities,
-  negotiateA2uiV1HostExtensions,
+  negotiateMcpBinding,
+  negotiateCapabilities,
+  negotiateHostExtensions,
   negotiateMcpExtension,
-  parseA2uiV1Envelope,
-  parseA2uiV1AgentCapabilities,
-  parseA2uiV1Jsonl,
-  parseA2uiV1RendererCapabilities,
-  parseA2uiV1RendererToAgentEnvelope,
-  parseA2uiV1HostExtensionManifest,
+  parseEnvelope,
+  parseAgentCapabilities,
+  parseJsonl,
+  parseRendererCapabilities,
+  parseRendererToAgentEnvelope,
+  parseHostExtensionManifest,
   parseJsonObject,
   parseJsonValue,
   parseMcpExtensionSettings,
   parseMcpNativeAction,
-  resolveA2uiV1JsonlFromToolResult,
-  resolveA2uiV1NativeEvent,
-  getA2uiV1NativeSupportedHostExtensionCatalogIds,
-  validateA2uiV1SurfaceState,
+  resolveJsonlFromToolResult,
+  resolveEvent,
+  getSupportedHostExtensionCatalogIds,
+  validateSurfaceState,
 } from "../packages/mcp-native/dist/index.js";
 import { A2UI_VERSION as LEGACY_A2UI_VERSION } from "../packages/a2ui/dist/legacy.js";
 import { McpNativeSurface as LegacyMcpNativeSurface } from "../packages/react-native/dist/legacy.js";
@@ -87,18 +87,18 @@ import {
 } from "../packages/mcp-native/dist/legacy.js";
 
 test("the convenience package re-exports each public runtime package", () => {
-  assert.equal(A2UI_MIME_TYPE, "application/a2ui+json");
-  assert.equal(A2UI_MCP_EXTENSION_ID, "io.github.pablospaniard/mcp-native-a2ui");
-  assert.equal(Object.isFrozen(A2UI_MCP_EXTENSION_CAPABILITIES), true);
-  assert.equal(A2UI_V1_MAX_COMPONENTS, 1_024);
-  assert.equal(A2UI_V1_MAX_SURFACES, 1_024);
-  assert.equal(A2UI_V1_NATIVE_MAX_RENDER_NODES, 1_024);
-  assert.equal(A2UI_V1_NATIVE_MAX_MEDIA, 16);
-  assert.equal(A2UI_V1_NATIVE_COMPONENT_NAMES.includes("TextField"), true);
-  assert.equal(A2UI_V1_NATIVE_COMPONENT_NAMES.includes("Video"), true);
-  assert.equal(A2UI_V1_HOST_EXTENSION_PROFILE_ID, "io.mcp-native/a2ui-host-extensions");
-  assert.match(A2UI_V1_BASIC_CATALOG_ID, /catalogs\/basic\/catalog\.json$/);
-  assert.equal(A2UI_V1_BASIC_COMPONENT_NAMES.includes("Text"), true);
+  assert.equal(MIME_TYPE, "application/a2ui+json");
+  assert.equal(MCP_EXTENSION_ID, "io.github.pablospaniard/mcp-native-a2ui");
+  assert.equal(Object.isFrozen(MCP_EXTENSION_CAPABILITIES), true);
+  assert.equal(MAX_COMPONENTS, 1_024);
+  assert.equal(MAX_SURFACES, 1_024);
+  assert.equal(MAX_RENDER_NODES, 1_024);
+  assert.equal(MAX_MEDIA, 16);
+  assert.equal(COMPONENT_NAMES.includes("TextField"), true);
+  assert.equal(COMPONENT_NAMES.includes("Video"), true);
+  assert.equal(HOST_EXTENSION_PROFILE_ID, "io.mcp-native/a2ui-host-extensions");
+  assert.match(BASIC_CATALOG_ID, /catalogs\/basic\/catalog\.json$/);
+  assert.equal(BASIC_COMPONENT_NAMES.includes("Text"), true);
   assert.equal(JSON_MAX_DEPTH, 64);
   assert.equal(JSON_MAX_VALUES, 10_000);
   assert.equal(JSON_MAX_STRING_LENGTH, 65_536);
@@ -128,35 +128,35 @@ test("the convenience package re-exports each public runtime package", () => {
   assert.equal(typeof createMcpNativeMixedMcpAppsRegion, "function");
   assert.equal(typeof createAllowlistActionPolicy, "function");
   assert.equal(typeof createConsentActionPolicy, "function");
-  assert.equal(typeof createA2uiV1BasicCatalogPolicy, "function");
-  assert.equal(typeof createA2uiV1ActionDeliveryHandler, "function");
-  assert.equal(typeof createA2uiV1ActionEnvelope, "function");
-  assert.equal(typeof createA2uiV1RendererCapabilities, "function");
-  assert.equal(typeof createA2uiV1HostExtensionRegistry, "function");
-  assert.equal(typeof createA2uiV1NativeRenderPlan, "function");
-  assert.equal(typeof evaluateA2uiV1FormatString, "function");
-  assert.equal(typeof negotiateA2uiV1HostExtensions, "function");
-  assert.equal(typeof parseA2uiV1HostExtensionManifest, "function");
-  assert.equal(typeof getA2uiV1NativeSupportedHostExtensionCatalogIds, "function");
-  assert.equal(typeof A2uiV1NativeSurface, "function");
-  assert.equal(typeof validateA2uiV1SurfaceState, "function");
+  assert.equal(typeof createBasicCatalogPolicy, "function");
+  assert.equal(typeof createActionDeliveryHandler, "function");
+  assert.equal(typeof createActionEnvelope, "function");
+  assert.equal(typeof createRendererCapabilities, "function");
+  assert.equal(typeof createHostExtensionRegistry, "function");
+  assert.equal(typeof createRenderPlan, "function");
+  assert.equal(typeof evaluateFormatString, "function");
+  assert.equal(typeof negotiateHostExtensions, "function");
+  assert.equal(typeof parseHostExtensionManifest, "function");
+  assert.equal(typeof getSupportedHostExtensionCatalogIds, "function");
+  assert.equal(typeof Surface, "function");
+  assert.equal(typeof validateSurfaceState, "function");
   assert.equal(typeof createWebViewDocument, "function");
-  assert.equal(typeof isA2uiMcpBindingGrant, "function");
+  assert.equal(typeof isMcpBindingGrant, "function");
   assert.equal(typeof isMcpAppsGrant, "function");
   assert.equal(typeof isMcpAppsNativeSandboxConfiguration, "function");
   assert.equal(typeof loadMcpAppsResource, "function");
   assert.equal(typeof negotiateMcpApps, "function");
-  assert.equal(typeof negotiateA2uiMcpBinding, "function");
-  assert.equal(typeof negotiateA2uiV1Capabilities, "function");
+  assert.equal(typeof negotiateMcpBinding, "function");
+  assert.equal(typeof negotiateCapabilities, "function");
   assert.equal(typeof negotiateMcpExtension, "function");
-  assert.equal(typeof parseA2uiV1Envelope, "function");
-  assert.equal(typeof parseA2uiV1AgentCapabilities, "function");
-  assert.equal(typeof parseA2uiV1Jsonl, "function");
-  assert.equal(typeof parseA2uiV1RendererCapabilities, "function");
-  assert.equal(typeof parseA2uiV1RendererToAgentEnvelope, "function");
-  assert.equal(typeof A2uiSurfaceStore, "function");
-  assert.equal(typeof resolveA2uiV1JsonlFromToolResult, "function");
-  assert.equal(typeof resolveA2uiV1NativeEvent, "function");
+  assert.equal(typeof parseEnvelope, "function");
+  assert.equal(typeof parseAgentCapabilities, "function");
+  assert.equal(typeof parseJsonl, "function");
+  assert.equal(typeof parseRendererCapabilities, "function");
+  assert.equal(typeof parseRendererToAgentEnvelope, "function");
+  assert.equal(typeof SurfaceStore, "function");
+  assert.equal(typeof resolveJsonlFromToolResult, "function");
+  assert.equal(typeof resolveEvent, "function");
   assert.equal(typeof parseJsonObject, "function");
   assert.equal(typeof parseJsonValue, "function");
   assert.equal(typeof parseMcpNativeAction, "function");

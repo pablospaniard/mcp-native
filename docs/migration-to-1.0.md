@@ -1,5 +1,37 @@
 # Migration to `1.0.0`
 
+## Use concise current-profile names
+
+The package name already identifies A2UI or React Native, and the package root identifies the
+current supported profile. New code therefore omits redundant `A2ui`, `A2uiV1`, and
+`A2uiV1Native` prefixes:
+
+| Previous compatible name          | Canonical name             |
+| --------------------------------- | -------------------------- |
+| `A2uiSurfaceStore`                | `SurfaceStore`             |
+| `parseA2uiV1Envelope`             | `parseEnvelope`            |
+| `createA2uiV1BasicCatalogPolicy`  | `createBasicCatalogPolicy` |
+| `A2uiV1SurfaceState`              | `SurfaceState`             |
+| `createA2uiV1NativeHost`          | `createHost`               |
+| `A2uiV1NativeHostSurface`         | `HostSurface`              |
+| `createA2uiV1NativeRenderPlan`    | `createRenderPlan`         |
+| `A2UI_V1_NATIVE_MAX_RENDER_NODES` | `MAX_RENDER_NODES`         |
+
+This is a source-compatible migration: every previous package-root export remains an alias of the
+same runtime value, and previous type names remain exported. Those aliases are deprecated for new
+code but remain supported throughout `1.x`; removal requires a future major release. No wire value,
+JSON field, MIME type, capability identifier, schema pin, or negotiated `"v1.0"` value changed.
+
+The `mcp-native` convenience package additionally exposes `a2ui` and `reactNative` namespaces for
+call sites where names from several focused packages appear together:
+
+```ts
+import { a2ui, reactNative } from "mcp-native";
+
+const store = new a2ui.SurfaceStore();
+const Surface = reactNative.HostSurface;
+```
+
 The deprecated custom A2UI `0.1` model does not appear in package root exports. Applications with
 existing `0.1` documents can still reach the frozen parser and renderer through the explicit
 `/legacy` subpaths:
@@ -48,8 +80,8 @@ the same path with the actual coordinated stable artifacts before publication.
 ## Move new work to the v1 Candidate profile
 
 New surfaces should negotiate the project-owned A2UI-over-MCP binding, parse `version: "v1.0"`
-lifecycle envelopes into `A2uiSurfaceStore`, validate through an explicit host catalog policy, and
-mount `A2uiV1NativeSurface`. There is no automatic conversion because the custom tree/action model
+lifecycle envelopes into `SurfaceStore`, validate through an explicit host catalog policy, and
+mount `Surface`. There is no automatic conversion because the custom tree/action model
 and A2UI v1 catalog/data/event model have different semantics.
 
 ## Adopt host ownership explicitly

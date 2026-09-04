@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { A2uiV1NativeSurface } from "@mcp-native/react-native";
-import type { A2uiV1ActionEnvelope } from "@mcp-native/a2ui";
+import { Surface } from "@mcp-native/react-native";
+import type { ActionEnvelope } from "@mcp-native/a2ui";
 import type { JsonObject } from "@mcp-native/core";
 
 import { appStyles, todoCatalog } from "./src/catalog";
@@ -75,7 +75,7 @@ export default function App() {
   }, []);
 
   const handleAction = useCallback(
-    (envelope: A2uiV1ActionEnvelope, dataModel?: JsonObject) => {
+    (envelope: ActionEnvelope, dataModel?: JsonObject) => {
       setState((current) =>
         applyTodoAction(
           current,
@@ -154,7 +154,7 @@ export default function App() {
               {status}
             </Text>
             {ready ? (
-              <A2uiV1NativeSurface
+              <Surface
                 actionMetadata={actionMetadata}
                 components={todoCatalog}
                 locale="en"

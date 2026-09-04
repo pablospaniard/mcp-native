@@ -342,11 +342,11 @@ if (localMode) {
 for (const [name, value] of [
   ["McpNativeRuntime", core.McpNativeRuntime],
   ["McpSdkClientAdapter", mcp.McpSdkClientAdapter],
-  ["A2uiSurfaceStore", a2ui.A2uiSurfaceStore],
+  ["SurfaceStore", localMode ? a2ui.SurfaceStore : a2ui.A2uiSurfaceStore],
   ["createWebViewDocument", webview.createWebViewDocument],
-  ["A2uiV1NativeSurface", reactNative.A2uiV1NativeSurface],
+  ["Surface", localMode ? reactNative.Surface : reactNative.A2uiV1NativeSurface],
   ...(localMode
-    ? [["createA2uiV1NativeHost", reactNative.createA2uiV1NativeHost]]
+    ? [["createHost", reactNative.createHost]]
     : []),
   ["McpNativeMixedSurfaceCoordinator", umbrella.McpNativeMixedSurfaceCoordinator],
   ...(host === undefined
@@ -374,9 +374,27 @@ for (const [name, value] of [
 }
 if (
   reactNativeTesting !== undefined &&
-  typeof reactNativeTesting.createA2uiV1NativeCatalogConformanceCases !== "function"
+  typeof reactNativeTesting.createCatalogConformanceCases !== "function"
 ) {
   throw new Error("Missing @mcp-native/react-native/testing conformance fixtures");
+}
+if (localMode) {
+  for (const [name, concise, compatible] of [
+    ["A2uiSurfaceStore", a2ui.SurfaceStore, a2ui.A2uiSurfaceStore],
+    ["parseA2uiV1Envelope", a2ui.parseEnvelope, a2ui.parseA2uiV1Envelope],
+    ["A2uiV1NativeSurface", reactNative.Surface, reactNative.A2uiV1NativeSurface],
+    ["createA2uiV1NativeHost", reactNative.createHost, reactNative.createA2uiV1NativeHost],
+  ]) {
+    if (concise !== compatible) {
+      throw new Error(\`Compatibility alias \${name} does not preserve the canonical export\`);
+    }
+  }
+  if (umbrella.a2ui?.SurfaceStore !== a2ui.SurfaceStore) {
+    throw new Error("mcp-native is missing its a2ui namespace");
+  }
+  if (umbrella.reactNative?.Surface !== reactNative.Surface) {
+    throw new Error("mcp-native is missing its reactNative namespace");
+  }
 }
 const oauthEntryPoint = import.meta.resolve("@mcp-native/mcp/oauth");
 if (!oauthEntryPoint.endsWith("/dist/oauth.js")) {

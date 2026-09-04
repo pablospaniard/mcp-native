@@ -27,11 +27,11 @@
       }
     },
     "@mcp-native/a2ui": {
-      "declarationSha256": "f935d82713363636c6e1f2170e19b245cb7d06f3f5d15c6e4c080e80a86a6691",
+      "declarationSha256": "8172c8aa7db8370386df0dab5308b9cae757227430f021bfa3387da28f15b64d",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "a479066dd8f4a0c3fea7bf0a3c12305b6617c180a930c7842ffbbedbbc86f919",
+          "runtimeSha256": "c3433f2c7afbd99c7feee0e0647db18940fbabe13bacdd5a6071f036e4536687",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {
@@ -52,11 +52,11 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "e364d03e16f367e68c29045e2f5b95a787baaf3fcda9bd0a1c6eb6c74b97a4fe",
+      "declarationSha256": "2b7023c6d77e788be01964ecef85b1589781dd9b0c0ba19fe02b3bec423d4fb8",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "8a92f6bedb59b810fbe5ff53a824234805d397cb48f2a26f7437bd9ee62d7bfa",
+          "runtimeSha256": "954f1ab73683bd5084370bfb318a89a08a7e1bf511972d4f8aa7d3202e72b1c7",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {
@@ -66,13 +66,13 @@
         },
         "./testing": {
           "import": "./dist/testing.js",
-          "runtimeSha256": "b47305c5051d6a30f2a12b1cedf83028721ea29cd46d327600febe3559c002fb",
+          "runtimeSha256": "73bd9f4bf0345d701538b0d828257768713e3383a7b1c0d3f1d242f3126aa1cc",
           "types": "./dist/testing.d.ts"
         }
       }
     },
     "@mcp-native/host": {
-      "declarationSha256": "2813e4c7b1ea93cd3cc4456a45be3ca24035273bcf6091ae3af6919dea2acb5f",
+      "declarationSha256": "7f05324999b9e324124c48895353143eb3b8fec18134fbf66e1869b33a404969",
       "exports": {
         ".": {
           "import": "./dist/index.js",
@@ -87,11 +87,11 @@
       }
     },
     "mcp-native": {
-      "declarationSha256": "ef07e4bb82c3a8a3935e12c402a86c0446f0b6bd1f9258f26c083b4cb6a8402b",
+      "declarationSha256": "2e210f6a972797dcf19c6ad2b471d2ed0e95e0681094ee6164b6684b80f12456",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "f0b4477a7481f6e6cec44e8294f14a63fd808582d774eeca2c13d7551cf5b7ac",
+          "runtimeSha256": "0a9c4e9be154ef9ea399967caf6abe2b4df082f0bc59db3d9bab4f8304d6c080",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {

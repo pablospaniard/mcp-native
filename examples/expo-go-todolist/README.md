@@ -76,7 +76,7 @@ host action handler ◄── schema-valid action envelope       renderer-local 
 The surface policy names every component, action, and pure function this app accepts:
 
 ```ts
-export const todoSurfacePolicy = createA2uiV1BasicCatalogPolicy({
+export const todoSurfacePolicy = createBasicCatalogPolicy({
   allowedComponentNames: [
     "Button",
     "Card",
@@ -93,7 +93,7 @@ export const todoSurfacePolicy = createA2uiV1BasicCatalogPolicy({
   allowedFunctionNames: ["length", "required"],
 });
 
-const store = new A2uiSurfaceStore();
+const store = new SurfaceStore();
 store.apply(createTodoSurfaceEnvelope(state));
 const surface = store.getValidated("expo-go-todos", todoSurfacePolicy);
 ```
@@ -130,11 +130,11 @@ that each local primitive needs.
 
 ### 3. Mount the native surface
 
-`A2uiV1NativeSurface` owns the renderer-local model and returns validated changes and action
+`Surface` owns the renderer-local model and returns validated changes and action
 envelopes through host callbacks:
 
 ```tsx
-<A2uiV1NativeSurface
+<Surface
   actionMetadata={{
     extensions: { example: "expo-go-todolist", host: Platform.OS },
   }}
@@ -156,7 +156,7 @@ The callback applies only the three allowlisted app actions. A production MCP ho
 same validated envelope through its consent and tool-dispatch policy:
 
 ```ts
-const handleAction = (envelope: A2uiV1ActionEnvelope, dataModel?: JsonObject) => {
+const handleAction = (envelope: ActionEnvelope, dataModel?: JsonObject) => {
   setState((current) =>
     applyTodoAction(current, envelope.action.name, envelope.action.context, dataModel, createId),
   );

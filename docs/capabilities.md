@@ -59,7 +59,7 @@ and registered locally. Their manifests, props, events, platform support, access
 limits are validated exactly; inline catalogs and server-selected native code remain disabled. See
 the [media and host-extension guide](media-and-host-extensions.md).
 
-React Native hosts should use `createA2uiV1NativeHost` to bind installed slots, resource policies,
+React Native hosts should use `createHost` to bind installed slots, resource policies,
 extension registrations, local layout support, and the advertised component intersection. Mount
 inspection and layout rejection are host safeguards only and never become server capabilities.
 

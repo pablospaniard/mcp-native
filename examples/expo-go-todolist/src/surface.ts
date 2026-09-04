@@ -1,9 +1,9 @@
 import {
-  A2uiSurfaceStore,
-  createA2uiV1BasicCatalogPolicy,
-  type A2uiV1Component,
-  type A2uiV1CreateSurfaceEnvelope,
-  type A2uiV1SurfaceState,
+  SurfaceStore,
+  createBasicCatalogPolicy,
+  type Component,
+  type CreateSurfaceEnvelope,
+  type SurfaceState,
 } from "@mcp-native/a2ui";
 import type { JsonObject } from "@mcp-native/core";
 
@@ -21,7 +21,7 @@ export function createTodoActionMetadata(host: string): JsonObject {
   return { extensions: { example: "expo-go-todolist", host } };
 }
 
-export const todoSurfacePolicy = createA2uiV1BasicCatalogPolicy({
+export const todoSurfacePolicy = createBasicCatalogPolicy({
   allowedComponentNames: [
     "Button",
     "Card",
@@ -38,7 +38,7 @@ export const todoSurfacePolicy = createA2uiV1BasicCatalogPolicy({
   allowedFunctionNames: ["length", "required"],
 });
 
-export function createTodoSurfaceEnvelope(state: TodoState): A2uiV1CreateSurfaceEnvelope {
+export function createTodoSurfaceEnvelope(state: TodoState): CreateSurfaceEnvelope {
   if (state.todos.length > MAX_TODOS)
     throw new Error(`Todo surfaces are limited to ${MAX_TODOS} tasks`);
   const counts = getTodoCounts(state.todos);
@@ -52,7 +52,7 @@ export function createTodoSurfaceEnvelope(state: TodoState): A2uiV1CreateSurface
     visibleTodos.length === 0 ? "empty" : "todo-list",
     ...(counts.completed > 0 ? ["clear-completed"] : []),
   ];
-  const components: A2uiV1Component[] = [
+  const components: Component[] = [
     { id: "root", component: "Card", child: "content" },
     { id: "content", component: "Column", children: contentChildren },
     {
@@ -198,8 +198,8 @@ export function createTodoSurfaceEnvelope(state: TodoState): A2uiV1CreateSurface
   };
 }
 
-export function createValidatedTodoSurface(state: TodoState): A2uiV1SurfaceState {
-  const store = new A2uiSurfaceStore();
+export function createValidatedTodoSurface(state: TodoState): SurfaceState {
+  const store = new SurfaceStore();
   store.apply(createTodoSurfaceEnvelope(state));
   const surface = store.getValidated(TODO_SURFACE_ID, todoSurfacePolicy);
   if (surface === undefined) throw new Error("The todo lifecycle did not create its surface");

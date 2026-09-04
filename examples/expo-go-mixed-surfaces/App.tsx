@@ -2,9 +2,9 @@ import { useCallback, useMemo, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import type { A2uiV1ActionEnvelope } from "@mcp-native/a2ui";
+import type { ActionEnvelope } from "@mcp-native/a2ui";
 import type { JsonObject } from "@mcp-native/core";
-import { A2uiV1NativeSurface } from "@mcp-native/react-native";
+import { Surface } from "@mcp-native/react-native";
 
 import { MixedPlanScreen } from "./src/MixedPlanScreen";
 import { cityCatalog, cityPalette } from "./src/catalog";
@@ -29,14 +29,11 @@ export default function App() {
     (dataModel: JsonObject) => setVibe((current) => readCityVibe(dataModel, current)),
     [],
   );
-  const handleExploreAction = useCallback(
-    (envelope: A2uiV1ActionEnvelope, dataModel?: JsonObject) => {
-      if (envelope.action.name !== "open_live_plan") return;
-      setVibe((current) => readCityVibe(dataModel, current));
-      setScreen("live-plan");
-    },
-    [],
-  );
+  const handleExploreAction = useCallback((envelope: ActionEnvelope, dataModel?: JsonObject) => {
+    if (envelope.action.name !== "open_live_plan") return;
+    setVibe((current) => readCityVibe(dataModel, current));
+    setScreen("live-plan");
+  }, []);
   const saveStop = useCallback((stop: SavedStop) => {
     setSavedStops((current) =>
       current.some((candidate) => candidate.id === stop.id) ? current : [...current, stop],
@@ -108,7 +105,7 @@ export default function App() {
               </View>
             </View>
 
-            <A2uiV1NativeSurface
+            <Surface
               actionMetadata={actionMetadata}
               components={cityCatalog}
               onAction={handleExploreAction}

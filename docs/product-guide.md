@@ -48,10 +48,10 @@ the focused packages directly when the application needs separate control of tho
    Validated user actions return to a host callback, where application policy decides whether and
    how to deliver them.
 
-For React Native, `createA2uiV1NativeHost` is the preferred catalog boundary. It freezes the local
+For React Native, `createHost` is the preferred catalog boundary. It freezes the local
 catalog and derives validation and advertised support from the same installed slots and resource
-policies. `inspectA2uiV1NativeMount` checks the expanded surface and declared parent-layout support
-before React rendering; `A2uiV1NativeHostSurface` performs structural/layout preflight without
+policies. `inspectMount` checks the expanded surface and declared parent-layout support
+before React rendering; `HostSurface` performs structural/layout preflight without
 duplicating resource authorization and contains adapter failures behind a host-authored fallback.
 
 `@mcp-native/host` composes this flow behind one optional high-level API: connect a compatible

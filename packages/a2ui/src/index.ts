@@ -1,6 +1,12 @@
+export * from "./names.js";
+
+/** @deprecated Use `ParseError` and `ResourceError`. */
 export { A2uiParseError, A2uiResourceError } from "./errors.js";
+/** @deprecated Use `MIME_TYPE` and `ResourceReader`. */
 export { A2UI_MIME_TYPE, type A2uiResourceReader } from "./mime.js";
+/** @deprecated Use `MCP_SCHEMA_REVISION`. */
 export { A2UI_MCP_SCHEMA_REVISION } from "./schema-revision.js";
+/** @deprecated Use the concise `MCP_*`, `isMcpBindingGrant`, and `negotiateMcpBinding` names. */
 export {
   A2UI_MCP_BINDING_VERSION,
   A2UI_MCP_EXTENSION_CAPABILITIES,
@@ -10,7 +16,9 @@ export {
   isA2uiMcpBindingGrant,
   negotiateA2uiMcpBinding,
 } from "./binding.js";
+/** @deprecated Use `McpBindingGrant` and `McpBindingNegotiation`. */
 export type { A2uiMcpBindingGrant, A2uiMcpBindingNegotiation } from "./binding.js";
+/** @deprecated Use the corresponding concise package export without the `A2uiV1` prefix. */
 export {
   A2UI_V1_MAX_ENVELOPES,
   A2UI_V1_MAX_SOURCE_LENGTH,
@@ -56,6 +64,7 @@ export {
   validateA2uiV1HostExtensionEvent,
   validateA2uiV1SurfaceState,
 } from "./v1/index.js";
+/** @deprecated Use the corresponding concise package type without the `A2uiV1` prefix. */
 export type {
   A2uiV1ActionDeliveryHandler,
   A2uiV1ActionDeliveryOptions,

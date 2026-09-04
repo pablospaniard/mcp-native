@@ -141,7 +141,7 @@ Profiles and their identifiers are host-authored. Every profile must explicitly 
 
 Wrap the policy with `createExpiringGrantActionPolicy()` when the host offers remembered approval. Its app-owned grant key must bind the policy revision, server/account partition, tool, and argument class. Stored records are validated, expired records are removed, evaluation is serialized, and a grant is saved only after exact approval. Set a zero duration for allow-once and call `revokeMcpNativeConsentGrant()` from the host's user-visible revoke, logout, server-removal, and policy-migration paths.
 
-`actionPolicy` protects `McpNativeRuntime.dispatch()`. Set `trustedToolPolicy` to protect direct `callTool()` operations with the same or another explicit policy; omission preserves the lower-level trusted seam. MCP Apps requires its own `authorizeToolCall` callback and A2UI v1 delivery requires `createA2uiV1ActionDeliveryHandler`, because those packages own different protocol boundaries.
+`actionPolicy` protects `McpNativeRuntime.dispatch()`. Set `trustedToolPolicy` to protect direct `callTool()` operations with the same or another explicit policy; omission preserves the lower-level trusted seam. MCP Apps requires its own `authorizeToolCall` callback and A2UI v1 delivery requires `createActionDeliveryHandler`, because those packages own different protocol boundaries.
 
 ## Design boundaries
 

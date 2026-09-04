@@ -1,11 +1,11 @@
-import { A2UI_V1_MAX_SOURCE_LENGTH, parseA2uiV1RendererToAgentEnvelope } from "@mcp-native/a2ui";
-import type { A2uiV1ActionDeliveryPolicy, A2uiV1ActionEnvelope } from "@mcp-native/a2ui";
+import { MAX_SOURCE_LENGTH, parseRendererToAgentEnvelope } from "@mcp-native/a2ui";
+import type { ActionDeliveryPolicy, ActionEnvelope } from "@mcp-native/a2ui";
 import { parseJsonObject, parseMcpNativeAction } from "@mcp-native/core";
 import type { JsonObject, McpNativeAction, McpNativeActionPolicy } from "@mcp-native/core";
 
 export interface McpNativeHostA2uiActionAuthorizationRequest {
   readonly kind: "a2ui";
-  readonly envelope: A2uiV1ActionEnvelope;
+  readonly envelope: ActionEnvelope;
   readonly dataModel?: JsonObject;
 }
 
@@ -30,8 +30,8 @@ export interface McpNativeHostActionAuthorizationOptions {
 }
 
 export interface McpNativeHostActionAuthorization {
-  /** Install as the policy in `createA2uiV1ActionDeliveryHandler`. */
-  readonly authorizeA2uiAction: A2uiV1ActionDeliveryPolicy;
+  /** Install as the policy in `createActionDeliveryHandler`. */
+  readonly authorizeA2uiAction: ActionDeliveryPolicy;
   /** Install as `McpAppsBridge.handlers.authorizeToolCall`. */
   readonly authorizeMcpAppsToolCall: McpNativeActionPolicy;
 }
@@ -82,7 +82,7 @@ export function createMcpNativeHostActionAuthorization(
   };
 
   return Object.freeze({
-    authorizeA2uiAction(envelope: A2uiV1ActionEnvelope, dataModel?: JsonObject) {
+    authorizeA2uiAction(envelope: ActionEnvelope, dataModel?: JsonObject) {
       return review(() => createA2uiRequest(envelope, dataModel));
     },
     authorizeMcpAppsToolCall(action: McpNativeAction) {
@@ -92,10 +92,10 @@ export function createMcpNativeHostActionAuthorization(
 }
 
 function createA2uiRequest(
-  envelopeInput: A2uiV1ActionEnvelope,
+  envelopeInput: ActionEnvelope,
   dataModelInput?: JsonObject,
 ): McpNativeHostA2uiActionAuthorizationRequest {
-  const parsed = parseA2uiV1RendererToAgentEnvelope(envelopeInput);
+  const parsed = parseRendererToAgentEnvelope(envelopeInput);
   if (!("action" in parsed)) {
     throw new TypeError("Expected an A2UI v1 action envelope for host authorization");
   }
@@ -105,7 +105,7 @@ function createA2uiRequest(
     dataModelInput === undefined
       ? undefined
       : parseJsonObject(dataModelInput, "A2UI host authorization data model", {
-          maxTotalStringCodeUnits: A2UI_V1_MAX_SOURCE_LENGTH,
+          maxTotalStringCodeUnits: MAX_SOURCE_LENGTH,
         });
   if (dataModel !== undefined) freezeOwnedValue(dataModel);
   return Object.freeze({

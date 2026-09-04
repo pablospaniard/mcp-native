@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { validateA2uiV1SurfaceState } from "@mcp-native/a2ui";
+import { validateSurfaceState } from "@mcp-native/a2ui";
 
 import {
   EXPLORE_SURFACE_ID,
@@ -20,14 +20,8 @@ test("both screens produce complete policy-validated native A2UI surfaces", () =
   assert.equal(summary.surfaceId, SUMMARY_SURFACE_ID);
   assert.ok(explore.components.has("root"));
   assert.ok(summary.components.has("root"));
-  assert.equal(
-    validateA2uiV1SurfaceState(explore, citySurfacePolicy).surfaceId,
-    EXPLORE_SURFACE_ID,
-  );
-  assert.equal(
-    validateA2uiV1SurfaceState(summary, citySurfacePolicy).surfaceId,
-    SUMMARY_SURFACE_ID,
-  );
+  assert.equal(validateSurfaceState(explore, citySurfacePolicy).surfaceId, EXPLORE_SURFACE_ID);
+  assert.equal(validateSurfaceState(summary, citySurfacePolicy).surfaceId, SUMMARY_SURFACE_ID);
 });
 
 test("renderer-local vibe input accepts only one known option", () => {

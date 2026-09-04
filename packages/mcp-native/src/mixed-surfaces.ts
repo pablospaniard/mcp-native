@@ -1,7 +1,7 @@
 import {
   validateA2uiV1SurfaceState,
-  type A2uiV1SurfaceState,
-  type A2uiV1SurfaceValidationPolicy,
+  type SurfaceState,
+  type SurfaceValidationPolicy,
 } from "@mcp-native/a2ui";
 import {
   McpAppsBridge,
@@ -63,7 +63,7 @@ interface McpNativeMixedSurfaceRegionBase {
 export interface McpNativeMixedA2uiRegion extends McpNativeMixedSurfaceRegionBase {
   readonly kind: "a2ui";
   /** Reconstructed and revalidated snapshot owned by this host registration. */
-  readonly surface: A2uiV1SurfaceState;
+  readonly surface: SurfaceState;
 }
 
 export interface McpNativeMixedMcpAppsRegion extends McpNativeMixedSurfaceRegionBase {
@@ -78,8 +78,8 @@ export type McpNativeMixedSurfaceRegion = McpNativeMixedA2uiRegion | McpNativeMi
 export interface CreateMcpNativeMixedA2uiRegionOptions {
   readonly id: string;
   readonly accessibilityLabel: string;
-  readonly surface: A2uiV1SurfaceState;
-  readonly policy: A2uiV1SurfaceValidationPolicy;
+  readonly surface: SurfaceState;
+  readonly policy: SurfaceValidationPolicy;
   readonly lifecycle?: McpNativeMixedSurfaceLifecycle;
 }
 

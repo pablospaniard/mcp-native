@@ -142,6 +142,26 @@ integration as production-ready.
 The split is a security and dependency boundary. In particular, `@mcp-native/core` has no MCP SDK,
 A2UI, React, React Native, or WebView dependency.
 
+## API names and protocol versions
+
+Package names provide the implementation context, so current APIs use concise identifiers:
+
+```ts
+import { SurfaceStore, parseEnvelope } from "@mcp-native/a2ui";
+import { HostSurface, createHost } from "@mcp-native/react-native";
+
+// The convenience package also provides explicit namespaces.
+import { a2ui, reactNative } from "mcp-native";
+const store = new a2ui.SurfaceStore();
+const Surface = reactNative.HostSurface;
+```
+
+The package root always means the current supported profile. Exact protocol identity remains in
+negotiated values such as `PROTOCOL_VERSION === "v1.0"`, in schemas, and in compatibility docs; it
+is not repeated in every TypeScript name. Previous `A2ui*`, `A2uiV1*`, and `A2UI_V1_*` exports
+remain compatible aliases throughout the `1.x` line. New code should use the concise names. The
+frozen custom `0.1` API remains separate under `/legacy` and is not reinterpreted by these aliases.
+
 ## Examples
 
 - [Expo Go todo app](examples/expo-go-todolist/README.md) — native A2UI with local bindings,
