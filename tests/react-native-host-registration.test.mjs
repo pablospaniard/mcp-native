@@ -457,6 +457,31 @@ test("surface boundary contains a throwing error observer and defaults to no par
   assert.deepEqual(root.container.children, []);
 });
 
+test("surface boundary contains a rejected asynchronous error observer", async (t) => {
+  t.mock.method(console, "error", () => {});
+  function ThrowingText() {
+    throw new Error("private failure");
+  }
+  const host = createA2uiV1NativeHost({
+    components: { ...baseComponents, Text: ThrowingText },
+  });
+  const root = createRoot();
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeHostSurface, {
+        host,
+        surface: createSurface([{ id: "root", component: "Text", text: "fail" }]),
+        onAction() {},
+        onRenderError() {
+          return Promise.reject(new Error("broken async observer"));
+        },
+      }),
+    );
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+  assert.deepEqual(root.container.children, []);
+});
+
 test("registered host structural preflight does not repeat resource authorization", async () => {
   let calls = 0;
   const host = createA2uiV1NativeHost({

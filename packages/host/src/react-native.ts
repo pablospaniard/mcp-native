@@ -504,7 +504,7 @@ function A2uiHostResult({
         host: props.nativeHost,
         surface,
         onAction: props.onA2uiAction,
-        onRenderError: props.onError,
+        onRenderError: (error) => reportHostError(props.onError, error),
         fallback: renderState(
           props.components,
           "Result unavailable",

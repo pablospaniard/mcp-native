@@ -513,7 +513,7 @@ test("one negotiated A2UI result mounts through the local catalog", async () => 
   await act(async () => mounted.root.unmount());
 });
 
-test("registered high-level A2UI results enforce native host layout contracts", async (t) => {
+test("registered high-level A2UI results contain rejected observers", async (t) => {
   t.mock.method(console, "error", () => {});
   const uri = "ui://surface/layout";
   const controller = createController({
@@ -551,13 +551,16 @@ test("registered high-level A2UI results enforce native host layout contracts", 
       nativeHost,
       parentLayout: "scroll",
       onA2uiAction() {},
-      onError() {},
+      onError() {
+        return Promise.reject(new Error("broken async observer"));
+      },
     },
     "ready",
     McpNativeRegisteredHostResultView,
   );
 
   await act(async () => mounted.host.callTool("status"));
+  await act(async () => nextTurn());
   assert.deepEqual(textValues(mounted.root), [
     "Result unavailable",
     "The validated result could not be rendered.",
