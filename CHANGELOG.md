@@ -74,6 +74,8 @@ protocol-schema conformance, Accessibility, and Native WebView isolation); see
 - Add an optional `onAnnounce` callback to `McpNativeHostResultView` so hosts can wire loading,
   error, retry, and A2UI/MCP Apps ready-state changes into `AccessibilityInfo.announceForAccessibility`,
   with a short fixed announcement for ordinary results instead of the full (up to 32KB) result text.
+  MCP Apps readiness is emitted only after protocol initialization and successful initial data
+  delivery.
 - Add `busy`/`accessibilityState` support to native component adapters and mark accessible loading
   status text busy; mark error states with an assertive live region; add a retry action to failed
   tool calls; contain synchronous and rejected announcement callback failures.
