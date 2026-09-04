@@ -495,7 +495,9 @@ test("a running tool call renders a busy state and announces it", async () => {
     callPromise = mounted.host.callTool("status");
   });
   const state = mounted.root.container.queryAll((element) => element.type === "View")[0];
-  assert.deepEqual(state.props.accessibilityState, { busy: true });
+  const detail = mounted.root.container.queryAll((element) => element.type === "Text")[1];
+  assert.equal(state.props.accessibilityState, undefined);
+  assert.deepEqual(detail.props.accessibilityState, { busy: true });
   assert.deepEqual(textValues(mounted.root), ["Working", "The MCP tool is running."]);
   assert.ok(announcements.includes("Working. The MCP tool is running."));
 
@@ -538,14 +540,20 @@ test("a failed tool call renders a retry action, assertive severity, and announc
   await act(async () => mounted.root.unmount());
 });
 
-test("an ordinary result announces a short summary instead of the full text", async () => {
+test("an ordinary result contains a rejected announcer and avoids announcing full text", async () => {
   const announcements = [];
   const oversized = "x".repeat(500);
   const mounted = await mountHost(
     createController({ result: { content: [{ type: "text", text: oversized }] } }),
-    resultViewProps({ onAnnounce: (message) => announcements.push(message) }),
+    resultViewProps({
+      onAnnounce(message) {
+        announcements.push(message);
+        return Promise.reject(new Error("broken async announcer"));
+      },
+    }),
   );
   await act(async () => mounted.host.callTool("status"));
+  await act(async () => nextTurn());
   assert.equal(announcements.at(-1), "Result ready");
   assert.doesNotMatch(announcements.join(" "), new RegExp(oversized));
   assert.equal(textValues(mounted.root)[1], oversized);
@@ -587,8 +595,8 @@ test("one negotiated A2UI result mounts through the local catalog", async () => 
 
   assert.deepEqual(textValues(mounted.root), ["Native result"]);
   const surfaceContainer = mounted.root.container.queryAll((element) => element.type === "View")[0];
-  assert.equal(surfaceContainer.props.accessible, true);
-  assert.equal(surfaceContainer.props.accessibilityLabel, "Interactive app content");
+  assert.equal(surfaceContainer.props.accessible, false);
+  assert.equal(surfaceContainer.props.accessibilityLabel, undefined);
   assert.ok(announcements.includes("Interactive app content ready"));
   assert.deepEqual(mounted.errors, []);
   await act(async () => mounted.root.unmount());

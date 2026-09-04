@@ -54,15 +54,13 @@ props. It:
 - inserts the resource-derived CSP before any server HTML and requires an HTML5 doctype plus leading
   `html` and `head` elements so executable content cannot precede the policy;
 - uses the specification's inline script/style and self/data defaults while adding explicit
-  `frame-src`, `base-uri`, `object-src`, and `form-action` restrictions. Resource metadata's
-  `resourceDomains` grants `img-src`/`media-src`/`font-src` only; it is never folded into
-  `script-src`/`style-src`, so a domain approved only for image or font hosting never becomes a
-  trusted script/stylesheet origin. `frameDomains` governs the `frame-src` directive only — native
-  sub-frame navigation to any origin is always denied by the sandbox's navigation decision below,
-  independent of this list. Any domain granted in `img-src`/`media-src`/`font-src` remains usable as
-  an exfiltration beacon (e.g. an `<img>`/`Image` load to an attacker-chosen path) regardless of
-  `connect-src`; this is standard CSP behavior, not specific to this implementation, so grant
-  resource domains no more broadly than required;
+  `frame-src`, `base-uri`, `object-src`, and `form-action` restrictions. As required by the stable
+  MCP Apps profile, resource metadata's `resourceDomains` grants `img-src`, `script-src`,
+  `style-src`, `media-src`, and `font-src`. A granted resource origin can therefore deliver
+  executable JavaScript and CSS and can remain usable as an exfiltration beacon regardless of
+  `connect-src`; hosts must review and grant these origins no more broadly than required.
+  `frameDomains` governs the `frame-src` directive only — native sub-frame navigation to any origin
+  is always denied by the sandbox's navigation decision below, independent of this list;
 - disables file/content access, persistent storage, cookies, third-party/shared cookies, automatic
   windows, direct downloads, and non-user-initiated media;
 - keeps top-level navigation local to the exact `ui://` document and routes allowlisted HTTP(S)
@@ -74,14 +72,14 @@ props. It:
 `createMcpAppsReactNativeWebViewProps()` maps the descriptor to an explicit safe subset for a locally
 bundled `react-native-webview`. It selects props individually, explicitly disables caching in
 addition to requesting incognito storage, denies media capture and geolocation, and never spreads
-resource metadata. It pins `injectedJavaScriptForMainFrameOnly: true` so the native bridge bootstrap
-executes only in the top-level document even if some platform quirk allows a sub-frame navigation to
-proceed. The explicit cache setting avoids relying on native prop-application order to
-retain the cache-disabled side effect of Android's incognito setter. Because the standard
-cross-platform props cannot prove enforcement of individual camera, microphone, geolocation, or
-clipboard grants, this adapter rejects any non-empty grant. A host that supports a sensitive
-permission must provide an audited platform adapter and user-approval boundary before advertising
-it.
+resource metadata. It pins `injectedJavaScriptBeforeContentLoadedForMainFrameOnly: true` so the
+native bridge bootstrap executes only in the top-level document even if some platform quirk allows
+a sub-frame navigation to proceed. The explicit cache setting avoids relying on native
+prop-application order to retain the cache-disabled side effect of Android's incognito setter.
+Because the standard cross-platform props cannot prove enforcement of individual camera,
+microphone, geolocation, or clipboard grants, this adapter rejects any non-empty grant. A host that
+supports a sensitive permission must provide an audited platform adapter and user-approval boundary
+before advertising it.
 
 The React Native adapter requires an explicit `onError` boundary. It contains both synchronous
 throws and asynchronous rejections from message and external-link callbacks so hostile View input

@@ -29,6 +29,7 @@ export interface NativeAccessibilityProps {
   readonly accessibilityHint?: string;
   readonly accessibilityLabel?: string;
   readonly accessibilityLiveRegion?: "assertive" | "none" | "polite";
+  readonly accessibilityState?: NativeAccessibilityState;
   readonly importantForAccessibility?: "auto" | "no-hide-descendants";
 }
 
@@ -46,7 +47,6 @@ export interface NativeViewStyle {
 }
 
 export interface NativeViewComponentProps extends NativeAccessibilityProps {
-  readonly accessibilityState?: NativeAccessibilityState;
   readonly children?: ReactNode;
   readonly style?: NativeViewStyle;
 }

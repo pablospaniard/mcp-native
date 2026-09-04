@@ -65,14 +65,15 @@ protocol-schema conformance, Accessibility, and Native WebView isolation); see
 - Add an optional `onAnnounce` callback to `McpNativeHostResultView` so hosts can wire loading,
   error, retry, and A2UI/MCP Apps ready-state changes into `AccessibilityInfo.announceForAccessibility`,
   with a short fixed announcement for ordinary results instead of the full (up to 32KB) result text.
-- Add `busy`/`accessibilityState` support to native view component adapters and mark loading states
-  busy; mark error states with an assertive live region; add a retry action to failed tool calls.
+- Add `busy`/`accessibilityState` support to native component adapters and mark accessible loading
+  status text busy; mark error states with an assertive live region; add a retry action to failed
+  tool calls; contain synchronous and rejected announcement callback failures.
 - Give unlabeled `Image` and `Icon` components a generic fallback accessibility label instead of
   silently dropping them from the accessibility tree, matching existing `Video`/`Audio` behavior.
-- Narrow the MCP Apps content security policy so `resourceDomains` only widens `img-src`,
-  `media-src`, and `font-src`, and no longer implicitly grants `script-src`/`style-src` trust.
-- Pin `injectedJavaScriptForMainFrameOnly: true` on the MCP Apps WebView bridge script so it cannot
-  execute in a sub-frame.
+- Preserve the stable MCP Apps mapping of `resourceDomains` to image, script, stylesheet, media, and
+  font directives while documenting the executable-resource and exfiltration trust it grants.
+- Pin `injectedJavaScriptBeforeContentLoadedForMainFrameOnly: true` on the MCP Apps WebView bridge
+  bootstrap so it cannot execute in a sub-frame.
 - Contain `onError` callback failures in the legacy `useMcpNativeActionDispatcher` the same way as
   the rest of the host boundary, so a broken host error handler cannot escape as an unhandled
   rejection.

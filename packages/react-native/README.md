@@ -214,6 +214,10 @@ const components: NativeComponentCatalog = {
 
 `createNativeViewAdapter`, `createNativeTextAdapter`, `createNativeTextInputAdapter`, `createNativeImageAdapter`, `createNativeIconAdapter`, `createNativeDividerAdapter`, `createNativeCheckBoxAdapter`, `createNativeChoicePickerAdapter`, `createNativeSliderAdapter`, `createNativeDateTimeInputAdapter`, `createNativeTabsAdapter`, and `createNativeModalAdapter` provide the same typed boundary for the other semantics. This supports wrappers around libraries such as Expo UI or Gluestack without coupling MCP Native to them. These helpers do not create new wire-level components. Mapper functions and target components are trusted application code; server input never selects an import, mapper, or unchecked target prop.
 
+When a host uses `@mcp-native/host`'s result-state renderer, its text adapter must forward the
+optional `accessibilityState` field so loading's `busy` state reaches the accessible status text.
+Layout containers remain `accessible: false` to keep nested controls independently discoverable.
+
 For richer local presentation, provide optional closed variant slots alongside the base primitives:
 
 ```tsx

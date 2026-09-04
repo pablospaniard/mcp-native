@@ -76,7 +76,9 @@ the A2UI parser/store, and connection lifecycle by hand:
   safe recovery route, offline/disconnected status, retryable error with retry timing, and terminal
   error without leaking server or OAuth content.
 - Preserve focus, accessibility labels, text scaling, reduced-motion choices, and disabled/busy
-  semantics through loading, consent, retry, and error transitions.
+  semantics through loading, consent, retry, and error transitions. If the catalog wraps its text
+  primitive, forward `NativeTextComponentProps.accessibilityState`; the host result view places
+  loading's `busy` state on the accessible status text, not on its inaccessible layout container.
 - Wire `McpNativeHostResultView`'s optional `onAnnounce` prop to
   `AccessibilityInfo.announceForAccessibility` (or the platform equivalent). Without it, state
   transitions update visible text but are not announced to screen reader users — the view itself

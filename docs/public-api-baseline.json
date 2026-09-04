@@ -42,7 +42,7 @@
       }
     },
     "@mcp-native/webview": {
-      "declarationSha256": "262a4e94ad3b625916747a483dd2dcb7eda6e52e32a98b8ae21f6f1fcde5b73c",
+      "declarationSha256": "42bf88a8cb6e82b28350fefad00f66acb092234304426e2b84c883ef46cbafe3",
       "exports": {
         ".": {
           "import": "./dist/index.js",
@@ -52,7 +52,7 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "72c5ab9f0ab48851e3db296a6070b6b90b0761e9d300158cf94e22a14cd4c755",
+      "declarationSha256": "e364d03e16f367e68c29045e2f5b95a787baaf3fcda9bd0a1c6eb6c74b97a4fe",
       "exports": {
         ".": {
           "import": "./dist/index.js",

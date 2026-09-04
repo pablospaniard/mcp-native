@@ -25,16 +25,20 @@ Deprecated legacy aliases are absent from the current candidate's package roots.
 fixes. They receive no new A2UI v1 components, functions, capabilities, extensions, or renderer
 behavior.
 
-## Keep MCP Apps WebView caching disabled
+## Keep MCP Apps WebView isolation props
 
-The `1.0.0` candidate adds the required literal `cacheEnabled: false` field to
-`McpAppsReactNativeWebViewProps`. Callers that obtain the object from
-`createMcpAppsReactNativeWebViewProps()` receive the field automatically and need no code change.
+The `1.0.0` candidate adds two required literal fields to `McpAppsReactNativeWebViewProps`:
+
+- `cacheEnabled: false` keeps ephemeral storage independent of native prop-application order; and
+- `injectedJavaScriptBeforeContentLoadedForMainFrameOnly: true` confines the paired
+  `injectedJavaScriptBeforeContentLoaded` bridge bootstrap to the top-level document.
+
+Callers that obtain the object from `createMcpAppsReactNativeWebViewProps()` receive both fields
+automatically and need no code change.
 
 If a custom React Native WebView wrapper reconstructs or narrows that exported prop object, update
-the wrapper to accept and forward `cacheEnabled` unchanged. Do not make the value configurable or
-allow resource metadata or other server input to override it. This correction makes the documented
-ephemeral-storage boundary independent of native prop-application order.
+the wrapper to accept and forward both fields unchanged. Do not make either value configurable or
+allow resource metadata or other server input to override it.
 
 ## Automated upgrade path
 

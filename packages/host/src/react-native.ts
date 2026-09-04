@@ -615,8 +615,9 @@ function A2uiHostResult({
 }
 
 /**
- * Wraps rendered interactive content (an A2UI surface tree or an MCP Apps WebView session) so it
- * is discoverable by screen readers and its readiness is announced once per mount.
+ * Wraps rendered interactive content (an A2UI surface tree or an MCP Apps WebView session) without
+ * becoming a single accessibility element that hides its interactive descendants. Readiness is
+ * announced once per mount through the host-owned callback.
  */
 function InteractiveResultAnnouncer({
   View,
@@ -628,18 +629,9 @@ function InteractiveResultAnnouncer({
   readonly children: ReactNode;
 }): ReactElement {
   useEffect(() => {
-    if (onAnnounce === undefined) return;
-    try {
-      onAnnounce("Interactive app content ready");
-    } catch {
-      // Host-owned announcement failures must not interrupt rendering.
-    }
+    reportHostAnnouncement(onAnnounce, "Interactive app content ready");
   }, [onAnnounce]);
-  return createElement(
-    View,
-    { accessible: true, accessibilityLabel: "Interactive app content" },
-    children,
-  );
+  return createElement(View, { accessible: false }, children);
 }
 
 interface McpAppsResultSessionProps {
@@ -873,7 +865,7 @@ class HostRenderBoundary extends Component<HostRenderBoundaryProps, HostRenderBo
 interface RenderStateOptions {
   /** Present only for states with a recoverable action; renders a Retry button when set. */
   readonly retry?: () => void;
-  /** Marks the state as in-progress via `accessibilityState.busy`. */
+  /** Marks the accessible detail text as in-progress via `accessibilityState.busy`. */
   readonly busy?: boolean;
   /** "error" uses an assertive Android live region; "info" (default) uses polite. */
   readonly severity?: "error" | "info";
@@ -905,12 +897,7 @@ function HostStateView({
   const { retry, busy = false, severity = "info", onAnnounce, announceOverride } = options;
   const message = announceOverride ?? `${title}. ${detail}`;
   useEffect(() => {
-    if (onAnnounce === undefined) return;
-    try {
-      onAnnounce(message);
-    } catch {
-      // Host-owned announcement failures must not interrupt rendering.
-    }
+    reportHostAnnouncement(onAnnounce, message);
   }, [message, onAnnounce]);
 
   const children: ReactElement[] = [
@@ -926,6 +913,7 @@ function HostStateView({
       accessible: true,
       accessibilityLiveRegion: severity === "error" ? "assertive" : "polite",
       accessibilityRole: "text",
+      ...(busy ? { accessibilityState: Object.freeze({ busy: true }) } : {}),
       allowFontScaling: true,
       children: detail,
     }),
@@ -943,14 +931,21 @@ function HostStateView({
       }),
     );
   }
-  return createElement(
-    components.View,
-    {
-      accessible: false,
-      ...(busy ? { accessibilityState: Object.freeze({ busy: true }) } : {}),
-    },
-    children,
-  );
+  return createElement(components.View, { accessible: false }, children);
+}
+
+function reportHostAnnouncement(
+  onAnnounce: ((message: string) => void) | undefined,
+  message: string,
+): void {
+  if (onAnnounce === undefined) return;
+  try {
+    void Promise.resolve(onAnnounce(message)).catch(() => {
+      // Host-owned announcement failures must not interrupt rendering.
+    });
+  } catch {
+    // Host-owned announcement failures must not interrupt rendering.
+  }
 }
 
 function selectOrdinaryText(result: McpToolCallResult): string {
