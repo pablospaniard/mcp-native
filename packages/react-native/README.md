@@ -124,7 +124,8 @@ const mounted = surface && (
 and report stable `component-not-allowed`, `surface-invalid`, `render-plan-rejected`, `missing-component`,
 `missing-extension-registration`, or `layout-incompatible` diagnostics. The registered surface
 runs structural/layout preflight without repeating resource authorization, then contains
-component-library render failures behind a reusable `A2uiV1NativeSurfaceBoundary`. The older
+component-library render failures and throwing or rejected error observers behind a reusable
+`A2uiV1NativeSurfaceBoundary`. The older
 `A2uiV1NativeSurface` plus separately constructed policy remains available as the manual low-level
 path. Its default recovery key tracks the host, effective parent layout, component graph, and data
 model so a corrected mount-affecting input retries automatically.

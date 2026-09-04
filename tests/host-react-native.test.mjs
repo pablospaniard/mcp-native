@@ -128,7 +128,7 @@ async function mountHost(
             ...viewProps,
             onError: (error) => {
               errors.push(error);
-              viewProps.onError(error);
+              return viewProps.onError(error);
             },
           }),
         ],
@@ -513,7 +513,7 @@ test("one negotiated A2UI result mounts through the local catalog", async () => 
   await act(async () => mounted.root.unmount());
 });
 
-test("registered high-level A2UI results enforce native host layout contracts", async (t) => {
+test("registered high-level A2UI results contain rejected observers", async (t) => {
   t.mock.method(console, "error", () => {});
   const uri = "ui://surface/layout";
   const controller = createController({
@@ -551,13 +551,16 @@ test("registered high-level A2UI results enforce native host layout contracts", 
       nativeHost,
       parentLayout: "scroll",
       onA2uiAction() {},
-      onError() {},
+      onError() {
+        return Promise.reject(new Error("broken async observer"));
+      },
     },
     "ready",
     McpNativeRegisteredHostResultView,
   );
 
   await act(async () => mounted.host.callTool("status"));
+  await act(async () => nextTurn());
   assert.deepEqual(textValues(mounted.root), [
     "Result unavailable",
     "The validated result could not be rendered.",
@@ -568,7 +571,7 @@ test("registered high-level A2UI results enforce native host layout contracts", 
   await act(async () => mounted.root.unmount());
 });
 
-test("A2UI render failures are contained, redacted, and reset for the next call", async (t) => {
+test("A2UI render failures contain a throwing observer and reset for the next call", async (t) => {
   t.mock.method(console, "error", () => {});
   const uri = "ui://surface/main";
   let calls = 0;
@@ -604,7 +607,12 @@ test("A2UI render failures are contained, redacted, and reset for the next call"
   });
   const mounted = await mountHost(
     controller,
-    resultViewProps({ components: { ...components, Text: ThrowingText } }),
+    resultViewProps({
+      components: { ...components, Text: ThrowingText },
+      onError() {
+        throw new Error("broken observer");
+      },
+    }),
   );
 
   await act(async () => mounted.host.callTool("status"));
@@ -912,7 +920,10 @@ test("malformed MCP Apps HTML fails closed before mounting a WebView", async () 
       },
     }),
     resultViewProps({
-      onError: (error) => errors.push(error),
+      onError: (error) => {
+        errors.push(error);
+        return Promise.reject(new Error("broken async observer"));
+      },
       mcpApps: {
         View: hostComponent("AppsView"),
         bridgeOptions: {

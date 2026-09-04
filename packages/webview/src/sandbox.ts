@@ -69,6 +69,7 @@ export interface McpAppsReactNativeNavigationRequest {
 export interface McpAppsReactNativeWebViewProps {
   readonly source: { readonly html: string; readonly baseUrl: string };
   readonly originWhitelist: readonly string[];
+  readonly cacheEnabled: false;
   readonly javaScriptEnabled: true;
   readonly javaScriptCanOpenWindowsAutomatically: false;
   readonly allowFileAccess: false;
@@ -214,6 +215,7 @@ export function createMcpAppsReactNativeWebViewProps(
   return {
     source: sandbox.source,
     originWhitelist: Object.freeze(["ui://*", "about:blank"]),
+    cacheEnabled: false,
     javaScriptEnabled: true,
     javaScriptCanOpenWindowsAutomatically: false,
     allowFileAccess: false,

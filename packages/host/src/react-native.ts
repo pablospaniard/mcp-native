@@ -148,7 +148,7 @@ export function McpNativeHostProvider({
     mountedRef.current = true;
     let mounted = true;
     void controller.start().catch((error: unknown) => {
-      if (mounted) onErrorRef.current(error);
+      if (mounted) reportHostError(onErrorRef.current, error);
     });
     return () => {
       mounted = false;
@@ -157,7 +157,9 @@ export function McpNativeHostProvider({
       // microtask lets the replacement setup retain ownership without shutting down its controller.
       void Promise.resolve().then(() => {
         if (ownershipGeneration.current !== generation) return;
-        return controller.shutdown().catch((error: unknown) => onErrorRef.current(error));
+        return controller
+          .shutdown()
+          .catch((error: unknown) => reportHostError(onErrorRef.current, error));
       });
     };
   }, [controller]);
@@ -368,7 +370,7 @@ function renderSnapshot(
       props.components,
       "Connection unavailable",
       "The MCP server is temporarily unavailable.",
-      () => void host.retry().catch(props.onError),
+      () => void host.retry().catch((error: unknown) => reportHostError(props.onError, error)),
     );
   }
   if (connection.kind === "terminal-error") {
@@ -376,7 +378,7 @@ function renderSnapshot(
       props.components,
       "Connection failed",
       "The MCP server connection could not be established.",
-      () => void host.retry().catch(props.onError),
+      () => void host.retry().catch((error: unknown) => reportHostError(props.onError, error)),
     );
   }
   if (connection.kind === "disconnected") {
@@ -398,7 +400,8 @@ function renderSnapshot(
       props.components,
       "Tools unavailable",
       "The MCP tool list could not be loaded.",
-      () => void host.refreshTools().catch(props.onError),
+      () =>
+        void host.refreshTools().catch((error: unknown) => reportHostError(props.onError, error)),
     );
   }
   if (tools.result.tools.length === 0) {
@@ -501,7 +504,7 @@ function A2uiHostResult({
         host: props.nativeHost,
         surface,
         onAction: props.onA2uiAction,
-        onRenderError: props.onError,
+        onRenderError: (error) => reportHostError(props.onError, error),
         fallback: renderState(
           props.components,
           "Result unavailable",
@@ -565,7 +568,7 @@ function McpAppsResultSession({
   const reportSessionError = useCallback((error: unknown) => {
     if (!mountedRef.current) return;
     setFailed("session");
-    onErrorRef.current(asRenderError("mcp-app-session-failed", error));
+    reportHostError(onErrorRef.current, asRenderError("mcp-app-session-failed", error));
   }, []);
   useEffect(() => {
     mountedRef.current = true;
@@ -653,7 +656,7 @@ function McpAppsResultSession({
           if (!owned || sessionFailed) return;
           sessionFailed = true;
           close();
-          onErrorRef.current(new McpNativeHostRenderError("mcp-app-crashed"));
+          reportHostError(onErrorRef.current, new McpNativeHostRenderError("mcp-app-crashed"));
           setFailed("crashed");
         },
         webViewProps,
@@ -668,7 +671,7 @@ function McpAppsResultSession({
 
   useEffect(() => {
     if ("error" in setup) {
-      onErrorRef.current(setup.error);
+      reportHostError(onErrorRef.current, setup.error);
       return;
     }
     return setup.dispose;
@@ -736,7 +739,7 @@ class HostRenderBoundary extends Component<HostRenderBoundaryProps, HostRenderBo
   }
 
   override componentDidCatch(error: unknown): void {
-    this.props.onError(asRenderError(this.props.errorCode, error));
+    reportHostError(this.props.onError, asRenderError(this.props.errorCode, error));
   }
 
   override render(): ReactNode {
@@ -846,6 +849,16 @@ function asRenderError(
   return cause instanceof McpNativeHostRenderError
     ? cause
     : new McpNativeHostRenderError(code, { cause });
+}
+
+function reportHostError(onError: (error: unknown) => void, error: unknown): void {
+  try {
+    void Promise.resolve(onError(error)).catch(() => {
+      // Error reporting is observational and must not reopen a contained server-triggered failure.
+    });
+  } catch {
+    // A broken local observer must not escape a render, effect, event, or teardown boundary.
+  }
 }
 
 function deepFreeze<T>(value: T): T {

@@ -25,6 +25,17 @@ Deprecated legacy aliases are absent from the current candidate's package roots.
 fixes. They receive no new A2UI v1 components, functions, capabilities, extensions, or renderer
 behavior.
 
+## Keep MCP Apps WebView caching disabled
+
+The `1.0.0` candidate adds the required literal `cacheEnabled: false` field to
+`McpAppsReactNativeWebViewProps`. Callers that obtain the object from
+`createMcpAppsReactNativeWebViewProps()` receive the field automatically and need no code change.
+
+If a custom React Native WebView wrapper reconstructs or narrows that exported prop object, update
+the wrapper to accept and forward `cacheEnabled` unchanged. Do not make the value configurable or
+allow resource metadata or other server input to override it. This correction makes the documented
+ephemeral-storage boundary independent of native prop-application order.
+
 ## Automated upgrade path
 
 `npm run package:smoke` installs the latest coordinated stable `0.9.x` packages from npm into a

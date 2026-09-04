@@ -468,6 +468,7 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
       callbackErrors.push(error);
     },
   });
+  assert.equal(props.cacheEnabled, false);
   assert.equal(props.incognito, true);
   assert.equal(props.mediaCapturePermissionGrantType, "deny");
   props.onMessage({ nativeEvent: { data: '{"jsonrpc":"2.0","method":"ping"}' } });

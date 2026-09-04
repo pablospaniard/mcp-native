@@ -1056,9 +1056,11 @@ export class A2uiV1NativeSurfaceBoundary extends Component<
         ? error
         : new A2uiV1NativeRenderError({ cause: error });
     try {
-      this.props.onError(reported);
+      void Promise.resolve(this.props.onError(reported)).catch(() => {
+        // A rejected observer must not reopen a contained catalog failure asynchronously.
+      });
     } catch {
-      // A broken observer must not turn a contained catalog failure into another render failure.
+      // A throwing observer must not turn a contained catalog failure into another render failure.
     }
   }
 
