@@ -319,6 +319,58 @@ test("useMcpNativeActionDispatcher routes synchronous dispatcher throws to onErr
   await act(async () => root.unmount());
 });
 
+test("useMcpNativeActionDispatcher contains a broken onError boundary instead of surfacing an unhandled rejection", async (t) => {
+  const unhandledRejections = [];
+  const onUnhandledRejection = (reason) => unhandledRejections.push(reason);
+  process.on("unhandledRejection", onUnhandledRejection);
+  t.after(() => process.off("unhandledRejection", onUnhandledRejection));
+
+  let handler;
+  const dispatcher = {
+    dispatch() {
+      throw new Error("dispatch failed");
+    },
+  };
+  const root = createRoot();
+
+  function DispatcherProbe({ onError }) {
+    handler = useMcpNativeActionDispatcher(dispatcher, { onError });
+    return createElement("View");
+  }
+
+  await act(async () =>
+    root.render(
+      createElement(DispatcherProbe, {
+        onError: () => {
+          throw new Error("boundary throws synchronously");
+        },
+      }),
+    ),
+  );
+  await act(async () => {
+    handler({ type: "tool", name: "save" });
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  await act(async () =>
+    root.render(
+      createElement(DispatcherProbe, {
+        onError: () => Promise.reject(new Error("boundary rejects asynchronously")),
+      }),
+    ),
+  );
+  await act(async () => {
+    handler({ type: "tool", name: "save" });
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(unhandledRejections, []);
+  await act(async () => root.unmount());
+});
+
 test("the mounted renderer rejects malformed trusted-plan fields", async (t) => {
   const cases = [
     {

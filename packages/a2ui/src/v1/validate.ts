@@ -361,8 +361,9 @@ function getChildListEdges(value: JsonValue | undefined): readonly ComponentEdge
 function rejectGraphCycles(edges: ReadonlyMap<string, readonly ComponentEdge[]>): void {
   const visiting = new Set<string>();
   const visited = new Set<string>();
+  const stack: { readonly id: string; edgeIndex: number }[] = [];
 
-  const visit = (id: string): void => {
+  const pushFrame = (id: string): void => {
     if (visiting.has(id)) {
       throw new A2uiParseError(`A2UI component graph contains a cycle at ${JSON.stringify(id)}`);
     }
@@ -370,14 +371,23 @@ function rejectGraphCycles(edges: ReadonlyMap<string, readonly ComponentEdge[]>)
       return;
     }
     visiting.add(id);
-    for (const edge of edges.get(id) ?? []) {
-      visit(edge.id);
-    }
-    visiting.delete(id);
-    visited.add(id);
+    stack.push({ id, edgeIndex: 0 });
   };
 
-  visit("root");
+  pushFrame("root");
+  while (stack.length > 0) {
+    const frame = stack[stack.length - 1]!;
+    const children = edges.get(frame.id) ?? [];
+    if (frame.edgeIndex < children.length) {
+      const child = children[frame.edgeIndex]!.id;
+      frame.edgeIndex += 1;
+      pushFrame(child);
+      continue;
+    }
+    visiting.delete(frame.id);
+    visited.add(frame.id);
+    stack.pop();
+  }
 }
 
 function collectComponentContexts(

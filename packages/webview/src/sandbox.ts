@@ -84,6 +84,8 @@ export interface McpAppsReactNativeWebViewProps {
   readonly geolocationEnabled: false;
   readonly mediaCapturePermissionGrantType: "deny";
   readonly injectedJavaScriptBeforeContentLoaded: string;
+  /** Confines the bridge bootstrap to the top-level document regardless of the engine default. */
+  readonly injectedJavaScriptBeforeContentLoadedForMainFrameOnly: true;
   onShouldStartLoadWithRequest(request: McpAppsReactNativeNavigationRequest): boolean;
   onMessage(event: { readonly nativeEvent: { readonly data: unknown } }): void;
 }
@@ -91,10 +93,20 @@ export interface McpAppsReactNativeWebViewProps {
 const nativeSandboxConfigurations = new WeakSet<object>();
 const nativeSandboxResources = new WeakMap<object, McpAppsResource>();
 
-/** Builds a restrictive CSP from the stable resource metadata. */
+/**
+ * Builds a restrictive CSP from the stable resource metadata.
+ *
+ * The stable MCP Apps profile maps `resourceDomains` to img-src, script-src, style-src,
+ * media-src, and font-src. Such origins can therefore deliver executable JavaScript and CSS and
+ * remain usable as exfiltration beacons regardless of connect-src. Hosts must review and grant
+ * resource origins no more broadly than required.
+ */
 export function createMcpAppsContentSecurityPolicy(csp: McpAppsResourceCsp = {}): string {
   const resources = csp.resourceDomains ?? [];
   const connections = csp.connectDomains ?? [];
+  // frameDomains governs this CSP frame-src directive only. Native sub-frame navigation is
+  // always denied by decideNavigation below regardless of this list — there is currently no
+  // native-navigation counterpart that honors frameDomains.
   const frames = csp.frameDomains ?? [];
   const bases = csp.baseUriDomains ?? [];
   return [
@@ -230,6 +242,7 @@ export function createMcpAppsReactNativeWebViewProps(
     geolocationEnabled: false,
     mediaCapturePermissionGrantType: "deny",
     injectedJavaScriptBeforeContentLoaded: sandbox.injectedJavaScriptBeforeContentLoaded,
+    injectedJavaScriptBeforeContentLoadedForMainFrameOnly: true,
     onShouldStartLoadWithRequest(request) {
       try {
         const decision = sandbox.decideNavigation(request.url, request.isTopFrame !== false);

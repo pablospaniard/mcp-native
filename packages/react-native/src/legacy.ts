@@ -54,11 +54,21 @@ export function useMcpNativeActionDispatcher(
         .then(() => dispatcher.dispatch(action))
         .then(
           (result) => onResult?.(result),
-          (error: unknown) => onError(error),
+          (error: unknown) => reportLegacyDispatchError(onError, error),
         );
     },
     [dispatcher, onError, onResult],
   );
+}
+
+function reportLegacyDispatchError(onError: (error: unknown) => void, error: unknown): void {
+  try {
+    void Promise.resolve(onError(error)).catch(() => {
+      // A rejected host error boundary must not become another unhandled dispatch failure.
+    });
+  } catch {
+    // A broken host error boundary must not escape this dispatch's contained failure path.
+  }
 }
 
 /** @deprecated Use `A2uiV1NativeSurface`. */

@@ -32,6 +32,26 @@ networking, storage, accessibility, and operations choices.
 - Keep host-extension manifests, component imports, prop/event mappers, native commands, and
   compatibility ownership in app code. Inline catalogs and generic commands remain disabled.
 
+## Host-composition layer
+
+Most integrators should prefer this higher-level path over composing `McpNativeRuntime.dispatch()`,
+the A2UI parser/store, and connection lifecycle by hand:
+
+- Own one `McpNativeHostController` per connection and mount it with `McpNativeHostProvider`
+  (`onError` is required). Read state and dispatch calls through `useMcpNativeHost()` inside the
+  provider's subtree.
+- Render the full state machine — connecting, empty, denied, retryable/terminal error, tool
+  loading/result/error — with `McpNativeHostResultView` (or `McpNativeRegisteredHostResultView`
+  when using `createA2uiV1NativeHost`). It already applies the accessibility, retry, and busy-state
+  behavior described below; do not reimplement that state machine in application code.
+- Pair this with `createMcpNativeHostActionAuthorization` (`@mcp-native/host`) for the equivalent
+  higher-level action-authorization seam to `authorizeToolCall`/`createA2uiV1ActionDeliveryHandler`.
+- The `onError` callback receives an `McpNativeHostRenderError` (and controller errors) with a
+  stable `.code` (`"a2ui-render-failed"`, `"mcp-app-crashed"`, `"mcp-app-session-failed"`,
+  `"result-render-failed"`) and a fixed, non-sensitive `.message`; discriminate on `.code` /
+  `instanceof McpNativeHostRenderError` rather than parsing message text, since other error shapes
+  reaching this callback (e.g. thrown `McpNativeHostControllerError`) do not share that code union.
+
 ## Actions, consent, and permissions
 
 - Give `McpNativeRuntime.dispatch()` an explicit policy. If direct host `callTool()` operations also
@@ -56,7 +76,19 @@ networking, storage, accessibility, and operations choices.
   safe recovery route, offline/disconnected status, retryable error with retry timing, and terminal
   error without leaking server or OAuth content.
 - Preserve focus, accessibility labels, text scaling, reduced-motion choices, and disabled/busy
-  semantics through loading, consent, retry, and error transitions.
+  semantics through loading, consent, retry, and error transitions. If the catalog wraps its text
+  primitive, forward `NativeTextComponentProps.accessibilityState`; the host result view places
+  loading's `busy` state on the accessible status text, not on its inaccessible layout container.
+- Wire `McpNativeHostResultView`'s optional `onAnnounce` prop to
+  `AccessibilityInfo.announceForAccessibility` (or the platform equivalent). Without it, state
+  transitions update visible text but are not announced to screen reader users — the view itself
+  cannot reach platform accessibility APIs, since `@mcp-native/host` and `@mcp-native/react-native`
+  intentionally carry no `react-native` dependency. Note that `accessibilityLiveRegion` on Android is
+  the only automatic platform signal and iOS has no equivalent, so screen reader users on iOS get no
+  announcement at all unless `onAnnounce` is wired.
+- `McpNativeHostResultView` does not move focus itself across loading/result/error transitions.
+  Hosts whose platform UX requires focus to follow the active state must do so explicitly (e.g. by
+  focusing a ref keyed to the rendered state) around the view.
 - Make installed tabs expose separate selectable items. Make installed modals trap focus, support
   platform escape/back dismissal, restore focus to their trigger, and tear down hidden content.
 - Run every installed design-system mapping through the canonical

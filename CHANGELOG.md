@@ -56,6 +56,33 @@ their minor release line.
   relying on native prop-application order to retain the cache-disabled side effect of incognito
   mode.
 
+### Fixed
+
+Addressed every finding from five pre-1.0 sign-off reviews (Security, Public API, MCP/A2UI/MCP Apps
+protocol-schema conformance, Accessibility, and Native WebView isolation); see
+`docs/1.0-readiness.md` for the full list. Highlights:
+
+- Add an optional `onAnnounce` callback to `McpNativeHostResultView` so hosts can wire loading,
+  error, retry, and A2UI/MCP Apps ready-state changes into `AccessibilityInfo.announceForAccessibility`,
+  with a short fixed announcement for ordinary results instead of the full (up to 32KB) result text.
+- Add `busy`/`accessibilityState` support to native component adapters and mark accessible loading
+  status text busy; mark error states with an assertive live region; add a retry action to failed
+  tool calls; contain synchronous and rejected announcement callback failures.
+- Give unlabeled `Image` and `Icon` components a generic fallback accessibility label instead of
+  silently dropping them from the accessibility tree, matching existing `Video`/`Audio` behavior.
+- Preserve the stable MCP Apps mapping of `resourceDomains` to image, script, stylesheet, media, and
+  font directives while documenting the executable-resource and exfiltration trust it grants.
+- Pin `injectedJavaScriptBeforeContentLoadedForMainFrameOnly: true` on the MCP Apps WebView bridge
+  bootstrap so it cannot execute in a sub-frame.
+- Contain `onError` callback failures in the legacy `useMcpNativeActionDispatcher` the same way as
+  the rest of the host boundary, so a broken host error handler cannot escape as an unhandled
+  rejection.
+- Rewrite A2UI v1 `rejectGraphCycles` as an iterative worklist instead of unbounded recursion, so
+  cycle detection stays stack-safe at the maximum component count.
+- Clarify several docs (`docs/host-integration-checklist.md`, `docs/wcag-2.2-native-assessment.md`,
+  `docs/native-accessibility-testing.md`, `docs/a2ui-v1-conformance.md`,
+  `docs/mcp-apps-compatibility.md`, `packages/mcp/README.md`) to match actual behavior and scope.
+
 ## 0.9.3 - 2026-09-03
 
 Introduces the initial headless host orchestration package and widens renderer compatibility by

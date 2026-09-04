@@ -16,6 +16,7 @@ export type NativeAccessibilityRole =
   | "text";
 
 export interface NativeAccessibilityState {
+  readonly busy?: boolean;
   readonly checked?: boolean;
   readonly disabled?: boolean;
   readonly expanded?: boolean;
@@ -28,6 +29,7 @@ export interface NativeAccessibilityProps {
   readonly accessibilityHint?: string;
   readonly accessibilityLabel?: string;
   readonly accessibilityLiveRegion?: "assertive" | "none" | "polite";
+  readonly accessibilityState?: NativeAccessibilityState;
   readonly importantForAccessibility?: "auto" | "no-hide-descendants";
 }
 
