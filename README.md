@@ -2,7 +2,7 @@
 
 # MCP Native
 
-### Host-controlled native interfaces for the Model Context Protocol
+### Connect agentic input to host-controlled native applications
 
 Render validated MCP interfaces with components compiled into your app. Use native A2UI for
 forms and structured interactions, or isolate HTML MCP Apps behind an explicit WebView policy.
@@ -15,9 +15,37 @@ forms and structured interactions, or isolate HTML MCP Apps behind an explicit W
 
 </div>
 
-MCP Native is a policy-gated host runtime, not a remote component loader. An MCP server may request
-a semantic component that the app advertised, such as `Button` or `TextField`. It cannot select the
-React Native implementation, import code, pass arbitrary props or styles, or gain device access.
+## The problem
+
+Agents and MCP servers speak in data, intent, and actions. Native applications speak in compiled
+components, platform lifecycles, design systems, accessibility semantics, and protected device
+capabilities. There is no safe direct handoff between those worlds. Without a reusable bridge,
+developers must turn every agent response into chat text, hand-build a screen and integration for
+each tool, or embed remote UI that does not behave—or deserve trust—like the rest of the app.
+
+## The solution
+
+MCP Native is the bridge between agentic input and the native application ecosystem. It turns a
+negotiated, agent-authored interface description into validated render state and policy-gated
+actions that a native host can safely consume. The agent decides what it needs to communicate; the
+app decides exactly how that intent looks, behaves, and what it may execute. Your design system,
+accessibility, navigation, credentials, permissions, and device integrations remain native and
+host-owned.
+
+Build the catalog and policy boundary once, then tools can compose forms, cards, lists, and approval
+flows from that approved vocabulary—without a bespoke screen for every result, downloaded
+JavaScript, or server-selected components. The maintained renderer today is React Native; the core
+runtime and protocol boundaries are UI-framework independent. First-class SwiftUI and Jetpack
+Compose renderers are not included yet.
+
+### What this changes in practice
+
+A CRM agent initially asks the app to present a lead summary with Qualify and Reject actions. Later,
+it asks for an editable owner and status choice. The intent arrives through A2UI; the native host
+maps it onto its approved fields, pickers, and buttons, preserving the app's design system and
+platform behavior. The workflow can evolve without another one-off screen. If the agent requests an
+unsupported component or action, the host rejects it until the native application explicitly
+implements and allows it.
 
 MCP Native includes a headless `@mcp-native/host` controller, its React Native provider and
 registered catalog workflow, and independently usable low-level packages. See the
