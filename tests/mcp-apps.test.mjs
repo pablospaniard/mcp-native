@@ -415,6 +415,24 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
   );
   assert.match(sandbox.contentSecurityPolicy, /frame-src https:\/\/video\.example\.com/);
   assert.match(sandbox.contentSecurityPolicy, /object-src 'none'/);
+  assert.match(
+    sandbox.contentSecurityPolicy,
+    /img-src 'self' data: https:\/\/cdn\.example\.com https:\/\/\*\.assets\.example\.com/,
+  );
+  assert.match(
+    sandbox.contentSecurityPolicy,
+    /media-src 'self' data: https:\/\/cdn\.example\.com https:\/\/\*\.assets\.example\.com/,
+  );
+  assert.match(
+    sandbox.contentSecurityPolicy,
+    /font-src 'self' data: https:\/\/cdn\.example\.com https:\/\/\*\.assets\.example\.com/,
+  );
+  const [scriptSrc] = /script-src [^;]+/.exec(sandbox.contentSecurityPolicy) ?? [];
+  const [styleSrc] = /style-src [^;]+/.exec(sandbox.contentSecurityPolicy) ?? [];
+  assert.equal(scriptSrc, "script-src 'self' 'unsafe-inline'");
+  assert.equal(styleSrc, "style-src 'self' 'unsafe-inline'");
+  assert.doesNotMatch(scriptSrc, /cdn\.example\.com/);
+  assert.doesNotMatch(styleSrc, /cdn\.example\.com/);
   assert.deepEqual(sandbox.grantedPermissions, ["camera"]);
   assert.deepEqual(getMcpAppsPermissionPolicy(sandbox.grantedPermissions), ["camera"]);
   assert.equal(sandbox.storage, "ephemeral");
@@ -471,6 +489,7 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
   assert.equal(props.cacheEnabled, false);
   assert.equal(props.incognito, true);
   assert.equal(props.mediaCapturePermissionGrantType, "deny");
+  assert.equal(props.injectedJavaScriptForMainFrameOnly, true);
   props.onMessage({ nativeEvent: { data: '{"jsonrpc":"2.0","method":"ping"}' } });
   assert.deepEqual(nativeMessages, ['{"jsonrpc":"2.0","method":"ping"}']);
   assert.equal(
@@ -487,6 +506,15 @@ test("native sandbox applies CSP and denies ambient WebView capabilities", () =>
   assert.match(defaults, /connect-src 'none'/);
   assert.match(defaults, /frame-src 'none'/);
   assert.match(defaults, /base-uri 'self'/);
+  assert.match(defaults, /script-src 'self' 'unsafe-inline'/);
+  assert.match(defaults, /style-src 'self' 'unsafe-inline'/);
+
+  const withResources = createMcpAppsContentSecurityPolicy({
+    resourceDomains: ["https://cdn.example.com"],
+  });
+  assert.match(withResources, /img-src 'self' data: https:\/\/cdn\.example\.com/);
+  assert.doesNotMatch(/script-src [^;]+/.exec(withResources)[0], /cdn\.example\.com/);
+  assert.doesNotMatch(/style-src [^;]+/.exec(withResources)[0], /cdn\.example\.com/);
 
   assert.throws(
     () =>

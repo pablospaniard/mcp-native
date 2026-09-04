@@ -477,6 +477,81 @@ test("ordinary fallback is inert, bounded, and hides errored tool text", async (
   await act(async () => errored.root.unmount());
 });
 
+test("a running tool call renders a busy state and announces it", async () => {
+  const announcements = [];
+  let resolveCall;
+  const controller = createController({
+    result: () =>
+      new Promise((resolve) => {
+        resolveCall = resolve;
+      }),
+  });
+  const mounted = await mountHost(
+    controller,
+    resultViewProps({ onAnnounce: (message) => announcements.push(message) }),
+  );
+  let callPromise;
+  await act(async () => {
+    callPromise = mounted.host.callTool("status");
+  });
+  const state = mounted.root.container.queryAll((element) => element.type === "View")[0];
+  assert.deepEqual(state.props.accessibilityState, { busy: true });
+  assert.deepEqual(textValues(mounted.root), ["Working", "The MCP tool is running."]);
+  assert.ok(announcements.includes("Working. The MCP tool is running."));
+
+  resolveCall({ content: [{ type: "text", text: "Ready" }] });
+  await act(async () => callPromise);
+  await act(async () => mounted.root.unmount());
+});
+
+test("a failed tool call renders a retry action, assertive severity, and announces it", async () => {
+  const announcements = [];
+  let callCount = 0;
+  const controller = createController({
+    result: () => {
+      callCount += 1;
+      if (callCount === 1) throw new Error("transport down");
+      return { content: [{ type: "text", text: "Ready" }] };
+    },
+  });
+  const mounted = await mountHost(
+    controller,
+    resultViewProps({ onAnnounce: (message) => announcements.push(message) }),
+  );
+  await act(async () => {
+    await mounted.host.callTool("status", { a: 1 }).catch(() => {});
+  });
+  assert.deepEqual(textValues(mounted.root), [
+    "Tool failed",
+    "The MCP tool call did not complete.",
+  ]);
+  const detailText = mounted.root.container.queryAll((element) => element.type === "Text")[1];
+  assert.equal(detailText.props.accessibilityLiveRegion, "assertive");
+  assert.ok(announcements.includes("Tool failed. The MCP tool call did not complete."));
+
+  const retry = mounted.root.container.queryAll((element) => element.type === "Button")[0];
+  await act(async () => retry.props.onPress());
+  await act(async () => nextTurn());
+  assert.equal(callCount, 2);
+  assert.deepEqual(textValues(mounted.root), ["Result", "Ready"]);
+
+  await act(async () => mounted.root.unmount());
+});
+
+test("an ordinary result announces a short summary instead of the full text", async () => {
+  const announcements = [];
+  const oversized = "x".repeat(500);
+  const mounted = await mountHost(
+    createController({ result: { content: [{ type: "text", text: oversized }] } }),
+    resultViewProps({ onAnnounce: (message) => announcements.push(message) }),
+  );
+  await act(async () => mounted.host.callTool("status"));
+  assert.equal(announcements.at(-1), "Result ready");
+  assert.doesNotMatch(announcements.join(" "), new RegExp(oversized));
+  assert.equal(textValues(mounted.root)[1], oversized);
+  await act(async () => mounted.root.unmount());
+});
+
 test("one negotiated A2UI result mounts through the local catalog", async () => {
   const uri = "ui://surface/main";
   const controller = createController({
@@ -503,12 +578,18 @@ test("one negotiated A2UI result mounts through the local catalog", async () => 
       };
     },
   });
-  const mounted = await mountHost(controller);
+  const announcements = [];
+  const mounted = await mountHost(
+    controller,
+    resultViewProps({ onAnnounce: (message) => announcements.push(message) }),
+  );
   await act(async () => mounted.host.callTool("status"));
 
   assert.deepEqual(textValues(mounted.root), ["Native result"]);
   const surfaceContainer = mounted.root.container.queryAll((element) => element.type === "View")[0];
-  assert.equal(surfaceContainer.props.accessible, false);
+  assert.equal(surfaceContainer.props.accessible, true);
+  assert.equal(surfaceContainer.props.accessibilityLabel, "Interactive app content");
+  assert.ok(announcements.includes("Interactive app content ready"));
   assert.deepEqual(mounted.errors, []);
   await act(async () => mounted.root.unmount());
 });

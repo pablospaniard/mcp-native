@@ -1297,9 +1297,7 @@ function renderElement(
         "mediumFeature",
         "smallFeature",
       ] as const);
-      const accessible =
-        accessibilityProps.accessibilityLabel !== undefined &&
-        accessibilityProps.accessibilityElementsHidden !== true;
+      const accessible = accessibilityProps.accessibilityElementsHidden !== true;
       return createElement(
         selectImageComponent(element, components, handlers.useComponentVariants === true, variant),
         {
@@ -1309,6 +1307,7 @@ function renderElement(
           resourcePolicy: expectImageResourcePolicy(element),
           ...accessibilityProps,
           accessible,
+          accessibilityLabel: accessibilityProps.accessibilityLabel ?? "Image",
           accessibilityRole: "image",
         },
       );
@@ -1405,14 +1404,13 @@ function renderElement(
       if (!(A2UI_V1_NATIVE_ICON_NAMES as readonly string[]).includes(name)) {
         throw new TypeError(`Unsupported icon name at native element ${element.key}.name`);
       }
-      const accessible =
-        accessibilityProps.accessibilityLabel !== undefined &&
-        accessibilityProps.accessibilityElementsHidden !== true;
+      const accessible = accessibilityProps.accessibilityElementsHidden !== true;
       return createElement(requireHostComponent(components.Icon, "Icon", element.key), {
         key: element.key,
         name: name as NativeIconComponentProps["name"],
         ...accessibilityProps,
         accessible,
+        accessibilityLabel: accessibilityProps.accessibilityLabel ?? name,
         accessibilityRole: "image",
       });
     }

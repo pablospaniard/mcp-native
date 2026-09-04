@@ -271,6 +271,12 @@ export interface McpNativeHostResultViewProps {
   readonly a2uiPolicy: A2uiV1SurfaceValidationPolicy;
   readonly onA2uiAction: A2uiV1NativeActionHandler;
   readonly onError: (error: unknown) => void;
+  /**
+   * Optional cross-platform accessibility announcement sink. Wire this to
+   * `AccessibilityInfo.announceForAccessibility` (or platform equivalent) to have loading,
+   * error, retry, and result-ready state changes announced to screen reader users.
+   */
+  readonly onAnnounce?: ((message: string) => void) | undefined;
   readonly mcpApps?: McpNativeHostMcpAppsRendererOptions;
   readonly openUrlPolicy?: A2uiV1NativeOpenUrlPolicy;
   readonly onOpenUrl?: A2uiV1NativeOpenUrlHandler;
@@ -335,6 +341,7 @@ function McpNativeHostResultViewInternal(
       components: props.components,
       errorCode: selectRenderErrorCode(host.snapshot, host.activeCall),
       onError: props.onError,
+      ...(props.onAnnounce === undefined ? {} : { onAnnounce: props.onAnnounce }),
       resetKey,
     },
     createElement(McpNativeHostResultContent, { host, props }),
@@ -355,22 +362,37 @@ function renderSnapshot(
   host: McpNativeHostReactContextValue,
   props: McpNativeHostResultViewInternalProps,
 ): ReactElement {
+  const onAnnounce = props.onAnnounce;
   const connection = host.snapshot.connection;
   if (connection.kind === "loading") {
-    return renderState(props.components, "Connecting", "Connecting to the MCP server.");
+    return renderState(props.components, "Connecting", "Connecting to the MCP server.", {
+      busy: true,
+      onAnnounce,
+    });
   }
   if (connection.kind === "empty") {
-    return renderState(props.components, "No connection", "No MCP server is configured.");
+    return renderState(props.components, "No connection", "No MCP server is configured.", {
+      severity: "error",
+      onAnnounce,
+    });
   }
   if (connection.kind === "denied") {
-    return renderState(props.components, "Connection denied", "The host denied this connection.");
+    return renderState(props.components, "Connection denied", "The host denied this connection.", {
+      severity: "error",
+      onAnnounce,
+    });
   }
   if (connection.kind === "retryable-error") {
     return renderState(
       props.components,
       "Connection unavailable",
       "The MCP server is temporarily unavailable.",
-      () => void host.retry().catch((error: unknown) => reportHostError(props.onError, error)),
+      {
+        retry: () =>
+          void host.retry().catch((error: unknown) => reportHostError(props.onError, error)),
+        severity: "error",
+        onAnnounce,
+      },
     );
   }
   if (connection.kind === "terminal-error") {
@@ -378,7 +400,12 @@ function renderSnapshot(
       props.components,
       "Connection failed",
       "The MCP server connection could not be established.",
-      () => void host.retry().catch((error: unknown) => reportHostError(props.onError, error)),
+      {
+        retry: () =>
+          void host.retry().catch((error: unknown) => reportHostError(props.onError, error)),
+        severity: "error",
+        onAnnounce,
+      },
     );
   }
   if (connection.kind === "disconnected") {
@@ -388,42 +415,71 @@ function renderSnapshot(
         : connection.reason === "shutdown"
           ? "The MCP host has shut down."
           : "Preparing the MCP connection.";
-    return renderState(props.components, "Disconnected", detail);
+    return renderState(props.components, "Disconnected", detail, { onAnnounce });
   }
 
   const tools = host.snapshot.tools;
   if (tools.kind === "idle" || tools.kind === "loading") {
-    return renderState(props.components, "Loading tools", "Discovering available MCP tools.");
+    return renderState(props.components, "Loading tools", "Discovering available MCP tools.", {
+      busy: true,
+      onAnnounce,
+    });
   }
   if (tools.kind === "error") {
     return renderState(
       props.components,
       "Tools unavailable",
       "The MCP tool list could not be loaded.",
-      () =>
-        void host.refreshTools().catch((error: unknown) => reportHostError(props.onError, error)),
+      {
+        retry: () =>
+          void host.refreshTools().catch((error: unknown) => reportHostError(props.onError, error)),
+        severity: "error",
+        onAnnounce,
+      },
     );
   }
   if (tools.result.tools.length === 0) {
-    return renderState(props.components, "No tools", "The MCP server did not provide any tools.");
+    return renderState(props.components, "No tools", "The MCP server did not provide any tools.", {
+      onAnnounce,
+    });
   }
 
   const call = host.snapshot.call;
   if (call.kind === "idle") {
-    return renderState(props.components, "Ready", "Choose an available MCP tool.");
+    return renderState(props.components, "Ready", "Choose an available MCP tool.", { onAnnounce });
   }
   if (call.kind === "loading") {
-    return renderState(props.components, "Working", "The MCP tool is running.");
+    return renderState(props.components, "Working", "The MCP tool is running.", {
+      busy: true,
+      onAnnounce,
+    });
   }
   if (call.kind === "cancelled") {
-    return renderState(props.components, "Cancelled", "The MCP tool call was cancelled.");
+    return renderState(props.components, "Cancelled", "The MCP tool call was cancelled.", {
+      onAnnounce,
+    });
   }
   if (call.kind === "error") {
-    return renderState(props.components, "Tool failed", "The MCP tool call did not complete.");
+    const activeCall = host.activeCall;
+    return renderState(props.components, "Tool failed", "The MCP tool call did not complete.", {
+      ...(activeCall === undefined
+        ? {}
+        : {
+            retry: () =>
+              void host
+                .callTool(activeCall.name, activeCall.arguments)
+                .catch((error: unknown) => reportHostError(props.onError, error)),
+          }),
+      severity: "error",
+      onAnnounce,
+    });
   }
 
   if (host.activeCall?.result !== call.result) {
-    return renderState(props.components, "Preparing result", "Preparing validated MCP content.");
+    return renderState(props.components, "Preparing result", "Preparing validated MCP content.", {
+      busy: true,
+      onAnnounce,
+    });
   }
   return renderResolvedResult(
     call.result,
@@ -447,12 +503,19 @@ function renderResolvedResult(
         props.components,
         "Unsupported result",
         "The MCP result could not be rendered safely.",
+        { severity: "error", onAnnounce: props.onAnnounce },
       );
     case "ordinary":
       if (result.result.isError === true) {
-        return renderState(props.components, "Tool error", "The MCP tool returned an error.");
+        return renderState(props.components, "Tool error", "The MCP tool returned an error.", {
+          severity: "error",
+          onAnnounce: props.onAnnounce,
+        });
       }
-      return renderState(props.components, "Result", selectOrdinaryText(result.result));
+      return renderState(props.components, "Result", selectOrdinaryText(result.result), {
+        announceOverride: "Result ready",
+        onAnnounce: props.onAnnounce,
+      });
     case "a2ui":
       return createElement(A2uiHostResult, { key: resultKey, props, result, resultKey });
     case "mcp-app":
@@ -461,6 +524,7 @@ function renderResolvedResult(
           props.components,
           "Interactive result unavailable",
           "This host has not installed an MCP Apps WebView adapter.",
+          { severity: "error", onAnnounce: props.onAnnounce },
         );
       }
       return createElement(McpAppsResultSession, {
@@ -468,6 +532,7 @@ function renderResolvedResult(
         arguments: arguments_,
         components: props.components,
         onError: props.onError,
+        ...(props.onAnnounce === undefined ? {} : { onAnnounce: props.onAnnounce }),
         options: props.mcpApps,
         result,
         tools,
@@ -494,7 +559,10 @@ function A2uiHostResult({
     return store.list();
   }, [props.a2uiPolicy.hostExtensions, result.resource]);
   if (surfaces.length === 0) {
-    return renderState(props.components, "Empty result", "The A2UI result contains no surface.");
+    return renderState(props.components, "Empty result", "The A2UI result contains no surface.", {
+      severity: "error",
+      onAnnounce: props.onAnnounce,
+    });
   }
   const children = surfaces.map((surface) => {
     const key = `${resultKey}:${surface.surfaceId}`;
@@ -509,6 +577,7 @@ function A2uiHostResult({
           props.components,
           "Result unavailable",
           "The validated result could not be rendered.",
+          { severity: "error", onAnnounce: props.onAnnounce },
         ),
         ...(props.parentLayout === undefined ? {} : { parentLayout: props.parentLayout }),
         ...(props.openUrlPolicy === undefined ? {} : { openUrlPolicy: props.openUrlPolicy }),
@@ -538,13 +607,46 @@ function A2uiHostResult({
       ...(props.locale === undefined ? {} : { locale: props.locale }),
     });
   });
-  return createElement(props.components.View, { accessible: false }, children);
+  return createElement(InteractiveResultAnnouncer, {
+    View: props.components.View,
+    onAnnounce: props.onAnnounce,
+    children,
+  });
+}
+
+/**
+ * Wraps rendered interactive content (an A2UI surface tree or an MCP Apps WebView session) so it
+ * is discoverable by screen readers and its readiness is announced once per mount.
+ */
+function InteractiveResultAnnouncer({
+  View,
+  onAnnounce,
+  children,
+}: {
+  readonly View: NativeComponentCatalog["View"];
+  readonly onAnnounce?: ((message: string) => void) | undefined;
+  readonly children: ReactNode;
+}): ReactElement {
+  useEffect(() => {
+    if (onAnnounce === undefined) return;
+    try {
+      onAnnounce("Interactive app content ready");
+    } catch {
+      // Host-owned announcement failures must not interrupt rendering.
+    }
+  }, [onAnnounce]);
+  return createElement(
+    View,
+    { accessible: true, accessibilityLabel: "Interactive app content" },
+    children,
+  );
 }
 
 interface McpAppsResultSessionProps {
   readonly arguments: JsonObject;
   readonly components: NativeComponentCatalog;
   readonly onError: (error: unknown) => void;
+  readonly onAnnounce?: ((message: string) => void) | undefined;
   readonly options: McpNativeHostMcpAppsRendererOptions;
   readonly result: McpNativeHostMcpAppsResult;
   readonly tools: readonly McpTool[];
@@ -554,6 +656,7 @@ function McpAppsResultSession({
   arguments: arguments_,
   components,
   onError,
+  onAnnounce,
   options,
   result,
   tools,
@@ -682,9 +785,13 @@ function McpAppsResultSession({
       components,
       "Interactive result unavailable",
       "The isolated MCP Apps session could not be created.",
-      () => {
-        setFailed(undefined);
-        setGeneration((current) => current + 1);
+      {
+        retry: () => {
+          setFailed(undefined);
+          setGeneration((current) => current + 1);
+        },
+        severity: "error",
+        onAnnounce,
       },
     );
   }
@@ -696,18 +803,26 @@ function McpAppsResultSession({
       failed === "crashed"
         ? "The isolated MCP Apps view stopped unexpectedly."
         : "The isolated MCP Apps session could not continue.",
-      () => {
-        setFailed(undefined);
-        setGeneration((current) => current + 1);
+      {
+        retry: () => {
+          setFailed(undefined);
+          setGeneration((current) => current + 1);
+        },
+        severity: "error",
+        onAnnounce,
       },
     );
   }
 
-  return createElement(sessionOptions.View, {
-    key: generation,
-    webViewProps: setup.webViewProps,
-    bindPostMessage: setup.bindPostMessage,
-    onCrash: setup.onCrash,
+  return createElement(InteractiveResultAnnouncer, {
+    View: components.View,
+    onAnnounce,
+    children: createElement(sessionOptions.View, {
+      key: generation,
+      webViewProps: setup.webViewProps,
+      bindPostMessage: setup.bindPostMessage,
+      onCrash: setup.onCrash,
+    }),
   });
 }
 
@@ -716,6 +831,7 @@ interface HostRenderBoundaryProps {
   readonly components: NativeComponentCatalog;
   readonly errorCode: "a2ui-render-failed" | "result-render-failed";
   readonly onError: (error: unknown) => void;
+  readonly onAnnounce?: ((message: string) => void) | undefined;
   readonly resetKey: string;
 }
 
@@ -748,17 +864,55 @@ class HostRenderBoundary extends Component<HostRenderBoundaryProps, HostRenderBo
           this.props.components,
           "Result unavailable",
           "The validated result could not be rendered.",
+          { severity: "error", onAnnounce: this.props.onAnnounce },
         )
       : this.props.children;
   }
+}
+
+interface RenderStateOptions {
+  /** Present only for states with a recoverable action; renders a Retry button when set. */
+  readonly retry?: () => void;
+  /** Marks the state as in-progress via `accessibilityState.busy`. */
+  readonly busy?: boolean;
+  /** "error" uses an assertive Android live region; "info" (default) uses polite. */
+  readonly severity?: "error" | "info";
+  readonly onAnnounce?: ((message: string) => void) | undefined;
+  /** Overrides the announced message; used to keep long result text out of the announcement. */
+  readonly announceOverride?: string;
 }
 
 function renderState(
   components: NativeComponentCatalog,
   title: string,
   detail: string,
-  retry?: () => void,
+  options: RenderStateOptions = {},
 ): ReactElement {
+  return createElement(HostStateView, { components, title, detail, options });
+}
+
+function HostStateView({
+  components,
+  title,
+  detail,
+  options,
+}: {
+  readonly components: NativeComponentCatalog;
+  readonly title: string;
+  readonly detail: string;
+  readonly options: RenderStateOptions;
+}): ReactElement {
+  const { retry, busy = false, severity = "info", onAnnounce, announceOverride } = options;
+  const message = announceOverride ?? `${title}. ${detail}`;
+  useEffect(() => {
+    if (onAnnounce === undefined) return;
+    try {
+      onAnnounce(message);
+    } catch {
+      // Host-owned announcement failures must not interrupt rendering.
+    }
+  }, [message, onAnnounce]);
+
   const children: ReactElement[] = [
     createElement(components.Text, {
       key: "title",
@@ -770,7 +924,7 @@ function renderState(
     createElement(components.Text, {
       key: "detail",
       accessible: true,
-      accessibilityLiveRegion: "polite",
+      accessibilityLiveRegion: severity === "error" ? "assertive" : "polite",
       accessibilityRole: "text",
       allowFontScaling: true,
       children: detail,
@@ -793,6 +947,7 @@ function renderState(
     components.View,
     {
       accessible: false,
+      ...(busy ? { accessibilityState: Object.freeze({ busy: true }) } : {}),
     },
     children,
   );

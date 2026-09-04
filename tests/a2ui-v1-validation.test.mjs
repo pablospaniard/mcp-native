@@ -201,6 +201,33 @@ test("component graph validation rejects missing children and reachable cycles",
   );
 });
 
+test("component graph cycle rejection is stack-safe at the maximum component-chain depth", () => {
+  const depth = A2UI_V1_MAX_COMPONENTS - 1;
+  const chain = Array.from({ length: depth }, (_, index) => ({
+    id: `node-${index}`,
+    component: "Column",
+    children: index + 1 < depth ? [`node-${index + 1}`] : [],
+  }));
+  const acyclicStore = createStore([
+    { id: "root", component: "Column", children: ["node-0"] },
+    ...chain,
+  ]);
+  const validated = acyclicStore.getValidated("validated", basicPolicy());
+  assert.equal(validated.components.size, depth + 1);
+
+  const cyclicChain = chain.map((node, index) =>
+    index === depth - 1 ? { ...node, children: ["node-0"] } : node,
+  );
+  const cyclicStore = createStore([
+    { id: "root", component: "Column", children: ["node-0"] },
+    ...cyclicChain,
+  ]);
+  assert.throws(
+    () => cyclicStore.getValidated("validated", basicPolicy()),
+    (error) => error instanceof A2uiParseError && /contains a cycle/.test(error.message),
+  );
+});
+
 test("unused retained component definitions do not invalidate the rendered root graph", () => {
   const store = createStore([
     { id: "root", component: "Text", text: "Visible" },

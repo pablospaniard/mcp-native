@@ -280,8 +280,9 @@ This adapter never evaluates server-provided code and never resolves a server-pr
 | `parseMcpSdkTool`, `parseMcpSdkListToolsResult`, `parseMcpSdkToolCallResult`, `parseMcpSdkReadResourceResult`           | Bounded validators for untrusted official-SDK-shaped values.                     |
 | `McpSdkRequestOptions`, `McpSdkListToolsOptions`, `McpSdkCacheMode`                                                     | Strict host-owned cancellation and tool-list cache options.                      |
 | `MCP_SDK_MAX_RESOURCE_TEXT_LENGTH`, `MCP_SDK_MAX_RESOURCE_BLOB_LENGTH`, `MCP_SDK_MAX_RESOURCE_RESULT_STRING_CODE_UNITS` | Observable resource-result body and cumulative string limits.                    |
-| The protected-HTTP exports below live at the explicit `@mcp-native/mcp/oauth` subpath so importing                      |
-| the result adapter does not load a transport implementation:                                                            |
+
+The protected-HTTP exports below live at the explicit `@mcp-native/mcp/oauth` subpath so importing
+the result adapter does not load a transport implementation:
 
 | Export                                                                           | Purpose                                                                         |
 | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |

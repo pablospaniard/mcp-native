@@ -16,7 +16,11 @@ The supported renderer boundary:
 - derives closed text, button, image, checkbox, adjustable, radio, and tab semantics instead of
   accepting native roles from a server;
 - preserves labels, descriptions, disabled and invalid state, validation messages, and live-region
-  intent through explicitly selected host props;
+  intent through explicitly selected host props. `accessibilityLiveRegion` is Android-only —
+  React Native's cross-platform accessibility APIs have no iOS equivalent for it — so hosts that
+  need iOS status announcements (e.g. for `@mcp-native/host`'s `McpNativeHostResultView`) must wire
+  its optional `onAnnounce` callback to `AccessibilityInfo.announceForAccessibility`; see
+  [`docs/host-integration-checklist.md`](host-integration-checklist.md);
 - excludes hidden controls from the accessibility tree;
 - keeps renderer-local edits local until an explicit action is dispatched;
 - prevents invalid buttons from resolving or dispatching their actions; and

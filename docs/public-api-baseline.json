@@ -42,7 +42,7 @@
       }
     },
     "@mcp-native/webview": {
-      "declarationSha256": "3e160601c47c5ae52bcfa55bf5301b741051c0c211a896f34f81ee3fe924e26c",
+      "declarationSha256": "262a4e94ad3b625916747a483dd2dcb7eda6e52e32a98b8ae21f6f1fcde5b73c",
       "exports": {
         ".": {
           "import": "./dist/index.js",
@@ -52,7 +52,7 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "71a8c0e21e69c29f187e17fb2c3240a0f3352729fab9e21c517d8eabd553b537",
+      "declarationSha256": "72c5ab9f0ab48851e3db296a6070b6b90b0761e9d300158cf94e22a14cd4c755",
       "exports": {
         ".": {
           "import": "./dist/index.js",
@@ -72,7 +72,7 @@
       }
     },
     "@mcp-native/host": {
-      "declarationSha256": "86d7a8a5075bd61288498c8dd513b7c8f9b1a0b1532b9ddedad1b25258af92e4",
+      "declarationSha256": "2813e4c7b1ea93cd3cc4456a45be3ca24035273bcf6091ae3af6919dea2acb5f",
       "exports": {
         ".": {
           "import": "./dist/index.js",

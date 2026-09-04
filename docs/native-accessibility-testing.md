@@ -2,6 +2,14 @@
 
 Status: implemented in [`examples/expo-go-todolist`](../examples/expo-go-todolist/README.md).
 
+Scope: this document describes one on-device accessibility proof (the Expo Go todo app), not a
+general native accessibility test matrix. It exercises the low-level `@mcp-native/react-native`
+component catalog only — it does not advertise image, media, WebView, or custom native-module
+capabilities (see [Trust boundary](#trust-boundary) below), and it does not exercise
+`@mcp-native/host`'s higher-level `McpNativeHostResultView` state machine (loading, retry, busy,
+and announcement behavior for that surface is covered by unit tests in
+[`tests/host-react-native.test.mjs`](../tests/host-react-native.test.mjs), not by this device proof).
+
 ## What it demonstrates
 
 The maintained Expo Go app turns a validated A2UI v1 lifecycle into a complete native todo

@@ -280,6 +280,42 @@ test("the complete non-media catalog becomes a closed trusted native plan", () =
   assert.equal(requests[0].sourceComponentId, "image");
 });
 
+function unlabeledMediaSurface() {
+  return createSurface([
+    { id: "root", component: "Column", children: ["image", "icon", "hiddenImage"] },
+    { id: "image", component: "Image", url: "https://images.example.com/product.png" },
+    { id: "icon", component: "Icon", name: "favorite" },
+    {
+      id: "hiddenImage",
+      component: "Image",
+      url: "https://images.example.com/decorative.png",
+      accessibility: { hidden: true },
+    },
+  ]);
+}
+
+test("unlabeled Image and Icon stay accessible with a generic fallback label", async () => {
+  const root = createRoot();
+  await act(async () => {
+    root.render(
+      createElement(A2uiV1NativeSurface, {
+        surface: unlabeledMediaSurface(),
+        policy: policy(),
+        components: milestone7Components,
+        imagePolicy: () => imageGrant,
+        onAction() {},
+      }),
+    );
+  });
+  const [image, hiddenImage] = root.container.queryAll((element) => element.type === "Image");
+  const icon = root.container.queryAll((element) => element.type === "Icon")[0];
+  assert.equal(image.props.accessible, true);
+  assert.equal(image.props.accessibilityLabel, "Image");
+  assert.equal(icon.props.accessible, true);
+  assert.equal(icon.props.accessibilityLabel, "favorite");
+  assert.equal(hiddenImage.props.accessible, false);
+});
+
 test("typed adapters map the new trusted semantics into a local design system", async () => {
   const designComponents = {
     ...baseComponents,

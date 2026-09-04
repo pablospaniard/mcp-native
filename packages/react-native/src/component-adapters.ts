@@ -16,6 +16,7 @@ export type NativeAccessibilityRole =
   | "text";
 
 export interface NativeAccessibilityState {
+  readonly busy?: boolean;
   readonly checked?: boolean;
   readonly disabled?: boolean;
   readonly expanded?: boolean;
@@ -45,6 +46,7 @@ export interface NativeViewStyle {
 }
 
 export interface NativeViewComponentProps extends NativeAccessibilityProps {
+  readonly accessibilityState?: NativeAccessibilityState;
   readonly children?: ReactNode;
   readonly style?: NativeViewStyle;
 }

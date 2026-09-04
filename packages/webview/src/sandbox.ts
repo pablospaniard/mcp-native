@@ -84,6 +84,8 @@ export interface McpAppsReactNativeWebViewProps {
   readonly geolocationEnabled: false;
   readonly mediaCapturePermissionGrantType: "deny";
   readonly injectedJavaScriptBeforeContentLoaded: string;
+  /** Confines the bridge bootstrap to the top-level document regardless of the engine default. */
+  readonly injectedJavaScriptForMainFrameOnly: true;
   onShouldStartLoadWithRequest(request: McpAppsReactNativeNavigationRequest): boolean;
   onMessage(event: { readonly nativeEvent: { readonly data: unknown } }): void;
 }
@@ -91,16 +93,28 @@ export interface McpAppsReactNativeWebViewProps {
 const nativeSandboxConfigurations = new WeakSet<object>();
 const nativeSandboxResources = new WeakMap<object, McpAppsResource>();
 
-/** Builds a restrictive CSP from the stable resource metadata. */
+/**
+ * Builds a restrictive CSP from the stable resource metadata.
+ *
+ * `resourceDomains` grants img-src/media-src/font-src only — a domain approved for hosting
+ * images or fonts must not silently also become a trusted script/stylesheet origin. Note that
+ * any granted img-src/media-src/font-src domain remains usable as an exfiltration beacon (e.g.
+ * `new Image().src = "https://granted-domain/..."`) regardless of connect-src; this is standard
+ * CSP behavior, not specific to this implementation, so grant resource domains no more broadly
+ * than required.
+ */
 export function createMcpAppsContentSecurityPolicy(csp: McpAppsResourceCsp = {}): string {
   const resources = csp.resourceDomains ?? [];
   const connections = csp.connectDomains ?? [];
+  // frameDomains governs this CSP frame-src directive only. Native sub-frame navigation is
+  // always denied by decideNavigation below regardless of this list — there is currently no
+  // native-navigation counterpart that honors frameDomains.
   const frames = csp.frameDomains ?? [];
   const bases = csp.baseUriDomains ?? [];
   return [
     "default-src 'none'",
-    joinDirective("script-src", ["'self'", "'unsafe-inline'", ...resources]),
-    joinDirective("style-src", ["'self'", "'unsafe-inline'", ...resources]),
+    joinDirective("script-src", ["'self'", "'unsafe-inline'"]),
+    joinDirective("style-src", ["'self'", "'unsafe-inline'"]),
     joinDirective("img-src", ["'self'", "data:", ...resources]),
     joinDirective("media-src", ["'self'", "data:", ...resources]),
     joinDirective("font-src", ["'self'", "data:", ...resources]),
@@ -230,6 +244,7 @@ export function createMcpAppsReactNativeWebViewProps(
     geolocationEnabled: false,
     mediaCapturePermissionGrantType: "deny",
     injectedJavaScriptBeforeContentLoaded: sandbox.injectedJavaScriptBeforeContentLoaded,
+    injectedJavaScriptForMainFrameOnly: true,
     onShouldStartLoadWithRequest(request) {
       try {
         const decision = sandbox.decideNavigation(request.url, request.isTopFrame !== false);

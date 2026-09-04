@@ -132,6 +132,15 @@ test host implementations; they are not additional wire-level components or conf
   security policy. MCP Native requires a synchronous host grant before plan construction and passes
   the exact grant to the installed component. A grant is not proof that a third-party player
   enforced it.
+- The pinned agent capabilities JSON Schema does not itself mark `supportedCatalogIds` as required.
+  `packages/a2ui/src/v1/capabilities.ts`'s `parseA2uiV1AgentCapabilities` enforces it as required
+  beyond the schema and fails closed when it is absent, because capability negotiation
+  (`negotiateA2uiV1Capabilities`) is meaningless without an explicit agent-declared catalog set to
+  intersect against. This is a deliberate stricter-than-schema deviation, not a parser defect.
+- `callRendererFunction` and `agentFunctionResponse` are recognized but explicitly unsupported
+  message kinds (`packages/a2ui/src/v1/parse.ts`'s `UNSUPPORTED_KEYS`): envelopes containing either
+  key are rejected outright rather than silently ignored. They are out of scope for this profile,
+  not a gap in the [envelope and lifecycle profile](#envelope-and-lifecycle-profile) table above.
 
 ## Verification coverage
 
