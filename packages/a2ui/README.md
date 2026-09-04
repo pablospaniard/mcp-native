@@ -20,8 +20,10 @@ contains the exact protocol coverage and limits.
 
 ## Install
 
+Until the stable `1.0.0` release, select the beta package explicitly:
+
 ```bash
-npm install @mcp-native/a2ui
+npm install @mcp-native/a2ui@beta
 ```
 
 `@mcp-native/core` is installed as a dependency. The package is ESM-only and includes TypeScript declarations.

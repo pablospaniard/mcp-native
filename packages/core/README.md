@@ -18,8 +18,10 @@ application policy. It does not depend on A2UI, React Native, WebViews, or a par
 
 ## Install
 
+Until the stable `1.0.0` release, select the beta package explicitly:
+
 ```bash
-npm install @mcp-native/core
+npm install @mcp-native/core@beta
 ```
 
 The package is ESM-only and includes TypeScript declarations.

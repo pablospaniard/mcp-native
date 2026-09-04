@@ -11,6 +11,7 @@ import {
   loadReleasePackages,
   publishMissingReleasePackages,
   publishWorkspace,
+  releasePackagePaths,
 } from "../scripts/publish-release.mjs";
 import { runReleaseVerification } from "../scripts/run-release-verification.mjs";
 
@@ -132,6 +133,39 @@ test("publishing selects explicit stable and prerelease npm dist-tags", () => {
   assert.equal(getNpmReleaseDistTag("1.0.0-1"), "next");
   assert.equal(getNpmReleaseDistTag("1.0.0-v1.2"), "next");
   assert.throws(() => getNpmReleaseDistTag("not-semver"), /invalid release version/);
+});
+
+test("prerelease installation commands select the matching npm dist-tag", () => {
+  const distTag = getNpmReleaseDistTag(releaseVersion);
+  if (distTag === "latest") return;
+
+  const releasePackageNames = loadReleasePackages().map(({ name }) => name);
+  const readmePaths = [
+    "README.md",
+    ...releasePackagePaths.map((manifestPath) => manifestPath.replace("package.json", "README.md")),
+  ];
+
+  for (const readmePath of readmePaths) {
+    const installCommands = readFileSync(readmePath, "utf8")
+      .split("\n")
+      .filter((line) => line.startsWith("npm install "));
+
+    for (const command of installCommands) {
+      const dependencies = command.split(/\s+/u).slice(2);
+      for (const packageName of releasePackageNames) {
+        const documentedDependency = dependencies.find(
+          (dependency) => dependency === packageName || dependency.startsWith(`${packageName}@`),
+        );
+        if (documentedDependency !== undefined) {
+          assert.equal(
+            documentedDependency,
+            `${packageName}@${distTag}`,
+            `${readmePath}: ${command}`,
+          );
+        }
+      }
+    }
+  }
 });
 
 test("the recovery workflow resolves a published release to an immutable commit", () => {

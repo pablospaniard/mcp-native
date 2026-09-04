@@ -88,23 +88,26 @@ never becomes a native component and receives no device permission by implicatio
 
 ## Install
 
+Until the stable `1.0.0` release, select the coordinated beta packages explicitly. The unqualified
+`latest` dist-tag remains on the stable `0.9.x` line.
+
 For the headless high-level flow, including its React Native provider:
 
 ```bash
-npm install @mcp-native/host @mcp-native/mcp @modelcontextprotocol/client react
+npm install @mcp-native/host@beta @mcp-native/mcp@beta @modelcontextprotocol/client react
 ```
 
 For manual composition through one low-level entry point:
 
 ```bash
-npm install mcp-native react
+npm install mcp-native@beta react
 ```
 
 Or install only the focused layers you use:
 
 ```bash
-npm install @mcp-native/core @mcp-native/a2ui @mcp-native/react-native
-npm install @mcp-native/webview
+npm install @mcp-native/core@beta @mcp-native/a2ui@beta @mcp-native/react-native@beta
+npm install @mcp-native/webview@beta
 ```
 
 All packages are ESM-only and include TypeScript declarations. React `>=18.1.0` is the only UI peer

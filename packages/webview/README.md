@@ -107,8 +107,10 @@ exactly-once tool lifecycle sends are serialized across asynchronous transports.
 
 ## Install
 
+Until the stable `1.0.0` release, select the beta package explicitly:
+
 ```bash
-npm install @mcp-native/webview
+npm install @mcp-native/webview@beta
 ```
 
 `@mcp-native/core` is installed as a dependency. The package is ESM-only and includes TypeScript declarations.
