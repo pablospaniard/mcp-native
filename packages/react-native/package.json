@@ -1,6 +1,6 @@
 {
   "name": "@mcp-native/react-native",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-rc.1",
   "description": "React Native renderer primitives for MCP Native.",
   "keywords": [
     "a2ui",
@@ -49,8 +49,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@mcp-native/a2ui": "^1.0.0-beta.2",
-    "@mcp-native/core": "^1.0.0-beta.2"
+    "@mcp-native/a2ui": "^1.0.0-rc.1",
+    "@mcp-native/core": "^1.0.0-rc.1"
   },
   "devDependencies": {
     "@types/react": "19.1.17",

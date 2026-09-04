@@ -71,7 +71,7 @@ Runnable examples:
 
 ## Current status
 
-MCP Native is in the `1.0.0-beta` release line, which includes the headless high-level host, its
+MCP Native is in the `1.0.0-rc` release line, which includes the headless high-level host, its
 React Native provider, and the independently usable low-level packages; see the
 [changelog](../CHANGELOG.md) for release history. The five independent sign-off reviews are
-complete; final validation, versioning, and publication remain before the stable `1.0.0` tag.
+complete. The RC line provides final ecosystem validation before the stable `1.0.0` tag.

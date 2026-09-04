@@ -21,10 +21,10 @@ The renderer implements the native portion of the documented A2UI v1 Candidate p
 
 ## Install
 
-Until the stable `1.0.0` release, select the beta package explicitly:
+Until the stable `1.0.0` release, select the RC package explicitly:
 
 ```bash
-npm install @mcp-native/react-native@beta react
+npm install @mcp-native/react-native@rc react
 ```
 
 `@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React `>=18.1.0` is the

@@ -6,6 +6,11 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+## 1.0.0-rc.1 - 2026-09-04
+
+First explicitly tagged `1.0.0` release candidate. Freezes the concise current-profile API names
+while preserving the previously published names as compatible aliases throughout `1.x`.
+
 ### Added
 
 - Add concise current-profile names across the A2UI and React Native package roots, plus explicit
@@ -16,6 +21,11 @@ patch and minor releases remain compatible within their release line.
 - Make names such as `SurfaceStore`, `parseEnvelope`, `createHost`, and `HostSurface` canonical in
   documentation and examples. Existing `A2ui*`, `A2uiV1*`, and `A2UI_V1_*` names remain
   source-compatible aliases throughout `1.x`; protocol literals and schema pins are unchanged.
+
+### Fixed
+
+- Emit the `mcp-native` convenience-package namespaces in syntax supported by the pinned React
+  Native Metro toolchain.
 
 ## 1.0.0-beta.2 - 2026-09-04
 

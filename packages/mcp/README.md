@@ -25,10 +25,10 @@ user consent.
 
 ## Install
 
-Until the stable `1.0.0` release, select the coordinated beta packages explicitly:
+Until the stable `1.0.0` release, select the coordinated RC packages explicitly:
 
 ```bash
-npm install @mcp-native/mcp@beta @mcp-native/core@beta @modelcontextprotocol/client
+npm install @mcp-native/mcp@rc @mcp-native/core@rc @modelcontextprotocol/client
 ```
 
 The package is ESM-only and includes TypeScript declarations.
