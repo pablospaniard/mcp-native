@@ -60,11 +60,14 @@ props. It:
   JSON data and is never evaluated as JavaScript source.
 
 `createMcpAppsReactNativeWebViewProps()` maps the descriptor to an explicit safe subset for a locally
-bundled `react-native-webview`. It selects props individually, uses incognito storage, denies media
-capture and geolocation, and never spreads resource metadata. Because the standard cross-platform
-props cannot prove enforcement of individual camera, microphone, geolocation, or clipboard grants,
-this adapter rejects any non-empty grant. A host that supports a sensitive permission must provide
-an audited platform adapter and user-approval boundary before advertising it.
+bundled `react-native-webview`. It selects props individually, explicitly disables caching in
+addition to requesting incognito storage, denies media capture and geolocation, and never spreads
+resource metadata. The explicit cache setting avoids relying on native prop-application order to
+retain the cache-disabled side effect of Android's incognito setter. Because the standard
+cross-platform props cannot prove enforcement of individual camera, microphone, geolocation, or
+clipboard grants, this adapter rejects any non-empty grant. A host that supports a sensitive
+permission must provide an audited platform adapter and user-approval boundary before advertising
+it.
 
 The React Native adapter requires an explicit `onError` boundary. It contains both synchronous
 throws and asynchronous rejections from message and external-link callbacks so hostile View input

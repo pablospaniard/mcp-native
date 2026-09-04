@@ -49,6 +49,11 @@ their minor release line.
   transition invalidates the controller's active call state.
 - Map malformed React Native provider call input to the controller's stable, redacted `invalid-call`
   error without replacing the current result context.
+- Contain thrown and rejected high-level React Native error observers so a server-triggered render,
+  session, retry, startup, or teardown failure cannot escape its fail-closed host boundary.
+- Explicitly disable `react-native-webview` caching in the closed MCP Apps prop adapter instead of
+  relying on native prop-application order to retain the cache-disabled side effect of incognito
+  mode.
 
 ## 0.9.3 - 2026-09-03
 
