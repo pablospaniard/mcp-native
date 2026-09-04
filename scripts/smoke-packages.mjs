@@ -1,5 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -464,24 +472,6 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
   }
   runConsumerSmoke("local");
 
-  const installedCli = join(
-    consumerDirectory,
-    "node_modules",
-    ".bin",
-    process.platform === "win32" ? "mcp-native.cmd" : "mcp-native",
-  );
-  if (!existsSync(installedCli)) {
-    throw new Error("mcp-native installed package is missing its executable link");
-  }
-  const cliHelp = execFileSync(installedCli, ["help"], {
-    cwd: consumerDirectory,
-    encoding: "utf8",
-    env: npmEnvironment,
-  });
-  if (!cliHelp.includes("mcp-native doctor")) {
-    throw new Error("mcp-native installed executable did not return its documented help");
-  }
-
   execFileSync(
     "npm",
     [
@@ -503,6 +493,33 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
     throw new Error("Package smoke did not install the declared React 18.1 peer floor");
   }
   runConsumerSmoke("local");
+
+  const spacedConsumerDirectory = join(temporaryDirectory, "consumer with spaces");
+  renameSync(consumerDirectory, spacedConsumerDirectory);
+  const installedCli = join(
+    spacedConsumerDirectory,
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "mcp-native.cmd" : "mcp-native",
+  );
+  if (!existsSync(installedCli)) {
+    throw new Error("mcp-native installed package is missing its executable link");
+  }
+  const installedCliEntryPoint = join(
+    spacedConsumerDirectory,
+    "node_modules",
+    "mcp-native",
+    "bin",
+    "mcp-native.mjs",
+  );
+  const cliHelp = execFileSync(process.execPath, [installedCliEntryPoint, "help"], {
+    cwd: spacedConsumerDirectory,
+    encoding: "utf8",
+    env: npmEnvironment,
+  });
+  if (!cliHelp.includes("mcp-native doctor")) {
+    throw new Error("mcp-native installed executable did not return its documented help");
+  }
 
   console.log(
     `Verified ${packages.length} installable package tarballs, React 18.1, and the ${upgradeFromVersion} upgrade path.`,
