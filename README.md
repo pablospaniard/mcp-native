@@ -214,7 +214,7 @@ npm start
 | Surface                | Supported profile                                                                                   |
 | ---------------------- | --------------------------------------------------------------------------------------------------- |
 | MCP                    | `2026-07-28`, with a tested `2025-11-25` compatibility lane                                         |
-| A2UI                   | Feature-scoped v1.0 Candidate profile pinned to commit `7541f953050cd58b80f0bf5d85fe2d63192af305`   |
+| A2UI                   | Feature-scoped v1.0 Candidate profile pinned to commit `8ff4651232ab0e02b0123730b502711170637a3a`   |
 | MCP Apps               | Stable `2026-01-26` native host-adapter profile with `@modelcontextprotocol/ext-apps@1.7.5` schemas |
 | React                  | Peer dependency `>=18.1.0`                                                                          |
 | Direct native renderer | React Native; the package does not claim a React Native version range                               |

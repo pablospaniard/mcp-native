@@ -1,5 +1,29 @@
 # Migration to `1.0.0`
 
+## Align the A2UI schema revision on both peers
+
+The v1 protocol baseline uses upstream A2UI revision
+`8ff4651232ab0e02b0123730b502711170637a3a`, replacing
+`7541f953050cd58b80f0bf5d85fe2d63192af305` used by `1.0.0-rc.1` and earlier builds.
+Update the server's project-owned A2UI extension settings and the host packages together. Prefer
+the exported `MCP_EXTENSION_CAPABILITIES` map; servers configuring settings themselves must set
+`schemaRevision` to the new exact commit. Reconnect to negotiate fresh settings after upgrading.
+
+A host and server advertising different revisions fall back to ordinary MCP content. The host
+does not load or render the incompatible A2UI resource, and stored grants for the previous pin
+are rejected. The binding version, protocol value `v1.0`, catalog ID, MIME type, and JSONL transport
+are unchanged.
+
+This pre-stable revision update preserves imports, callable signatures, and the supported component
+and function set. The exported `MCP_SCHEMA_REVISION` / `A2UI_MCP_SCHEMA_REVISION` constant and its
+TypeScript literal type change intentionally. Code that hard-codes the old literal must update it.
+After `1.0.0`, incompatible pin changes follow the major-version migration policy.
+
+Upstream [PR #2486](https://github.com/a2ui-project/a2ui/pull/2486) moves shared function validation
+into the `FunctionCall` envelope. Catalog definitions are now flat; validators must use the full
+envelope to enforce common fields and reject unknown properties. This update does not add the
+separate upstream v0.9 MCP catalog or template/data delivery profile.
+
 ## Use concise current-profile names
 
 The package name already identifies A2UI or React Native, and the package root identifies the

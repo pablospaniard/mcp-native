@@ -86,6 +86,31 @@ test("host extension capabilities advertise only the two built-in standard profi
   assert.equal(Object.isFrozen(MCP_NATIVE_HOST_EXTENSION_CAPABILITIES), true);
 });
 
+test("a previous A2UI revision stays ordinary without reading or rendering its resource", async () => {
+  let reads = 0;
+  const result = {
+    content: [{ type: "text", text: "Saved." }, ...a2uiResult().content],
+  };
+  const resolved = await resolveMcpNativeHostResult({
+    tool: ordinaryTool,
+    result,
+    client: hostClient({
+      serverExtensions: {
+        [A2UI_MCP_EXTENSION_ID]: {
+          ...MCP_NATIVE_HOST_EXTENSION_CAPABILITIES[A2UI_MCP_EXTENSION_ID],
+          schemaRevision: "7541f953050cd58b80f0bf5d85fe2d63192af305",
+        },
+      },
+      async readResource() {
+        reads += 1;
+        throw new Error("An incompatible A2UI revision must not load resources");
+      },
+    }),
+  });
+  assert.deepEqual(resolved, { kind: "ordinary", result });
+  assert.equal(reads, 0);
+});
+
 test("ordinary MCP content stays inert and does not load a resource", async () => {
   let reads = 0;
   const resolved = await resolveMcpNativeHostResult({

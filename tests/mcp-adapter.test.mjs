@@ -655,7 +655,7 @@ test("the adapter preserves MCP 2026-07-28 results through the official HTTP han
         identifier: A2UI_MCP_EXTENSION_ID,
         bindingVersion: "0.1",
         protocolVersion: "v1.0",
-        schemaRevision: "7541f953050cd58b80f0bf5d85fe2d63192af305",
+        schemaRevision: "8ff4651232ab0e02b0123730b502711170637a3a",
         transport: "resource-text-jsonl",
         mimeType: A2UI_MIME_TYPE,
       },

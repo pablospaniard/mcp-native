@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const revision = "7541f953050cd58b80f0bf5d85fe2d63192af305";
+const revision = "8ff4651232ab0e02b0123730b502711170637a3a";
 const schemaDirectory = join("packages", "a2ui", "schemas", revision);
 const checksumPath = join(schemaDirectory, "CHECKSUMS.sha256");
 

@@ -8,12 +8,22 @@ patch and minor releases remain compatible within their release line.
 
 ### Changed
 
+- Align the pre-stable A2UI schema pin to upstream
+  `8ff4651232ab0e02b0123730b502711170637a3a`, including the function-envelope refactor in PR #2486.
+  Preserve the component/function set and callable APIs; update the exported schema-revision literal
+  and require hosts and servers to advertise the new exact pin together. Mismatches retain ordinary
+  MCP fallback without loading the A2UI resource. See [migration guidance](docs/migration-to-1.0.md).
 - Finalize the v1 documentation and adopt the `1.x` public API compatibility contract across all
   seven packages. Mark implementation, review, and readiness decisions complete while tracking
   coordinated stable publication separately.
 - Consolidate pre-v1 upgrade details in the migration guide, remove stale package-preview wording,
-  and describe runnable examples as application integrations. Exact protocol pins, security
-  boundaries, existing compatibility exports, and package versions are unchanged.
+  and describe runnable examples as application integrations. This documentation cleanup preserves
+  security boundaries, existing compatibility exports, and package versions.
+
+### Fixed
+
+- Validate reconstructed A2UI function calls through the complete `FunctionCall` schema so the
+  updated flat catalog cannot bypass common-field validation or unknown-property rejection.
 
 ## 1.0.0-rc.1 - 2026-09-04
 
