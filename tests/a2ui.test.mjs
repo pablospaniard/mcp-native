@@ -11,6 +11,7 @@ import {
   A2UI_MIME_TYPE,
   A2uiParseError,
   A2uiResourceError,
+  isA2uiMcpBindingGrant,
   negotiateA2uiMcpBinding,
 } from "../packages/a2ui/dist/index.js";
 import {
@@ -73,6 +74,31 @@ test("A2UI negotiation falls back to ordinary MCP content", () => {
   );
   assert.equal(toolResult.content[0].text, "Your profile was saved.");
   assert.deepEqual(toolResult.structuredContent, { saved: true });
+});
+
+test("the updated A2UI pin rejects previous and unknown revisions on either peer", () => {
+  const current = A2UI_MCP_EXTENSION_CAPABILITIES;
+  const grant = negotiateA2uiMcpBinding(current, current);
+  assert.equal(grant.kind, "negotiated");
+  assert.equal(grant.schemaRevision, "8ff4651232ab0e02b0123730b502711170637a3a");
+  assert.equal(isA2uiMcpBindingGrant(grant), true);
+  for (const schemaRevision of ["7541f953050cd58b80f0bf5d85fe2d63192af305", "unknown-revision"]) {
+    const incompatible = {
+      [A2UI_MCP_EXTENSION_ID]: { ...current[A2UI_MCP_EXTENSION_ID], schemaRevision },
+    };
+    for (const [client, server] of [
+      [current, incompatible],
+      [incompatible, current],
+      [incompatible, incompatible],
+    ]) {
+      assert.deepEqual(negotiateA2uiMcpBinding(client, server), {
+        kind: "fallback",
+        identifier: A2UI_MCP_EXTENSION_ID,
+        reason: "incompatible-settings",
+      });
+    }
+    assert.equal(isA2uiMcpBindingGrant({ ...grant, schemaRevision }), false);
+  }
 });
 
 test("a validated A2UI surface becomes a native render plan for every node type", () => {

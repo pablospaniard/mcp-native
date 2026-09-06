@@ -109,10 +109,9 @@ export function getA2uiV1FunctionCallValidator(): ValidateFunction {
   const catalog = basicCatalog as Record<string, unknown>;
   const ajv = createCatalogAjv(common, catalog);
   cachedFunctionValidate = ajv.compile({
-    oneOf: [
-      { $ref: `${expectStringId(catalog)}#/$defs/anyFunction` },
-      { $ref: `${expectStringId(common)}#/$defs/IndexSystemFunction` },
-    ],
+    // The envelope owns common fields and rejects unevaluated properties. Flat catalog
+    // definitions alone intentionally leave those fields open for envelope composition.
+    $ref: `${expectStringId(common)}#/$defs/FunctionCall`,
   });
   return cachedFunctionValidate;
 }

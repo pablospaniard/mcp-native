@@ -27,7 +27,7 @@
       }
     },
     "@mcp-native/a2ui": {
-      "declarationSha256": "8172c8aa7db8370386df0dab5308b9cae757227430f021bfa3387da28f15b64d",
+      "declarationSha256": "417cdaf075b84af98b9dd106822f8637f7e747dc437f5f9245314f5b12a5982e",
       "exports": {
         ".": {
           "import": "./dist/index.js",

@@ -7,9 +7,17 @@ A2UI specification revision; it does not describe the readiness of the package A
 ## Pinned baseline
 
 - Protocol: A2UI v1.0 Candidate
-- Upstream revision: `7541f953050cd58b80f0bf5d85fe2d63192af305`
+- Upstream revision: `8ff4651232ab0e02b0123730b502711170637a3a`
 - Schemas: the checksum-verified bundle in `packages/a2ui/src/v1/vendor`
 - Catalog used for schema resolution: the basic catalog from that same revision
+
+This pin includes [upstream PR #2486](https://github.com/a2ui-project/a2ui/pull/2486):
+`FunctionCommon` is composed at the `FunctionCall` envelope, and all 14 basic catalog function
+definitions are flat. The 18 component definitions and function argument schemas are unchanged.
+Both wire envelopes and reconstructed interpolation calls validate through the full function
+envelope so unknown fields and malformed catalog overrides remain rejected. The
+[migration guide](migration-to-1.0.md#align-the-a2ui-schema-revision-on-both-peers) covers the exact
+revision negotiation transition.
 
 Updating the Candidate revision, schemas, or catalog is a reviewed protocol change. Hosts must not
 advertise the complete basic catalog merely because MCP Native can validate it: catalog capability

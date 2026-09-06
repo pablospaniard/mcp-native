@@ -17,8 +17,53 @@ import {
   evaluateA2uiV1FormatString,
   validateA2uiV1SurfaceState,
 } from "../packages/a2ui/dist/index.js";
+import { getA2uiV1FunctionCallValidator } from "../packages/a2ui/dist/v1/schemas.js";
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures/a2ui-v1");
+
+test("function envelopes preserve the complete basic catalog and system function signatures", () => {
+  const validate = getA2uiV1FunctionCallValidator();
+  const calls = {
+    required: { value: "value" },
+    regex: { value: "value", pattern: "^value$" },
+    length: { value: "value", min: 1 },
+    numeric: { value: 2, min: 1 },
+    email: { value: "user@example.com" },
+    formatString: { value: "Hello" },
+    formatNumber: { value: 2 },
+    formatCurrency: { value: 2, currency: "EUR" },
+    formatDate: { value: "2026-09-06", format: "yyyy-MM-dd" },
+    pluralize: { value: 2, other: "items" },
+    openUrl: { url: "https://example.com/" },
+    and: { values: [true, false] },
+    or: { values: [true, false] },
+    not: { value: false },
+  };
+  assert.deepEqual(Object.keys(calls).sort(), [...A2UI_V1_BASIC_FUNCTION_NAMES].sort());
+  for (const [call, args] of Object.entries(calls)) {
+    assert.equal(validate({ call, args }), true, call);
+    assert.equal(validate({ call, args, catalogId: A2UI_V1_BASIC_CATALOG_ID }), true, call);
+    assert.equal(validate({ call }), false, `${call} requires arguments`);
+    assert.equal(validate({ call, args: { ...args, unexpected: true } }), false, call);
+  }
+  assert.equal(validate({ call: "@index" }), true);
+  assert.equal(validate({ call: "@index", args: { offset: 1 } }), true);
+});
+
+test("function envelope validation rejects fields outside the catalog and common envelope", () => {
+  const validate = getA2uiV1FunctionCallValidator();
+  for (const input of [
+    { call: "formatString", args: { value: "Hello" }, unexpected: true },
+    { call: "formatString", args: { value: "Hello" }, catalogId: 42 },
+    { args: { value: "Hello" } },
+    { call: "unknown", args: {} },
+    { call: "@index", unexpected: true },
+    { call: "@index", args: { unexpected: true } },
+    { call: "formatNumber", args: { value: { call: "@index", unexpected: true } } },
+  ]) {
+    assert.equal(validate(input), false, JSON.stringify(input));
+  }
+});
 
 function basicPolicy(options = {}) {
   return createA2uiV1BasicCatalogPolicy({

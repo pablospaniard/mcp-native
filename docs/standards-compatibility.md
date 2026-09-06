@@ -8,7 +8,7 @@ and the evidence behind each compatibility statement.
 
 - Assessed: 2026-09-03
 - MCP baseline: [Model Context Protocol `2026-07-28`](https://modelcontextprotocol.io/specification/2026-07-28)
-- A2UI baseline: [A2UI Protocol v1.0 Candidate at `7541f953`](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md)
+- A2UI baseline: [A2UI Protocol v1.0 Candidate at `8ff46512`](https://github.com/a2ui-project/a2ui/blob/8ff4651232ab0e02b0123730b502711170637a3a/specification/v1_0/docs/a2ui_protocol.md)
 - MCP Apps baseline: [stable MCP Apps `2026-01-26`](https://github.com/modelcontextprotocol/ext-apps/blob/92f46a574568a3ddac7600343b7d3c4c4ed7b588/specification/2026-01-26/apps.mdx)
 
 MCP Native verifies a documented MCP `2026-07-28` client boundary, including every scored pinned
@@ -39,7 +39,7 @@ profile](mcp-apps-compatibility.md) for the exact implemented operations and beh
 
 | Reference                                                                                                                                                                                | Role in MCP Native                                                | Requirement level                     |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------- |
-| [A2UI v1.0 Candidate at `7541f953`](https://github.com/a2ui-project/a2ui/blob/7541f953050cd58b80f0bf5d85fe2d63192af305/specification/v1_0/docs/a2ui_protocol.md)                         | Declarative native-surface protocol baseline                      | Exact upstream baseline pinned for v1 |
+| [A2UI v1.0 Candidate at `8ff46512`](https://github.com/a2ui-project/a2ui/blob/8ff4651232ab0e02b0123730b502711170637a3a/specification/v1_0/docs/a2ui_protocol.md)                         | Declarative native-surface protocol baseline                      | Exact upstream baseline pinned for v1 |
 | [MCP Apps `2026-01-26` at official SDK `1.7.5` source](https://github.com/modelcontextprotocol/ext-apps/blob/92f46a574568a3ddac7600343b7d3c4c4ed7b588/specification/2026-01-26/apps.mdx) | Stable HTML App discovery, resource, sandbox, and bridge baseline | Normative stable extension baseline   |
 
 A2UI v1.0 additionally relies on [Unicode Standard Annex #31](https://www.unicode.org/reports/tr31/) for catalog identifiers and ISO 8601-compatible timestamps; MCP Native uses the Internet timestamp profile in [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339) when it needs to generate or validate interoperable action timestamps.
@@ -130,7 +130,7 @@ the completed foundation for the current profiles.
 
 ### A2UI v1.0 foundation
 
-1. **Implemented:** pin Candidate revision `7541f953…` and vendor its official JSON Schema bundle plus basic catalog.
+1. **Implemented:** pin Candidate revision `8ff46512…` and vendor its official JSON Schema bundle plus basic catalog.
 2. **Implemented for the declared profile:** parse official `v1.0` agent-to-renderer lifecycle envelopes, construct renderer-to-agent `action`, and parse every pinned renderer-to-agent message kind as owned data.
 3. **Implemented:** ordered surface store for create, component update, data-model update, and delete messages.
 4. **Implemented for the declared profile:** validate the pinned catalog, explicit host component/event/function allowlists, rooted graph references and cycles, binding syntax and template context, selected placement rules, and bounded nested expressions in literal `formatString` sources against reconstructed pinned-catalog calls; execute bounded formatting, plural, boolean, validation, HTTP(S) `openUrl`, and supported renderer checks.

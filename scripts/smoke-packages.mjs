@@ -222,8 +222,8 @@ try {
       additionalRequiredFiles.push(
         "dist/legacy.d.ts",
         "dist/legacy.js",
-        "schemas/7541f953050cd58b80f0bf5d85fe2d63192af305/CHECKSUMS.sha256",
-        "schemas/7541f953050cd58b80f0bf5d85fe2d63192af305/PROVENANCE.md",
+        "schemas/8ff4651232ab0e02b0123730b502711170637a3a/CHECKSUMS.sha256",
+        "schemas/8ff4651232ab0e02b0123730b502711170637a3a/PROVENANCE.md",
       );
     }
     if (packageName === "@mcp-native/react-native" || packageName === "mcp-native") {

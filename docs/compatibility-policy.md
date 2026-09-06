@@ -7,6 +7,12 @@ the `1.x` line; no API-design or independent-review gate remains open for `1.0.0
 The API baseline is closed for the initial v1 release. Future compatible additions follow the
 minor-release rules below; incompatible changes require a major version and a migration plan.
 
+The pre-stable A2UI schema alignment to `8ff4651232ab0e02b0123730b502711170637a3a` changes the
+advertised revision and its exported literal type while preserving callable APIs. It is included
+in the final v1 baseline, with a coordinated host/server upgrade documented in the
+[migration guide](migration-to-1.0.md#align-the-a2ui-schema-revision-on-both-peers). It does not
+establish an exception to the major-release rules for incompatible schema-pin changes in `1.x`.
+
 ## Stable compatibility surfaces
 
 For `1.x`, the following are compatibility surfaces:

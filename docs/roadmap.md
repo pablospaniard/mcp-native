@@ -8,6 +8,11 @@ React Native, and WebView packages. The `1.x` compatibility contract is adopted;
 
 ## v1 product and release scope
 
+The v1 A2UI baseline includes upstream function-envelope schema alignment at
+`8ff4651232ab0e02b0123730b502711170637a3a`. Strict function validation and revision-mismatch
+fallback are covered by regression tests. The component/function set and callable APIs are
+unchanged; the [migration guide](migration-to-1.0.md) records the host/server pin transition.
+
 MCP Native v1 is a production-ready React Native host library with both high-level and low-level
 adoption paths. The high-level `@mcp-native/host` package owns standard MCP connection, negotiation,
 tool-result classification, resource resolution, lifecycle, and rendering orchestration. Existing

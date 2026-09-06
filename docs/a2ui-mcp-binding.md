@@ -11,7 +11,7 @@ supplies the resource framing used by the documented [A2UI profile](a2ui-v1-conf
 | Extension identifier  | `io.github.pablospaniard/mcp-native-a2ui`  |
 | Binding version       | `0.1`                                      |
 | A2UI protocol version | `v1.0`                                     |
-| A2UI schema revision  | `7541f953050cd58b80f0bf5d85fe2d63192af305` |
+| A2UI schema revision  | `8ff4651232ab0e02b0123730b502711170637a3a` |
 | Transport             | `resource-text-jsonl`                      |
 | Resource MIME type    | `application/a2ui+json`                    |
 
@@ -21,13 +21,18 @@ The extension settings object is exact and closed:
 {
   "bindingVersion": "0.1",
   "protocolVersion": "v1.0",
-  "schemaRevision": "7541f953050cd58b80f0bf5d85fe2d63192af305",
+  "schemaRevision": "8ff4651232ab0e02b0123730b502711170637a3a",
   "transport": "resource-text-jsonl",
   "mimeType": "application/a2ui+json"
 }
 ```
 
 An implementation enables this binding only when both peers explicitly advertise the project-owned identifier and both settings objects match every field above. Missing, malformed, additional, or different settings do not negotiate the binding.
+
+The pre-stable pin changed from `7541f953050cd58b80f0bf5d85fe2d63192af305` to the revision above.
+Hosts and servers must upgrade their advertised settings together; the previous pin is not an
+accepted compatibility alias. Mismatched revisions use ordinary MCP content without loading the
+A2UI resource. See the [migration guide](migration-to-1.0.md#align-the-a2ui-schema-revision-on-both-peers).
 
 ## Capability exchange
 
