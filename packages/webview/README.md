@@ -105,9 +105,12 @@ adapter requires `onError` so rejected message and external-link callbacks remai
 controlled error boundary. Bridge work is capped at 128 concurrent inbound messages, and
 exactly-once tool lifecycle sends are serialized across asynchronous transports.
 
+The v1 public API is finalized and ready for production integration under the
+[1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
+
 ## Install
 
-Until the stable `1.0.0` release, select the RC package explicitly:
+Install the published build of the finalized v1 API:
 
 ```bash
 npm install @mcp-native/webview@rc

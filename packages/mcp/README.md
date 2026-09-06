@@ -23,9 +23,12 @@ around fresh host-owned SDK connection units. For protected HTTP, the package al
 official transport/profile while the host owns its secure credential store, browser handoff, and
 user consent.
 
+The v1 public API is finalized and ready for production integration under the
+[1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
+
 ## Install
 
-Until the stable `1.0.0` release, select the coordinated RC packages explicitly:
+Install the coordinated published build of the finalized v1 API:
 
 ```bash
 npm install @mcp-native/mcp@rc @mcp-native/core@rc @modelcontextprotocol/client
@@ -63,7 +66,7 @@ await client.close();
 
 Use `createMcpSdkClientAdapter(client)` when a factory reads better than constructing the class directly.
 
-The options helper deliberately offers only the current `2026-07-28` target and tested `2025-11-25` fallback. Use `"modern-only"` to pin the current revision without fallback or `"legacy-only"` for a server known to implement the tested legacy revision.
+The options helper deliberately offers only the current `2026-07-28` target and tested `2025-11-25` fallback. Use `"modern-only"` to pin the current revision without fallback or `"legacy-only"` for a server known to implement the tested compatibility revision.
 
 To advertise an explicitly approved extension on the modern lane, pass its settings as the second argument:
 

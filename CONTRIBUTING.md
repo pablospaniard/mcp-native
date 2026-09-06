@@ -1,8 +1,8 @@
 # Contributing to MCP Native
 
-Thank you for helping build MCP Native. The project is preparing for 1.0, so real integration
-feedback, independent review, documentation improvements, tests, and focused fixes are especially
-useful right now. Larger feature work follows the published roadmap and compatibility policy.
+MCP Native has a finalized v1 API. Contributions maintain the documented compatibility contract
+through integration improvements, documentation, tests, and focused fixes. Larger feature work
+follows the published roadmap and compatibility policy.
 
 ## Ground rules
 
@@ -115,13 +115,13 @@ CI runs the same type and test checks on every pull request. A pull request cann
 
 ### Integration examples
 
-Extend the maintained [`examples/expo-go-todolist`](examples/expo-go-todolist/README.md) proof when
+Extend the maintained [`examples/expo-go-todolist`](examples/expo-go-todolist/README.md) example when
 application-level React Native behavior changes. Keep its Expo SDK and application dependencies
 pinned, preserve the trusted catalog boundary, exercise the complete representative workflow, and
 keep exactly three current screenshots. Add another example only when it demonstrates a materially
 different host architecture that cannot be explained clearly in the existing app.
 
-Demonstration results complement package releases, milestone completion, and protocol profiles.
+Application checks complement package releases, milestone completion, and protocol profiles.
 Examples do not replace tests: package behavior still requires unit, integration,
 conformance, performance, or smoke coverage at the closest appropriate layer.
 
@@ -178,7 +178,8 @@ Reviews focus on, in order:
 
 Only maintainers publish packages. A release must use versions that have not already been published, pass CI from the exact commit being released, and keep inter-package dependency ranges aligned.
 
-Until the release process is formalized, do not change package versions in feature pull requests unless the issue or maintainer explicitly requests it.
+Follow the [release process](docs/releasing.md). Change package versions only in a coordinated
+release pull request explicitly requested by the maintainer.
 
 ## Getting help
 

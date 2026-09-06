@@ -37,7 +37,7 @@ outside callback completion must use the previously granted token/scope history 
 Apple documents `ASWebAuthenticationSession` as the OS authentication flow that returns the
 callback only to the calling app. Android recommends Custom Tabs for third-party authentication
 instead of a WebView. The reference Expo Go wiring below uses Expo's secure-store and browser
-modules; a host proof should pin them to its Expo SDK version:
+modules; a host integration should pin them to its Expo SDK version:
 
 - [Apple ASWebAuthenticationSession](https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession)
 - [Android Custom Tabs](https://developer.android.com/develop/ui/views/layout/webapps/overview-of-android-custom-tabs)
@@ -124,7 +124,7 @@ provider also cannot invalidate all credentials or the verifier while setup, han
 is active. When the process is recreated and no live owner remains, a new provider may claim and
 release the stale reservation without deleting registrations or tokens.
 
-## Expo Go demonstration scope
+## Application integration checks
 
 An Expo Go app can provide additional integration evidence. Pin the Expo SDK and module versions in
 the app and exercise storage persistence and deletion, issuer and namespace
@@ -133,7 +133,7 @@ credential-safe logging. Keep secrets, authorization codes, PKCE verifiers, OAut
 identifiers, and screenshots or logs containing them out of the repository.
 
 Expo Go uses a development URL whose shape can change between sessions, which is suitable for a
-controlled demonstration. For production OAuth redirect registration, use a development or
+local integration example. For production OAuth redirect registration, use a development or
 production build with a stable app-owned scheme or universal/app link and validate the chosen
 secure-storage and browser-session modules in that host. Report those app-specific results
 alongside the MCP Native package release evidence.

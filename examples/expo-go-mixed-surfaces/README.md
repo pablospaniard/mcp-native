@@ -41,7 +41,7 @@ the Expo terminal to use a local emulator or simulator. The app pins Expo SDK 57
 5. Use the back button or Android system back. The host coordinator asks the focused regions first,
    then returns to the native discovery screen.
 
-No remote server is required for the demo. The repository includes a fixed MCP Apps resource so
+The example runs locally without a remote server. The repository includes a fixed MCP Apps resource so
 you can inspect the entire boundary. In a real host, the same resource object comes from
 `loadMcpAppsResource()` after MCP negotiation and `resources/read`.
 

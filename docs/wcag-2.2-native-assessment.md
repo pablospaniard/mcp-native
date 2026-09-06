@@ -35,9 +35,9 @@ component exposes them correctly on a particular OS version.
 Automated tests cover those mappings, failure paths, and the rule that arbitrary props and component
 implementations cannot cross the host boundary.
 
-## Host and demonstration responsibilities
+## Host integration responsibilities
 
-The maintained Expo Go todo proof provides a concrete native primitives catalog for the applicable
+The maintained Expo Go todo example provides a concrete native primitives catalog for the applicable
 WCAG 2.2 Level A and AA scenarios. The app is configured for both orientations and its interactive
 controls use 44-point minimum targets. Hosts should exercise the following checks on their own
 design system, platform targets, and installed component versions:
@@ -53,7 +53,7 @@ design system, platform targets, and installed component versions:
 
 Input-purpose metadata, colors, spacing, scroll containers, visible focus styling, keyboard
 avoidance, touch-target geometry, and component-library accessibility behavior are host-owned. Fix
-demonstration limitations in the local adapter or host component while preserving that host-owned
+application accessibility issues in the local adapter or host component while preserving that host-owned
 capability boundary.
 
 Application observations and reproduction steps belong in the [example

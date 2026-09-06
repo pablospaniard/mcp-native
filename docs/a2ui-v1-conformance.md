@@ -1,7 +1,8 @@
 # A2UI v1 Candidate conformance profile
 
 This document is the feature-scoped conformance report for MCP Native's implemented A2UI adapter
-profile.
+profile. The MCP Native v1 API is finalized. “Candidate” below identifies the exact upstream
+A2UI specification revision; it does not describe the readiness of the package API.
 
 ## Pinned baseline
 
@@ -163,27 +164,8 @@ test host implementations; they are not additional wire-level components or conf
 - `npm run check` is the repository conformance gate; `npm run package:smoke` verifies published
   exports and declarations.
 
-## Custom `0.1` migration
+## Integration and upgrades
 
-The custom `A2UI_VERSION = "0.1"` surface is not an A2UI protocol version. Its parser, resolver,
-node types, limits, `McpNativeSurface`, and legacy render-plan helpers are deprecated and frozen to
-security and correctness fixes. They are exported only from the explicit `/legacy` entry points.
-
-Migrate as follows:
-
-1. Negotiate the project-owned A2UI-over-MCP binding instead of inferring support from a MIME type.
-2. Replace `resolveA2uiResourceFromToolResult` or `parseA2uiSurface` with
-   `resolveJsonlFromToolResult`, `parseJsonl`, or `parseEnvelope`.
-3. Apply lifecycle messages through `SurfaceStore` and call `getValidated` with an explicit
-   host policy before rendering.
-4. Replace `McpNativeSurface` with `Surface`; deliver validated action envelopes through
-   an application-owned transport. High-level hosts can install
-   `actionAuthorization.authorizeA2uiAction` from a configured
-   `createMcpNativeHostActionAuthorization({ authorize })` instance in the A2UI delivery handler so
-   the same application decision callback also reviews MCP Apps tool calls.
-5. Install only the optional native component slots your host implements completely, derive the
-   advertised list with `getSupportedComponentNames(catalog, { imagePolicy })`, and supply an enforcing image
-   policy/loader before advertising `Image`.
-
-There is no automatic conversion: the custom nested node tree and official component graph have
-different wire contracts. Legacy inputs never receive failed v1 streams as fallback.
+Use the [host integration checklist](host-integration-checklist.md) for a new v1 host and the
+[migration guide](migration-to-1.0.md) for existing integrations. Failed v1 streams never fall back
+to another wire format or renderer.

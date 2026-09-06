@@ -7,9 +7,12 @@ Use this package when the application wants one owner for connection, discovery,
 classification, cancellation, reconnect, and teardown. Use the focused `@mcp-native/*` packages
 instead when the application needs to control those stages independently.
 
+The v1 public API is finalized and ready for production integration under the
+[1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
+
 ## Install
 
-Until the stable `1.0.0` release, select the coordinated RC packages explicitly:
+Install the coordinated published build of the finalized v1 API:
 
 ```bash
 npm install @mcp-native/host@rc @mcp-native/mcp@rc @modelcontextprotocol/client react

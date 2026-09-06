@@ -1,16 +1,14 @@
-# Expo Go native integration proof
+# Native accessibility integration
 
 Status: implemented in [`examples/expo-go-todolist`](../examples/expo-go-todolist/README.md).
 
-Scope: this document describes one on-device accessibility proof (the Expo Go todo app), not a
-general native accessibility test matrix. It exercises the low-level `@mcp-native/react-native`
-component catalog only — it does not advertise image, media, WebView, or custom native-module
-capabilities (see [Trust boundary](#trust-boundary) below), and it does not exercise
-`@mcp-native/host`'s higher-level `McpNativeHostResultView` state machine (loading, retry, busy,
-and announcement behavior for that surface is covered by unit tests in
-[`tests/host-react-native.test.mjs`](../tests/host-react-native.test.mjs), not by this device proof).
+The maintained Expo Go todo app exercises the v1 native primitives catalog, local bindings,
+validation, persistence, and accessibility behavior on device. Package-level coverage for the
+high-level provider's loading, retry, busy, and announcement behavior lives in
+[`tests/host-react-native.test.mjs`](../tests/host-react-native.test.mjs). The
+[v1 readiness record](1.0-readiness.md) records acceptance of the high-level integration gate.
 
-## What it demonstrates
+## Application coverage
 
 The maintained Expo Go app turns a validated A2UI v1 lifecycle into a complete native todo
 workflow using `@mcp-native/a2ui` and `@mcp-native/react-native`. It is intentionally built from
@@ -31,7 +29,7 @@ The app covers:
 - an orientation-aware scrolling layout, with the same Expo project configured for portrait and
   landscape on iOS and Android.
 
-The example pins its application dependencies to make the proof reproducible. Those versions are
+The example pins its application dependencies to make the example reproducible. Those versions are
 fixture inputs, not package dependencies or framework support boundaries.
 
 ## Run it
@@ -62,7 +60,7 @@ The example follows the same boundary expected from a production host:
   permissions.
 
 The app does not advertise image, media, WebView, or custom native-module capabilities because they
-are not needed for this proof. Hosts can add those through the documented policy-gated catalog and
+are not needed for this application. Hosts can add those through the documented policy-gated catalog and
 MCP Apps APIs.
 
 ## Repeatable checks

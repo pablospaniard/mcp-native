@@ -26,9 +26,12 @@ semantic host extensions are already supported.
 
 For the big picture, start with the [product guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/product-guide.md).
 
+The v1 public API is finalized and ready for production integration under the
+[1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
+
 ## Install
 
-Until the stable `1.0.0` release, select the RC package explicitly:
+Install the published build of the finalized v1 API:
 
 ```bash
 npm install mcp-native@rc react
@@ -61,7 +64,7 @@ Scaffolds refuse to overwrite existing files. The extension command emits a clos
 manifest and a local React Native registration skeleton; the application must still negotiate it
 and supply explicit policy.
 
-## A2UI v1 Candidate path
+## Native A2UI path
 
 The package re-exports the APIs needed to negotiate the project-owned binding, resolve official
 v1 JSONL lifecycle envelopes, maintain bounded ordered surface state, apply explicit host

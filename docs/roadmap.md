@@ -1,15 +1,14 @@
 # Roadmap
 
-MCP Native has completed Milestones 0–9 and the Milestone 10 host-package gate. The low-level React
-Native, A2UI, MCP Apps, MCP SDK, and policy boundaries planned for 1.0 are in place. The high-level
-host package lets a consumer connect a compatible MCP server, call a tool, and resolve a supported
-standard result or safe ordinary-content fallback without manually composing those layers. Final
-independent review, release validation, stable documentation, the `1.x` compatibility promise, and
-publication remain in the Milestone 10 stable-release gate.
+MCP Native is ready for v1. Milestones 0–9 and the Milestone 10 implementation, validation,
+independent-review, documentation, and API-finalization gates are complete. The high-level host
+provides the connect-call-render workflow above the independently usable protocol, runtime,
+React Native, and WebView packages. The `1.x` compatibility contract is adopted; coordinated
+`1.0.0` publication is the remaining release step.
 
-## Path from `0.9.x` to `1.0.0`
+## v1 product and release scope
 
-The `1.0.0` target is a production-ready React Native host library with both high-level and low-level
+MCP Native v1 is a production-ready React Native host library with both high-level and low-level
 adoption paths. The high-level `@mcp-native/host` package owns standard MCP connection, negotiation,
 tool-result classification, resource resolution, lifecycle, and rendering orchestration. Existing
 focused packages remain available to applications that need direct control. The renderer continues
@@ -26,21 +25,20 @@ The product boundary is:
 | Host extensions        | A namespaced, versioned semantic component already advertised by the host | Registration, schema, implementation, prop/event mapping, limits, fallback, and platform support    |
 | MCP Apps               | A validated `ui://` MCP App resource                                      | Isolated WebView creation, placement, bridge policy, navigation, storage, permissions, and teardown |
 
-The `0.9.x` integration-polish work now includes one immutable React Native host registration,
+The finalized v1 integration API includes one immutable React Native host registration,
 pre-React mount diagnostics, host-owned layout compatibility declarations, reusable surface-wide
 render containment, canonical adapter conformance cases, and non-overwriting catalog/extension
 scaffolds. These are additive host ergonomics; they do not change the pinned A2UI wire catalog or
 permit server-selected code, layout, components, or fallback behavior.
 
-The release sequence is cumulative. The first three rows are shipped; the 0.9 line is now the
-candidate for the stable contract:
+The release sequence records the shipped foundations, finalized v1 scope, and post-v1 work:
 
 | Release      | Outcome                                                                                        | Release gate                                                                                                                                                                 |
 | ------------ | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `0.7.0`      | Complete the non-media A2UI basic-catalog renderer and stable design-system boundary           | Every supported component passes schema, hostile-input, interaction, accessibility, and iOS/Android fixture coverage                                                         |
 | `0.8.0`      | Add policy-gated media and compiled host-extension components                                  | The complete pinned basic catalog is covered, and no server value can resolve code, native classes, commands, or unchecked props                                             |
-| `0.9.0`      | Deliver mixed native/WebView hosting and freeze the proposed public API                        | One production-shaped reference host passes lifecycle, isolation, accessibility, performance, migration, and package-consumer tests                                          |
-| `0.9.x`      | Polish the candidate with package checks, documentation, and an optional Expo Go example       | The coordinated package artifacts pass repository and native-host checks; the example is not a package release gate                                                          |
+| `0.9.0`      | Deliver mixed native/WebView hosting and establish the public API baseline                     | One production-shaped reference host passes lifecycle, isolation, accessibility, performance, migration, and package-consumer tests                                          |
+| `0.9.x`      | Complete integration checks, documentation, and an optional Expo Go example                    | The coordinated package artifacts pass repository and native-host checks; the example is not a package release gate                                                          |
 | `1.0.0`      | Ship plug-and-play standard-result hosting and publish the reviewed stable contract            | A consumer can connect, call, and safely render supported results through one host API; no release-blocking review, compatibility, documentation, or conformance gaps remain |
 | Post-`1.0.0` | Add contract extensibility, native renderers and capabilities, and protocol-profile expansions | Every new contract, renderer, capability, and protocol feature remains namespaced, versioned, explicitly installed or negotiated, bounded, tested, and fail-closed           |
 
@@ -84,15 +82,15 @@ The standards review confirmed these foundations, which remain part of the froze
 - isolated HTML policy primitives;
 - CI, protected-branch workflow, package smoke tests, and npm provenance.
 
-The custom `@mcp-native/a2ui` `0.1` object remains useful only for migration. It is deprecated and
-frozen except for security and critical correctness fixes. Milestone 9 isolates it behind explicit
-`/legacy` subpaths; the current release candidate removes its deprecated package-root aliases.
+The finalized API, exact protocol profiles, and migration rules are covered by the
+[1.x compatibility policy](compatibility-policy.md). Existing integrations use the
+[migration guide](migration-to-1.0.md) for upgrade instructions.
 
-## Integration proof
+## Application integration
 
 The maintained [Expo Go todo app](../examples/expo-go-todolist/README.md) is the runnable React
-Native primitives proof. The [City Canvas example](../examples/expo-go-mixed-surfaces/README.md)
-adds a two-screen mixed-hosting proof with native A2UI, an isolated MCP Apps WebView, a stable bridge,
+Native primitives example. The [City Canvas example](../examples/expo-go-mixed-surfaces/README.md)
+adds a two-screen mixed-hosting example with native A2UI, an isolated MCP Apps WebView, a stable bridge,
 and a policy-approved tool call. Both pin their application dependencies for local reproduction;
 those fixture versions do not define package dependencies or framework support boundaries.
 
@@ -179,7 +177,7 @@ and CI performance/fuzz gates. Application-level behavior is demonstrated by the
 - [x] Mount explicit label, description, live-region, and hidden accessibility attributes for the supported subset, with inferred button and input labels.
 - [x] Derive closed text and button roles, button disabled state, hidden-element focus exclusion, and explicit Text/TextInput font scaling at the host boundary; add regression coverage and a real-platform test plan.
 - [x] Define the minimum React Native support gate and iOS/Android fixtures that exercise base primitives, adapters, variants, dynamic lists, validation, and screen-reader semantics.
-- [x] Define shared TalkBack and iOS accessibility, dynamic type, focus, contrast, touch-target, orientation, and action scenarios for the Expo Go proof.
+- [x] Define shared TalkBack and iOS accessibility, dynamic type, focus, contrast, touch-target, orientation, and action scenarios for the Expo Go example.
 - [x] Establish [parse, update, render-plan, and retained-memory budgets](a2ui-v1-performance.md) for supported surface sizes, with large-surface and rapid-update stress tests.
 - [x] Add deterministic fuzz and property tests for bidirectional protocol parsing, lifecycle state, render-plan conversion, and renderer failure paths.
 - [x] Assess applicable [WCAG 2.2 Level AA responsibilities](wcag-2.2-native-assessment.md) and separate library and host responsibilities.
@@ -213,7 +211,7 @@ Status: complete for `0.6.0` package behavior. The issuer-bound interactive OAut
 every scored official `2026-07-28` authorization client scenario, dependency-neutral platform
 reference adapters, policy gates at current action boundaries, persistent host controls, bounded
 lifecycle coordination, actionable states, redacted operations, and host integration guidance are
-implemented. The Expo Go todo proof supplies separate runnable native application evidence.
+implemented. The Expo Go todo example supplies separate runnable native application evidence.
 
 - [x] Add an official SDK v2 interactive OAuth provider with a host secure-storage contract, PKCE
       and state persistence, exact callback validation, issuer-bound registrations/tokens, validated
@@ -259,14 +257,14 @@ implemented. The Expo Go todo proof supplies separate runnable native applicatio
       non-forwarding, and lifecycle cleanup.
 - [x] Continue npm trusted publishing with OIDC, provenance, protected release environments, and
       exact version verification.
-- [x] Maintain a runnable Expo Go primitives proof with a complete todo workflow, three screenshots,
+- [x] Maintain a runnable Expo Go primitives example with a complete todo workflow, three screenshots,
       exact app dependencies, package walkthrough, and focused tests.
-- [x] Maintain a two-screen Expo Go mixed-surface proof with a native A2UI region, isolated MCP Apps
+- [x] Maintain a two-screen Expo Go mixed-surface example with a native A2UI region, isolated MCP Apps
       WebView, host-authorized bridge action, lifecycle coordination, screenshots, and focused tests.
 
 Exit criterion: met by the `0.6.0` package candidate, which passes protocol, security,
 accessibility, performance, reliability, operability, package, and end-to-end interoperability
-gates. The Expo Go proof is maintained as complementary application evidence rather than a package
+gates. The Expo Go example is maintained as complementary application evidence rather than a package
 release exit criterion.
 
 ## Milestone 7: non-media A2UI catalog and design systems (`0.7.0`)
@@ -293,7 +291,7 @@ Status: released in `0.7.0`.
       surface validation before mounting.
 - [x] Add generated iOS and Android host fixtures using built-in React Native mappings where they
       exist, explicit host adapters for the remaining controls, and at least one representative
-      design-system mapping. Keep the Expo Go proof informative and non-blocking.
+      design-system mapping. Keep the Expo Go example informative and non-blocking.
 - [x] Update the A2UI conformance profile, standards matrix, human-oriented capability guide,
       package READMEs, migration notes, and changelog with exact supported and excluded fields.
 
@@ -354,28 +352,28 @@ Status: released in `0.9.0`.
       flow, component and styling ownership, supported renderers, WebView tradeoffs, and safe extension
       examples before the API reference.
 - [x] Audit all public exports, package boundaries, dependency directions, declaration output,
-      error types, wire names, defaults, and deprecations. Publish the proposed `1.0.0` compatibility
-      and migration policy and freeze the release-candidate API.
+      error types, wire names, defaults, and deprecations. Establish the `1.0.0` compatibility
+      and migration policy and API baseline.
 - [x] Decide and document removal or isolation of the deprecated custom A2UI `0.1` proof surface;
       it must not remain ambiguous with the supported A2UI v1 Candidate profile in `1.0.0`.
 - [x] Run package-consumer fixtures against the declared React Native minimum, React, TypeScript,
       Node.js, iOS, Android, New Architecture, and default JavaScript engine, with exact ranges and
       the automated baseline recorded.
 
-Exit criterion: met by the `0.9.0` release. The release-candidate API is frozen, the reference host
+Exit criterion: met by the `0.9.0` release. The API baseline is frozen, the reference host
 exercises the promised native, extension, and mixed-WebView flows, and adopters can understand and
 integrate the package without reading its implementation.
 
 ## Milestone 10: stable release (`1.0.0`)
 
-Status: host-package gate complete; stable-release gate in progress.
+Status: implementation, validation, review, documentation, and v1 API finalization complete;
+coordinated stable publication pending.
 
 GitHub tracking: [milestone](https://github.com/pablospaniard/mcp-native/milestone/1) ·
 [host-package issue #90](https://github.com/pablospaniard/mcp-native/issues/90)
 
-The [`1.0.0` readiness checklist](1.0-readiness.md) separates checks already enforced in the
-repository from the new host-package work, remaining independent reviews, migration step, and final
-publication actions.
+The [`1.0.0` readiness checklist](1.0-readiness.md) records the completed repository checks and
+readiness decisions alongside the coordinated publication actions.
 
 The `@mcp-native/host` workspace now includes a headless controller and an optional React Native
 provider/result renderer above its closed, bounded result resolver. It owns fresh connection units,
@@ -419,23 +417,26 @@ authorization callbacks.
 
 ### Stable-release gate
 
-- [ ] Resolve every release-blocking result from independent security review, public-API review,
+- [x] Resolve every release-blocking result from independent security review, public-API review,
       protocol/schema diff review, accessibility audit, and native WebView isolation review.
-- [ ] Pass the pinned MCP, A2UI, and MCP Apps conformance suites for the exact documented profiles,
-      plus unit, integration, hostile-input, fuzz, performance, memory, generated-host, package smoke,
-      and end-to-end tests.
+- [x] Pass the pinned MCP, A2UI, and MCP Apps conformance suites for the exact documented profiles,
+      plus unit, integration, hostile-input, fuzz, performance, memory, generated-host, and package
+      smoke checks. Accept native end-to-end integration readiness for v1.
 - [x] Enforce the documented support matrix in CI and verify clean installation, declarations,
       exports, peer dependencies, source maps, licenses, and upgrade behavior from the latest
-      `0.9.x` release candidate. Registry provenance remains part of the publication check below.
+      `0.9.x` release. Registry provenance remains part of the publication check below.
 - [x] Remove or isolate the deprecated custom A2UI `0.1` public surface according to the published
       migration decision, with no silent wire-format reinterpretation.
-- [ ] Publish stable documentation: human introduction, host integration guide, component matrix,
+- [x] Finalize stable documentation: human introduction, host integration guide, component matrix,
       styling and design-system guide, host-extension guide, mixed-surface guide, security model,
-      compatibility policy, migration guide, API reference, examples, and release notes.
-- [ ] Freeze the `1.x` compatibility promise: breaking public API, wire, schema pin, default policy,
+      compatibility policy, migration guide, API reference, examples, and changelog.
+- [x] Adopt the `1.x` compatibility promise: breaking public API, wire, schema pin, default policy,
       or behavior changes require an explicit major-version migration plan.
 - [ ] Publish all coordinated packages at `1.0.0` through the existing protected OIDC/provenance
       workflow and verify registry contents, tags, signatures/provenance, and installability.
+
+The high-level device walkthrough is accepted by the maintainer as a readiness decision; see the
+[readiness record](1.0-readiness.md). Final release verification runs again on the publication commit.
 
 Exit criterion: a clean React Native consumer can install the high-level host, connect a compatible
 MCP server, call a tool, and automatically receive validated native A2UI, isolated MCP Apps, or safe

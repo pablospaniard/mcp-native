@@ -116,8 +116,10 @@ never becomes a native component and receives no device permission by implicatio
 
 ## Install
 
-Until the stable `1.0.0` release, select the coordinated RC packages explicitly. The unqualified
-`latest` dist-tag remains on the stable `0.9.x` line.
+The v1 public API is finalized and ready for production integration under the
+[1.x compatibility policy](docs/compatibility-policy.md). The commands below select its published
+`rc` build. The stable `1.0.0` tag is a coordinated publication step; see the
+[release checklist](docs/1.0-readiness.md).
 
 For the headless high-level flow, including its React Native provider:
 
@@ -152,8 +154,8 @@ MCP Native deliberately does not own the application shell. A production host su
 - navigation, safe areas, scrolling, focus, errors, retries, and app lifecycle integration; and
 - platform testing for the exact component library, React Native version, and WebView in the app.
 
-Start with the [host integration checklist](docs/host-integration-checklist.md) before treating an
-integration as production-ready.
+Use the [host integration checklist](docs/host-integration-checklist.md) to wire these
+application-owned responsibilities.
 
 ## Packages
 
@@ -187,8 +189,8 @@ const Surface = reactNative.HostSurface;
 The package root always means the current supported profile. Exact protocol identity remains in
 negotiated values such as `PROTOCOL_VERSION === "v1.0"`, in schemas, and in compatibility docs; it
 is not repeated in every TypeScript name. Previous `A2ui*`, `A2uiV1*`, and `A2UI_V1_*` exports
-remain compatible aliases throughout the `1.x` line. New code should use the concise names. The
-frozen custom `0.1` API remains separate under `/legacy` and is not reinterpreted by these aliases.
+remain compatible aliases throughout the `1.x` line. New code should use the concise names.
+Existing integrations can follow the [migration guide](docs/migration-to-1.0.md).
 
 ## Examples
 
@@ -232,7 +234,7 @@ assigned release dates.
   [MCP Apps profile](docs/mcp-apps-compatibility.md) — exact protocol scope.
 - [Protocol support](docs/protocol-support.md) — MCP revisions and operations.
 - [1.0 readiness](docs/1.0-readiness.md) and [roadmap](docs/roadmap.md) — completed gates and
-  remaining work.
+  publication steps and post-v1 work.
 - [Security policy](SECURITY.md) — trust assumptions and vulnerability reporting.
 
 ## Development

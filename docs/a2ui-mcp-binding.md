@@ -66,7 +66,7 @@ Malformed capability declarations fail closed. If the binding was negotiated but
 - `@mcp-native/core` validates prefixed extension maps and computes mutual support without inspecting metadata or MIME types.
 - `@mcp-native/mcp` advertises host-approved client settings and exposes validated server settings from the official SDK.
 - `@mcp-native/a2ui` exports the exact identifier, settings, pinned revision, transport constants, exact-match binding negotiator, strict A2UI capability parsers and catalog-overlap negotiator, JSONL envelope parser, ordered surface store, policy-gated `getValidated`, `resolveJsonlFromToolResult`, and a closed builder for the official renderer `action` envelope. The resolver requires the exact negotiated binding grant as an argument and rejects fallback or forged settings before reading a resource.
-- The custom `0.1` surface resolver remains a separate legacy input; the v1 JSONL consumer does not reinterpret it.
+- The JSONL consumer accepts only the negotiated v1 lifecycle format; other wire formats are not reinterpreted.
 - Callers must negotiate the binding before using the v1 JSONL resolver; MIME type alone does not grant the transport. Invalid v1 streams fail closed and never fall through to `0.1` or HTML.
 
 See the [standards inventory](standards-compatibility.md), [protocol support policy](protocol-support.md), and [roadmap](roadmap.md) for the combined coverage and next steps.

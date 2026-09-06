@@ -52,7 +52,7 @@ renderer behavior. New integrations should use the A2UI v1 Candidate flow instea
 
 ## Keep MCP Apps WebView isolation props
 
-The `1.0.0` candidate adds two required literal fields to `McpAppsReactNativeWebViewProps`:
+The finalized v1 API includes two required literal fields in `McpAppsReactNativeWebViewProps`:
 
 - `cacheEnabled: false` keeps ephemeral storage independent of native prop-application order; and
 - `injectedJavaScriptBeforeContentLoadedForMainFrameOnly: true` confines the paired
@@ -70,14 +70,14 @@ allow resource metadata or other server input to override it.
 `npm run package:smoke` installs the latest coordinated stable `0.9.x` packages from npm into a
 clean consumer and runs modern APIs together with the explicit `/legacy` imports shown above. It
 then replaces all seven coordinated dependencies with locally packed
-release-candidate artifacts, confirms that npm selected each local tarball, and runs the consumer
+v1 release artifacts, confirms that npm selected each local tarball, and runs the consumer
 again. Mixed `0.9.x` package versions, retained registry dependencies, missing migration entry
 points, and stale installed versions fail the gate.
 
 Pull-request CI runs this upgrade smoke test. The final `1.0.0` release commit therefore exercises
 the same path with the actual coordinated stable artifacts before publication.
 
-## Move new work to the v1 Candidate profile
+## Use the v1 profile
 
 New surfaces should negotiate the project-owned A2UI-over-MCP binding, parse `version: "v1.0"`
 lifecycle envelopes into `SurfaceStore`, validate through an explicit host catalog policy, and
@@ -86,7 +86,7 @@ and A2UI v1 catalog/data/event model have different semantics.
 
 ## Adopt host ownership explicitly
 
-Before `1.0.0`:
+A v1 host owns these integration boundaries:
 
 - replace open component maps or prop spreading with the typed local catalog and adapters;
 - advertise only installed, policy-ready components and exact extension tuples;
@@ -97,5 +97,5 @@ Before `1.0.0`:
 - run the exact [support matrix](support-matrix.md), `npm run check`, and
   `npm run package:smoke` against the application integration.
 
-Any additional release-candidate correction discovered by independent review will be documented
-here with clear upgrade guidance before the stable tag.
+The v1 API is finalized. Future changes follow the [1.x compatibility policy](compatibility-policy.md);
+breaking changes require a major release and explicit upgrade guidance.
