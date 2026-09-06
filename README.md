@@ -117,27 +117,26 @@ never becomes a native component and receives no device permission by implicatio
 ## Install
 
 The v1 public API is finalized and ready for production integration under the
-[1.x compatibility policy](docs/compatibility-policy.md). The commands below select its published
-`rc` build. The stable `1.0.0` tag is a coordinated publication step; see the
-[release checklist](docs/1.0-readiness.md).
+[1.x compatibility policy](docs/compatibility-policy.md). The commands below select the stable
+`1.x` release line. Keep MCP Native packages on the same coordinated version.
 
 For the headless high-level flow, including its React Native provider:
 
 ```bash
-npm install @mcp-native/host@rc @mcp-native/mcp@rc @modelcontextprotocol/client react
+npm install @mcp-native/host@1 @mcp-native/mcp@1 @modelcontextprotocol/client react
 ```
 
 For manual composition through one low-level entry point:
 
 ```bash
-npm install mcp-native@rc react
+npm install mcp-native@1 react
 ```
 
 Or install only the focused layers you use:
 
 ```bash
-npm install @mcp-native/core@rc @mcp-native/a2ui@rc @mcp-native/react-native@rc
-npm install @mcp-native/webview@rc
+npm install @mcp-native/core@1 @mcp-native/a2ui@1 @mcp-native/react-native@1
+npm install @mcp-native/webview@1
 ```
 
 All packages are ESM-only and include TypeScript declarations. React `>=18.1.0` is the only UI peer

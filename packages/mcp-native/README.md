@@ -31,10 +31,10 @@ The v1 public API is finalized and ready for production integration under the
 
 ## Install
 
-Install the published build of the finalized v1 API:
+Install the v1 package:
 
 ```bash
-npm install mcp-native@rc react
+npm install mcp-native@1 react
 ```
 
 React `>=18.1.0` is the only peer dependency. Native components and platform integrations are

@@ -6,8 +6,27 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+## 1.0.0 - 2026-09-06
+
+First stable release of all seven coordinated MCP Native packages. Adopts the `1.x` compatibility
+contract for the high-level connect-call-render host and independently usable runtime, MCP,
+A2UI, React Native, and WebView layers.
+
+### Stable API
+
+- Connect, discover tools, call, and render supported results through `@mcp-native/host`, with
+  cancellation, reconnect, retry, teardown, and accessible React Native operational states.
+- Render the complete pinned A2UI basic catalog through host-owned native components, bounded
+  bindings and functions, and explicitly negotiated compiled host extensions.
+- Host MCP Apps in isolated WebViews with validated resources, a bounded message bridge, and
+  explicit application authorization; present ordinary MCP content through an inert fallback.
+- Preserve concise API names, compatible aliases, and the documented migration entry points.
+  Breaking API, protocol, and default-policy changes require a major-version migration plan.
+
 ### Changed
 
+- Promote all seven package versions and internal dependency ranges to `1.0.0`; installation
+  examples now select `@1`.
 - Align the pre-stable A2UI schema pin to upstream
   `8ff4651232ab0e02b0123730b502711170637a3a`, including the function-envelope refactor in PR #2486.
   Preserve the component/function set and callable APIs; update the exported schema-revision literal
@@ -18,7 +37,7 @@ patch and minor releases remain compatible within their release line.
   coordinated stable publication separately.
 - Consolidate pre-v1 upgrade details in the migration guide, remove stale package-preview wording,
   and describe runnable examples as application integrations. This documentation cleanup preserves
-  security boundaries, existing compatibility exports, and package versions.
+  security boundaries and existing compatibility exports.
 
 ### Fixed
 

@@ -21,10 +21,10 @@ The v1 public API is finalized and ready for production integration under the
 
 ## Install
 
-Install the published build of the finalized v1 API:
+Install the v1 package:
 
 ```bash
-npm install @mcp-native/core@rc
+npm install @mcp-native/core@1
 ```
 
 The package is ESM-only and includes TypeScript declarations.

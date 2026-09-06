@@ -24,10 +24,10 @@ The v1 public API is finalized and ready for production integration under the
 
 ## Install
 
-Install the published build of the finalized v1 API:
+Install the v1 package:
 
 ```bash
-npm install @mcp-native/react-native@rc react
+npm install @mcp-native/react-native@1 react
 ```
 
 `@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React `>=18.1.0` is the
