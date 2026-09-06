@@ -23,10 +23,10 @@ The v1 public API is finalized and ready for production integration under the
 
 ## Install
 
-Install the published build of the finalized v1 API:
+Install the v1 package:
 
 ```bash
-npm install @mcp-native/a2ui@rc
+npm install @mcp-native/a2ui@1
 ```
 
 `@mcp-native/core` is installed as a dependency. The package is ESM-only and includes TypeScript declarations.

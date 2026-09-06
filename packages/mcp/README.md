@@ -28,10 +28,10 @@ The v1 public API is finalized and ready for production integration under the
 
 ## Install
 
-Install the coordinated published build of the finalized v1 API:
+Install the coordinated v1 packages:
 
 ```bash
-npm install @mcp-native/mcp@rc @mcp-native/core@rc @modelcontextprotocol/client
+npm install @mcp-native/mcp@1 @mcp-native/core@1 @modelcontextprotocol/client
 ```
 
 The package is ESM-only and includes TypeScript declarations.

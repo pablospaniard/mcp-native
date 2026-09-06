@@ -12,10 +12,10 @@ The v1 public API is finalized and ready for production integration under the
 
 ## Install
 
-Install the coordinated published build of the finalized v1 API:
+Install the coordinated v1 packages:
 
 ```bash
-npm install @mcp-native/host@rc @mcp-native/mcp@rc @modelcontextprotocol/client react
+npm install @mcp-native/host@1 @mcp-native/mcp@1 @modelcontextprotocol/client react
 ```
 
 The example below uses `@mcp-native/mcp` to adapt the official client. A host may provide another
