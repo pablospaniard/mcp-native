@@ -78,10 +78,9 @@ or unchecked-prop channel.
 
 ## React Native, SwiftUI, and Compose
 
-React Native is the only first-class renderer before `1.0.0`. A React Native host may already use a
+React Native is the first-class renderer in v1. A React Native host may already use a
 locally compiled UIKit, Android View, SwiftUI, or Compose wrapper when the host owns the typed
-adapter, but MCP Native does not yet provide direct SwiftUI or Jetpack Compose renderers or promise
-cross-renderer parity.
+adapter. Direct SwiftUI and Jetpack Compose renderers and cross-renderer parity are post-v1 scope.
 
 Direct SwiftUI and Jetpack Compose renderers are tracked after `1.0.0`, with a platform-neutral
 renderer foundation as their prerequisite. The post-`1.0.0` roadmap also tracks typed, advertised,
@@ -97,15 +96,15 @@ cookies, downloads, permissions, bridge messages, and teardown. Browser hosts us
 cross-origin double-iframe model; native hosts apply the documented platform mapping.
 
 Native A2UI and WebView rendering use a deliberately host-owned production composition model.
-Release `0.9.0` adds a coordinator that places factory-created native and isolated WebView regions
+The mixed-surface coordinator places factory-created native and isolated WebView regions
 as siblings on one screen and serializes their lifecycle. A server cannot create, configure,
 navigate, or bridge a WebView from A2UI. See the [mixed-surface guide](mixed-surfaces.md).
 
 ## Where the project is now
 
-The `1.0.0-rc` line contains the complete React Native feature set planned for 1.0 and is ready
-for integration and evaluation. The remaining work is final ecosystem validation before
-publication of the long-term 1.x compatibility promise under the stable `1.0.0` tag.
+The v1 feature set and public API are complete and ready for production integration. The
+[1.x compatibility policy](compatibility-policy.md) governs the high-level host and all focused
+packages. The [release checklist](1.0-readiness.md) tracks coordinated stable publication.
 
 The runnable [Expo Go todo app](../examples/expo-go-todolist/README.md) provides application-level
 native evidence alongside the automated package and protocol gates.

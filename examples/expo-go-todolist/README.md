@@ -37,7 +37,7 @@ are used in this monorepo.
   are renderer-local typed binding updates reconciled into host state.
 - Delete one task or clear all completed tasks through explicit allowlisted actions.
 - Reload Expo Go. Valid state is persisted with Expo SQLite's key-value store.
-- Tap Reset to restore the three demonstration tasks.
+- Tap Reset to restore the three sample tasks.
 - Increase system text size or use VoiceOver/TalkBack. Text scaling, labels, roles, state, live
   summaries, and 44-point touch targets are part of the native catalog.
 

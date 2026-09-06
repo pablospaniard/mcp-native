@@ -4,10 +4,10 @@ This document defines the exact MCP core revisions and operations MCP Native del
 
 ## Revision matrix
 
-| Revision     | SDK era | MCP Native status           | Verified path                                                                                           |
-| ------------ | ------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `2026-07-28` | modern  | Verified current boundary   | Pinned HTTP integration, official requirement accounting, selected scenarios, and cache-isolation tests |
-| `2025-11-25` | legacy  | Verified compatibility lane | SDK `auto` fallback through the linked in-memory transport                                              |
+| Revision     | Protocol lane | MCP Native status           | Verified path                                                                                           |
+| ------------ | ------------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `2026-07-28` | modern        | Verified current boundary   | Pinned HTTP integration, official requirement accounting, selected scenarios, and cache-isolation tests |
+| `2025-11-25` | compatibility | Verified compatibility lane | SDK `auto` fallback through the linked in-memory transport                                              |
 
 The verified adapter boundary covers:
 
@@ -52,13 +52,13 @@ const client = new Client(
 );
 ```
 
-| Mode          | Offered revisions               | Behavior                                                                  |
-| ------------- | ------------------------------- | ------------------------------------------------------------------------- |
-| `auto`        | `2026-07-28`, then `2025-11-25` | Probe for the modern era and fall back only to the tested legacy revision |
-| `modern-only` | `2026-07-28`                    | Pin the current revision and fail if the server does not offer it         |
-| `legacy-only` | `2025-11-25`                    | Skip the modern probe and use the tested legacy handshake                 |
+| Mode          | Offered revisions               | Behavior                                                                         |
+| ------------- | ------------------------------- | -------------------------------------------------------------------------------- |
+| `auto`        | `2026-07-28`, then `2025-11-25` | Probe for the modern era and fall back only to the tested compatibility revision |
+| `modern-only` | `2026-07-28`                    | Pin the current revision and fail if the server does not offer it                |
+| `legacy-only` | `2025-11-25`                    | Skip the modern probe and use the tested `2025-11-25` handshake                  |
 
-`auto` is the helper default because MCP Native targets long-lived native hosts that normally benefit from modern negotiation. Spawn-per-invocation command-line tools should choose deliberately: the official SDK warns that probing a silent legacy stdio server can consume the full probe timeout and may spawn a disposable sibling process.
+`auto` is the helper default because MCP Native targets long-lived native hosts that normally benefit from modern negotiation. Spawn-per-invocation command-line tools should choose deliberately: the official SDK warns that probing a silent `2025-11-25` stdio server can consume the full probe timeout and may spawn a disposable sibling process.
 
 The helper returns verified SDK options. The host owns client/transport construction and wire
 behavior. `createMcpNativeConnectionLifecycle()` optionally coordinates bounded timeout,

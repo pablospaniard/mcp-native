@@ -19,9 +19,12 @@ implementations, visual design, and action delivery.
 
 The renderer implements the native portion of the documented A2UI v1 Candidate profile. The v1 adapter converts the complete pinned basic catalog, including bounded dynamic lists and policy-gated media, into the host-owned `NativeElement` boundary. Exactly negotiated local host extensions use a separate closed registration boundary. See the [feature-scoped A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md) for exact coverage.
 
+The v1 public API is finalized and ready for production integration under the
+[1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
+
 ## Install
 
-Until the stable `1.0.0` release, select the RC package explicitly:
+Install the published build of the finalized v1 API:
 
 ```bash
 npm install @mcp-native/react-native@rc react
@@ -114,7 +117,7 @@ For release/platform testing, `npm run native:host:prepare` generates a pinned t
 host. It installs local package tarballs and the accessibility, complete-catalog, media, and
 Codegen/Fabric extension fixtures. This is reproducible integration evidence, not a package peer or
 native-framework version boundary.
-The [Expo Go integration proof](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-accessibility-testing.md) documents the runnable
+The [Expo Go integration](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-accessibility-testing.md) documents the runnable
 app-level evidence. Generated hosts remain the automated package fixtures; the Expo app complements
 them with a workflow users can launch and inspect directly.
 

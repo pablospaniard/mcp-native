@@ -1,10 +1,11 @@
-# `1.0.0` release-candidate compatibility policy
+# `1.x` compatibility policy
 
-Milestone 9 froze the low-level `0.9.x` release-candidate API described here. Milestone 10 has added
-the high-level `@mcp-native/host` API without removing that low-level path. Both are available for
-integration and remain under release-candidate review. Independent review may still require a
-documented correction before the stable tag; the long-term `1.x` compatibility guarantee begins
-with `1.0.0`.
+The v1 public API is finalized. The high-level `@mcp-native/host` workflow and every focused
+low-level package are ready for production integration. This policy is the adopted contract for
+the `1.x` line; no API-design or independent-review gate remains open for `1.0.0`.
+
+The API baseline is closed for the initial v1 release. Future compatible additions follow the
+minor-release rules below; incompatible changes require a major version and a migration plan.
 
 ## Stable compatibility surfaces
 
@@ -31,7 +32,7 @@ in minor releases when old callers retain their behavior. Patch releases contain
 within a minor line. Post-`1.0.0` SwiftUI, Compose, and capability-provider packages will use their
 own documented profiles and will not silently expand the React Native server contract.
 
-The proposed host result surface is a closed union: `a2ui`, `mcp-app`, `ordinary`, or `invalid`.
+The host result surface is a closed union: `a2ui`, `mcp-app`, `ordinary`, or `invalid`.
 The two executable UI outcomes require exact mutual extension negotiation. A result claimed by both
 negotiated profiles is invalid, and failure after selecting either standard path never retries as
 ordinary content or through another renderer. Invalid results expose a stable host-authored code,
@@ -41,15 +42,15 @@ caller-supplied negotiation maps independently of that connection.
 
 The headless host controller snapshot, lifecycle methods, stable controller error codes, automatic
 rediscovery behavior, one-active-operation rule, and cancellation/stale-result semantics are also
-proposed `1.x` compatibility surfaces. The `/react-native` provider, hook, result renderer, stable
+stable `1.x` compatibility surfaces. The `/react-native` provider, hook, result renderer, stable
 render-error codes, fixed host states, ordinary-text bound, and exact MCP Apps ownership rules join
-that proposed surface. Tool calls are eligible only after the exact definition has been discovered
+that stable surface. Tool calls are eligible only after the exact definition has been discovered
 on the active connection; reconnect clears both discovered tools and prior call state before
 automatically discovering again. Explicit `refreshTools()` ignores a still-fresh SDK cache entry and
 replaces it with a newly fetched, validated aggregate.
 
 The additive React Native host registration, mount-report fields and error codes, layout-contract
-vocabulary, registered surface, reusable render boundary, and `/testing` subpath are proposed
+vocabulary, registered surface, reusable render boundary, and `/testing` subpath are stable
 `1.x` compatibility surfaces. Layout contracts are local host metadata only: changing them may
 narrow where a local adapter is mounted, but cannot alter the A2UI schema or advertise an otherwise
 uninstalled component. The `mcp-native` CLI command names and non-overwriting scaffold behavior are
@@ -76,15 +77,15 @@ commands, or a cross-boundary WebView escape is not a compatible extension.
 `npm run api:verify` builds every existing package and compares all declared package subpaths,
 runtime export names, and the complete emitted declaration surface with
 `docs/public-api-baseline.json`. The host-package root and `/react-native` surface are included in
-that release-candidate baseline. Package
+that v1 baseline. Package
 smoke tests verify the declared exports, JavaScript and declaration source maps, README, and exact
 MIT license in every tarball. The same gate runs every supported subpath in a migration-ready clean
 consumer before and after an offline replacement of the latest coordinated published `0.9.x`
-packages with local candidate tarballs. Changes to the baseline require an intentional
+packages with local release tarballs. Changes to the baseline require an intentional
 compatibility review and changelog/migration update.
 
-The [support matrix](support-matrix.md) records the release-candidate dependency lanes. The
-[migration guide](migration-to-1.0.md) records the only planned root-export removal. The
-[`1.0.0` readiness checklist](1.0-readiness.md) distinguishes automated checks from the final
-reviews and publication actions. Check results may be summarized in a pull request or release;
+The [support matrix](support-matrix.md) records the supported dependency lanes. The
+[migration guide](migration-to-1.0.md) records the upgrade steps from pre-v1 packages. The
+[`1.0.0` readiness checklist](1.0-readiness.md) records completed readiness gates and the coordinated
+publication actions. Check results may be summarized in a pull request or release;
 their raw output is not a required committed artifact.

@@ -16,9 +16,12 @@
 connect an MCP client to the runtime, validate JSON data, and route declared actions through an
 application policy. It does not depend on A2UI, React Native, WebViews, or a particular MCP SDK.
 
+The v1 public API is finalized and ready for production integration under the
+[1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
+
 ## Install
 
-Until the stable `1.0.0` release, select the RC package explicitly:
+Install the published build of the finalized v1 API:
 
 ```bash
 npm install @mcp-native/core@rc

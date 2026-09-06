@@ -20,12 +20,12 @@ Before creating a release:
 installation. Package smoke verifies every declared export, runtime and declaration source map,
 README, and exact MIT license in the packed artifacts. It installs the latest coordinated published
 `0.9.x` packages into a clean consumer and runs the documented migration-ready imports. It then
-replaces all seven packages with local candidate tarballs through an offline install before running
+replaces all seven packages with local release tarballs through an offline install before running
 the consumer again. The maintained Expo Go todo app remains an optional application-level example;
 it is not a package release gate.
 
 Use the [`1.0.0` readiness checklist](1.0-readiness.md) to distinguish automated repository checks
-from the independent reviews and registry checks required for the stable release. Summarize the
+from completed readiness decisions and registry checks required for publication. Summarize the
 result in the pull request or release. Do not commit raw logs, screenshots, generated applications,
 review reports, matrices, or transcripts solely to serve as release evidence.
 

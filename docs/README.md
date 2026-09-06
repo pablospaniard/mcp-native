@@ -10,7 +10,7 @@ diagrams. This page routes implementation and review work to the document that o
 | Own connection, discovery, calls, and result routing through one API | [`@mcp-native/host`](../packages/host/README.md), including React Native lifecycle integration |
 | Compose the protocol and rendering stages yourself                   | [Host integration checklist](host-integration-checklist.md), then the focused package guides   |
 | Import the low-level runtime and UI layers from one module           | [`mcp-native`](../packages/mcp-native/README.md)                                               |
-| Migrate custom A2UI `0.1` data                                       | [Migration to 1.0](migration-to-1.0.md) and the explicit `/legacy` entry points                |
+| Upgrade an existing integration to v1                                | [Migration to 1.0](migration-to-1.0.md)                                                        |
 
 Focused package guides: [core](../packages/core/README.md), [MCP SDK adapter](../packages/mcp/README.md),
 [A2UI](../packages/a2ui/README.md), [React Native](../packages/react-native/README.md), and
@@ -37,7 +37,7 @@ tracked after 1.0 and are not part of the current host.
 - [Native OAuth testing](native-oauth-testing.md) — secure storage and OS authentication-session
   responsibilities for protected HTTP.
 - [Native accessibility testing](native-accessibility-testing.md) — platform scenarios and the
-  runnable Expo proof.
+  runnable Expo example.
 - [WCAG 2.2 native assessment](wcag-2.2-native-assessment.md) — library and application ownership.
 - [A2UI performance limits](a2ui-v1-performance.md) — bounded parsing, updates, rendering, and
   retained memory.
@@ -62,8 +62,8 @@ Runnable examples:
 
 - [RFC-0001](RFC-0001-architecture.md) — package boundaries, data flow, capability model, and threat
   model.
-- [Compatibility policy](compatibility-policy.md) — proposed stable `1.x` API and behavior surface.
-- [1.0 readiness](1.0-readiness.md) — completed automation and remaining independent reviews and
+- [Compatibility policy](compatibility-policy.md) — finalized `1.x` API and behavior surface.
+- [1.0 readiness](1.0-readiness.md) — completed implementation, validation, and review gates, plus
   publication actions.
 - [Roadmap](roadmap.md) — completed milestones, the stable-release gate, and undated post-1.0 work.
 - [Release process](releasing.md) — coordinated packages, trusted publishing, and provenance.
@@ -71,7 +71,8 @@ Runnable examples:
 
 ## Current status
 
-MCP Native is in the `1.0.0-rc` release line, which includes the headless high-level host, its
-React Native provider, and the independently usable low-level packages; see the
-[changelog](../CHANGELOG.md) for release history. The five independent sign-off reviews are
-complete. The RC line provides final ecosystem validation before the stable `1.0.0` tag.
+MCP Native is ready for v1. The public API is finalized across the high-level host, its React
+Native provider, and the independently usable low-level packages. Independent reviews and release
+readiness decisions are complete. The [compatibility policy](compatibility-policy.md) defines the
+adopted `1.x` contract. Coordinated stable publication is tracked in the
+[release checklist](1.0-readiness.md); the [changelog](../CHANGELOG.md) records published versions.

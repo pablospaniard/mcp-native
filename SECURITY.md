@@ -1,14 +1,16 @@
 # Security Policy
 
 MCP Native processes server-controlled descriptions that can reach device UI and host-approved
-capabilities. Security reports help strengthen the current release candidate and the `1.0.0`
-release.
+capabilities. Its finalized v1 API includes explicit validation, authorization, and isolation
+boundaries. Security reports help maintain those guarantees.
 
 ## Supported versions
 
-The latest `0.9.x` package release is the current release-candidate line. Security fixes
-are developed on `main` and released on the latest applicable `0.9.x` patch. Users should stay on
-the newest patch; the long-term `1.x` compatibility guarantee begins at `1.0.0`.
+The `1.x` line is the security-maintained API line. Security fixes are developed on `main` and
+released in the latest applicable patch. Keep all MCP Native packages on one coordinated version
+and use the newest patch in that line. The [release history](CHANGELOG.md) identifies published
+builds; the [compatibility policy](docs/compatibility-policy.md) governs security corrections and
+upgrade guidance.
 
 ## Report a vulnerability
 
@@ -53,7 +55,7 @@ The foundational rule is documented in [RFC-0001](docs/RFC-0001-architecture.md)
 Surface-driven `dispatch()` invocations are validated and denied unless an explicit host policy resolves to `true`. Prefer argument-aware allowlists over tool-name checks; async allowlist predicates are awaited and only an explicit boolean `true` authorizes. Direct `callTool()` remains a trusted-host path with JSON validation only. Protocol-facing JSON rejects circular, non-plain, and non-finite values, and reconstructs prototype-named keys as ordinary own properties. WebView helpers deny inline and remote HTML by default, allowlist non-network inline base-URL schemes (`ui:` / `mcp:`), reject non-string URIs and embedded credentials, require exact remote origin allowlists, and never treat binary MCP blobs as documents. These protections do not authorize a tool, replace application permissions, or make the current WebView primitives a browser sandbox.
 
 The documented protocol profiles make these security boundaries testable. New A2UI integrations use
-the pinned v1 Candidate profile; the custom `0.1` parser is isolated for migration. MCP Apps hosts
+the pinned A2UI profile. MCP Apps hosts
 use the native sandbox and bridge contract, including bounded inbound work, serialized lifecycle
 sends, host error handling, and explicit platform permission integration. See [Standards and
 compatibility](docs/standards-compatibility.md) for the verified coverage.

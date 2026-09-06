@@ -1,4 +1,4 @@
-# `0.9.x` host requirements and verified integrations
+# v1 host requirements and verified integrations
 
 React `>=18.1.0` is the only peer dependency of the native renderer, high-level host, and convenience
 package. Native components, platform integrations, and application frameworks are supplied by the

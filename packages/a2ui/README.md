@@ -18,9 +18,12 @@ lifecycle messages, renderer messages, and the project-owned MCP binding. The
 [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md)
 contains the exact protocol coverage and limits.
 
+The v1 public API is finalized and ready for production integration under the
+[1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
+
 ## Install
 
-Until the stable `1.0.0` release, select the RC package explicitly:
+Install the published build of the finalized v1 API:
 
 ```bash
 npm install @mcp-native/a2ui@rc
@@ -33,7 +36,7 @@ concise (`SurfaceStore`, `parseEnvelope`, `Envelope`). Exact `"v1.0"` wire value
 not change. Earlier prefixed exports remain compatible aliases throughout `1.x`; see the
 [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
 
-## Start with A2UI v1 Candidate
+## Start with A2UI
 
 New integrations negotiate the project-owned MCP binding, resolve the pinned JSONL lifecycle
 stream, apply it to `SurfaceStore`, and validate the resulting snapshot against the host's

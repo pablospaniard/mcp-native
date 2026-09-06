@@ -6,6 +6,15 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+### Changed
+
+- Finalize the v1 documentation and adopt the `1.x` public API compatibility contract across all
+  seven packages. Mark implementation, review, and readiness decisions complete while tracking
+  coordinated stable publication separately.
+- Consolidate pre-v1 upgrade details in the migration guide, remove stale package-preview wording,
+  and describe runnable examples as application integrations. Exact protocol pins, security
+  boundaries, existing compatibility exports, and package versions are unchanged.
+
 ## 1.0.0-rc.1 - 2026-09-04
 
 First explicitly tagged `1.0.0` release candidate. Freezes the concise current-profile API names

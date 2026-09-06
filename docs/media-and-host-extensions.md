@@ -84,7 +84,7 @@ module or class names, raw styles, generic actions, commands, and unchecked prop
 and rejected. Parsed schemas and validated semantic props are recursively frozen, and policy
 requests are immutable snapshots.
 
-This host-extension mechanism is available in the current `0.9` line. It is not the post-`1.0`
+This host-extension mechanism is part of the finalized v1 API. It is not the post-`1.0`
 public registry for arbitrary standard contracts or custom input formats. Generate a safe local
 starting point with:
 

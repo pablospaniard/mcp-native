@@ -49,7 +49,7 @@ network service or a probabilistic dependency. The regular test and coverage gat
 Iteration counts and seeds are compatibility surfaces for the regression gate. Increasing them is
 safe after measuring CI cost; reducing them requires a reviewed rationale.
 
-## App-level demonstrations
+## Application integration
 
 These gates execute the protocol and render-plan layers under Node.js. The runnable [Expo Go todo
 app](../examples/expo-go-todolist/README.md) exercises the lifecycle and trusted React Native
