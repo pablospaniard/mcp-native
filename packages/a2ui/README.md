@@ -40,7 +40,9 @@ concise (`SurfaceStore`, `parseEnvelope`, `Envelope`). Exact `"v1.0"` wire value
 not change. Earlier prefixed exports remain compatible aliases throughout `1.x`; see the
 [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
 
-## Start with A2UI
+## Quick start
+
+### Start with A2UI
 
 New integrations negotiate the project-owned MCP binding, resolve the pinned JSONL lifecycle
 stream, apply it to `SurfaceStore`, and validate the resulting snapshot against the host's

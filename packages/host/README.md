@@ -1,6 +1,18 @@
-# `@mcp-native/host`
+<div align="center">
 
-High-level MCP Native orchestration for applications that want to connect, discover tools, call one,
+# @mcp-native/host
+
+### Connection, tool discovery, and result orchestration for MCP Native
+
+[![npm](https://img.shields.io/npm/v/@mcp-native/host)](https://www.npmjs.com/package/@mcp-native/host)
+[![downloads](https://img.shields.io/npm/dm/@mcp-native/host)](https://www.npmjs.com/package/@mcp-native/host)
+[![license](https://img.shields.io/npm/l/@mcp-native/host)](https://github.com/pablospaniard/mcp-native/blob/main/LICENSE)
+
+[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
+
+</div>
+
+`@mcp-native/host` provides high-level MCP Native orchestration for applications that want to connect, discover tools, call one,
 and resolve its supported result through one fail-closed contract.
 
 Use this package when the application wants one owner for connection, discovery, calls, result
@@ -18,9 +30,13 @@ Install the coordinated v1 packages:
 npm install @mcp-native/host@1 @mcp-native/mcp@1 @modelcontextprotocol/client react
 ```
 
+The package is ESM-only and includes TypeScript declarations.
+
 The example below uses `@mcp-native/mcp` to adapt the official client. A host may provide another
 implementation of the same closed connection contract, but it remains responsible for transport,
 server selection, authentication, secure storage, and platform integration.
+
+## Quick start
 
 `McpNativeHostController` owns a fresh connection unit, bounded retry lifecycle, automatic tool
 discovery, one active operation, cancellation, reconnect, stale-result rejection, and teardown.
@@ -196,3 +212,44 @@ its local `cause`; raw application error messages are not exposed to an MCP App.
 Treat event names, tool names, arguments, context, metadata, annotations, and user-facing text as
 untrusted hints: match them against host-authored policy and consent descriptions. Direct calls made
 by trusted application code remain a separate boundary.
+
+## Public API
+
+The package root exports the controller, result resolver, and shared action authorization:
+
+| Export                                                                    | Purpose                                                                  |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `McpNativeHostController`, `createMcpNativeHostController`                | Own connection, discovery, calls, cancellation, reconnect, and teardown. |
+| `McpNativeHostControllerOptions`, `McpNativeHostConnection`               | Define host-owned connection creation and lifecycle policy.              |
+| `McpNativeHostSnapshot`, `McpNativeHostResult`                            | Typed connection, discovery, call, and resolved-result state.            |
+| `McpNativeHostControllerError`                                            | Stable controller failure codes with local error causes.                 |
+| `MCP_NATIVE_HOST_EXTENSION_CAPABILITIES`                                  | Explicit A2UI and MCP Apps capability settings for negotiation.          |
+| `resolveMcpNativeHostResult`                                              | Validate and classify a tool result for a composed low-level host.       |
+| `createMcpNativeHostActionAuthorization`                                  | Serialize shared application-policy review across A2UI and MCP Apps.     |
+| `MCP_NATIVE_HOST_MAX_LISTENERS`, `MCP_NATIVE_HOST_MAX_PENDING_OPERATIONS` | Fixed listener and unsettled-operation limits.                           |
+
+The optional `@mcp-native/host/react-native` entry point exports the provider and result views:
+
+| Export                                      | Purpose                                                                             |
+| ------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `McpNativeHostProvider`, `useMcpNativeHost` | Own the controller lifecycle and expose its state and operations to React.          |
+| `McpNativeRegisteredHostResultView`         | Render results through a registered native host and optional local WebView adapter. |
+| `McpNativeHostResultView`                   | Render results using an explicitly supplied native component catalog.               |
+| `McpNativeHostRenderError`                  | Stable, redacted renderer failure codes.                                            |
+| `MCP_NATIVE_HOST_MAX_ORDINARY_TEXT_LENGTH`  | Bound ordinary MCP text mounted by the fallback renderer.                           |
+
+## Host responsibilities
+
+- Supply fresh client and transport ownership units, server selection, authentication, and secure storage.
+- Register locally compiled native components and enforce resource and device-capability policies.
+- Require explicit application approval before delivering surface actions; negotiation never grants execution.
+- Supply the local WebView adapter and preserve its sandbox, navigation, permission, and teardown controls.
+- Present ordinary MCP content as inert data and handle invalid results without switching renderers.
+
+See the [host integration checklist](https://github.com/pablospaniard/mcp-native/blob/main/docs/host-integration-checklist.md)
+and [security policy](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md) for production integration.
+Use the [focused packages](https://github.com/pablospaniard/mcp-native/tree/main/packages) when composing the lifecycle directly.
+
+## License
+
+[MIT](https://github.com/pablospaniard/mcp-native/blob/main/LICENSE)

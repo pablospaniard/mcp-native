@@ -163,8 +163,9 @@ Wrap the policy with `createExpiringGrantActionPolicy()` when the host offers re
 
 ## Related packages
 
+- [`@mcp-native/host`](https://www.npmjs.com/package/@mcp-native/host) coordinates connection, discovery, calls, and result rendering.
 - [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui) validates declarative surfaces and actions.
-- [`@mcp-native/mcp`](https://github.com/pablospaniard/mcp-native/tree/main/packages/mcp) adapts connected official SDK clients to this package's contracts.
+- [`@mcp-native/mcp`](https://www.npmjs.com/package/@mcp-native/mcp) adapts connected official SDK clients to this package's contracts.
 - [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) converts validated surfaces into trusted native render plans.
 - [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview) defines the HTML compatibility policy boundary.
 - [`mcp-native`](https://www.npmjs.com/package/mcp-native) re-exports the runtime and UI APIs.
