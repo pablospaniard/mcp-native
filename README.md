@@ -143,6 +143,40 @@ All packages are ESM-only and include TypeScript declarations. React `>=18.1.0` 
 dependency. The app supplies React Native, Expo if used, WebView, native components, and other
 platform integrations.
 
+## CLI
+
+The `mcp-native` package includes local diagnostics and starter-file generators:
+
+| Command                                                                 | Purpose                                                               |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `doctor [directory] [--json]`                                           | Check local package and native setup; optionally print a JSON report. |
+| `scaffold-catalog [output-directory]`                                   | Create `mcpNativeCatalog.tsx`, a starter React Native host catalog.   |
+| `scaffold-extension <extension-id> <PascalCaseName> [output-directory]` | Create a custom component's contract and local registration skeleton. |
+| `help`                                                                  | Print command syntax; `--help` and `-h` are aliases.                  |
+
+Run commands with `npx mcp-native`:
+
+```bash
+npx mcp-native doctor
+npx mcp-native doctor examples/expo-go-todolist --json
+npx mcp-native scaffold-catalog src/mcp
+npx mcp-native scaffold-extension com.aily/data-grid DataGrid src/mcp
+npx mcp-native help
+```
+
+With no command, the CLI runs `doctor`. Optional directories default to the current directory.
+Scaffolds create missing folders and never overwrite existing files.
+
+The extension example creates `src/mcp/DataGrid.manifest.json` (the allowed props, events, and
+component constraints) and `src/mcp/DataGrid.tsx` (a label placeholder and local registration).
+It does not build a working data grid. Implement the component, define allowed props and events,
+register it, negotiate support with the MCP server, and configure host policy.
+
+See the [full CLI reference](packages/mcp-native/README.md#cli) for argument and naming rules,
+defaults, outputs, and diagnostic exit statuses, and the
+[host-extension integration flow](docs/media-and-host-extensions.md#host-extension-flow) for
+custom components.
+
 ## What the app must provide
 
 MCP Native deliberately does not own the application shell. A production host supplies:
@@ -232,6 +266,7 @@ assigned release dates.
 ## Documentation
 
 - [Documentation home](docs/README.md) — route to the right guide.
+- [CLI reference](packages/mcp-native/README.md#cli) — diagnostics, scaffolds, arguments, and help.
 - [Product guide](docs/product-guide.md) — server and host responsibilities in plain language.
 - [Architecture](docs/RFC-0001-architecture.md) — package boundaries, data flow, and threat model.
 - [Capabilities](docs/capabilities.md) — catalog, design-system, media, and extension behavior.

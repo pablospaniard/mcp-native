@@ -58,17 +58,114 @@ const Surface = reactNative.HostSurface;
 
 Direct named re-exports and the previous prefixed compatibility aliases remain available.
 
-Run the bundled local diagnostics or generate safe starting points without network access:
+## CLI
+
+The bundled CLI checks local configuration and generates starter files. Running `npx mcp-native`
+without a command runs `doctor` in the current directory.
 
 ```bash
 npx mcp-native doctor
 npx mcp-native scaffold-catalog src/mcp
 npx mcp-native scaffold-extension com.example/data-grid DataGrid src/mcp
+npx mcp-native help
 ```
 
-Scaffolds refuse to overwrite existing files. The extension command emits a closed, bounded
-manifest and a local React Native registration skeleton; the application must still negotiate it
-and supply explicit policy.
+### doctor
+
+Checks a local `package.json` for common setup issues without changing files.
+
+```text
+doctor [directory] [--json]
+```
+
+| Argument or option | Required | Meaning                                                              |
+| ------------------ | -------- | -------------------------------------------------------------------- |
+| `directory`        | No       | Folder containing `package.json`; defaults to the current directory. |
+| `--json`           | No       | Print a JSON report instead of readable text.                        |
+
+For example, `npx mcp-native doctor examples/expo-go-todolist --json` reports the resolved
+`directory`, `packageName`, and `findings`, each with a `level`, `code`, and `message`.
+
+The checks cover missing MCP Native packages and mismatched declared version ranges. For native
+consumers, they also check React and React Native declarations, a workspace's Metro configuration
+file, and `tsconfig.json`. At a workspace root, missing MCP Native packages produce a warning;
+run the command in the consuming workspace too. These checks inspect declarations and file
+presence, so they do not prove that the application builds or runs.
+
+Errors produce exit status `1`; warnings alone leave status `0`. A missing or unreadable
+`package.json`, or invalid JSON, also fails with status `1` and an error on stderr.
+
+### scaffold-catalog
+
+Generates a starter local React Native host catalog.
+
+```text
+scaffold-catalog [output-directory]
+```
+
+| Argument           | Required | Meaning                                                                             |
+| ------------------ | -------- | ----------------------------------------------------------------------------------- |
+| `output-directory` | No       | Destination folder; defaults to the current directory. Missing folders are created. |
+
+For example, `npx mcp-native scaffold-catalog src/mcp` creates `src/mcp/mcpNativeCatalog.tsx`
+and prints its path. Existing files are never overwritten.
+
+The file exports `mcpNativeHost`, created with `createA2uiV1NativeHost`, and registers React
+Native `Button`, `Text`, `TextInput`, and `View`. It starts with empty event and function
+allowlists and an intrinsic `View` layout contract. Adapt the components, allowlists, and layout
+contracts to your application, then wire the exported host into your rendering flow. Keep the
+registration at module scope so component identity and local state remain stable.
+
+### scaffold-extension
+
+`scaffold-extension` generates starter files for a custom UI component's contract and local
+registration. It does not build a working data grid.
+
+```text
+scaffold-extension <extension-id> <PascalCaseName> [output-directory]
+```
+
+| Argument           | Required | Meaning                                                                                                          |
+| ------------------ | -------- | ---------------------------------------------------------------------------------------------------------------- |
+| `extension-id`     | Yes      | Namespaced ID, such as `com.aily/data-grid`; see naming rules below.                                             |
+| `PascalCaseName`   | Yes      | Component name, such as `DataGrid`: start with an uppercase ASCII letter, then use only ASCII letters or digits. |
+| `output-directory` | No       | Destination folder; defaults to the current directory. Missing folders are created.                              |
+
+The extension ID uses lowercase ASCII letters and digits in non-empty groups separated by `.`,
+`_`, or `-`. It must have at least two groups before an optional `/` suffix; the suffix uses the
+same characters and separators and must be non-empty. Spaces, uppercase letters, and extra
+slashes are not allowed.
+
+For example:
+
+```bash
+npx mcp-native scaffold-extension com.aily/data-grid DataGrid src/mcp
+```
+
+This creates:
+
+- `src/mcp/DataGrid.manifest.json`: the component contract, initially allowing a bounded `label`
+  prop and no events, with platform, accessibility, resource, permission, and limit declarations.
+- `src/mcp/DataGrid.tsx`: a placeholder that displays the label with React Native `Text`, plus a
+  local registration and an explicit mapper from semantic props to component props.
+
+Existing files are never overwritten. If either target file already exists, the command refuses
+to generate the pair.
+
+Next, implement the component, define its allowed props and events in the manifest, register it
+with the host, negotiate support with the MCP server, and configure host policy. Follow the
+[full host-extension integration flow](https://github.com/pablospaniard/mcp-native/blob/main/docs/media-and-host-extensions.md#host-extension-flow).
+
+### help
+
+Prints the command syntax without changing files. No arguments are required:
+
+```bash
+npx mcp-native help
+```
+
+`npx mcp-native --help` and `npx mcp-native -h` are equivalent. Use these at the command level;
+individual subcommands do not implement their own `--help` option.
 
 ## Native A2UI path
 
