@@ -6,8 +6,17 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+## 1.0.1 - 2026-09-07
+
+Documentation-only patch release of all seven coordinated packages. Runtime behavior, public APIs,
+and protocol/schema pins are unchanged.
+
 ### Documentation
 
+- Align all package READMEs with consistent headers, npm badges, navigation, installation, and
+  quick-start sections; add the host API summary, responsibilities, and license.
+- Document every bundled CLI command, including options and examples for `doctor`,
+  `scaffold-catalog`, `scaffold-extension`, and `help`.
 - Document the 18-component baseline versus broader React Native and protocol support, the existing
   custom-component integration path, and a planned extended catalog with per-adapter acceptance
   criteria and an iOS/Android support matrix.
