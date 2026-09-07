@@ -13,6 +13,15 @@ in the final v1 baseline, with a coordinated host/server upgrade documented in t
 [migration guide](migration-to-1.0.md#align-the-a2ui-schema-revision-on-both-peers). It does not
 establish an exception to the major-release rules for incompatible schema-pin changes in `1.x`.
 
+## A2UI specification boundary
+
+MCP Native supports a [pinned, feature-scoped profile of A2UI v1.0 Candidate](a2ui-v1-conformance.md).
+As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
+v1.0 as Candidate and v0.9.1 as the current production release. Stable MCP Native `1.x` packages
+do not imply a stable upstream A2UI v1.0 specification or support for A2UI v0.9.1. Later upstream
+revisions require review, explicit pin updates, and profile verification; compatibility never
+follows a moving branch automatically.
+
 ## Stable compatibility surfaces
 
 For `1.x`, the following are compatibility surfaces:

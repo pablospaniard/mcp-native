@@ -218,6 +218,12 @@ npm start
 | React                  | Peer dependency `>=18.1.0`                                                                          |
 | Direct native renderer | React Native; the package does not claim a React Native version range                               |
 
+As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
+v1.0 as Candidate and v0.9.1 as the current production release. MCP Native supports a pinned,
+feature-scoped profile of A2UI v1.0 Candidate. This does not claim full A2UI coverage, v0.9.1
+compatibility, or automatic compatibility with later upstream revisions. See the
+[implemented profile](docs/a2ui-v1-conformance.md) for supported features and exclusions.
+
 Read the [support matrix](docs/support-matrix.md) and [standards inventory](docs/standards-compatibility.md)
 for the exact tested boundaries and exclusions. First-class SwiftUI, Jetpack Compose, capability
 providers, custom input contracts, and later protocol profiles are tracked as post-1.0 work without

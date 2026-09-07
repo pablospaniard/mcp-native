@@ -8,6 +8,11 @@ components already compiled into the app.
 Use it when an MCP experience should look and behave like the rest of a native product while the
 application keeps control of code, design, navigation, permissions, and transport.
 
+Native A2UI support uses a [pinned, feature-scoped A2UI v1.0 Candidate profile](a2ui-v1-conformance.md).
+As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
+v1.0 as Candidate and v0.9.1 as the current production release. The profile documents exact
+coverage and exclusions; upstream changes do not become compatible automatically.
+
 ## A good fit for
 
 - native forms, settings, approval flows, and structured tool results that should use the app's

@@ -1,8 +1,14 @@
-# A2UI v1 Candidate conformance profile
+# A2UI v1.0 Candidate conformance profile
 
 This document is the feature-scoped conformance report for MCP Native's implemented A2UI adapter
 profile. The MCP Native v1 API is finalized. “Candidate” below identifies the exact upstream
 A2UI specification revision; it does not describe the readiness of the package API.
+
+As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
+v1.0 as Candidate and v0.9.1 as the current production release. The supported contract is the
+exact Candidate revision and feature set below; it does not include v0.9.1 compatibility or
+automatic compatibility with upstream changes. Coverage of all 18 basic-catalog component names
+does not imply support for every catalog property, expression, or protocol operation.
 
 ## Pinned baseline
 
@@ -31,6 +37,8 @@ advertising is limited to a host's complete implementation.
 | Agent to renderer | `updateComponents`         | Schema-validated and applied atomically.                                             |
 | Agent to renderer | `updateDataModel`          | Schema-validated and applied as a bounded RFC 6901 update.                           |
 | Agent to renderer | `deleteSurface`            | Schema-validated and applied to ordered state.                                       |
+| Agent to renderer | `callRendererFunction`     | Rejected; agent-initiated renderer-function execution is outside this profile.       |
+| Agent to renderer | `agentFunctionResponse`    | Rejected; agent-function RPC responses are outside this profile.                     |
 | Renderer to agent | `action`                   | Parsed, and constructed from resolved host-owned event input.                        |
 | Renderer to agent | `callAgentFunction`        | Parsed as owned data against the pinned schema. No execution or delivery is implied. |
 | Renderer to agent | `rendererFunctionResponse` | Parsed as owned data against the pinned schema. No transport is selected.            |
