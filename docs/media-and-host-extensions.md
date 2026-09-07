@@ -93,6 +93,9 @@ starting point with:
 npx mcp-native scaffold-extension com.example/data-grid DataGrid src/mcp
 ```
 
+See the [CLI argument and output reference](../packages/mcp-native/README.md#scaffold-extension)
+for naming rules, generated files, and next steps.
+
 The generated files are deliberately local and refuse to overwrite existing work. Data grids,
 charts, maps, and other domain widgets should remain leaf extensions with closed bounded props;
 they must not bring a component-library dependency into MCP Native or accept server-selected
