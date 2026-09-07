@@ -469,6 +469,33 @@ policy ship. Work may overlap, but dependency order remains explicit.
 | [15](https://github.com/pablospaniard/mcp-native/milestone/6) | [Universal native-capability providers](https://github.com/pablospaniard/mcp-native/issues/95)                | Stable capability manifest and broker contracts                          |
 | [16](https://github.com/pablospaniard/mcp-native/milestone/7) | [Protocol-profile evolution](https://github.com/pablospaniard/mcp-native/issues/96)                           | Upstream stable revisions and separately reviewed compatibility profiles |
 
+### Extended component catalog and adapter matrix
+
+Status: planned post-v1 workstream; initial component selection, release number, and date are pending.
+This work builds on the shipped Milestone 8 host-extension boundary. Adapters that need broader
+device capabilities must coordinate with Milestone 15; ordinary semantic component adapters can
+use the existing extension contract without waiting for that provider framework or Milestone 11.
+
+The deliverable is a bounded, maintained catalog of additional semantic components with named
+adapters and an iOS/Android support matrix. It does not promise to bundle every React Native
+component or expose arbitrary native APIs. See [component support and expansion](component-support.md)
+for the support levels, integration path, and per-adapter acceptance criteria.
+
+- [ ] Select and publish the initial component list from concrete application needs, with an owner
+      and explicit scope for each adapter; candidate examples are not supported entries.
+- [ ] Define namespaced, versioned semantic input/event contracts and implement locally compiled
+      adapters with explicit prop mapping, policy checks, cumulative limits, and deterministic fallback.
+- [ ] Publish a matrix naming each adapter package/export, implementation dependency versions,
+      iOS/Android availability, tested OS/toolchain ranges, build requirements, permissions, and limits.
+- [ ] Verify each supported entry with interaction, state, lifecycle, accessibility, performance,
+      hostile-input, unavailable-platform, and permission/resource-policy failure coverage.
+- [ ] Supply runnable examples and maintenance/migration guidance; distinguish planned, implemented,
+      and verified entries without changing the upstream basic-catalog identity or schema pin.
+
+Exit criterion: every entry in the selected initial catalog has a maintained adapter and explicit
+platform status, and every supported platform claim has the documented verification evidence.
+Applications continue to advertise only their installed, policy-ready subset.
+
 ### Milestone 11: standard contract registry and custom input adapters
 
 The v1 host has a closed built-in set of standard result handlers. This milestone adds the public
