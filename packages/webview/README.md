@@ -29,7 +29,22 @@ region. Composition remains host-authored and does not add any A2UI-to-WebView c
 navigation, or message path. See the [mixed-surface
 guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/mixed-surfaces.md).
 
-## Stable MCP Apps host flow
+The v1 public API is finalized and ready for production integration under the
+[1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
+
+## Install
+
+Install the v1 package:
+
+```bash
+npm install @mcp-native/webview@1
+```
+
+`@mcp-native/core` is installed as a dependency. The package is ESM-only and includes TypeScript declarations.
+
+## Quick start
+
+### Stable MCP Apps host flow
 
 ```ts
 import { createConsentActionPolicy } from "@mcp-native/core";
@@ -104,19 +119,6 @@ View-facing host features are advertised only when the matching host callback ex
 adapter requires `onError` so rejected message and external-link callbacks remain inside the host's
 controlled error boundary. Bridge work is capped at 128 concurrent inbound messages, and
 exactly-once tool lifecycle sends are serialized across asynchronous transports.
-
-The v1 public API is finalized and ready for production integration under the
-[1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
-
-## Install
-
-Install the v1 package:
-
-```bash
-npm install @mcp-native/webview@1
-```
-
-`@mcp-native/core` is installed as a dependency. The package is ESM-only and includes TypeScript declarations.
 
 ## Inline HTML (opt-in)
 

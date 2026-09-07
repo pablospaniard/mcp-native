@@ -37,14 +37,17 @@ npm install @mcp-native/react-native@1 react
 
 `@mcp-native/a2ui` and `@mcp-native/core` are installed as dependencies. React `>=18.1.0` is the
 only peer dependency. The renderer does not depend on Expo or import React Native; a native host
-supplies its locally bundled components and platform integrations.
+supplies its locally bundled components and platform integrations. The package is ESM-only and
+includes TypeScript declarations.
 
 The package root is the namespace for the current native renderer profile, so public names are
 concise (`Surface`, `HostSurface`, `createHost`). Exact A2UI `"v1.0"` wire values and schema pins do
 not change. Earlier prefixed exports remain compatible aliases throughout `1.x`; see the
 [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
 
-## Start with the A2UI v1 renderer
+## Quick start
+
+### Start with the A2UI v1 renderer
 
 New integrations mount `Surface` with an explicit catalog policy and locally bundled
 components. Continue with the [v1 render-plan adapter](#a2ui-v1-render-plan-adapter) for the complete

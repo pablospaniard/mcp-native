@@ -4,7 +4,11 @@
 
 ### A validated bridge from the official MCP TypeScript SDK to MCP Native
 
-[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Protocol support](https://github.com/pablospaniard/mcp-native/blob/main/docs/protocol-support.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Official SDK](https://github.com/modelcontextprotocol/typescript-sdk) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
+[![npm](https://img.shields.io/npm/v/@mcp-native/mcp)](https://www.npmjs.com/package/@mcp-native/mcp)
+[![downloads](https://img.shields.io/npm/dm/@mcp-native/mcp)](https://www.npmjs.com/package/@mcp-native/mcp)
+[![license](https://img.shields.io/npm/l/@mcp-native/mcp)](https://github.com/pablospaniard/mcp-native/blob/main/LICENSE)
+
+[GitHub](https://github.com/pablospaniard/mcp-native) · [Architecture](https://github.com/pablospaniard/mcp-native/blob/main/docs/RFC-0001-architecture.md) · [Standards status](https://github.com/pablospaniard/mcp-native/blob/main/docs/standards-compatibility.md) · [Security](https://github.com/pablospaniard/mcp-native/blob/main/SECURITY.md)
 
 </div>
 
