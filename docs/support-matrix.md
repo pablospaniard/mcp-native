@@ -16,8 +16,13 @@ compatibility boundaries.
 | Android          | platform requirements inherited from the host                                       | generated x86_64 debug application                         |
 | iOS              | platform requirements inherited from the host                                       | generated unsigned simulator application                   |
 | MCP SDK          | `@modelcontextprotocol/client ^2.0.0`                                               | package integration and conformance tests                  |
-| A2UI             | exact Candidate revision `8ff4651232ab0e02b0123730b502711170637a3a`                 | vendored schema checksums and declared profile tests       |
+| A2UI             | feature-scoped v1.0 Candidate at `8ff4651232ab0e02b0123730b502711170637a3a`         | vendored schema checksums and declared profile tests       |
 | MCP Apps         | stable `2026-01-26`, official schema package `@modelcontextprotocol/ext-apps@1.7.5` | interoperability and hostile-message tests                 |
+
+The A2UI row covers only the [implemented profile](a2ui-v1-conformance.md), including its
+exclusions. As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
+v1.0 as Candidate and v0.9.1 as the current production release.
+Later upstream revisions require an explicit reviewed pin update.
 
 The runnable example applications add end-to-end evidence for the primitives catalog and mixed
 surfaces. Their pinned application dependencies keep each fixture reproducible; they do not create

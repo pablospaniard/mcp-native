@@ -1,7 +1,7 @@
 # A2UI v1 automated robustness gates
 
 This document defines the repeatable Node.js performance and generated-input gates for the
-supported A2UI v1 Candidate profile. These are regression ceilings for protocol parsing, ordered
+supported A2UI v1.0 Candidate profile. These are regression ceilings for protocol parsing, ordered
 state updates, and trusted render-plan construction; they are not claims about native frame time or
 device memory use.
 

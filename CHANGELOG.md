@@ -6,6 +6,16 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+### Documentation
+
+- Document the 18-component baseline versus broader React Native and protocol support, the existing
+  custom-component integration path, and a planned extended catalog with per-adapter acceptance
+  criteria and an iOS/Android support matrix.
+- Clarify repository-wide A2UI claims: MCP Native supports a pinned, feature-scoped profile of
+  A2UI v1.0 Candidate; upstream identifies v0.9.1 as its current production release as of
+  2026-09-07. Distinguish component-name coverage and stable package APIs from full protocol
+  coverage, and make unsupported RPC messages and reviewed revision updates explicit.
+
 ## 1.0.0 - 2026-09-06
 
 First stable release of all seven coordinated MCP Native packages. Adopts the `1.x` compatibility

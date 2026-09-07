@@ -8,6 +8,11 @@ React Native, and WebView packages. The `1.x` compatibility contract is adopted;
 
 ## v1 product and release scope
 
+A2UI support is complete only for the [pinned, feature-scoped v1.0 Candidate profile](a2ui-v1-conformance.md).
+As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
+v1.0 as Candidate and v0.9.1 as the current production release. Full protocol coverage, v0.9.1
+compatibility, and automatic adoption of later upstream revisions are not part of that milestone.
+
 The v1 A2UI baseline includes upstream function-envelope schema alignment at
 `8ff4651232ab0e02b0123730b502711170637a3a`. Strict function validation and revision-mismatch
 fallback are covered by regression tests. The component/function set and callable APIs are
@@ -41,7 +46,7 @@ The release sequence records the shipped foundations, finalized v1 scope, and po
 | Release      | Outcome                                                                                        | Release gate                                                                                                                                                                 |
 | ------------ | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `0.7.0`      | Complete the non-media A2UI basic-catalog renderer and stable design-system boundary           | Every supported component passes schema, hostile-input, interaction, accessibility, and iOS/Android fixture coverage                                                         |
-| `0.8.0`      | Add policy-gated media and compiled host-extension components                                  | The complete pinned basic catalog is covered, and no server value can resolve code, native classes, commands, or unchecked props                                             |
+| `0.8.0`      | Add policy-gated media and compiled host-extension components                                  | All 18 pinned basic-catalog component names are covered within profile limits, and no server value can resolve code, native classes, commands, or unchecked props            |
 | `0.9.0`      | Deliver mixed native/WebView hosting and establish the public API baseline                     | One production-shaped reference host passes lifecycle, isolation, accessibility, performance, migration, and package-consumer tests                                          |
 | `0.9.x`      | Complete integration checks, documentation, and an optional Expo Go example                    | The coordinated package artifacts pass repository and native-host checks; the example is not a package release gate                                                          |
 | `1.0.0`      | Ship plug-and-play standard-result hosting and publish the reviewed stable contract            | A consumer can connect, call, and safely render supported results through one host API; no release-blocking review, compatibility, documentation, or conformance gaps remain |
@@ -333,7 +338,7 @@ Status: released in `0.8.0`.
 - [x] Publish an [extension-author guide and compatibility manifest format](media-and-host-extensions.md) that clearly assigns
       implementation, versioning, security, and accessibility responsibility to the host author.
 
-Exit criterion: met by the `0.8.0` release. The full pinned basic catalog is implemented, and an
+Exit criterion: met by the `0.8.0` release. All 18 pinned basic-catalog component names are implemented within profile limits, and an
 application can safely expose one locally compiled semantic component without giving the server a
 code-resolution, native-command, unchecked-prop, or capability-escalation path.
 
@@ -360,7 +365,7 @@ Status: released in `0.9.0`.
       error types, wire names, defaults, and deprecations. Establish the `1.0.0` compatibility
       and migration policy and API baseline.
 - [x] Decide and document removal or isolation of the deprecated custom A2UI `0.1` proof surface;
-      it must not remain ambiguous with the supported A2UI v1 Candidate profile in `1.0.0`.
+      it must not remain ambiguous with the supported A2UI v1.0 Candidate profile in `1.0.0`.
 - [x] Run package-consumer fixtures against the declared React Native minimum, React, TypeScript,
       Node.js, iOS, Android, New Architecture, and default JavaScript engine, with exact ranges and
       the automated baseline recorded.
@@ -463,6 +468,33 @@ policy ship. Work may overlap, but dependency order remains explicit.
 | [14](https://github.com/pablospaniard/mcp-native/milestone/5) | [First-class Jetpack Compose renderer](https://github.com/pablospaniard/mcp-native/issues/94)                 | Platform-neutral renderer foundation                                     |
 | [15](https://github.com/pablospaniard/mcp-native/milestone/6) | [Universal native-capability providers](https://github.com/pablospaniard/mcp-native/issues/95)                | Stable capability manifest and broker contracts                          |
 | [16](https://github.com/pablospaniard/mcp-native/milestone/7) | [Protocol-profile evolution](https://github.com/pablospaniard/mcp-native/issues/96)                           | Upstream stable revisions and separately reviewed compatibility profiles |
+
+### Extended component catalog and adapter matrix
+
+Status: planned post-v1 workstream; initial component selection, release number, and date are pending.
+This work builds on the shipped Milestone 8 host-extension boundary. Adapters that need broader
+device capabilities must coordinate with Milestone 15; ordinary semantic component adapters can
+use the existing extension contract without waiting for that provider framework or Milestone 11.
+
+The deliverable is a bounded, maintained catalog of additional semantic components with named
+adapters and an iOS/Android support matrix. It does not promise to bundle every React Native
+component or expose arbitrary native APIs. See [component support and expansion](component-support.md)
+for the support levels, integration path, and per-adapter acceptance criteria.
+
+- [ ] Select and publish the initial component list from concrete application needs, with an owner
+      and explicit scope for each adapter; candidate examples are not supported entries.
+- [ ] Define namespaced, versioned semantic input/event contracts and implement locally compiled
+      adapters with explicit prop mapping, policy checks, cumulative limits, and deterministic fallback.
+- [ ] Publish a matrix naming each adapter package/export, implementation dependency versions,
+      iOS/Android availability, tested OS/toolchain ranges, build requirements, permissions, and limits.
+- [ ] Verify each supported entry with interaction, state, lifecycle, accessibility, performance,
+      hostile-input, unavailable-platform, and permission/resource-policy failure coverage.
+- [ ] Supply runnable examples and maintenance/migration guidance; distinguish planned, implemented,
+      and verified entries without changing the upstream basic-catalog identity or schema pin.
+
+Exit criterion: every entry in the selected initial catalog has a maintained adapter and explicit
+platform status, and every supported platform claim has the documented verification evidence.
+Applications continue to advertise only their installed, policy-ready subset.
 
 ### Milestone 11: standard contract registry and custom input adapters
 

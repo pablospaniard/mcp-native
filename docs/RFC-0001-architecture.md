@@ -1,7 +1,7 @@
 # RFC-0001: MCP Native architecture
 
 - Status: Accepted; architecture retained through Milestone 10
-- Protocol profiles: [MCP](protocol-support.md), [A2UI v1 Candidate](a2ui-v1-conformance.md), and
+- Protocol profiles: [MCP](protocol-support.md), [A2UI v1.0 Candidate](a2ui-v1-conformance.md), and
   [MCP Apps](mcp-apps-compatibility.md)
 - Date: 2026-08-25
 - Last updated: 2026-09-06
@@ -9,7 +9,7 @@
 ## Summary
 
 MCP Native turns MCP resources and actions into host-controlled native UI. It parses the documented
-A2UI v1 Candidate profile into an internal trusted render plan, maps that plan to a local component
+A2UI v1.0 Candidate profile into an internal trusted render plan, maps that plan to a local component
 catalog, and returns validated actions to a host-owned delivery callback.
 
 HTML MCP Apps use a separately policy-gated WebView path. The WebView package implements the
@@ -80,7 +80,7 @@ The v1 adapter parses schema-validated lifecycle envelopes into bounded ordered 
 
 ### `@mcp-native/react-native`
 
-Owns the native component catalog, React Native rendering, event translation, accessibility defaults, and host customization. The v1 typed render plan covers the complete pinned A2UI basic catalog plus exactly negotiated local host extensions.
+Owns the native component catalog, React Native rendering, event translation, accessibility defaults, and host customization. The v1 typed render plan covers the supported semantics of all 18 pinned A2UI basic-catalog components plus exactly negotiated local host extensions.
 
 The renderer accepts a catalog of locally bundled components instead of importing or resolving components named by the server. It explicitly selects every prop crossing into that catalog, derives closed accessibility semantics, and never spreads unchecked plan or server props. Hosts may use typed adapter helpers to translate those selected props into Expo UI, Gluestack, another design system, or application-owned components. The v1 catalog requires the four base primitives and provides optional slots for `Image`, `Icon`, `Divider`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, `Modal`, `Video`, and `AudioPlayer`; capability advertising is derived from installed, policy-ready slots. Closed variant catalogs may substitute host-owned structure, text, button, input, image, and choice-picker implementations. Required image and media grants carry exact resource and playback budgets to enforcing host loaders. Exactly negotiated, namespaced host extensions bind closed local manifests to helper-created registrations and explicit capability grants; inline catalogs remain disabled. None of these mechanisms lets a server select an import, native class, SVG payload, raw style, arbitrary prop, or command.
 
@@ -149,7 +149,7 @@ MCP extension support is determined only from validated, explicit client and ser
 ## Finalized v1 implementation
 
 The v1 API covers the official SDK adapter and OAuth host boundary, the pinned A2UI profile and
-complete basic catalog, compiled host extensions, the MCP Apps native-host profile, mixed
+all 18 basic-catalog component names within profile limits, compiled host extensions, the MCP Apps native-host profile, mixed
 native/WebView composition, and the high-level host workflow. Implementation and independent
 review are complete; the [1.x compatibility policy](compatibility-policy.md) governs these boundaries.
 
@@ -171,7 +171,7 @@ retry through another executable renderer. Existing integrations have a separate
 
 The MCP `2026-07-28` foundation is complete for RFC-0001's client boundary. The tool/resource boundary preserves official metadata, schemas, annotations, discriminated content, and cache semantics; a pinned integration test exercises the SDK's current HTTP handler/fetch path; and the selected official client conformance scenarios pass without expected failures. The conformance gate ingests the frozen official requirements fixture and requires every scored client requirement to be selected or explicitly excluded. Shared-store integration tests also prove that private cache entries remain isolated by host-provided principal partitions while public entries may be reused only for the same server identity and request. The exact target, tested `2025-11-25` compatibility lane, implemented operations, and [pinned conformance coverage](mcp-conformance.md) are documented explicitly. The official SDK continues to own wire behavior.
 
-The extension and capability substrate is also complete. Core validates prefixed extension maps and requires mutual declarations; the SDK adapter exchanges settings on the modern HTTP path; metadata alone never grants support; and the project-owned A2UI binding pins an exact Candidate revision and ordered resource transport with text/data fallback. The A2UI package parses lifecycle envelopes, retains bounded ordered state, validates complete snapshots against the pinned basic catalog plus explicit host allowlists, including nested expressions in literal `formatString` sources reconstructed as catalog calls, and constructs the supported official renderer action envelope. The React Native package adapts and mounts the complete basic catalog with bounded dynamic lists, renderer-local typed bindings, bounded string/number/currency/date/plural formatting, pure boolean and validation evaluation, supported checks, dispatch-time template event resolution, required image and media grants, press-time policy-gated HTTP(S) `openUrl`, and closed locally compiled host extensions while rejecting unsupported components and functions. See the [standards-first roadmap](roadmap.md) and [media/extension profile](media-and-host-extensions.md).
+The extension and capability substrate is also complete. Core validates prefixed extension maps and requires mutual declarations; the SDK adapter exchanges settings on the modern HTTP path; metadata alone never grants support; and the project-owned A2UI binding pins an exact Candidate revision and ordered resource transport with text/data fallback. The A2UI package parses lifecycle envelopes, retains bounded ordered state, validates complete snapshots against the pinned basic catalog plus explicit host allowlists, including nested expressions in literal `formatString` sources reconstructed as catalog calls, and constructs the supported official renderer action envelope. The React Native package adapts and mounts all 18 pinned basic-catalog component names within profile limits with bounded dynamic lists, renderer-local typed bindings, bounded string/number/currency/date/plural formatting, pure boolean and validation evaluation, supported checks, dispatch-time template event resolution, required image and media grants, press-time policy-gated HTTP(S) `openUrl`, and closed locally compiled host extensions while rejecting unsupported components and functions. See the [standards-first roadmap](roadmap.md) and [media/extension profile](media-and-host-extensions.md).
 
 MCP Apps uses a separate stable native-host profile. Its grant, resource resolver, sandbox, and
 bridge are explicit boundaries, so native A2UI and HTML Apps can run as host-created sibling regions

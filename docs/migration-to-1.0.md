@@ -71,7 +71,7 @@ import { McpNativeSurface, parseA2uiSurface } from "mcp-native/legacy";
 The `/legacy` subpaths preserve the custom `version: "0.1"` meaning; they never reinterpret that
 input as A2UI v1. They remain isolated, frozen, and eligible only for security and critical
 correctness fixes, and receive no new A2UI v1 components, functions, capabilities, extensions, or
-renderer behavior. New integrations should use the A2UI v1 Candidate flow instead; see the
+renderer behavior. New integrations should use the A2UI v1.0 Candidate flow instead; see the
 [A2UI package guide](https://github.com/pablospaniard/mcp-native/tree/main/packages/a2ui).
 
 ## Keep MCP Apps WebView isolation props

@@ -34,6 +34,8 @@ tracked after 1.0 and are not part of the current host.
 - [Host integration checklist](host-integration-checklist.md) — transport, catalogs, policy,
   lifecycle, shell layout, permissions, and errors.
 - [Support matrix](support-matrix.md) — package requirements and automated integration evidence.
+- [Component support and expansion](component-support.md) — the 18-component baseline, custom
+  React Native integration, and acceptance criteria for a maintained extended catalog.
 - [Native OAuth testing](native-oauth-testing.md) — secure storage and OS authentication-session
   responsibilities for protected HTTP.
 - [Native accessibility testing](native-accessibility-testing.md) — platform scenarios and the

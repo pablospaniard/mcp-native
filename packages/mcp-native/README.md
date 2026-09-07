@@ -19,10 +19,16 @@ WebView APIs. It does not include the official MCP SDK adapter or the high-level
 [`@mcp-native/host`](https://www.npmjs.com/package/@mcp-native/host) for the connect-call-render
 workflow. Use this package when the application wants to compose the low-level layers itself.
 
-This package contains the validated low-level React Native feature set: A2UI v1 Candidate and the
+This package contains the validated low-level React Native feature set: a pinned, feature-scoped A2UI v1.0 Candidate profile and the
 stable MCP Apps `2026-01-26` host flow. Public standard-contract registration and
 application-defined custom input adapters remain post-1.0 work. Negotiated, locally compiled
 semantic host extensions are already supported.
+
+As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
+v1.0 as Candidate and v0.9.1 as the current production release. See the
+[implemented A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md)
+for exact coverage and exclusions; this package does not claim v0.9.1 compatibility or automatic
+compatibility with later upstream revisions.
 
 For the big picture, start with the [product guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/product-guide.md).
 
@@ -79,7 +85,7 @@ and the [`@mcp-native/react-native` adapter documentation](https://github.com/pa
 | Package                                                                              | What it provides                                                                  |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
 | [`@mcp-native/core`](https://www.npmjs.com/package/@mcp-native/core)                 | MCP client contracts, runtime delegation, JSON types, and declared tool actions.  |
-| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Feature-scoped v1 Candidate negotiation, parsing, and surface state.              |
+| [`@mcp-native/a2ui`](https://www.npmjs.com/package/@mcp-native/a2ui)                 | Feature-scoped v1.0 Candidate negotiation, parsing, and surface state.            |
 | [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native) | Trusted plans, local v1 state/actions, hooks, and a host-owned component catalog. |
 | [`@mcp-native/webview`](https://www.npmjs.com/package/@mcp-native/webview)           | Stable Apps discovery, sandbox, native adapter, and JSON-RPC bridge.              |
 

@@ -1,6 +1,7 @@
 # Media and host extensions
 
-Milestone 8 completes the pinned A2UI basic catalog with policy-gated `Video` and `AudioPlayer`
+Milestone 8 completes component-name coverage of the pinned A2UI v1.0 Candidate basic catalog
+within the [feature-scoped profile](a2ui-v1-conformance.md), adding policy-gated `Video` and `AudioPlayer`
 and gives applications a closed way to expose their own locally compiled semantic components. The
 host continues to own code, native classes, libraries, prop and style mapping, permissions, and
 imperative commands.

@@ -13,10 +13,14 @@
 </div>
 
 `@mcp-native/a2ui` turns A2UI lifecycle messages into validated surface state that a host can safely
-render. It covers the documented A2UI v1 Candidate profile: pinned schemas, catalog capabilities,
+render. It supports a pinned, feature-scoped profile of A2UI v1.0 Candidate: schemas, catalog capabilities,
 lifecycle messages, renderer messages, and the project-owned MCP binding. The
 [A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md)
 contains the exact protocol coverage and limits.
+
+As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
+v1.0 as Candidate and v0.9.1 as the current production release. This package does not claim
+v0.9.1 compatibility, full A2UI coverage, or automatic compatibility with later upstream revisions.
 
 The v1 public API is finalized and ready for production integration under the
 [1.x compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
@@ -76,7 +80,7 @@ const agentCapabilities = parseAgentCapabilities(untrustedAgentMetadata);
 const catalogs = negotiateCapabilities(agentCapabilities, rendererCapabilities);
 ```
 
-These APIs close fields the pinned schemas leave permissive, require the protocol's normative agent catalog list, reject empty or duplicate IDs, and keep inline catalogs disabled. A host must advertise only catalogs it fully implements. The React Native adapter implements the complete basic catalog but still derives capability names from installed, policy-ready component slots; component-name coverage alone is not grounds to advertise functions or policies the host did not install.
+These APIs close fields the pinned schemas leave permissive, require an explicit agent catalog list as a stricter-than-schema profile rule, reject empty or duplicate IDs, and keep inline catalogs disabled. A host must advertise only catalogs it fully implements. The React Native adapter implements all 18 pinned basic-catalog component names within the documented feature limits but still derives capability names from installed, policy-ready component slots; component-name coverage alone is not grounds to advertise functions or policies the host did not install.
 
 Locally compiled semantic components use the separate project-owned
 `io.mcp-native/a2ui-host-extensions` profile. Its helpers parse closed compatibility manifests,
@@ -115,7 +119,7 @@ const surface = store.getValidated(
 );
 ```
 
-Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` agent-to-renderer envelopes are accepted by the lifecycle parser. Raw store snapshots may be incomplete while ordered updates arrive. Store snapshots include a host-owned `dataModelRevision` that changes only after an accepted agent data-model update, allowing renderers to preserve local edits across equivalent fresh snapshots. A batch is capped at 1,024 envelopes and at the store-wide JSON-value and string-work budgets; envelopes are parsed sequentially and any failure rolls back the batch. The store bounds retained surfaces and components, plus cumulative retained JSON values and string/key code units across all surfaces; component replacements update those budgets incrementally. `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, component placement rules, and any negotiated extension registry. The React Native package adapts and mounts every basic-catalog component, including bounded dynamic lists, typed renderer-local bindings, formatting, pure boolean and validation functions, supported checks, required image/media grants, host-policy-gated HTTP(S) `openUrl`, and closed local extensions after revalidation. `createActionEnvelope` constructs actions, while `parseRendererToAgentEnvelope` validates all four pinned renderer-to-agent message kinds as owned data. `createActionDeliveryHandler` adds a serialized, fail-closed authorization boundary before a host-owned action transport; policy and delivery receive separate owned copies. An overlapping action is denied before its untrusted envelope or data model is parsed and therefore is not passed to `onDenied`. Parsing does not execute functions, select transport, or grant device access. See the [exact conformance profile and migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
+Only `createSurface`, `updateComponents`, `updateDataModel`, and `deleteSurface` agent-to-renderer envelopes are accepted by the lifecycle parser. Raw store snapshots may be incomplete while ordered updates arrive. Store snapshots include a host-owned `dataModelRevision` that changes only after an accepted agent data-model update, allowing renderers to preserve local edits across equivalent fresh snapshots. A batch is capped at 1,024 envelopes and at the store-wide JSON-value and string-work budgets; envelopes are parsed sequentially and any failure rolls back the batch. The store bounds retained surfaces and components, plus cumulative retained JSON values and string/key code units across all surfaces; component replacements update those budgets incrementally. `getValidated` is the required pre-render boundary for the pinned basic catalog, explicit host component/event/function allowlists, reachable child references and cycles, template-aware binding paths, component placement rules, and any negotiated extension registry. The React Native package adapts and mounts the supported semantics of all 18 pinned basic-catalog components, including bounded dynamic lists, typed renderer-local bindings, formatting, pure boolean and validation functions, supported checks, required image/media grants, host-policy-gated HTTP(S) `openUrl`, and closed local extensions after revalidation. `createActionEnvelope` constructs actions, while `parseRendererToAgentEnvelope` validates all four pinned renderer-to-agent message kinds as owned data. `createActionDeliveryHandler` adds a serialized, fail-closed authorization boundary before a host-owned action transport; policy and delivery receive separate owned copies. An overlapping action is denied before its untrusted envelope or data model is parsed and therefore is not passed to `onDenied`. Parsing does not execute functions, select transport, or grant device access. See the [exact conformance profile and migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md).
 
 ## Public API
 

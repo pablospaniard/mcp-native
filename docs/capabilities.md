@@ -34,7 +34,10 @@ An end-to-end flow is:
 
 ## Current native catalog
 
-The React Native renderer covers every component in the pinned A2UI v1.0 Candidate basic catalog:
+The React Native renderer covers all 18 component names in the pinned A2UI v1.0 Candidate basic
+catalog, within the [feature-scoped profile](a2ui-v1-conformance.md). This is component-name
+coverage; individual properties, expressions, and protocol operations remain subject to the
+profile limits. Supported components are:
 
 - layout and content: `Row`, `Column`, `List`, `Card`, `Text`, `Image`, `Icon`, `Divider`;
 - controls: `Button`, `TextField`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`;
@@ -47,6 +50,8 @@ HTTP(S) `openUrl` action.
 
 Each app chooses the subset it wants to offer. A host advertises a component only after installing
 its implementation and any required policy.
+The [component support and expansion guide](component-support.md) distinguishes this baseline from
+the wider React Native ecosystem and explains the existing extension path and planned adapter catalog.
 An image-capable host must additionally provide a loader that enforces the exact origin, redirect,
 byte, decoded-size, and cache grant supplied with every request. The renderer also caps the complete
 surface at 64 images, 100 MiB of granted transfer bytes, and 268,435,456 granted decoded pixels.
