@@ -8,6 +8,13 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Temporary Android engine feasibility probe: the exact iOS JavaScript bundle and 20-case corpus run
+  through AndroidX JavaScriptEngine with native JSON, authorization, lifecycle and limit checks.
+  Provider capabilities, formatting and running-isolate termination are verified on one emulator.
+  Includes pinned debug build tooling and independent report comparison; no public package, Compose
+  renderer, native Kotlin semantics or device-performance claim. Cleanup remains required before
+  mainline promotion alongside the iOS experiment.
+
 - Scoped iOS runtime comparison: JavaScriptCore and independent Swift form semantics run the shared
   20-case corpus and the same SwiftUI interaction/lifecycle checks. Includes a pinned upstream reuse
   assessment, bounded native host, reproducible simulator command and CI scoped to relevant

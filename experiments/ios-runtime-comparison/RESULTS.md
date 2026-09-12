@@ -71,7 +71,7 @@ validation work is substantially larger than this prototype.
 
 Keep shared JavaScript as the leading **next experiment** because it reuses the production semantic
 and validation implementation, and its Apple bridge now has concrete behavioral evidence. Do not
-select it for production until the Android engine probe, interruptibility/lifecycle design, device
+select it for production until Android provider support, interruptibility/lifecycle design, device
 budgets and measurements, broader hostile cases, and platform accessibility checks are complete.
 The native path remains viable; it needs an explicit parity budget and another upstream reuse review
 before growing into a second production validator.
@@ -89,6 +89,8 @@ discarded prototype, temporary workflow and experiment-only dependencies. The RE
 cleanup inventory. Git history preserves reproducibility after removal. Experiment CI is limited
 to relevant integration PRs; it is not a permanent check on every PR.
 
-Next: run the minimal Android engine/bundling/Intl probe against this exact corpus, then review a
-single session contract covering revisions, input events, admission cancellation, teardown and host
-authorization. Leave the package decision and milestone 12/13 completion open.
+Follow-up: the [Android probe](../android-runtime-probe/RESULTS.md) now passes the exact bundle and
+corpus on one emulator/provider, including termination of an already-running isolate. Next, review
+a single session contract covering revisions, input events, admission cancellation, teardown and
+host authorization, including the remaining iOS lifecycle and Android provider-policy gaps. Leave
+the package decision and milestone 12/13 completion open.

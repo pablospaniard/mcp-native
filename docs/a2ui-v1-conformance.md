@@ -138,6 +138,10 @@ a focused `formatDate` case covers render rejection and recovery without expandi
 Two [experimental iOS runners](../experiments/ios-runtime-comparison/README.md) now execute the same
 cases through JavaScriptCore and independent Swift semantics. Their narrower input limits and
 simulator evidence do not expand this production conformance profile; no Compose runner exists yet.
+The [Android engine probe](../experiments/android-runtime-probe/README.md) runs the identical bundle
+and corpus with native admission/authorization checks on one emulator provider. Its feature-gated
+engine support and termination probes do not expand the production wire profile or claim Compose UI
+or native Kotlin semantic parity.
 
 ## Candidate interpretations
 

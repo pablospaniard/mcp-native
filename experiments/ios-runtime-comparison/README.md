@@ -24,6 +24,9 @@ Before promotion to `main`:
 - Update documentation links and verify that routine checks no longer depend on this directory.
   Git history retains the discarded implementation and original comparison evidence.
 
+The [Android engine probe](../android-runtime-probe/README.md) consumes this temporary bundle builder
+and shared session. Remove its directory, root script and comparator test as part of the same cleanup.
+
 ## Run
 
 From the repository root on macOS with Xcode and an iOS 18+ simulator installed:

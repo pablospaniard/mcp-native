@@ -533,8 +533,11 @@ action authorization, invalid input, unreachable event sources, and bounded list
 Render-rejection cases exercise the mounted local state and recovery through the surface boundary.
 `npm run test:renderer-conformance` runs it independently; the normal check suite also includes it.
 The [iOS comparison](../experiments/ios-runtime-comparison/RESULTS.md) also runs all 20 cases through
-JavaScriptCore and independent Swift form semantics, with the same SwiftUI controls. Android probes,
-full native parity, device performance, and the final shared contract remain outstanding.
+JavaScriptCore and independent Swift form semantics, with the same SwiftUI controls. The
+[Android engine probe](../experiments/android-runtime-probe/RESULTS.md) passes the same corpus using
+the exact JavaScript bundle on one emulator/provider and demonstrates running-isolate termination.
+Broader provider support, full native parity, device performance and the final shared contract remain
+outstanding; reviewing that contract is the next step.
 
 - [ ] Extract and freeze platform-neutral renderer inputs, state transitions, actions, errors,
       lifecycle, limits, and conformance fixtures without moving SwiftUI, Compose, React Native,
@@ -585,6 +588,10 @@ Exit criterion: SwiftUI is a first-class renderer for the documented semantic pr
 fail-closed boundary and published platform-specific compatibility limits as React Native.
 
 ### Milestone 14: first-class Jetpack Compose renderer
+
+The [Android engine probe](../experiments/android-runtime-probe/README.md) establishes shared-runtime
+feasibility on one Android 37 emulator with provider feature gates. It does not implement Compose
+views, native Kotlin semantics, accessibility or a supported Android SDK; the exit criteria stay open.
 
 - [ ] Build a Jetpack Compose renderer and Android host integration with native lifecycle, state,
       focus, back handling, accessibility, font scaling, reduced motion, localization, RTL, resources,

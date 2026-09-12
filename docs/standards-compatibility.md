@@ -34,6 +34,10 @@ Experiment boundary probes also cover nested layouts through their common 64-com
 and malformed envelopes that preserve session state.
 The latter have narrower declared inputs and simulator evidence only; supported SDK, full native
 profile, physical-device and Compose compatibility claims are unchanged.
+The [Android engine probe](../experiments/android-runtime-probe/README.md) also executes the exact
+shared JavaScript bundle and corpus on one Android 37 emulator/WebView provider. This adds engine,
+JSON-bridge and termination evidence only; there is no Compose renderer or independent Kotlin
+conformance implementation.
 
 ## Official references
 
