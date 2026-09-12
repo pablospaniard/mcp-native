@@ -41,6 +41,11 @@ sessions. This adds engine,
 JSON-bridge and termination evidence only; there is no Compose renderer or independent Kotlin
 conformance implementation.
 
+The [native session contract](RFC-0003-native-session-contract.md) is a proposed project design.
+Its async identity, authorization and lifecycle requirements are implementation gates, not additional
+passing conformance cases or changes to the pinned wire profile. Native SDK and device-performance
+claims remain unchanged.
+
 ## Official references
 
 ### Protocol and wire contracts

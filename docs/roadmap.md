@@ -537,7 +537,11 @@ JavaScriptCore and independent Swift form semantics, with the same SwiftUI contr
 [Android engine probe](../experiments/android-runtime-probe/RESULTS.md) passes the same corpus using
 the exact JavaScript bundle on one emulator/provider and demonstrates running-isolate termination.
 Broader provider support, full native parity, device performance and the final shared contract remain
-outstanding; reviewing that contract is the next step.
+outstanding. [RFC-0003](RFC-0003-native-session-contract.md) proposes the shared session boundary,
+including revision identity, state transitions, native authorization, cancellation and output bounds.
+Next, review the proposal, implement the internal session without changing published behavior, and
+add deterministic async host scenarios. The contract is not yet implemented or frozen; the milestone
+checkboxes and exit criteria remain unchanged.
 
 - [ ] Extract and freeze platform-neutral renderer inputs, state transitions, actions, errors,
       lifecycle, limits, and conformance fixtures without moving SwiftUI, Compose, React Native,

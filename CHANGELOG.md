@@ -8,6 +8,11 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Proposed shared native session contract (RFC-0003): state transitions and revision identities,
+  instance-bound callbacks, native action authorization, cancellation and bounded output, with
+  existing experiment evidence separated from future implementation gates. Runtime selection,
+  renderer-core publication and native SDK support remain undecided.
+
 - Temporary Android engine feasibility probe: the exact iOS JavaScript bundle and 21-case corpus run
   through AndroidX JavaScriptEngine with native JSON, authorization, lifecycle and limit checks.
   Provider capabilities, formatting and running-isolate termination are verified on one emulator.

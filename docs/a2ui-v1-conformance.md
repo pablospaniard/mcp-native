@@ -145,6 +145,10 @@ and corpus with native admission/authorization checks on one emulator provider. 
 engine support and termination probes do not expand the production wire profile or claim Compose UI
 or native Kotlin semantic parity.
 
+The proposed [native session contract](RFC-0003-native-session-contract.md) preserves these semantic
+observations and identifies additional async host scenarios that are not yet implemented. It does
+not expand normative wire support or freeze a public session API.
+
 ## Candidate interpretations
 
 - The pinned `CheckRule` prose describes a `ValidationResult` object, while `Checkable` and the
