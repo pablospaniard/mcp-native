@@ -106,19 +106,103 @@ closes the session before integer precision or wraparound can make an old identi
 
 ### Surface-ID lifetime interpretation
 
-A fresh host incarnation does not authorize reuse of a wire `surfaceId`. The pinned
-[create-surface schema](../packages/a2ui/src/v1/vendor/agent_to_renderer.json) requires that ID to
-remain globally unique for the renderer's lifetime. Its preceding wording about deleting an existing
-surface does not remove that lifetime requirement. The current
-[store](../packages/a2ui/src/v1/store.ts) checks only active IDs and accepts creation after deletion;
-that behavior is an unresolved compatibility gap, not evidence that the schema permits reuse.
+**Decision proposed:** enforce wire-ID uniqueness for the lifetime of a host-owned rendering
+context in the new internal native session. This section defines the policy for review; enforcement
+and its acceptance tests remain implementation gates. Published `1.x` behavior is unchanged.
 
-Before adopting or freezing the native contract, a decision PR must define the renderer lifetime,
-resolve this gap and document compatibility/migration effects with lifecycle regression tests.
-A session generation is not automatically a renderer lifetime: replacing a failed engine must not
-silently reset wire-ID uniqueness. If enforcing uniqueness requires retaining used IDs, bound that
-registry and reject new creation at capacity rather than evicting entries that would permit reuse.
-This proposal neither changes the published store nor approves an exception to the pinned rule.
+The pinned [upstream create-surface schema](https://github.com/a2ui-project/a2ui/blob/8ff4651232ab0e02b0123730b502711170637a3a/specification/v1_0/json/agent_to_renderer.json)
+requires `surfaceId` to remain globally unique for the renderer's lifetime. Its preceding wording
+about deleting an existing surface does not remove that requirement. The
+[vendored schema](../packages/a2ui/src/v1/vendor/agent_to_renderer.json) preserves the same wording.
+The current [store](../packages/a2ui/src/v1/store.ts) checks only active IDs and accepts creation
+after deletion; schema validation alone cannot enforce the lifetime rule. That is a known
+implementation gap, not an approved exception. The lifetime boundary and resource policy below are
+project interpretations; they are not additional upstream wire fields.
+
+#### Context ownership and end of lifetime
+
+The application host creates an opaque rendering context for one logical rendering flow and binds
+its incoming envelopes, native callbacks and transport completions to that context. The context owns
+the surface-ID registry outside the replaceable semantic engine. Its lifetime spans all session
+generations serving that flow. Surface deletion, view unmount/remount, backgrounding, transport
+reconnection, policy replacement and engine failure/replacement do not end it or reset its registry.
+A host incarnation remains a separate callback identity and never grants wire-ID reuse.
+
+Only explicit host teardown of the rendering flow ends the context. Teardown permanently closes its
+admission and invalidates callbacks and pending work before discarding its registry. A new context
+has independent state and may accept the same wire string, but no old envelope, buffered transport
+input or late completion may be relabeled with its identity. Ingress must retain the context in
+which the work originated; if an adapter cannot distinguish old input, it must retire that
+input source and its pending producers before opening a replacement flow. A reconnect alone is
+insufficient proof of a new flow. This rule does not require a process-global registry across independent rendering contexts.
+
+The server cannot request a context reset, and the host must not automatically rotate contexts to
+bypass an exhausted registry or replay a failed session. Physical engine resources remain subject
+to [host-wide cleanup accounting](#failure-cancellation-and-resource-ownership) after logical
+teardown. No automatic recovery by replaying old `createSurface` envelopes is introduced.
+
+#### Bounded registry and creation outcomes
+
+Use finite trusted limits for retained ID count, per-ID string size and cumulative ID string code
+units, in addition to the existing active-surface and input limits. The implementation must define
+and validate these limits before allocating the context and document its counting rules. Use exact
+validated identifier equality, without normalization, case folding or truncation. Cross-language
+implementations retain the common identifier restrictions described above until separately tested.
+
+Reserve an unseen ID and its budget before dispatching a creation to the engine. Pending, committed
+and indeterminate creations all occupy capacity and prevent reuse. The outcome determines whether
+the reservation can be released:
+
+| Creation outcome                                                                           | Registry effect                                          |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Rejected before dispatch, including a duplicate or exhausted budget                        | No new reservation or semantic mutation                  |
+| Validated engine response confirms envelope rejection with unchanged server state          | Release only that request's pending reservation          |
+| Server creation accepted, including acceptance followed by render rejection                | Commit the ID for the remaining context lifetime         |
+| Timeout, cancellation after dispatch, malformed response or otherwise uncertain acceptance | Retain the ID and its charge; fail the generation closed |
+
+A known-used ID rejects before engine dispatch. Deletion does not reclaim its reservation. At count
+or string-budget exhaustion, reject new creations without changing existing state; updates, renders
+and deletion of existing surfaces remain available under their normal rules. Never evict, expire or
+clear IDs to make space. Late responses cannot release an indeterminate reservation or affect a
+replacement generation. Rejected creations cannot grow retained diagnostic or registry history.
+Atomic coordination with the engine result is required so a valid message rejection remains a
+recoverable outcome rather than consuming lifetime capacity. These rules cover one envelope per
+operation; they do not change the published store's atomic `applyAll` contract or add session batches.
+
+#### Compatibility and migration
+
+Implement this policy inside the existing private session boundary, with the host owning the
+registry across engines; no new package or public store option is required by this decision.
+Keep the published store and React Native defaults unchanged in `1.x`. Their active-ID-only behavior
+must remain disclosed in the [conformance profile](a2ui-v1-conformance.md#envelope-and-lifecycle-profile).
+The existing corpus remains a baseline for shared behavior; the scenarios below form additional
+native-session acceptance tests, not retroactive passing coverage for published renderers.
+
+Before an existing application adopts the strict session, its server must allocate a fresh ID for
+every accepted creation in the same rendering flow, retain that ID for subsequent updates/actions,
+and stop recreating deleted surfaces under their old IDs. The host must establish the context routing
+and teardown boundary above, select finite budgets and handle exhaustion without automatic restart.
+Upgrading packages alone must not opt an existing host into the stricter behavior. A future public
+integration may be explicitly opt-in in a compatible release; changing existing defaults requires a
+major release and migration notes under the [compatibility policy](compatibility-policy.md).
+This decision does not invoke the security-fix exception or authorize a release/version change.
+
+#### Required acceptance scenarios
+
+These scenarios must pass against the internal session and each adopting host adapter before the
+native contract can be claimed. Use deterministic barriers for uncertain outcomes and tiny trusted
+budgets for exhaustion tests; do not treat a separate mock registry as proof of integration.
+
+| Scenario                                                                          | Required result                                                                                              |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Create `a`, delete `a`, create `a` in one context                                 | Last creation rejects without engine work or state mutation                                                  |
+| Delete `a`, create fresh `b` with available capacity                              | Creation succeeds; a callback from `a` cannot target `b`                                                     |
+| Reject an invalid creation of `a`, then submit a valid creation                   | The confirmed rejection does not consume `a` or its budget                                                   |
+| Accept creation of `a`, then reject its render                                    | `a` stays used even after deletion; render recovery follows the existing transition rules                    |
+| Replace the engine, reconnect or remount within the same context                  | Used IDs remain rejected; old callbacks and responses cannot affect the new generation                       |
+| Pause creation of `a`, close/time out the generation, then release its completion | `a` remains reserved; late acceptance/rejection cannot free capacity or publish state                        |
+| Reach each ID budget, including repeated create/delete cycles                     | Fresh creation rejects before dispatch; existing surface operations still work; retained state stays bounded |
+| Tear down a context and explicitly open an independent flow                       | The same string may be created; old buffered input, callbacks and completions cannot cross into the new flow |
 
 ## State transitions
 
@@ -284,7 +368,7 @@ Physical-device performance remains deferred and unscored.
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Reconciliation and rejected renders | `same-value-server-update`, `component-update-preserves-edits`, `local-edit-render-rejection-recovery`, malformed-envelope probes | Execute unchanged expectations against the extracted session and mounted React Native adapter                                                                                               |
 | Array updates and expanded lists    | `array-pointer-updates`, `dynamic-list-order`, `expanded-node-limit`; depth probes                                                | Keep rejection atomicity and add scoped callbacks across list reordering and row replacement                                                                                                |
-| Surface-ID lifetime                 | Current store checks active IDs only; [interpretation gap](#surface-id-lifetime-interpretation)                                   | Decide renderer lifetime and compatibility; test delete/recreate rejection, engine replacement and any used-ID registry exhaustion under the approved policy                                |
+| Surface-ID lifetime                 | Current store checks active IDs only; [interpretation gap](#surface-id-lifetime-interpretation)                                   | Implement the proposed context lifetime and bounded registry; pass the acceptance scenarios in the linked section                                                                           |
 | Host authorization                  | Allow/deny and model-omission cases; generation and close probes                                                                  | Pause authorization, update/delete/close the surface, then resolve allow: zero dispatch; duplicate completion: at most one dispatch                                                         |
 | Response integrity                  | Android strict JSON, malformed response and pending-close probes                                                                  | Both adapters reject wrong sequence/generation, duplicate replies and malformed observation/action shapes; old completions cannot affect replacement sessions                               |
 | Cancellation                        | Android running-loop termination; Apple admission cancellation                                                                    | Close during evaluation without blocking UI/admission; late result discarded; host-wide capacity exhaustion, repeated timeouts and late/duplicate cleanup acknowledgments on both platforms |
@@ -301,8 +385,8 @@ CI workflow, package or production behavior is introduced by this document.
    12 stays open; review acceptance alone does not freeze exports or establish multi-renderer support.
 2. Implement an internal session using existing JavaScript validation, store and planner code.
    Replace experiment reconciliation glue and add a React Native adapter path exercised by the same
-   corpus. Preserve existing published behavior and imports; demonstrate parity and resolve the
-   [surface-ID lifetime gap](#surface-id-lifetime-interpretation) before adoption.
+   corpus. Preserve existing published behavior and imports; demonstrate shared-semantic parity and
+   implement the [surface-ID lifetime policy](#surface-id-lifetime-interpretation) before native adoption.
 3. Add the async host scenarios above and implement independent native admission/result validation.
    Resolve Apple interruption/retirement policy and the Android provider support/failure policy.
 4. Submit the RFC-0002 runtime/package decision with these results. Keep renderer-core private until
@@ -310,9 +394,10 @@ CI workflow, package or production behavior is introduced by this document.
 5. Build the scoped SwiftUI preview, then the equivalent Compose preview, with explicit tested
    platform matrices. Agree physical-device budgets before scoring performance or claiming a winner.
 
-Still open: the surface-ID lifetime decision above, the internal request/result schema and diagnostic
-vocabulary, engine-specific cleanup acknowledgment, supported provider/OS ranges, production
-resource budgets, app background/foreground policy and transport-specific cancellation outcomes. Unsupported environments must fail explicitly;
+Still open: review and implementation of the lifetime policy above, the internal request/result
+schema and diagnostic vocabulary, engine-specific cleanup acknowledgment, supported provider/OS
+ranges, production resource budgets, app background/foreground policy and transport-specific
+cancellation outcomes. Unsupported environments must fail explicitly;
 no silent WebView or alternate-engine fallback is approved.
 
 The existing experiment sunset remains mandatory before integration reaches `main`, even if the

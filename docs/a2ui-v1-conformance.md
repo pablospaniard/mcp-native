@@ -33,7 +33,7 @@ advertising is limited to a host's complete implementation.
 
 | Direction         | Message                    | Support boundary                                                                     |
 | ----------------- | -------------------------- | ------------------------------------------------------------------------------------ |
-| Agent to renderer | `createSurface`            | Schema-validated and applied to bounded ordered state.                               |
+| Agent to renderer | `createSurface`            | Schema-validated; active-ID uniqueness only (lifetime gap below).                    |
 | Agent to renderer | `updateComponents`         | Schema-validated and applied atomically.                                             |
 | Agent to renderer | `updateDataModel`          | Schema-validated and applied as a bounded RFC 6901 update.                           |
 | Agent to renderer | `deleteSurface`            | Schema-validated and applied to ordered state.                                       |
@@ -43,6 +43,12 @@ advertising is limited to a host's complete implementation.
 | Renderer to agent | `callAgentFunction`        | Parsed as owned data against the pinned schema. No execution or delivery is implied. |
 | Renderer to agent | `rendererFunctionResponse` | Parsed as owned data against the pinned schema. No transport is selected.            |
 | Renderer to agent | `error`                    | Parsed as owned data against the pinned schema. It is not trusted as a host error.   |
+
+The published store rejects creation of an active ID but accepts the same ID after deletion.
+It does not enforce the pinned schema's renderer-lifetime uniqueness requirement. The
+[proposed native-session policy](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
+defines a host-owned lifetime, bounded ID tracking and an explicit migration path. That policy is
+not yet implemented; existing lifecycle tests and schema validation do not close this gap.
 
 Every accepted renderer-to-agent envelope has exactly `version: "v1.0"` and exactly one known
 message field. Strings and JSON graphs are bounded. Unknown versions, kinds, functions, fields on
@@ -149,8 +155,8 @@ The proposed [native session contract](RFC-0003-native-session-contract.md) pres
 observations and identifies additional async host scenarios that are not yet implemented. It does
 not expand normative wire support or freeze a public session API. The
 [surface-ID lifetime gap](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
-requires a compatibility decision before native contract adoption; existing store behavior is not
-proof of compliance with the pinned lifetime-uniqueness rule.
+has a proposed context-lifetime and migration policy; enforcement and its acceptance scenarios
+remain required before native contract adoption.
 
 ## Candidate interpretations
 

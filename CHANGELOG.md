@@ -12,7 +12,9 @@ patch and minor releases remain compatible within their release line.
   instance-bound callbacks, native action authorization, cancellation and bounded output, with
   existing experiment evidence separated from future implementation gates. Runtime selection,
   renderer-core publication and native SDK support remain undecided. The proposal defines host-wide
-  cleanup accounting and makes surface-ID lifetime compatibility an explicit adoption gate.
+  cleanup accounting and proposes context-lifetime surface-ID uniqueness, bounded reservation
+  handling and an explicit migration path. Enforcement and acceptance tests remain native adoption gates;
+  published store and React Native defaults are unchanged.
 
 - Temporary Android engine feasibility probe: the exact iOS JavaScript bundle and 21-case corpus run
   through AndroidX JavaScriptEngine with native JSON, authorization, lifecycle and limit checks.
