@@ -23,18 +23,29 @@ final class AppModel: ObservableObject {
       suite = try JSON.decode(resource("inputs", "json"))
       tool = try JSON.decode(resource("tool-result", "json"))
       if CommandLine.arguments.contains("--swift") { engine = .swift }
-      if CommandLine.arguments.contains("--conformance") {
-        let result = try Corpus.run(bundle: bundle, suite: suite, toolResult: tool)
-        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        try result.data().write(
-          to: documents.appendingPathComponent("conformance.json"), options: .atomic)
-        conformance = "Conformance complete"
-      }
       reset()
     } catch {
       status = "Experiment failed"
       conformance = "Conformance failed"
     }
+  }
+
+  private var conformanceStarted = false
+
+  func runConformance() async {
+    guard CommandLine.arguments.contains("--conformance"), !conformanceStarted else { return }
+    conformanceStarted = true
+    conformance = "Conformance running"
+    let bundle = bundle, suite = suite, tool = tool
+    do {
+      // Every corpus engine/session is created, used and destroyed on this worker.
+      let data = try await Task.detached(priority: .utility) {
+        try Corpus.run(bundle: bundle, suite: suite, toolResult: tool).data()
+      }.value
+      let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+      try data.write(to: documents.appendingPathComponent("conformance.json"), options: .atomic)
+      conformance = "Conformance complete"
+    } catch { conformance = "Conformance failed" }
   }
 
   func reset() {
@@ -169,6 +180,7 @@ struct RuntimeComparisonApp: App {
             Button("Close session") { model.stop() }.accessibilityIdentifier("close")
           }
         }.padding(24)
+          .task { await model.runConformance() }
       }
     }
   }

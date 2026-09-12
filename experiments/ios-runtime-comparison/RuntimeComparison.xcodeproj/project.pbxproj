@@ -20,6 +20,7 @@
 		CFB4C1745B9926F02C0C2E55 /* inputs.json in Resources */ = {isa = PBXBuildFile; fileRef = 4274212D58DDD033D9A5029F /* inputs.json */; };
 		D4EDE4E02810EF3DC5F41DB0 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2DFD842640BB12AA18813D5 /* Foundation.framework */; };
 		EC5CFBE106298ADD08EA121C /* runtime.js in Resources */ = {isa = PBXBuildFile; fileRef = 80C9619010B351EDD8DE61C3 /* runtime.js */; };
+		A11111111111111111111111 /* ExperimentLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22222222222222222222222 /* ExperimentLimits.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +48,7 @@
 		E0BA3FA8F4B6899B87489C54 /* RuntimeComparison.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RuntimeComparison.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E777662FBBA720FBC48F3E51 /* Host.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Host.swift; sourceTree = "<group>"; };
 		FC5C808179070764D5BE93DD /* JSON.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JSON.swift; sourceTree = "<group>"; };
+		A22222222222222222222222 /* ExperimentLimits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = dist/ExperimentLimits.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +84,7 @@
 		27F026C7677BBF74392991E8 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				A22222222222222222222222 /* ExperimentLimits.swift */,
 				FC5C808179070764D5BE93DD /* JSON.swift */,
 				966A8725FC0C60C2FC89A739 /* NativeSession.swift */,
 				42E9EEDC7F9323065415405D /* JavaScriptSession.swift */,
@@ -233,6 +236,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A11111111111111111111111 /* ExperimentLimits.swift in Sources */,
 				8439EE7CCA49E196BEF7B03D /* JSON.swift in Sources */,
 				BC41D0A7355F7B7076A106FB /* NativeSession.swift in Sources */,
 				7CC2D5EB24DF9815F84246F1 /* JavaScriptSession.swift in Sources */,

@@ -7301,6 +7301,391 @@
           }
         }
       ]
+    },
+    {
+      "id": "array-pointer-updates",
+      "description": "Server pointers append at array length, create appended object parents, remove elements and reject gaps/noncanonical indices without changing state.",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Text",
+                  "text": {
+                    "path": "/items/0/name"
+                  }
+                }
+              ],
+              "dataModel": {
+                "items": [
+                  {
+                    "name": "Ada"
+                  }
+                ]
+              }
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Ada"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Ada"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/items/1",
+              "value": {
+                "name": "Grace"
+              }
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Ada"
+                },
+                {
+                  "name": "Grace"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Ada"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/items/2/name",
+              "value": "Lin"
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Ada"
+                },
+                {
+                  "name": "Grace"
+                },
+                {
+                  "name": "Lin"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Ada"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/items/4",
+              "value": {
+                "name": "Rejected"
+              }
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Ada"
+                },
+                {
+                  "name": "Grace"
+                },
+                {
+                  "name": "Lin"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Ada"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/items/03",
+              "value": {
+                "name": "Rejected"
+              }
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Ada"
+                },
+                {
+                  "name": "Grace"
+                },
+                {
+                  "name": "Lin"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Ada"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/items/-",
+              "value": {
+                "name": "Rejected"
+              }
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Ada"
+                },
+                {
+                  "name": "Grace"
+                },
+                {
+                  "name": "Lin"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Ada"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/items/1",
+              "value": null
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Ada"
+                },
+                {
+                  "name": "Lin"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Ada"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/items/2",
+              "value": null
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Ada"
+                },
+                {
+                  "name": "Lin"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Ada"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/items/0/name",
+              "value": "Updated"
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Updated"
+                },
+                {
+                  "name": "Lin"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Updated"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/missing",
+              "value": null
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "Updated"
+                },
+                {
+                  "name": "Lin"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "text",
+                "text": "Updated"
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ],
+      "basis": "project-semantics"
     }
   ]
 }

@@ -11,7 +11,7 @@ enum ProbeError: Error, CustomStringConvertible {
   }
 }
 
-indirect enum JSON: Equatable {
+indirect enum JSON: Equatable, Sendable {
   case object([String: JSON])
   case array([JSON])
   case string(String)
@@ -26,7 +26,7 @@ indirect enum JSON: Equatable {
 
   // A 64-node render path adds a node object and children array per level, plus the
   // bridge envelope, observation, view array and leaf validation-message array.
-  static let bridgeResponseMaxDepth = 2 * 64 + 4
+  static let bridgeResponseMaxDepth = 2 * ExperimentLimits.maxComponentDepth + 4
 
   static func decode(_ data: Data, maxDepth: Int = 64) throws -> JSON {
     guard data.count <= 1_048_576 else { throw ProbeError.invalid("JSON byte limit") }
@@ -176,7 +176,7 @@ func readPointer(_ model: JSON, _ pointer: String) throws -> JSON {
 }
 
 func writePointer(_ model: JSON, _ pointer: String, _ value: JSON, existing: Bool) throws -> JSON {
-  if pointer.isEmpty {
+  if pointer.isEmpty || (!existing && pointer == "/") {
     _ = try object(value)
     return value
   }
@@ -187,13 +187,24 @@ func writePointer(_ model: JSON, _ pointer: String, _ value: JSON, existing: Boo
     switch cursor {
     case .object(var o):
       if existing && o[key] == nil { throw ProbeError.invalid("Missing binding") }
-      o[key] = last ? value : try replace(o[key] ?? .object([:]), index + 1)
+      if last && !existing && value == .null {
+        guard o[key] != nil else { throw ProbeError.invalid("Missing object member") }
+        o.removeValue(forKey: key)
+      }
+      else { o[key] = last ? value : try replace(o[key] ?? .object([:]), index + 1) }
       return .object(o)
     case .array(var a):
-      guard let i = Int(key), String(i) == key, a.indices.contains(i) else {
+      guard let i = Int(key), String(i) == key, i >= 0,
+        existing ? i < a.count : i <= a.count else {
         throw ProbeError.invalid("Invalid array pointer")
       }
-      a[i] = last ? value : try replace(a[i], index + 1)
+      if last && !existing && value == .null {
+        guard i < a.count else { throw ProbeError.invalid("Missing array element") }
+        a.remove(at: i)
+      } else {
+        if i == a.count { a.append(.object([:])) }
+        a[i] = last ? value : try replace(a[i], index + 1)
+      }
       return .array(a)
     default: throw ProbeError.invalid("Invalid pointer parent")
     }

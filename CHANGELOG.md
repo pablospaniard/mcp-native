@@ -8,7 +8,7 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
-- Temporary Android engine feasibility probe: the exact iOS JavaScript bundle and 20-case corpus run
+- Temporary Android engine feasibility probe: the exact iOS JavaScript bundle and 21-case corpus run
   through AndroidX JavaScriptEngine with native JSON, authorization, lifecycle and limit checks.
   Provider capabilities, formatting and running-isolate termination are verified on one emulator.
   Includes pinned debug build tooling and independent report comparison; no public package, Compose
@@ -16,12 +16,12 @@ patch and minor releases remain compatible within their release line.
   mainline promotion alongside the iOS experiment.
 
 - Scoped iOS runtime comparison: JavaScriptCore and independent Swift form semantics run the shared
-  20-case corpus and the same SwiftUI interaction/lifecycle checks. Includes a pinned upstream reuse
+  21-case corpus and the same SwiftUI interaction/lifecycle checks. Includes a pinned upstream reuse
   assessment, bounded native host, reproducible simulator command and CI scoped to relevant
   integration PRs. Experiment cleanup is required before mainline promotion. Runtime/package choice,
   full native parity and physical-device performance remain open; no public API or version changes.
 
-- Provisional language-neutral renderer conformance corpus: 20 basic-form scenarios with a strict
+- Provisional language-neutral renderer conformance corpus: 21 basic-form scenarios with a strict
   JSON fixture format, explicit expected observations, and a React Native reference runner covering
   local/server state, actions, host authorization, rejection, and bounded expansion. Included in
   normal checks and available through `npm run test:renderer-conformance`; published APIs and exact
@@ -40,6 +40,16 @@ patch and minor releases remain compatible within their release line.
   from its existing name unchanged, and `@mcp-native/core` is untouched.
 
 ### Fixed
+
+- Android experiment rejects malformed JSON lexemes before normalization and closes hosts after
+  invalid observation/action responses. Native regression probes verify both failure paths.
+- Swift experiment supports store-compatible array append, nested append and removal, with a new
+  shared corpus case covering rejected indices and unchanged state after failure.
+- Renderer-core is private and release preflight rejects public dependencies on private workspaces.
+  Package tooling shares one inventory while preserving the historical seven-package upgrade baseline.
+- iOS simulator conformance runs once off the main actor; UI flows no longer repeat it at launch.
+  Native component-depth constants derive from one experiment configuration, and test renderers
+  reuse the shared host-component stub.
 
 - New native-platform experiments and conformance code use concise, version-neutral API names.
   The provisional renderer-core entry point now supplies the same naming convention, retaining

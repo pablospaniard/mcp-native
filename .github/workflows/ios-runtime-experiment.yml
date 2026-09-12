@@ -10,7 +10,7 @@ on:
       - experiments/ios-runtime-comparison/**
       - tests/ios-runtime-comparison.test.mjs
       - tests/fixtures/renderer-conformance/**
-      - tests/helpers/renderer-conformance.mjs
+      - tests/helpers/**
       - packages/core/**
       - packages/a2ui/**
       - packages/renderer-core/**

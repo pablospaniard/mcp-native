@@ -527,12 +527,12 @@ profiles without modifying the host package or weakening its built-in validation
 
 ### Milestone 12: platform-neutral renderer foundation
 
-The [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) now provides 20
+The [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) now provides 21
 language-neutral basic-form cases and a React Native reference runner, including local/server state,
 action authorization, invalid input, unreachable event sources, and bounded list expansion.
 Render-rejection cases exercise the mounted local state and recovery through the surface boundary.
 `npm run test:renderer-conformance` runs it independently; the normal check suite also includes it.
-The [iOS comparison](../experiments/ios-runtime-comparison/RESULTS.md) also runs all 20 cases through
+The [iOS comparison](../experiments/ios-runtime-comparison/RESULTS.md) also runs all 21 cases through
 JavaScriptCore and independent Swift form semantics, with the same SwiftUI controls. The
 [Android engine probe](../experiments/android-runtime-probe/RESULTS.md) passes the same corpus using
 the exact JavaScript bundle on one emulator/provider and demonstrates running-isolate termination.

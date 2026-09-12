@@ -225,7 +225,8 @@ enum Corpus {
     _ engine: Engine, _ bundle: String, _ policy: JSON, _ timestamp: String
   ) throws {
     // 31 Columns reproduce the original response-depth failure; 63 reach the graph limit.
-    for (columns, button) in [(31, false), (63, false), (64, false), (62, true), (63, true)] {
+    let depth = ExperimentLimits.maxComponentDepth
+    for (columns, button) in [(31, false), (depth - 1, false), (depth, false), (depth - 2, true), (depth - 1, true)] {
       let host = try ExperimentHost(
         engine: engine, bundle: bundle, policy: policy, timestamp: timestamp)
       defer { host.close() }
@@ -273,7 +274,7 @@ enum Corpus {
         ]),
       ])
       let result = try host.step(step, ticket: host.generation)
-      if columns + (button ? 2 : 1) > 64 {
+      if columns + (button ? 2 : 1) > depth {
         guard result["outcome"] == .string("surface-rejected"), result["view"] == .array([]) else {
           throw ProbeError.harness("Excessive layout depth accepted")
         }

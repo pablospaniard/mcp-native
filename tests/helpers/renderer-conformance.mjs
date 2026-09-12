@@ -1,3 +1,4 @@
+import { hostComponent } from "./host-component.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -35,12 +36,6 @@ export function loadRendererConformanceSuite() {
   return parseRendererConformanceSuite(
     readFileSync(new URL("basic-form.json", fixtureDirectory), "utf8"),
   );
-}
-
-function hostComponent(type) {
-  return function HostComponent(props) {
-    return createElement(type, props, props.children);
-  };
 }
 
 const components = Object.freeze({

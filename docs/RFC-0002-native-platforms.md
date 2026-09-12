@@ -65,7 +65,7 @@ disposed of together; see its [cleanup inventory](../experiments/android-runtime
 - React Native still owns local-state reconciliation, binding writes, several callback checks,
   mount inspection, and application lifecycle integration. The extracted planner is not a complete
   reusable interactive session runtime.
-- The repository now has 20 language-neutral cases with explicit observations, executed by React
+- The repository now has 21 language-neutral cases with explicit observations, executed by React
   Native, the two scoped iOS experiment paths and the Android engine probe. Published fixture
   factories remain unchanged; the Android probe has no Compose UI or independent Kotlin semantics.
 - A shared SwiftUI screen exercises JavaScriptCore and independent Swift form semantics on an iOS
@@ -164,6 +164,9 @@ separation. Reduce integration choices first; change physical packaging only whe
 Aim for one primary integration product per platform, with advanced entry points for genuine
 composition needs. Do not create new published packages for each validator, state machine, fixture
 set, bridge, or capability. Share fixtures as repository data until external distribution is needed.
+The provisional renderer-core manifest is private; release preflight blocks public packages that
+depend on it until a reviewed packaging decision resolves that dependency. Local tarball testing does
+not authorize publication.
 No existing package or export is removed by this RFC. Any eventual removal needs a major-version
 migration; an additive facade must also preserve optional dependency behavior and class identity.
 New native-platform code and examples follow the [version-neutral naming rule](../CONTRIBUTING.md#naming),
@@ -173,7 +176,7 @@ aliases, while exact wire versions and schema pins remain explicit and unchanged
 ## Experiments and milestone sequence
 
 The initial [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) implements
-the JSON fixture portion of step 1 with 20 cases executed by the current React Native renderer.
+the JSON fixture portion of step 1 with 21 cases executed by the current React Native renderer.
 The [iOS experiment](../experiments/ios-runtime-comparison/README.md) now runs those cases through
 both native paths, plus SwiftUI interaction and host-lifecycle checks. Its narrower input profile,
 simulator-only evidence and unresolved cancellation/parity gaps do not complete the runtime decision.

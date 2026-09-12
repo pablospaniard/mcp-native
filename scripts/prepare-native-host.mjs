@@ -1,3 +1,4 @@
+import { loadWorkspacePackages, workspaceDependencyClosure } from "./workspace-packages.mjs";
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
@@ -10,14 +11,13 @@ export const NATIVE_HOST_NAME = "McpNativeAccessibilityHost";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = realpathSync(resolve(scriptDirectory, ".."));
-const packageDirectories = Object.freeze({
-  "@mcp-native/a2ui": "packages/a2ui",
-  "@mcp-native/core": "packages/core",
-  "@mcp-native/renderer-core": "packages/renderer-core",
-  "@mcp-native/react-native": "packages/react-native",
-  "@mcp-native/webview": "packages/webview",
-  "mcp-native": "packages/mcp-native",
-});
+const packageDirectories = Object.freeze(
+  Object.fromEntries(
+    workspaceDependencyClosure("mcp-native", loadWorkspacePackages(repositoryRoot)).map(
+      ({ directory, manifest }) => [manifest.name, directory],
+    ),
+  ),
+);
 
 export function parseNativeHostArguments(arguments_) {
   const options = { install: true };

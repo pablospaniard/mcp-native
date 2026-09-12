@@ -316,7 +316,7 @@ final class NativeSession: SemanticSession {
     }
     func walk(_ id: String, _ scope: String, _ ancestors: Set<String>) throws -> JSON {
       nodes += 1
-      guard nodes <= 1024, ancestors.count < 64, !ancestors.contains(id), let c = components[id]
+      guard nodes <= 1024, ancestors.count < ExperimentLimits.maxComponentDepth, !ancestors.contains(id), let c = components[id]
       else {
         throw ProbeError.invalid("Render graph limit or missing component")
       }

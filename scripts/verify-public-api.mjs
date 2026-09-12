@@ -4,16 +4,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const packageDirectories = [
-  "packages/core",
-  "packages/mcp",
-  "packages/a2ui",
-  "packages/renderer-core",
-  "packages/webview",
-  "packages/react-native",
-  "packages/host",
-  "packages/mcp-native",
-];
+import { loadWorkspacePackages } from "./workspace-packages.mjs";
+
+const packageDirectories = loadWorkspacePackages().map(({ directory }) => directory);
 
 const actual = { formatVersion: 1, packages: {} };
 for (const packageDirectory of packageDirectories) {

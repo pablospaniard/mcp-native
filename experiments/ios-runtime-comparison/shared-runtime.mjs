@@ -1,3 +1,4 @@
+import limits from "./limits.json" with { type: "json" };
 import { parseJsonObject, parseJsonValue } from "../../packages/core/dist/index.js";
 import {
   ParseError,
@@ -148,7 +149,10 @@ function validateExperimentDepth(root) {
   while (pending.length > 0) {
     const { node, depth } = pending.pop();
     // The form profile's Button text child is folded into props by the shared planner.
-    if (depth > 64 || (node.component === "Button" && depth === 64)) {
+    if (
+      depth > limits.maxComponentDepth ||
+      (node.component === "Button" && depth === limits.maxComponentDepth)
+    ) {
       throw new ParseError("Experiment render graph depth limit");
     }
     for (const child of node.children ?? []) pending.push({ node: child, depth: depth + 1 });

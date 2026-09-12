@@ -1,3 +1,4 @@
+import limits from "./limits.json" with { type: "json" };
 import { build } from "esbuild";
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -5,6 +6,21 @@ import { fileURLToPath } from "node:url";
 export async function buildBundle() {
   const directory = fileURLToPath(new URL("./", import.meta.url));
   await mkdir(`${directory}dist`, { recursive: true });
+  if (
+    !Number.isSafeInteger(limits.maxComponentDepth) ||
+    limits.maxComponentDepth < 1 ||
+    limits.maxComponentDepth > 64
+  ) {
+    throw new Error("Invalid experiment component-depth limit");
+  }
+  await writeFile(
+    `${directory}dist/ExperimentLimits.swift`,
+    `// Generated from limits.json by build-bundle.mjs.
+enum ExperimentLimits {
+  static let maxComponentDepth = ${limits.maxComponentDepth}
+}
+`,
+  );
   const result = await build({
     entryPoints: [`${directory}shared-runtime.mjs`],
     outfile: `${directory}dist/runtime.js`,

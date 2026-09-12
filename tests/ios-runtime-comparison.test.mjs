@@ -1,3 +1,4 @@
+import limits from "../experiments/ios-runtime-comparison/limits.json" with { type: "json" };
 import assert from "node:assert/strict";
 import test from "node:test";
 import { SharedSession, exchange } from "../experiments/ios-runtime-comparison/shared-runtime.mjs";
@@ -90,10 +91,10 @@ test("malformed envelopes preserve the embedded bridge session and local edits",
 test("the embedded session preserves deep layouts and rejects paths beyond the experiment limit", () => {
   for (const [columns, button] of [
     [31, false],
-    [63, false],
-    [64, false],
-    [62, true],
-    [63, true],
+    [limits.maxComponentDepth - 1, false],
+    [limits.maxComponentDepth, false],
+    [limits.maxComponentDepth - 2, true],
+    [limits.maxComponentDepth - 1, true],
   ]) {
     const session = new SharedSession(suite.cases[0].host, suite.timestamp);
     const components = Array.from({ length: columns }, (_, index) => ({
@@ -128,7 +129,7 @@ test("the embedded session preserves deep layouts and rejects paths beyond the e
       op: "message",
       message: { version: "v1.0", createSurface: { surfaceId: "form", components, dataModel: {} } },
     });
-    const rejected = columns + (button ? 2 : 1) > 64;
+    const rejected = columns + (button ? 2 : 1) > limits.maxComponentDepth;
     assert.equal(result.outcome, rejected ? "surface-rejected" : "accepted");
     assert.deepEqual(result.view, rejected ? [] : [expected]);
     assert.deepEqual(session.step({ op: "render" }), result);

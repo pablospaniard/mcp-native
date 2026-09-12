@@ -110,6 +110,7 @@ public final class ProbeInstrumentation extends Instrumentation {
       }
       checks = testBoundaries(sandbox, bundle, bridge, cases.getJSONObject(0).getJSONObject("host"), timestamp);
       testBridgeFailures(sandbox, bundle);
+      testHostResponseFailures(sandbox, cases.getJSONObject(0).getJSONObject("host"), timestamp);
       checks.put("bridgeFailureClosesSession", true);
       checks.put("singleInFlightAndPendingClose", true);
       testRunningTermination(sandbox);
@@ -169,8 +170,13 @@ public final class ProbeInstrumentation extends Instrumentation {
         "NaN", "1e999", "[".repeat(65) + "0" + "]".repeat(65), "\"" + "x".repeat(65_537) + "\""}) {
       rejects(() -> Json.parse(invalid, 64));
     }
-    Json.parse("[".repeat(132) + "0" + "]".repeat(132), 132);
-    rejects(() -> Json.parse("[".repeat(133) + "0" + "]".repeat(133), 132));
+    for (String invalid : new String[]{"{\"name\":\"\\q\"}", "{\"name\":\"a\nb\"}", "{\"name\":\"a\tb\"}", "{\"flag\":TRUE}", "{\"flag\":False}", "{\"value\":NULL}", "{\"name\":\"\\u+123\"}", "{\"name\":\"\\u12xz\"}"}) {
+      rejects(() -> Json.parse(invalid, 64));
+    }
+    // Valid escapes, Unicode, exponent spelling and booleans must still round-trip.
+    Json.parse("{\"value\":\"\\u1234\\n\\t\\b\\f\\r\\\\\\/\\\"\",\"number\":-1.25E+3,\"flag\":true,\"empty\":null}", 64);
+    Json.parse("[".repeat(Json.RESPONSE_DEPTH) + "0" + "]".repeat(Json.RESPONSE_DEPTH), Json.RESPONSE_DEPTH);
+    rejects(() -> Json.parse("[".repeat(Json.RESPONSE_DEPTH + 1) + "0" + "]".repeat(Json.RESPONSE_DEPTH + 1), Json.RESPONSE_DEPTH));
     testNestedLayout(sandbox, bundle, bridge, policy, timestamp);
     return Json.obj("malformedEnvelopesPreserveSession", true, "inertUnicodeRoundTrip", true,
         "unknownMimeRejected", true, "closedAndStaleTickets", true, "strictJsonAndDepthLimits", true,
@@ -179,7 +185,8 @@ public final class ProbeInstrumentation extends Instrumentation {
 
   private void testNestedLayout(JavaScriptSandbox sandbox, String bundle, String bridge,
       JSONObject policy, String timestamp) throws Exception {
-    for (int columns : new int[]{31, 63, 64}) {
+    int depth = ExperimentLimits.MAX_COMPONENT_DEPTH;
+    for (int columns : new int[]{31, depth - 1, depth}) {
       JSONArray components = new JSONArray();
       JSONObject expected = Json.obj("kind", "text-field", "label", "Deep field", "value", "Retained leaf",
           "invalid", false, "validationMessages", new JSONArray());
@@ -192,8 +199,8 @@ public final class ProbeInstrumentation extends Instrumentation {
       try (ExperimentHost host = new ExperimentHost(sandbox, bundle, bridge, policy, timestamp)) {
         JSONObject result = host.step(Json.obj("op", "message", "message", Json.obj("version", "v1.0",
             "createSurface", Json.obj("surfaceId", "form", "components", components, "dataModel", new JSONObject()))), host.generation);
-        Json.require(result.get("outcome").equals(columns == 64 ? "surface-rejected" : "accepted"), "Graph depth outcome");
-        equal(result.get("view"), columns == 64 ? new JSONArray() : new JSONArray().put(expected));
+        Json.require(result.get("outcome").equals(columns == depth ? "surface-rejected" : "accepted"), "Graph depth outcome");
+        equal(result.get("view"), columns == depth ? new JSONArray() : new JSONArray().put(expected));
         equal(result, host.step(Json.obj("op", "render"), host.generation));
       }
     }
@@ -259,6 +266,25 @@ public final class ProbeInstrumentation extends Instrumentation {
         session.close();
         worker.join(5000);
         Json.require(!worker.isAlive(), "Pending request thread leaked");
+      }
+    }
+  }
+
+  private static void testHostResponseFailures(JavaScriptSandbox sandbox, JSONObject policy,
+      String timestamp) throws Exception {
+    // Fixed host-owned fault injection. No server selects or supplies these scripts.
+    for (String malformed : new String[]{"null",
+        "{outcome:'accepted',serverDataModel:{},view:[],localChanges:[],actions:'invalid'}",
+        "{outcome:'accepted',serverDataModel:{},view:[],localChanges:[],actions:[{envelope:{version:'unknown',action:{}}}]}"}) {
+      String bridge = "(async () => {const p=await android.getNamedPort('mcp-native-probe');let n=0;"
+          + "p.onmessage=()=>p.postMessage(JSON.stringify({ok:true,value:++n===1?{}:n===2?(" + malformed
+          + "):{outcome:'accepted',serverDataModel:{},view:[],localChanges:[],actions:[]}}));return 'ready';})()";
+      try (ExperimentHost host = new ExperimentHost(sandbox, "void 0", bridge, policy, timestamp)) {
+        boolean rejected = false;
+        try { host.step(Json.obj("op", "press", "target", Json.obj("kind", "button", "label", "Submit")), host.generation); }
+        catch (IllegalArgumentException | org.json.JSONException expected) { rejected = true; }
+        Json.require(rejected, "Malformed host observation accepted");
+        rejects(() -> host.step(Json.obj("op", "render"), host.generation));
       }
     }
   }

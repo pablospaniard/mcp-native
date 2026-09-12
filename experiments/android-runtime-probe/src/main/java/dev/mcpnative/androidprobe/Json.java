@@ -12,11 +12,12 @@ import org.json.JSONObject;
 /** Bounded strict decoding; JSONObject's permissive text parser is not an input boundary. */
 final class Json {
   static final int MAX_BYTES = 1_048_576;
-  static final int RESPONSE_DEPTH = 132;
+  static final int RESPONSE_DEPTH = 2 * ExperimentLimits.MAX_COMPONENT_DEPTH + 4;
 
   static Object parse(String text, int maxDepth) throws Exception {
     require(text.length() <= MAX_BYTES && text.getBytes(StandardCharsets.UTF_8).length <= MAX_BYTES,
         "JSON byte limit");
+    validateLexemes(text);
     // Wrapping permits scalar JSON roots without enabling JsonReader's lenient syntax.
     try (JsonReader reader = new JsonReader(new StringReader("[" + text + "]"))) {
       reader.setLenient(false);
@@ -26,6 +27,42 @@ final class Json {
       reader.endArray();
       require(reader.peek() == JsonToken.END_DOCUMENT, "Trailing JSON");
       return value;
+    }
+  }
+
+  // Android JsonReader accepts invalid escapes, raw controls and case-insensitive literals
+  // even with lenient=false. Check their exact JSON spelling before it normalizes them.
+  private static void validateLexemes(String text) {
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      if (c == '"') {
+        boolean ended = false;
+        while (++i < text.length()) {
+          c = text.charAt(i);
+          require(c >= 0x20, "Unescaped JSON control character");
+          if (c == '"') { ended = true; break; }
+          if (c == '\\') {
+            require(++i < text.length(), "Incomplete JSON escape");
+            c = text.charAt(i);
+            if (c == 'u') {
+              for (int digit = 0; digit < 4; digit++) {
+                require(++i < text.length(), "Incomplete Unicode escape");
+                char h = text.charAt(i);
+                require((h >= '0' && h <= '9') || (h >= 'a' && h <= 'f') || (h >= 'A' && h <= 'F'),
+                    "Invalid Unicode escape");
+              }
+            } else require("\"\\/bfnrt".indexOf(c) >= 0, "Invalid JSON escape");
+          }
+        }
+        require(ended, "Unterminated JSON string");
+      } else if (Character.isLetter(c)) {
+        int start = i;
+        while (i + 1 < text.length() && Character.isLetter(text.charAt(i + 1))) i++;
+        String token = text.substring(start, i + 1);
+        // e/E inside numbers remains subject to JsonReader's number grammar.
+        require(token.equals("true") || token.equals("false") || token.equals("null")
+            || token.equals("e") || token.equals("E"), "Invalid JSON literal");
+      }
     }
   }
 

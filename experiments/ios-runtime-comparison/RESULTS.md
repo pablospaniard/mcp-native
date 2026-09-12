@@ -8,7 +8,7 @@ decision, supported iOS SDK, or milestone completion.
 
 | Check                                                        | JavaScriptCore semantics                    | Independent Swift semantics                 |
 | ------------------------------------------------------------ | ------------------------------------------- | ------------------------------------------- |
-| Shared corpus on macOS                                       | 20/20 cases; exact observations             | 20/20 cases; exact observations             |
+| Shared corpus on macOS                                       | 21/21 cases; exact observations             | 21/21 cases; exact observations             |
 | Shared corpus in iOS simulator app                           | Same corpus, independently compared by Node | Same corpus, independently compared by Node |
 | SwiftUI input → checkbox → action → close → reset            | XCTest passes                               | XCTest passes                               |
 | Local fixture tool result → input → authorized action        | Passes                                      | Passes                                      |

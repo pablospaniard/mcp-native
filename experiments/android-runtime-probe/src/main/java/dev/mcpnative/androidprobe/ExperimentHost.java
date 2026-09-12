@@ -63,36 +63,36 @@ final class ExperimentHost implements AutoCloseable {
         break;
       default: throw new IllegalArgumentException("Unknown host operation");
     }
-    JSONObject observation = session.exchange(Json.obj("op", "step", "token", generation,
-        "sequence", ++sequence, "step", input)).getJSONObject("value");
-    Json.require(!closed.get(), "Response after close");
-    Json.shape(observation, Set.of("outcome", "serverDataModel", "view", "localChanges", "actions"), Set.of());
-    JSONArray actions = observation.getJSONArray("actions");
-    Json.require(actions.length() >= seenActions && actions.length() <= seenActions + 1, "Invalid action count");
-    for (int i = seenActions; i < actions.length(); i++) {
-      Json.require(op.equals("press"), "Action without explicit press");
-      JSONObject record = actions.getJSONObject(i);
-      Json.shape(record, Set.of("envelope"), Set.of("dataModel"));
-      JSONObject envelope = record.getJSONObject("envelope");
-      Json.shape(envelope, Set.of("version", "action"), Set.of());
-      JSONObject action = envelope.getJSONObject("action");
-      Json.shape(action, Set.of("name", "surfaceId", "sourceComponentId", "timestamp", "context"), Set.of());
-      Json.require(envelope.get("version").equals("v1.0") && action.get("surfaceId").equals("form")
-          && action.get("timestamp").equals(timestamp) && action.get("name").equals("submit")
-          && policy.getJSONArray("eventNames").length() == 1, "Denied action contract");
-      identifier(action.get("sourceComponentId"));
-      action.getJSONObject("context");
-      if (record.has("dataModel")) record.getJSONObject("dataModel");
-      Json.parse(record.toString(), 64);
-      if (policy.getBoolean("authorizeActions")) {
-        deliveries.put(record);
-        results.put("delivered");
-      } else results.put("denied");
-    }
-    seenActions = actions.length();
-    observation.put("deliveries", deliveries);
-    observation.put("deliveryResults", results);
     try {
+      JSONObject observation = session.exchange(Json.obj("op", "step", "token", generation,
+          "sequence", ++sequence, "step", input)).getJSONObject("value");
+      Json.require(!closed.get(), "Response after close");
+      Json.shape(observation, Set.of("outcome", "serverDataModel", "view", "localChanges", "actions"), Set.of());
+      JSONArray actions = observation.getJSONArray("actions");
+      Json.require(actions.length() >= seenActions && actions.length() <= seenActions + 1, "Invalid action count");
+      for (int i = seenActions; i < actions.length(); i++) {
+        Json.require(op.equals("press"), "Action without explicit press");
+        JSONObject record = actions.getJSONObject(i);
+        Json.shape(record, Set.of("envelope"), Set.of("dataModel"));
+        JSONObject envelope = record.getJSONObject("envelope");
+        Json.shape(envelope, Set.of("version", "action"), Set.of());
+        JSONObject action = envelope.getJSONObject("action");
+        Json.shape(action, Set.of("name", "surfaceId", "sourceComponentId", "timestamp", "context"), Set.of());
+        Json.require(envelope.get("version").equals("v1.0") && action.get("surfaceId").equals("form")
+            && action.get("timestamp").equals(timestamp) && action.get("name").equals("submit")
+            && policy.getJSONArray("eventNames").length() == 1, "Denied action contract");
+        identifier(action.get("sourceComponentId"));
+        action.getJSONObject("context");
+        if (record.has("dataModel")) record.getJSONObject("dataModel");
+        Json.parse(record.toString(), 64);
+        if (policy.getBoolean("authorizeActions")) {
+          deliveries.put(record);
+          results.put("delivered");
+        } else results.put("denied");
+      }
+      seenActions = actions.length();
+      observation.put("deliveries", deliveries);
+      observation.put("deliveryResults", results);
       // Snapshot cumulative logs so later steps cannot mutate earlier observations.
       return Json.object(Json.parse(observation.toString(), Json.RESPONSE_DEPTH));
     } catch (Exception error) {

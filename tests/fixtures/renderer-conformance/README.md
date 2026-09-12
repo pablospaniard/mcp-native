@@ -106,7 +106,7 @@ This does not prove VoiceOver/TalkBack behavior on a device.
 
 ## Cases and evidence limits
 
-The 20 cases cover:
+The 21 cases cover:
 
 - Local string/boolean edits, non-ASCII text, current-state action context, and surface deletion.
 - Equivalent rerenders, component-only updates, changed server values, and same-value server
@@ -117,6 +117,9 @@ The 20 cases cover:
 - Allowed/denied delivery, full-model inclusion/omission, and disabled-button checks/recovery.
 - Rejected callback types, unknown wire versions/components/functions/props, malformed updates,
   narrowed component/event policies, and invalid bound-model recovery.
+- Server array updates append at length, create appended object parents and remove elements; gaps,
+  noncanonical indices and missing deletions reject without changing state. These are project
+  semantics of the pinned store, not an RFC 6902 JSON Patch claim.
 - Dynamic-list ordering and a 1025-node expansion from just three definitions and 512 rows,
   rejected against the fixed 1024-node render limit. A small accepted list is the control case.
 - A reachable source accepted by the stateless event resolver, then rejected after a graph update

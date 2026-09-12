@@ -18,3 +18,22 @@ android {
 
 dependencies { implementation 'androidx.javascriptengine:javascriptengine:1.1.0' }
 dependencyLocking { lockAllConfigurations() }
+
+// Generate the native constant from the same trusted experiment input imported by JavaScript.
+def limitsFile = file('../ios-runtime-comparison/limits.json')
+def generatedLimits = layout.buildDirectory.dir('generated/experimentLimits')
+def generateExperimentLimits = tasks.register('generateExperimentLimits') {
+    inputs.file(limitsFile)
+    outputs.dir(generatedLimits)
+    doLast {
+        def depth = new groovy.json.JsonSlurper().parse(limitsFile).maxComponentDepth
+        if (!(depth instanceof Integer) || depth < 1 || depth > 64) {
+            throw new GradleException('Invalid experiment component-depth limit')
+        }
+        def output = new File(generatedLimits.get().asFile, 'dev/mcpnative/androidprobe/ExperimentLimits.java')
+        output.parentFile.mkdirs()
+        output.text = "package dev.mcpnative.androidprobe;\nfinal class ExperimentLimits { static final int MAX_COMPONENT_DEPTH = ${depth}; }\n"
+    }
+}
+android.sourceSets.main.java.srcDir(generatedLimits)
+tasks.named('preBuild').configure { dependsOn(generateExperimentLimits) }

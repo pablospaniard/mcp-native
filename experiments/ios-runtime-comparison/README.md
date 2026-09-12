@@ -40,8 +40,9 @@ npm run experiment:ios:simulator -- SIMULATOR_UDID
 ```
 
 The first command builds the host-owned bundle, compiles the Swift command-line runner, and compares
-both engines' observations against all 20 shared cases. The simulator command also builds the Xcode
-app, runs both XCTest UI flows, and independently compares the simulator's saved observations with
+both engines' observations against all 21 shared cases. The simulator command also builds the Xcode
+app, runs the corpus once in a dedicated XCTest on a background worker, runs both UI flows without
+rerunning the corpus at launch, and independently compares the simulator's saved observations with
 the original corpus. Generated `dist/inputs.json` has no expected snapshots; neither engine receives
 the expectations. The Node comparator rejects missing cases and any observation mismatch.
 The runner boots the selected simulator before testing and disables parallel test worker clones so
@@ -153,3 +154,8 @@ This revision cannot directly execute our exact pinned corpus. Adapting it would
 port with the runtime experiment. The independent Swift probe below therefore implements only
 the declared subset; this is not a claim that maintaining a separate full renderer is preferable.
 Reassess upstream reuse before building a production Swift SDK.
+
+The trusted `limits.json` is the single component-depth configuration. The bundle imports it directly;
+its build generates the Swift constant, and Android's Gradle build generates the Java constant from
+that same file. Response-depth budgets derive from it; request JSON depth and session-step limits
+remain separate constraints. Generated sources are ignored and removed with the experiments.

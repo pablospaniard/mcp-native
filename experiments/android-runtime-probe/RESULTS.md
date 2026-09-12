@@ -12,8 +12,8 @@ Gradle 8.14.3, AGP 8.13.2, compile/target SDK 36 and build-tools 36.0.0. The deb
 
 | Check                                                    | Result                                                                                         |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Exact shared JavaScript bundle                           | 335,559 bytes; SHA-256 `cb3d059f91305186e7112a3e025d5dfbaf92a3c4f7dc6787010ebdfe25638d69`      |
-| Shared form corpus                                       | 20/20 cases; all observations independently compared in Node                                   |
+| Exact shared JavaScript bundle                           | 335,625 bytes; SHA-256 `2f299bea87d6c7d59068b07891963fdbfc2914115c2ab90db6ef2dd53e252ff1`      |
+| Shared form corpus                                       | 21/21 cases; all observations independently compared in Node                                   |
 | Message ports, promises, termination, heap/return limits | Required provider feature flags present                                                        |
 | `Intl`                                                   | DateTimeFormat, NumberFormat and PluralRules present; fixed outputs and corpus formatting pass |
 | Raw URL / TextEncoder / structuredClone                  | Absent; the existing bundled URL polyfill satisfies the selected runtime path                  |
@@ -26,7 +26,9 @@ Gradle 8.14.3, AGP 8.13.2, compile/target SDK 36 and build-tools 36.0.0. The deb
 `npm run experiment:android -- emulator-5554` regenerates the ignored report. Expected observations
 are not placed in APK assets or passed to the engine. The comparator checks the invocation UUID and
 bundle hash as well as exact cases and observations. The native host records authorized/denied
-deliveries; there is no network dispatch or interactive screen in this probe.
+deliveries. Malformed observation/action contracts close the host, and lexical rejection probes
+cover invalid escapes, raw controls and uppercase JSON literals. This probe has no network dispatch
+or interactive screen.
 
 ## Assessment
 

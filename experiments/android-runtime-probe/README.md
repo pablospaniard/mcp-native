@@ -1,6 +1,6 @@
 # Android runtime feasibility probe
 
-Temporary evidence for RFC-0002 and milestone 12. This runs the **same JavaScript bundle and 20-case
+Temporary evidence for RFC-0002 and milestone 12. This runs the **same JavaScript bundle and 21-case
 corpus as the iOS experiment** through AndroidX JavaScriptEngine 1.1.0. A small Java host checks JSON,
 session admission and action authorization. There is no Compose renderer, independent Kotlin
 interpreter, application UI, MCP transport, or public Android SDK in this directory.
@@ -69,9 +69,11 @@ tested environments; the bundled implementation supplies the validator's require
 ## Bounds and failure checks
 
 Requests are limited to 1 MiB, 64 JSON container levels, 10,000 values, 65,536 UTF-16 units per string
-and 1,048,576 cumulative string units. Strict streaming decoding rejects duplicate keys, invalid
-JSON syntax and non-finite numbers. Response decoding permits 132 container levels for the common
-64-component graph path; other budgets remain bounded. The experiment retains the shared planner's
+and 1,048,576 cumulative string units. A lexical check rejects invalid escapes, unescaped controls and non-JSON literal spellings before
+Android JsonReader can normalize them; streaming decoding rejects duplicate keys, invalid JSON
+structure and non-finite numbers. Response decoding permits 132 container levels for the common
+component graph path; its budget derives from the same trusted iOS `limits.json` used by Swift
+and JavaScript. Gradle generates the Java constant; other budgets remain bounded. The experiment retains the shared planner's
 1024-node expansion limit, counts Button text children in graph paths, and limits host sessions to
 64 steps. Report accumulation is capped at 8 MiB. Host interaction labels/source identifiers remain
 bounded ASCII; JSON keys and string values preserve Java's exact UTF-16 equality.
@@ -79,6 +81,7 @@ bounded ASCII; JSON keys and string values preserve Java's exact UTF-16 equality
 Isolates request a 64 MiB JavaScript heap limit and a 1 MiB evaluation/message-result limit. These
 are configured safeguards, not measurements of process memory or performance budgets. Blocking
 host waits have ten-second test deadlines; they close failed sessions and are not latency scores.
+Invalid observation or action contracts also close the host before another request can be admitted.
 Closing releases the message port and isolate and rejects a pending request. A termination callback
 also fails pending requests when the isolate dies. The native host API here runs on an instrumentation
 worker; production main-thread dispatch and application lifecycle integration remain undesigned.

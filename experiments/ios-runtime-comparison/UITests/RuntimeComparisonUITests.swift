@@ -7,12 +7,23 @@ final class RuntimeComparisonUITests: XCTestCase {
   func testSwiftRoundTrip() throws { try roundTrip(swift: true) }
 
   @MainActor
+  func testConformance() {
+    let app = XCUIApplication()
+    app.launchArguments = ["--conformance"]
+    app.launch()
+    XCTAssertTrue(app.textFields["field-Name"].waitForExistence(timeout: 10))
+    expectation(for: NSPredicate(format: "label == %@", "Conformance complete"),
+      evaluatedWith: app.staticTexts["conformance"])
+    waitForExpectations(timeout: 30)
+  }
+
+  @MainActor
   private func roundTrip(swift: Bool) throws {
     let app = XCUIApplication()
-    app.launchArguments = ["--conformance"] + (swift ? ["--swift"] : [])
+    app.launchArguments = swift ? ["--swift"] : []
     app.launch()
     XCTAssertTrue(app.staticTexts["conformance"].waitForExistence(timeout: 30))
-    XCTAssertEqual(app.staticTexts["conformance"].label, "Conformance complete")
+    XCTAssertEqual(app.staticTexts["conformance"].label, "Not run")
     XCTAssertEqual(app.staticTexts["engine"].label, swift ? "swift" : "javascript")
     let field = app.textFields["field-Name"]
     XCTAssertEqual(field.value as? String, "Ada")
