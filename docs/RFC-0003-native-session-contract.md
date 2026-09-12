@@ -106,9 +106,10 @@ closes the session before integer precision or wraparound can make an old identi
 
 ### Surface-ID lifetime interpretation
 
-**Decision proposed:** enforce wire-ID uniqueness for the lifetime of a host-owned rendering
-context in the new internal native session. This section defines the policy for review; enforcement
-and its acceptance tests remain implementation gates. Published `1.x` behavior is unchanged.
+**Decision proposed:** add opt-in lifetime uniqueness to the shared surface store and reuse its
+common enforcement in the internal native-session path. The host owns the rendering-context lifetime
+across engines. This section defines the policy for review; implementation and acceptance tests
+remain gates. Published `1.x` defaults are unchanged.
 
 The pinned [upstream create-surface schema](https://github.com/a2ui-project/a2ui/blob/8ff4651232ab0e02b0123730b502711170637a3a/specification/v1_0/json/agent_to_renderer.json)
 requires `surfaceId` to remain globally unique for the renderer's lifetime. Its preceding wording
@@ -178,14 +179,19 @@ therefore remain host responsibilities. This ownership requirement does not impl
 retention, equality and budget accounting must be independently reimplemented by every consumer.
 
 Keep the published store and React Native defaults unchanged in `1.x`. This compatibility constraint
-does not preclude an additive opt-in lifetime-uniqueness option on the shared store. Implement the
-initial native-session boundary privately; track the published-store opt-in separately under
+permits an additive opt-in lifetime-uniqueness option on the shared store. Deliver that option and
+the private native-session integration as coordinated work under
 [milestone 12 / #92](https://github.com/pablospaniard/mcp-native/issues/92), with the concrete
 [roadmap acceptance criteria](roadmap.md#shared-store-lifetime-uniqueness).
-That follow-up must decide which registry operations can share an implementation or an explicit
-registry interface and justify any separate host/store implementations. It must preserve host-owned
-state across engine replacement and the store's atomic `applyAll` rollback of IDs and budget charges;
-adding an unbounded set that survives deletion is not sufficient. Public API shape and implementation
+Resolve the shared-registry design before implementing either path. Keep reusable identifier
+retention, equality and budget logic in the existing A2UI layer and use it for in-process consumers.
+Where an isolated engine or native language requires a separate representation, specify the trusted
+registry boundary and verify it against the same semantic cases; document why direct reuse is not
+possible. A store-owned set alone is sufficient only when that store spans the entire declared
+renderer lifetime. The integrated design must preserve host-owned state across engine replacement
+and the store's atomic `applyAll` rollback of IDs and budget charges;
+adding an unbounded set that survives deletion is not sufficient. A failed batch releases only IDs
+and charges introduced by that batch, never history that predates it. Public API shape and implementation
 remain follow-up work, not prerequisites for accepting this behavioral RFC.
 
 The published store's and React Native renderer's current active-ID-only behavior
@@ -398,7 +404,8 @@ CI workflow, package or production behavior is introduced by this document.
 
 1. Review this behavioral proposal and the conservative render-ticket invalidation rule. Milestone
    12 stays open; review acceptance alone does not freeze exports or establish multi-renderer support.
-2. Implement an internal session using existing JavaScript validation, store and planner code.
+2. Resolve the shared-registry design, then implement the store opt-in and internal session using
+   existing JavaScript validation, store and planner code.
    Replace experiment reconciliation glue and add a React Native adapter path exercised by the same
    corpus. Preserve existing published behavior and imports; demonstrate shared-semantic parity and
    implement the [surface-ID lifetime policy](#surface-id-lifetime-interpretation) before native adoption.

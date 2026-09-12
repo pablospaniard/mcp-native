@@ -577,14 +577,15 @@ This is required before closing milestone 12, independently of the private nativ
 - [ ] Add opt-in lifetime uniqueness to the published surface store, preserving current `1.x`
       defaults. Specify the relationship between the store lifetime and the rendering context;
       replacing an engine/store must not silently reset a continuing context's used IDs.
-- [ ] Record the shared-registry design decision before implementing the opt-in: reuse the common
-      retention/equality/budget logic or define an explicit registry interface where practical;
-      justify separate implementations where host/engine boundaries require them. Keep context
-      routing, pre-dispatch admission, uncertain outcomes and teardown host-owned.
+- [ ] Record the shared-registry design decision before implementing the opt-in or native-session
+      enforcement: reuse common retention/equality/budget logic in the existing A2UI layer for
+      in-process consumers; specify and test the trusted boundary where isolated engines or native
+      languages require separate representations. Keep context routing, pre-dispatch admission,
+      uncertain outcomes and teardown host-owned.
 - [ ] Enforce retained-ID count, per-ID size and cumulative string budgets; retain accepted IDs
       after deletion without eviction. Preserve recoverable rejection and atomic `applyAll` rollback
-      of both retained IDs and budget charges. Test failed creations/batches and exhaustion as well
-      as accepted create/delete/recreate sequences.
+      of both retained IDs and budget charges, preserving history from before the batch. Test failed
+      creations/batches and exhaustion as well as accepted create/delete/recreate sequences.
 - [ ] Expose and test a React Native opt-in path and the published package-consumer API. Prove old
       callers retain their behavior and strict callers enforce the documented lifetime. Document
       migration, context boundaries and exhaustion handling, and update conformance evidence.
