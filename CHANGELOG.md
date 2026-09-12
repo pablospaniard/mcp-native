@@ -10,7 +10,8 @@ patch and minor releases remain compatible within their release line.
 
 - Scoped iOS runtime comparison: JavaScriptCore and independent Swift form semantics run the shared
   20-case corpus and the same SwiftUI interaction/lifecycle checks. Includes a pinned upstream reuse
-  assessment, bounded native host, reproducible simulator command and CI job. Runtime/package choice,
+  assessment, bounded native host, reproducible simulator command and CI scoped to relevant
+  integration PRs. Experiment cleanup is required before mainline promotion. Runtime/package choice,
   full native parity and physical-device performance remain open; no public API or version changes.
 
 - Provisional language-neutral renderer conformance corpus: 20 basic-form scenarios with a strict

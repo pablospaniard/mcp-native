@@ -5,6 +5,25 @@ published packages or a supported iOS SDK. Both engines consume the same basic-f
 drive the same host-owned SwiftUI controls. Exact A2UI baseline:
 `v1.0`, Candidate `8ff4651232ab0e02b0123730b502711170637a3a`.
 
+## Temporary lifecycle
+
+This directory exists on `feature/native-platforms` to support the RFC-0002 runtime decision. The
+decision PR must include its disposition; the PR promoting the integration branch to `main` must
+complete cleanup even if the runtime decision is deferred. The milestone 12/13 maintainers own
+that review. There is no standing commitment to maintain both prototypes.
+
+Before promotion to `main`:
+
+- Preserve the findings under `docs/` with the exact tested source revision and reproduction
+  instructions, and retain the language-neutral fixtures under `tests/fixtures/renderer-conformance`.
+- Move any selected implementation into the reviewed platform code, with its required production
+  validation and tests. Selection does not automatically make prototype code production-ready.
+- Remove both experiment implementations and their Xcode project, fixture adapter, temporary
+  workflow, `tests/ios-runtime-comparison.test.mjs`, and `experiment:ios:*` scripts. Remove esbuild
+  and core-js-pure if the selected implementation does not need them; regenerate the lockfile.
+- Update documentation links and verify that routine checks no longer depend on this directory.
+  Git history retains the discarded implementation and original comparison evidence.
+
 ## Run
 
 From the repository root on macOS with Xcode and an iOS 18+ simulator installed:
@@ -24,8 +43,18 @@ the original corpus. Generated `dist/inputs.json` has no expected snapshots; nei
 the expectations. The Node comparator rejects missing cases and any observation mismatch.
 
 Build outputs and reports stay in the ignored `dist/` directory. After generation, open
-`RuntimeComparison.xcodeproj` in Xcode to interact with the same app. The macOS CI job runs the full
-simulator command. The JavaScript session and bridge negative tests also run in normal `npm test`.
+`RuntimeComparison.xcodeproj` in Xcode to interact with the same app. The separate
+[`iOS runtime experiment` workflow](../../.github/workflows/ios-runtime-experiment.yml) runs on PRs
+targeting `feature/native-platforms` when experiment code, fixtures, runtime dependencies or build
+configuration change. Documentation-only changes are excluded. New runs cancel superseded runs;
+there is no automatic push or mainline trigger. Keep this optional experiment check out of required
+branch checks so a path-filtered run does not block unrelated PRs.
+
+Run `npm run experiment:ios:simulator` manually from a checkout whenever needed. The workflow also
+declares `workflow_dispatch`, but [GitHub requires default-branch registration](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
+for that UI/API entry point. While the workflow exists only on the integration branch, use the local
+command or rerun an existing relevant PR run. Do not promote experiment code just to enable dispatch.
+The lightweight JavaScript session and bridge tests remain in normal `npm test` until cleanup.
 
 ## Architecture and trust boundary
 

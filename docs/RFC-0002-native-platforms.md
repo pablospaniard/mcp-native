@@ -39,6 +39,14 @@ review the resulting public API, migration requirements, supported platform matr
 scope. The integration branch is not a release channel, and this RFC does not authorize publication
 or package-version changes.
 
+Experiment code has an explicit sunset. The runtime decision PR records what is retained, and the
+promotion PR must remove the iOS comparison directory and its temporary CI/scripts/tests even if
+the decision is deferred. Preserve findings under `docs/` and the shared language-neutral corpus;
+move a selected implementation into reviewed platform code only after its production acceptance
+criteria are met. Remove unused experiment dependencies and repair references as part of that PR.
+Milestone 12/13 maintainers own this review; git history retains discarded prototypes. See the
+[cleanup inventory](../experiments/ios-runtime-comparison/README.md#temporary-lifecycle).
+
 ## What the repository already proves
 
 - Seven published packages share one coordinated release version; the current extraction introduces

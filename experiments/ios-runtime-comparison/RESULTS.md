@@ -73,6 +73,13 @@ must be a separately published npm package: a host bundle can consume an interna
 Both approaches use the same SwiftUI adapter, and neither requires a collection of low-level Swift
 packages. Keep the experiment in one directory and preserve current published compatibility.
 
+This directory is temporary decision evidence. The decision PR records its disposition, and cleanup
+is required before `feature/native-platforms` is promoted to `main`: preserve these findings and the
+shared fixtures, move any selected implementation into reviewed platform code, and remove the
+discarded prototype, temporary workflow and experiment-only dependencies. The README lists the full
+cleanup inventory. Git history preserves reproducibility after removal. Experiment CI is limited
+to relevant integration PRs; it is not a permanent check on every PR.
+
 Next: run the minimal Android engine/bundling/Intl probe against this exact corpus, then review a
 single session contract covering revisions, input events, admission cancellation, teardown and host
 authorization. Leave the package decision and milestone 12/13 completion open.

@@ -1,0 +1,42 @@
+name: iOS runtime experiment
+
+# Temporary RFC-0002 infrastructure. Remove before feature/native-platforms reaches main.
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [feature/native-platforms]
+    paths:
+      - .github/workflows/ios-runtime-experiment.yml
+      - experiments/ios-runtime-comparison/**
+      - tests/ios-runtime-comparison.test.mjs
+      - tests/fixtures/renderer-conformance/**
+      - tests/helpers/renderer-conformance.mjs
+      - packages/core/**
+      - packages/a2ui/**
+      - packages/renderer-core/**
+      - packages/react-native/**
+      - package.json
+      - package-lock.json
+      - tsconfig*.json
+      - "!**/*.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-runtime-experiment-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-runtime-comparison:
+    name: iOS runtime comparison
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - run: npm ci
+      - run: npm run experiment:ios:simulator
