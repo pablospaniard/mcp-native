@@ -41,6 +41,11 @@ patch and minor releases remain compatible within their release line.
 
 ### Fixed
 
+- New native-platform experiments and conformance code use concise, version-neutral API names.
+  The provisional renderer-core entry point now supplies the same naming convention, retaining
+  existing alias identities. Repository instructions and current examples explicitly require generic
+  identifiers while preserving exact wire versions and the existing compatibility contract.
+
 - Temporary iOS comparison bridge preserves supported nested layouts with a bounded response-depth
   budget and a common 64-component graph limit. Malformed non-object envelopes reject without losing
   session state; cross-engine regression probes cover depth boundaries and retained local edits.

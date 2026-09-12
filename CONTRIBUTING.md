@@ -82,6 +82,23 @@ mcp-native               ──► core + a2ui + react-native + webview
 - Add comments for security invariants and non-obvious protocol decisions, not for routine syntax.
 - Preserve backwards compatibility for published exports unless an approved RFC explicitly permits a breaking change.
 
+### Naming
+
+Use concise, version-neutral identifiers in new code: functions, variables, constants, types and
+classes should describe their role without `v1`, `V1` or `_V1_`. Import the concise package exports,
+such as `SurfaceStore`, `createBasicCatalogPolicy`, `createRenderPlan` and `COMPONENT_NAMES`.
+Use a descriptive import alias or package namespace when context is needed, rather than adding a
+protocol version to the identifier. New documentation and examples follow the same convention.
+
+Package roots identify the current supported profile. Keep exact versions in wire values such as
+`PROTOCOL_VERSION === "v1.0"`, schema pins and compatibility documentation. Generic names do not
+authorize accepting unknown protocol versions or broadening the supported profile.
+
+Existing published versioned names remain compatibility aliases throughout the `1.x` line. They
+may appear in compatibility bridges and tests that verify the old contract. A naming cleanup is not
+permission to remove those aliases or rewrite pre-existing implementations outside the task's scope;
+moving existing code between modules does not make its established identifiers new API designs.
+
 ### Adding a declarative node or action
 
 A change that expands server-controlled UI should include:

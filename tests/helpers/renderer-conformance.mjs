@@ -5,17 +5,14 @@ import { act, createElement, Fragment } from "react";
 import { createRoot } from "test-renderer";
 
 import {
-  A2uiParseError,
-  A2uiSurfaceStore,
-  createA2uiV1ActionDeliveryHandler,
-  createA2uiV1BasicCatalogPolicy,
+  ParseError,
+  SurfaceStore,
+  createActionDeliveryHandler,
+  createBasicCatalogPolicy,
   MCP_SCHEMA_REVISION,
 } from "../../packages/a2ui/dist/index.js";
-import {
-  A2uiV1NativeSurface,
-  A2uiV1NativeSurfaceBoundary,
-} from "../../packages/react-native/dist/index.js";
-import { resolveA2uiV1NativeEvent } from "../../packages/renderer-core/dist/index.js";
+import { Surface, SurfaceBoundary } from "../../packages/react-native/dist/index.js";
+import { resolveEvent } from "../../packages/renderer-core/dist/index.js";
 
 const fixtureDirectory = new URL("../fixtures/renderer-conformance/", import.meta.url);
 const schema = JSON.parse(readFileSync(new URL("suite.schema.json", fixtureDirectory), "utf8"));
@@ -108,8 +105,8 @@ export async function runReactNativeConformanceCase(
   timestamp,
   { components: hostComponents = components } = {},
 ) {
-  const store = new A2uiSurfaceStore();
-  const policy = createA2uiV1BasicCatalogPolicy({
+  const store = new SurfaceStore();
+  const policy = createBasicCatalogPolicy({
     allowedComponentNames: fixture.host.componentNames,
     allowedEventNames: fixture.host.eventNames,
     allowedFunctionNames: fixture.host.functionNames,
@@ -128,7 +125,7 @@ export async function runReactNativeConformanceCase(
   const deliveries = [];
   const deliveryResults = [];
   const pendingDeliveries = [];
-  const delivery = createA2uiV1ActionDeliveryHandler({
+  const delivery = createActionDeliveryHandler({
     authorize: () => fixture.host.authorizeActions,
     deliver: (envelope, dataModel) => deliveries.push(actionRecord(envelope, dataModel)),
   });
@@ -153,14 +150,14 @@ export async function runReactNativeConformanceCase(
         surface === undefined
           ? createElement(Fragment)
           : createElement(
-              A2uiV1NativeSurfaceBoundary,
+              SurfaceBoundary,
               {
                 // Retry a failed mount, while preserving local state in a healthy child.
                 resetKey: String(renderAttempt),
                 // The root observer receives the original error before boundary wrapping.
                 onError: () => {},
               },
-              createElement(A2uiV1NativeSurface, { ...surfaceProps, surface }),
+              createElement(Surface, { ...surfaceProps, surface }),
             ),
       );
     });
@@ -172,7 +169,7 @@ export async function runReactNativeConformanceCase(
       try {
         store.apply(step.message);
       } catch (error) {
-        if (!(error instanceof A2uiParseError)) throw error;
+        if (!(error instanceof ParseError)) throw error;
         return "message-rejected";
       }
       return renderCurrentSurface();
@@ -182,9 +179,9 @@ export async function runReactNativeConformanceCase(
       const surface = store.get(fixture.surfaceId);
       assert.ok(surface, "Resolver probe requires an existing surface");
       try {
-        resolveA2uiV1NativeEvent(surface, policy, step.sourceComponentId, surface.dataModel);
+        resolveEvent(surface, policy, step.sourceComponentId, surface.dataModel);
       } catch (error) {
-        if (!(error instanceof A2uiParseError)) throw error;
+        if (!(error instanceof ParseError)) throw error;
         return "event-rejected";
       }
       return "accepted";
@@ -228,7 +225,7 @@ export async function runReactNativeConformanceCase(
       if (unexpectedErrors.length > 0) throw unexpectedErrors[0];
       const errors = renderErrors.splice(0);
       for (const error of errors) {
-        if (!(error instanceof A2uiParseError)) throw error;
+        if (!(error instanceof ParseError)) throw error;
       }
       // Input callbacks can also trigger a render failure after accepting a local edit.
       const outcome = errors.length > 0 ? "surface-rejected" : result;

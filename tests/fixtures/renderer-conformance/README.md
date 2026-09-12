@@ -65,7 +65,7 @@ Each `render` or accepted `message` retries a failed mount against the current s
 unmounted local edits are lost. Healthy mounts preserve edits until a server model revision.
 The underlying store may retain semantically invalid data until a correcting update. These are
 explicit host-composition choices; an A2UI parser alone does not own view lifecycle. React's
-reference adapter uses `A2uiV1NativeSurfaceBoundary` and observes original render errors through
+reference adapter uses `SurfaceBoundary` and observes original render errors through
 the test root's `onCaughtError` hook. It does not preflight a separate server-only render plan.
 
 ## Observations and comparisons
@@ -93,7 +93,7 @@ that callback's local-change log remains recorded even if its resulting render f
 `input-rejected` means the production input callback rejected the value without mutation.
 `event-rejected` means the stateless production resolver rejected the requested event source.
 The reference adapter catches only the relevant production exception types around those calls;
-assertion failures, missing controls, and render errors other than `A2uiParseError` fail the test.
+assertion failures, missing controls, and render errors other than `ParseError` fail the test.
 Uncaught and recoverable root errors also fail the test.
 Exact JavaScript exception messages/classes are not a portable requirement.
 

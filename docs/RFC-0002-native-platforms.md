@@ -166,6 +166,9 @@ composition needs. Do not create new published packages for each validator, stat
 set, bridge, or capability. Share fixtures as repository data until external distribution is needed.
 No existing package or export is removed by this RFC. Any eventual removal needs a major-version
 migration; an additive facade must also preserve optional dependency behavior and class identity.
+New native-platform code and examples follow the [version-neutral naming rule](../CONTRIBUTING.md#naming),
+including the provisional renderer-core entry points. Existing versioned names are compatibility
+aliases, while exact wire versions and schema pins remain explicit and unchanged.
 
 ## Experiments and milestone sequence
 

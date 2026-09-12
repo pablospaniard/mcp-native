@@ -12,7 +12,7 @@ Gradle 8.14.3, AGP 8.13.2, compile/target SDK 36 and build-tools 36.0.0. The deb
 
 | Check                                                    | Result                                                                                         |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Exact shared JavaScript bundle                           | 335,551 bytes; SHA-256 `0962ed707b88e3a2f663202adeb45e5bf43bba5b83622e81f8ad258055c1feb1`      |
+| Exact shared JavaScript bundle                           | 335,559 bytes; SHA-256 `cb3d059f91305186e7112a3e025d5dfbaf92a3c4f7dc6787010ebdfe25638d69`      |
 | Shared form corpus                                       | 20/20 cases; all observations independently compared in Node                                   |
 | Message ports, promises, termination, heap/return limits | Required provider feature flags present                                                        |
 | `Intl`                                                   | DateTimeFormat, NumberFormat and PluralRules present; fixed outputs and corpus formatting pass |
