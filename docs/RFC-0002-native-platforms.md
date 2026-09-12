@@ -152,6 +152,10 @@ migration; an additive facade must also preserve optional dependency behavior an
 
 ## Experiments and milestone sequence
 
+The initial [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) implements
+the JSON fixture portion of step 1 with 19 cases executed by the current React Native renderer.
+It does not complete the engine probes, native prototypes, or runtime decision described below.
+
 Milestone 12 supplies a draft contract and corpus to a scoped milestone 13 prototype, then incorporates
 the prototype's findings. Its final exit gate must not block the experiment needed to satisfy it.
 

@@ -8,6 +8,12 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Provisional language-neutral renderer conformance corpus: 19 basic-form scenarios with a strict
+  JSON fixture format, explicit expected observations, and a React Native reference runner covering
+  local/server state, actions, host authorization, rejection, and bounded expansion. Included in
+  normal checks and available through `npm run test:renderer-conformance`; published APIs and exact
+  protocol/schema pins are unchanged.
+
 - Proposed native-runtime and package-strategy RFC for milestone 11–16 work on
   `feature/native-platforms`; the renderer-core extraction remains provisional pending comparison
   of shared JavaScript and native implementations.

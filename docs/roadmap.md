@@ -527,6 +527,12 @@ profiles without modifying the host package or weakening its built-in validation
 
 ### Milestone 12: platform-neutral renderer foundation
 
+The [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) now provides 19
+language-neutral basic-form cases and a React Native reference runner, including local/server state,
+action authorization, invalid input, unreachable event sources, and bounded list expansion.
+`npm run test:renderer-conformance` runs it independently; the normal check suite also includes it.
+Native runtime probes, SwiftUI/Compose runners, and the final shared contract remain outstanding.
+
 - [ ] Extract and freeze platform-neutral renderer inputs, state transitions, actions, errors,
       lifecycle, limits, and conformance fixtures without moving SwiftUI, Compose, React Native,
       A2UI, or WebView implementations into `@mcp-native/core`. Render-plan building, the component

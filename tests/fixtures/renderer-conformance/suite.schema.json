@@ -1,0 +1,429 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "formatVersion": {
+      "const": 1
+    },
+    "profile": {
+      "const": "basic-form"
+    },
+    "schemaRevision": {
+      "const": "8ff4651232ab0e02b0123730b502711170637a3a"
+    },
+    "timestamp": {
+      "const": "2026-09-12T12:00:00.000Z"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/case"
+      },
+      "minItems": 1,
+      "maxItems": 64
+    }
+  },
+  "required": ["formatVersion", "profile", "schemaRevision", "timestamp", "cases"],
+  "additionalProperties": false,
+  "$defs": {
+    "view": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "group"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/view"
+              },
+              "maxItems": 1024
+            }
+          },
+          "required": ["kind", "children"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "text"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 16384
+            }
+          },
+          "required": ["kind", "text"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "text-field"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 16384
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 16384
+            },
+            "invalid": {
+              "type": "boolean"
+            },
+            "validationMessages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 16384
+              },
+              "maxItems": 32
+            }
+          },
+          "required": ["kind", "label", "value", "invalid", "validationMessages"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "checkbox"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 16384
+            },
+            "value": {
+              "type": "boolean"
+            },
+            "invalid": {
+              "type": "boolean"
+            },
+            "validationMessages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 16384
+              },
+              "maxItems": 32
+            }
+          },
+          "required": ["kind", "label", "value", "invalid", "validationMessages"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "button"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 16384
+            },
+            "disabled": {
+              "type": "boolean"
+            },
+            "validationMessages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 16384
+              },
+              "maxItems": 32
+            }
+          },
+          "required": ["kind", "label", "disabled", "validationMessages"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "action": {
+      "type": "object",
+      "properties": {
+        "envelope": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "const": "v1.0"
+            },
+            "action": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "surfaceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "sourceComponentId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "timestamp": {
+                  "const": "2026-09-12T12:00:00.000Z"
+                },
+                "context": {
+                  "type": "object"
+                }
+              },
+              "required": ["name", "surfaceId", "sourceComponentId", "timestamp", "context"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["version", "action"],
+          "additionalProperties": false
+        },
+        "dataModel": {
+          "type": "object"
+        }
+      },
+      "required": ["envelope"],
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "enum": [
+            "accepted",
+            "message-rejected",
+            "surface-rejected",
+            "input-rejected",
+            "event-rejected"
+          ]
+        },
+        "serverDataModel": {
+          "type": ["object", "null"]
+        },
+        "view": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/view"
+          },
+          "maxItems": 1024
+        },
+        "localChanges": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "maxItems": 64
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          },
+          "maxItems": 64
+        },
+        "deliveries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          },
+          "maxItems": 64
+        },
+        "deliveryResults": {
+          "type": "array",
+          "items": {
+            "enum": ["delivered", "denied"]
+          },
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "outcome",
+        "serverDataModel",
+        "view",
+        "localChanges",
+        "actions",
+        "deliveries",
+        "deliveryResults"
+      ],
+      "additionalProperties": false
+    },
+    "step": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "message"
+            },
+            "message": {
+              "type": "object"
+            },
+            "expect": {
+              "$ref": "#/$defs/observation"
+            }
+          },
+          "required": ["op", "message", "expect"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "render"
+            },
+            "expect": {
+              "$ref": "#/$defs/observation"
+            }
+          },
+          "required": ["op", "expect"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "input"
+            },
+            "target": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "enum": ["text-field", "checkbox"]
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": ["kind", "label"],
+              "additionalProperties": false
+            },
+            "value": {},
+            "expect": {
+              "$ref": "#/$defs/observation"
+            }
+          },
+          "required": ["op", "target", "value", "expect"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "press"
+            },
+            "target": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "button"
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": ["kind", "label"],
+              "additionalProperties": false
+            },
+            "expect": {
+              "$ref": "#/$defs/observation"
+            }
+          },
+          "required": ["op", "target", "expect"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "resolve-event"
+            },
+            "sourceComponentId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "expect": {
+              "$ref": "#/$defs/observation"
+            }
+          },
+          "required": ["op", "sourceComponentId", "expect"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "case": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 16384
+        },
+        "basis": {
+          "enum": ["pinned-schema", "project-semantics", "host-composition"]
+        },
+        "surfaceId": {
+          "const": "form"
+        },
+        "host": {
+          "type": "object",
+          "properties": {
+            "componentNames": {
+              "type": "array",
+              "items": {
+                "enum": ["Column", "List", "Text", "TextField", "CheckBox", "Button"]
+              },
+              "minItems": 1,
+              "maxItems": 6,
+              "uniqueItems": true
+            },
+            "eventNames": {
+              "type": "array",
+              "items": {
+                "enum": ["submit"]
+              },
+              "maxItems": 1,
+              "uniqueItems": true
+            },
+            "functionNames": {
+              "type": "array",
+              "items": {
+                "enum": ["required"]
+              },
+              "maxItems": 1,
+              "uniqueItems": true
+            },
+            "authorizeActions": {
+              "type": "boolean"
+            }
+          },
+          "required": ["componentNames", "eventNames", "functionNames", "authorizeActions"],
+          "additionalProperties": false
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        }
+      },
+      "required": ["id", "description", "basis", "surfaceId", "host", "steps"],
+      "additionalProperties": false
+    }
+  }
+}

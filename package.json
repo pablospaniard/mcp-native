@@ -25,6 +25,7 @@
     "test:conformance": "npm run build && node scripts/run-mcp-conformance.mjs",
     "test:coverage": "npm run build && c8 node --test tests/*.test.mjs",
     "test:performance": "npm run build && node --expose-gc scripts/run-a2ui-performance.mjs",
+    "test:renderer-conformance": "npm run build && node --test tests/renderer-conformance.test.mjs",
     "test:unit": "node --test tests/*.test.mjs",
     "typecheck": "tsc -b --pretty false"
   },

@@ -1,0 +1,6922 @@
+{
+  "formatVersion": 1,
+  "profile": "basic-form",
+  "schemaRevision": "8ff4651232ab0e02b0123730b502711170637a3a",
+  "timestamp": "2026-09-12T12:00:00.000Z",
+  "cases": [
+    {
+      "id": "form-edit-submit-reconcile-delete",
+      "description": "Local string/boolean edits are inert; actions use current state; equivalent render preserves edits; server updates reset them; deletion unmounts.",
+      "basis": "host-composition",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "text-field",
+            "label": "Name"
+          },
+          "value": "Zoë 🚗",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Zoë 🚗"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Zoë 🚗",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Zoë 🚗",
+                "consent": false
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "checkbox",
+            "label": "Consent"
+          },
+          "value": true,
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Zoë 🚗"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Zoë 🚗",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": true,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Zoë 🚗",
+                "consent": false
+              },
+              {
+                "name": "Zoë 🚗",
+                "consent": true
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "render",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Zoë 🚗"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Zoë 🚗",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": true,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Zoë 🚗",
+                "consent": false
+              },
+              {
+                "name": "Zoë 🚗",
+                "consent": true
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "press",
+          "target": {
+            "kind": "button",
+            "label": "Submit"
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Zoë 🚗"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Zoë 🚗",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": true,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Zoë 🚗",
+                "consent": false
+              },
+              {
+                "name": "Zoë 🚗",
+                "consent": true
+              }
+            ],
+            "actions": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Zoë 🚗",
+                      "consent": true
+                    }
+                  }
+                },
+                "dataModel": {
+                  "name": "Zoë 🚗",
+                  "consent": true
+                }
+              }
+            ],
+            "deliveries": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Zoë 🚗",
+                      "consent": true
+                    }
+                  }
+                },
+                "dataModel": {
+                  "name": "Zoë 🚗",
+                  "consent": true
+                }
+              }
+            ],
+            "deliveryResults": ["delivered"]
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/name",
+              "value": "Lin"
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Lin",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Lin"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Lin",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Zoë 🚗",
+                "consent": false
+              },
+              {
+                "name": "Zoë 🚗",
+                "consent": true
+              }
+            ],
+            "actions": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Zoë 🚗",
+                      "consent": true
+                    }
+                  }
+                },
+                "dataModel": {
+                  "name": "Zoë 🚗",
+                  "consent": true
+                }
+              }
+            ],
+            "deliveries": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Zoë 🚗",
+                      "consent": true
+                    }
+                  }
+                },
+                "dataModel": {
+                  "name": "Zoë 🚗",
+                  "consent": true
+                }
+              }
+            ],
+            "deliveryResults": ["delivered"]
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "deleteSurface": {
+              "surfaceId": "form"
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": null,
+            "view": [],
+            "localChanges": [
+              {
+                "name": "Zoë 🚗",
+                "consent": false
+              },
+              {
+                "name": "Zoë 🚗",
+                "consent": true
+              }
+            ],
+            "actions": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Zoë 🚗",
+                      "consent": true
+                    }
+                  }
+                },
+                "dataModel": {
+                  "name": "Zoë 🚗",
+                  "consent": true
+                }
+              }
+            ],
+            "deliveries": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Zoë 🚗",
+                      "consent": true
+                    }
+                  }
+                },
+                "dataModel": {
+                  "name": "Zoë 🚗",
+                  "consent": true
+                }
+              }
+            ],
+            "deliveryResults": ["delivered"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "same-value-server-update",
+      "description": "An explicit server data-model revision resets local edits even if the server value is unchanged.",
+      "basis": "project-semantics",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "text-field",
+            "label": "Name"
+          },
+          "value": "Grace",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Grace"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Grace",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Grace",
+                "consent": false
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/name",
+              "value": "Ada"
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Grace",
+                "consent": false
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "component-update-preserves-edits",
+      "description": "A component-only update with the same server model preserves local edits.",
+      "basis": "project-semantics",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "text-field",
+            "label": "Name"
+          },
+          "value": "Grace",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Grace"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Grace",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Grace",
+                "consent": false
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateComponents": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                }
+              ]
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Grace"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Grace",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Grace",
+                "consent": false
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "policy-denial-with-model",
+      "description": "A validated action reaches authorization but no delivery; sendDataModel controls the separate model argument.",
+      "basis": "host-composition",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": false
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "press",
+          "target": {
+            "kind": "button",
+            "label": "Submit"
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Ada",
+                      "consent": false
+                    }
+                  }
+                },
+                "dataModel": {
+                  "name": "Ada",
+                  "consent": false
+                }
+              }
+            ],
+            "deliveries": [],
+            "deliveryResults": ["denied"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "policy-denial-without-model",
+      "description": "A validated action reaches authorization but no delivery; sendDataModel controls the separate model argument.",
+      "basis": "host-composition",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": false
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": false
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "press",
+          "target": {
+            "kind": "button",
+            "label": "Submit"
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Ada",
+                      "consent": false
+                    }
+                  }
+                }
+              }
+            ],
+            "deliveries": [],
+            "deliveryResults": ["denied"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "omit-action-model",
+      "description": "Authorized delivery omits the full model when sendDataModel is false.",
+      "basis": "host-composition",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": false
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "press",
+          "target": {
+            "kind": "button",
+            "label": "Submit"
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Ada",
+                      "consent": false
+                    }
+                  }
+                }
+              }
+            ],
+            "deliveries": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Ada",
+                      "consent": false
+                    }
+                  }
+                }
+              }
+            ],
+            "deliveryResults": ["delivered"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid-input-types",
+      "description": "Wrong native callback value types cannot mutate local state or dispatch actions.",
+      "basis": "project-semantics",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "text-field",
+            "label": "Name"
+          },
+          "value": 42,
+          "expect": {
+            "outcome": "input-rejected",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "checkbox",
+            "label": "Consent"
+          },
+          "value": "true",
+          "expect": {
+            "outcome": "input-rejected",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "required-check-recovery",
+      "description": "Failed checks disable submission and expose validation messages until a local edit satisfies the check.",
+      "basis": "project-semantics",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  },
+                  "checks": [
+                    {
+                      "condition": {
+                        "call": "required",
+                        "args": {
+                          "value": {
+                            "path": "/name"
+                          }
+                        }
+                      },
+                      "message": "Name is required."
+                    }
+                  ]
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  },
+                  "checks": [
+                    {
+                      "condition": {
+                        "call": "required",
+                        "args": {
+                          "value": {
+                            "path": "/name"
+                          }
+                        }
+                      },
+                      "message": "Name is required."
+                    }
+                  ]
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": ""
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "",
+                    "invalid": true,
+                    "validationMessages": ["Name is required."]
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": true,
+                    "validationMessages": ["Name is required."]
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "press",
+          "target": {
+            "kind": "button",
+            "label": "Submit"
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": ""
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "",
+                    "invalid": true,
+                    "validationMessages": ["Name is required."]
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": true,
+                    "validationMessages": ["Name is required."]
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "text-field",
+            "label": "Name"
+          },
+          "value": "Ada",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Ada",
+                "consent": false
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "press",
+          "target": {
+            "kind": "button",
+            "label": "Submit"
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "name": "Ada",
+                "consent": false
+              }
+            ],
+            "actions": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Ada",
+                      "consent": false
+                    }
+                  }
+                },
+                "dataModel": {
+                  "name": "Ada",
+                  "consent": false
+                }
+              }
+            ],
+            "deliveries": [
+              {
+                "envelope": {
+                  "version": "v1.0",
+                  "action": {
+                    "name": "submit",
+                    "surfaceId": "form",
+                    "sourceComponentId": "submit",
+                    "timestamp": "2026-09-12T12:00:00.000Z",
+                    "context": {
+                      "name": "Ada",
+                      "consent": false
+                    }
+                  }
+                },
+                "dataModel": {
+                  "name": "Ada",
+                  "consent": false
+                }
+              }
+            ],
+            "deliveryResults": ["delivered"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "unreachable-event-source",
+      "description": "The stateless resolver accepts a reachable source and rejects the same source after an ordered graph update removes its reachability.",
+      "basis": "project-semantics",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "resolve-event",
+          "sourceComponentId": "submit",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateComponents": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent"]
+                }
+              ]
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "resolve-event",
+          "sourceComponentId": "submit",
+          "expect": {
+            "outcome": "event-rejected",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "unknown-version",
+      "description": "Malformed or unsupported wire input is rejected without replacing the last mounted valid surface.",
+      "basis": "pinned-schema",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v99.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/name",
+              "value": "Wrong"
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "unknown-component",
+      "description": "Malformed or unsupported wire input is rejected without replacing the last mounted valid surface.",
+      "basis": "pinned-schema",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateComponents": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "RemoteCode",
+                  "module": "https://invalid.example/code.js"
+                }
+              ]
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "unchecked-prop",
+      "description": "Malformed or unsupported wire input is rejected without replacing the last mounted valid surface.",
+      "basis": "pinned-schema",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateComponents": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Text",
+                  "text": "Hello",
+                  "onPress": "remote-code"
+                }
+              ]
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "unknown-function",
+      "description": "Malformed or unsupported wire input is rejected without replacing the last mounted valid surface.",
+      "basis": "pinned-schema",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateComponents": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Text",
+                  "text": {
+                    "call": "execute",
+                    "args": {}
+                  }
+                }
+              ]
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "malformed-update",
+      "description": "Malformed or unsupported wire input is rejected without replacing the last mounted valid surface.",
+      "basis": "pinned-schema",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": 42,
+              "value": "wrong"
+            }
+          },
+          "expect": {
+            "outcome": "message-rejected",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "event-not-allowed",
+      "description": "A schema-valid but unadvertised event prevents mounting.",
+      "basis": "project-semantics",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": [],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "surface-rejected",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "component-not-allowed",
+      "description": "A known basic-catalog component outside the installed subset prevents mounting.",
+      "basis": "project-semantics",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Divider",
+                  "axis": "horizontal"
+                }
+              ],
+              "dataModel": {},
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "surface-rejected",
+            "serverDataModel": {},
+            "view": [],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid-bound-model",
+      "description": "A server update that breaks a declared binding is retained by the store but cannot remain mounted; a valid correction can recover.",
+      "basis": "host-composition",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["greeting", "name", "consent", "submit"]
+                },
+                {
+                  "id": "greeting",
+                  "component": "Text",
+                  "text": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "name",
+                  "component": "TextField",
+                  "label": "Name",
+                  "value": {
+                    "path": "/name"
+                  }
+                },
+                {
+                  "id": "consent",
+                  "component": "CheckBox",
+                  "label": "Consent",
+                  "value": {
+                    "path": "/consent"
+                  }
+                },
+                {
+                  "id": "submit",
+                  "component": "Button",
+                  "child": "submit-label",
+                  "action": {
+                    "event": {
+                      "name": "submit",
+                      "context": {
+                        "name": {
+                          "path": "/name"
+                        },
+                        "consent": {
+                          "path": "/consent"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "submit-label",
+                  "component": "Text",
+                  "text": "Submit"
+                }
+              ],
+              "dataModel": {
+                "name": "Ada",
+                "consent": false
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Ada",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Ada"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Ada",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/name",
+              "value": 42
+            }
+          },
+          "expect": {
+            "outcome": "surface-rejected",
+            "serverDataModel": {
+              "name": 42,
+              "consent": false
+            },
+            "view": [],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/name",
+              "value": "Recovered"
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "name": "Recovered",
+              "consent": false
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text",
+                    "text": "Recovered"
+                  },
+                  {
+                    "kind": "text-field",
+                    "label": "Name",
+                    "value": "Recovered",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "checkbox",
+                    "label": "Consent",
+                    "value": false,
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "button",
+                    "label": "Submit",
+                    "disabled": false,
+                    "validationMessages": []
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "dynamic-list-order",
+      "description": "Bounded dynamic list instances preserve data-model order and resolve relative values.",
+      "basis": "project-semantics",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "List",
+                  "children": {
+                    "path": "/items",
+                    "componentId": "row"
+                  }
+                },
+                {
+                  "id": "row",
+                  "component": "Column",
+                  "children": ["label"]
+                },
+                {
+                  "id": "label",
+                  "component": "Text",
+                  "text": {
+                    "path": "name"
+                  }
+                }
+              ],
+              "dataModel": {
+                "items": [
+                  {
+                    "name": "First"
+                  },
+                  {
+                    "name": "Second"
+                  }
+                ]
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "First"
+                },
+                {
+                  "name": "Second"
+                }
+              ]
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "group",
+                    "children": [
+                      {
+                        "kind": "text",
+                        "text": "First"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "group",
+                    "children": [
+                      {
+                        "kind": "text",
+                        "text": "Second"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "expanded-node-limit",
+      "description": "Three valid definitions and 512 list rows expand to 1025 render nodes, exceeding the fixed 1024-node limit.",
+      "basis": "project-semantics",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "List", "Text", "TextField", "CheckBox", "Button"],
+        "eventNames": ["submit"],
+        "functionNames": ["required"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "List",
+                  "children": {
+                    "path": "/items",
+                    "componentId": "row"
+                  }
+                },
+                {
+                  "id": "row",
+                  "component": "Column",
+                  "children": ["label"]
+                },
+                {
+                  "id": "label",
+                  "component": "Text",
+                  "text": {
+                    "path": "name"
+                  }
+                }
+              ],
+              "dataModel": {
+                "items": [
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  },
+                  {
+                    "name": "x"
+                  }
+                ]
+              },
+              "sendDataModel": true
+            }
+          },
+          "expect": {
+            "outcome": "surface-rejected",
+            "serverDataModel": {
+              "items": [
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                },
+                {
+                  "name": "x"
+                }
+              ]
+            },
+            "view": [],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
+    }
+  ]
+}
