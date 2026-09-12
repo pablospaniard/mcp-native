@@ -18,14 +18,18 @@ test("React Native keeps the extracted planner, error, and fixture identities", 
 });
 
 test("concise renderer exports preserve every existing compatibility alias identity", () => {
-  for (const [compatibilityName, value] of Object.entries(renderer)) {
+  const rendererExports = new Map(Object.entries(renderer));
+  const nativeExports = new Map(Object.entries(native));
+  for (const [compatibilityName, value] of rendererExports) {
     if (!compatibilityName.includes("V1")) continue;
     const conciseName = compatibilityName
       .replace("A2UI_V1_NATIVE_", "")
       .replace("A2uiV1Native", "");
-    assert.ok(Object.hasOwn(renderer, conciseName), `Missing ${conciseName}`);
-    assert.equal(renderer[conciseName], value, compatibilityName);
-    if (Object.hasOwn(native, compatibilityName)) assert.equal(native[compatibilityName], value);
+    assert.ok(rendererExports.has(conciseName), `Missing ${conciseName}`);
+    assert.equal(rendererExports.get(conciseName), value, compatibilityName);
+    if (nativeExports.has(compatibilityName)) {
+      assert.equal(nativeExports.get(compatibilityName), value, compatibilityName);
+    }
   }
   assert.equal(
     rendererTesting.createCatalogConformanceCases,
