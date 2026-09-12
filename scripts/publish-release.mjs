@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -7,6 +7,7 @@ export const releasePackagePaths = [
   "packages/core/package.json",
   "packages/mcp/package.json",
   "packages/a2ui/package.json",
+  "packages/renderer-core/package.json",
   "packages/webview/package.json",
   "packages/react-native/package.json",
   "packages/host/package.json",
@@ -14,15 +15,35 @@ export const releasePackagePaths = [
 ];
 
 export function loadReleasePackages(root = process.cwd()) {
-  return releasePackagePaths.map((manifestPath) => {
+  // Recovery runs current automation against historical release checkouts. Only the new
+  // renderer package may be absent; dependency checks below still reject an incomplete release.
+  const paths = releasePackagePaths.filter(
+    (manifestPath) =>
+      manifestPath !== "packages/renderer-core/package.json" ||
+      existsSync(resolve(root, manifestPath)),
+  );
+  const manifests = paths.map((manifestPath) => {
     const manifest = JSON.parse(readFileSync(resolve(root, manifestPath), "utf8"));
 
     if (typeof manifest.name !== "string" || typeof manifest.version !== "string") {
       throw new Error(`Invalid release package manifest: ${manifestPath}`);
     }
 
-    return { name: manifest.name, version: manifest.version };
+    return manifest;
   });
+  const precedingPackages = new Set();
+  for (const manifest of manifests) {
+    for (const dependency of Object.keys(manifest.dependencies ?? {})) {
+      if (
+        (dependency.startsWith("@mcp-native/") || dependency === "mcp-native") &&
+        !precedingPackages.has(dependency)
+      ) {
+        throw new Error(`${manifest.name} requires earlier release package ${dependency}`);
+      }
+    }
+    precedingPackages.add(manifest.name);
+  }
+  return manifests.map(({ name, version }) => ({ name, version }));
 }
 
 export async function isPackageVersionPublished(

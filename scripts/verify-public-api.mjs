@@ -8,6 +8,7 @@ const packageDirectories = [
   "packages/core",
   "packages/mcp",
   "packages/a2ui",
+  "packages/renderer-core",
   "packages/webview",
   "packages/react-native",
   "packages/host",

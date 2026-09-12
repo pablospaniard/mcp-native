@@ -122,9 +122,10 @@ generated-input behavior. The runnable [Expo Go todo app](../examples/expo-go-to
 adds complementary application-level evidence; the package gates above verify the declared
 protocol profile.
 
-The `@mcp-native/react-native/testing` entry point supplies fresh canonical adapter surfaces for
-the semantics most likely to vary across design systems. Those fixtures and local layout contracts
-test host implementations; they are not additional wire-level components or conformance claims.
+The `@mcp-native/renderer-core/testing` entry point supplies fresh canonical adapter surfaces for
+the semantics most likely to vary across design systems; `@mcp-native/react-native/testing` is a
+compatibility re-export of the same fixtures. Those fixtures and local layout contracts test host
+implementations; they are not additional wire-level components or conformance claims.
 
 ## Candidate interpretations
 

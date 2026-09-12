@@ -20,12 +20,12 @@ import {
 import type { JsonObject, JsonValue } from "@mcp-native/core";
 
 import { ISO_4217_CURRENCY_CODES } from "./iso-4217.js";
-import { A2UI_V1_NATIVE_ICON_NAMES } from "./component-adapters.js";
+import { A2UI_V1_NATIVE_ICON_NAMES } from "./component-shapes.js";
 import type {
   NativeHostExtensionCapabilityGrant,
   NativeImageResourcePolicy,
   NativeMediaResourcePolicy,
-} from "./component-adapters.js";
+} from "./component-shapes.js";
 import type { NativeElement } from "./index.js";
 
 export const A2UI_V1_NATIVE_COMPONENT_NAMES = Object.freeze([

@@ -41,6 +41,21 @@
         }
       }
     },
+    "@mcp-native/renderer-core": {
+      "declarationSha256": "c1d44ccb5e50ccdff894a544a8bdcea208366f524cd260ddc1e5dff4757eb40c",
+      "exports": {
+        ".": {
+          "import": "./dist/index.js",
+          "runtimeSha256": "0f50e3d217f495b0285383d04a074923e8fd01d6f558529f799ca7f2ac8b4fe5",
+          "types": "./dist/index.d.ts"
+        },
+        "./testing": {
+          "import": "./dist/testing.js",
+          "runtimeSha256": "73bd9f4bf0345d701538b0d828257768713e3383a7b1c0d3f1d242f3126aa1cc",
+          "types": "./dist/testing.d.ts"
+        }
+      }
+    },
     "@mcp-native/webview": {
       "declarationSha256": "42bf88a8cb6e82b28350fefad00f66acb092234304426e2b84c883ef46cbafe3",
       "exports": {
@@ -52,7 +67,7 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "2b7023c6d77e788be01964ecef85b1589781dd9b0c0ba19fe02b3bec423d4fb8",
+      "declarationSha256": "a853c92f0d29f41ad69a2cf16e108c2e52de71732dbad56bd4e62c575fab2fe2",
       "exports": {
         ".": {
           "import": "./dist/index.js",

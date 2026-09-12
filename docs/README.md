@@ -64,6 +64,8 @@ Runnable examples:
 
 - [RFC-0001](RFC-0001-architecture.md) — package boundaries, data flow, capability model, and threat
   model.
+- [RFC-0002](RFC-0002-native-platforms.md) — proposed native runtime comparison, package strategy,
+  and milestone integration workflow on `feature/native-platforms`.
 - [Compatibility policy](compatibility-policy.md) — finalized `1.x` API and behavior surface.
 - [1.0 readiness](1.0-readiness.md) — completed implementation, validation, and review gates, plus
   publication actions.

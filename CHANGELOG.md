@@ -6,6 +6,25 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+### Added
+
+- Proposed native-runtime and package-strategy RFC for milestone 11–16 work on
+  `feature/native-platforms`; the renderer-core extraction remains provisional pending comparison
+  of shared JavaScript and native implementations.
+
+- New package `@mcp-native/renderer-core`: the platform-neutral A2UI v1 renderer contract
+  (render-plan builders, closed component catalog, prop-shape types, mount-diagnostic types,
+  numeric limits, and shared catalog-conformance fixtures under `@mcp-native/renderer-core/testing`)
+  extracted from `@mcp-native/react-native`. It has no React, React Native, SwiftUI, or Jetpack
+  Compose dependency, so future native renderers can depend on it directly. This is additive and
+  non-breaking: every export `@mcp-native/react-native` previously declared inline is re-exported
+  from its existing name unchanged, and `@mcp-native/core` is untouched.
+
+### Fixed
+
+- Release recovery supports historical checkouts without renderer-core while rejecting missing
+  local dependencies. Version verification now shares the publisher's package inventory.
+
 ## 1.0.1 - 2026-09-07
 
 Documentation-only patch release of all seven coordinated packages. Runtime behavior, public APIs,

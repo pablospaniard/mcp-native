@@ -20,7 +20,8 @@ Before creating a release:
 installation. Package smoke verifies every declared export, runtime and declaration source map,
 README, and exact MIT license in the packed artifacts. It installs the latest coordinated published
 `0.9.x` packages into a clean consumer and runs the documented migration-ready imports. It then
-replaces all seven packages with local release tarballs through an offline install before running
+replaces the installed packages and adds any new workspace packages using local release tarballs
+through an offline install before running
 the consumer again. The maintained Expo Go todo app remains an optional application-level example;
 it is not a package release gate.
 
@@ -35,6 +36,11 @@ tag; every other prerelease uses `next`, so prereleases never replace `latest`. 
 checks whether each exact version already exists, so an interrupted release can be resumed without
 attempting to overwrite immutable npm versions. A maintainer can manually dispatch the same
 workflow with the existing release tag to resume publication.
+
+Release version verification uses the same package inventory as the publisher. Recovery permits
+renderer-core to be absent in a historical release only when no package in that checkout requires it;
+missing or out-of-order local dependencies fail before publication. Work on `feature/native-platforms`
+does not authorize a release of the provisional renderer-core package.
 
 The `npm-release` GitHub environment is a release trust boundary. Configure required reviewers and
 allow deployments only from `main` and reviewed `v*` release tags. The workflow resolves a

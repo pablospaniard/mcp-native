@@ -455,6 +455,12 @@ stability policy is published, and every release-blocking review result is resol
 
 ## Committed post-`1.0.0` roadmap
 
+Milestone 11–16 implementation PRs target `feature/native-platforms`. The proposed
+[runtime comparison and package strategy](RFC-0002-native-platforms.md) breaks the renderer work
+into a shared corpus, two scoped iOS prototypes, an Android feasibility probe, and a decision PR.
+Milestone 12's contract remains provisional until those experiments validate it. The renderer-core
+workspace extraction on that branch is not approval to publish a new stable package.
+
 The stable React Native host is a foundation, not the end of the product. The following initiatives
 are deliberately excluded from the `1.0.0` exit criteria and tracked as separate GitHub milestones.
 Release numbers and dates will be assigned only after the stable host API and `1.x` compatibility
@@ -523,11 +529,25 @@ profiles without modifying the host package or weakening its built-in validation
 
 - [ ] Extract and freeze platform-neutral renderer inputs, state transitions, actions, errors,
       lifecycle, limits, and conformance fixtures without moving SwiftUI, Compose, React Native,
-      A2UI, or WebView implementations into `@mcp-native/core`.
-- [ ] Define package and dependency boundaries for platform renderers, shared semantic fixtures, and
+      A2UI, or WebView implementations into `@mcp-native/core`. Render-plan building, the component
+      catalog, action/event/`openUrl` resolution, limits, and conformance fixtures are extracted
+      into `@mcp-native/renderer-core`, which has no React, React Native, SwiftUI, or Jetpack
+      Compose dependency. State reconciliation and data-model binding updates (for example
+      `updateDataModelBinding`) remain in `@mcp-native/react-native` and are not yet part of the
+      shared contract, so this bullet stays open until they are.
+- [x] Define package and dependency boundaries for platform renderers, shared semantic fixtures, and
       host-shell integration while keeping navigation and platform view ownership in each application.
-- [ ] Prove that React Native continues to pass the shared fixtures before another renderer claims
-      compatibility.
+      `@mcp-native/renderer-core` sits between `@mcp-native/a2ui` and `@mcp-native/react-native`;
+      every extracted name is re-exported from `@mcp-native/react-native` under its existing name.
+- [x] Prove that React Native continues to pass the shared fixtures before another renderer claims
+      compatibility. `@mcp-native/react-native`'s existing test suite and the mechanical public-API
+      compatibility check pass unchanged against the extracted package.
+
+This extraction satisfies the package/dependency-boundary bullet and proves React Native still
+passes the shared fixtures, but the first bullet is only partly done — state reconciliation and
+data-model binding updates have not moved out of `@mcp-native/react-native` yet — and the
+milestone's full exit criterion — multiple native renderers consuming the same contract — is not
+yet provable with only one renderer in the repository. It stays open until both are addressed.
 
 Exit criterion: multiple native renderers can consume the same trusted semantic contract and shared
 behavioral fixtures without introducing platform dependencies into protocol-independent core.
