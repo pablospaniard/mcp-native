@@ -127,6 +127,15 @@ the semantics most likely to vary across design systems; `@mcp-native/react-nati
 compatibility re-export of the same fixtures. Those fixtures and local layout contracts test host
 implementations; they are not additional wire-level components or conformance claims.
 
+The provisional [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) adds
+language-neutral, machine-checkable basic-form scenarios for milestone 12. The current React Native
+implementation executes them through its real callbacks and action-delivery boundary. This is
+additional project-level evidence for the existing exact pin, not upstream certification, full
+catalog coverage, or a claim that SwiftUI/Compose runners exist. The corpus documents which lifecycle
+choices belong to its host harness and which checks exercise production protocol/renderer code.
+Render outcomes come from the mounted surface's effective model, including retained local edits;
+a focused `formatDate` case covers render rejection and recovery without expanding the wire profile.
+
 ## Candidate interpretations
 
 - The pinned `CheckRule` prose describes a `ValidationResult` object, while `Checkable` and the
