@@ -6917,6 +6917,390 @@
           }
         }
       ]
+    },
+    {
+      "id": "local-edit-render-rejection-recovery",
+      "description": "Component updates validate retained edits; input-triggered render failures are contained; subsequent renders or server updates remount after failure.",
+      "basis": "host-composition",
+      "surfaceId": "form",
+      "host": {
+        "componentNames": ["Column", "Text", "TextField"],
+        "eventNames": [],
+        "functionNames": ["formatDate"],
+        "authorizeActions": true
+      },
+      "steps": [
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "createSurface": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "Column",
+                  "children": ["date", "output"]
+                },
+                {
+                  "id": "date",
+                  "component": "TextField",
+                  "label": "Date",
+                  "value": {
+                    "path": "/date"
+                  }
+                },
+                {
+                  "id": "output",
+                  "component": "Text",
+                  "text": {
+                    "path": "/date"
+                  }
+                }
+              ],
+              "dataModel": {
+                "date": "2026-09-12"
+              }
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "date": "2026-09-12"
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text-field",
+                    "label": "Date",
+                    "value": "2026-09-12",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "text",
+                    "text": "2026-09-12"
+                  }
+                ]
+              }
+            ],
+            "localChanges": [],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "text-field",
+            "label": "Date"
+          },
+          "value": "not-a-date",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "date": "2026-09-12"
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text-field",
+                    "label": "Date",
+                    "value": "not-a-date",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "text",
+                    "text": "not-a-date"
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "date": "not-a-date"
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "render",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "date": "2026-09-12"
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text-field",
+                    "label": "Date",
+                    "value": "not-a-date",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "text",
+                    "text": "not-a-date"
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "date": "not-a-date"
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateComponents": {
+              "surfaceId": "form",
+              "components": [
+                {
+                  "id": "output",
+                  "component": "Text",
+                  "text": {
+                    "call": "formatDate",
+                    "args": {
+                      "value": {
+                        "path": "/date"
+                      },
+                      "format": "yyyy-MM-dd"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "expect": {
+            "outcome": "surface-rejected",
+            "serverDataModel": {
+              "date": "2026-09-12"
+            },
+            "view": [],
+            "localChanges": [
+              {
+                "date": "not-a-date"
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "render",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "date": "2026-09-12"
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text-field",
+                    "label": "Date",
+                    "value": "2026-09-12",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "text",
+                    "text": "2026-09-12"
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "date": "not-a-date"
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "text-field",
+            "label": "Date"
+          },
+          "value": "still-not-a-date",
+          "expect": {
+            "outcome": "surface-rejected",
+            "serverDataModel": {
+              "date": "2026-09-12"
+            },
+            "view": [],
+            "localChanges": [
+              {
+                "date": "not-a-date"
+              },
+              {
+                "date": "still-not-a-date"
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "message",
+          "message": {
+            "version": "v1.0",
+            "updateDataModel": {
+              "surfaceId": "form",
+              "path": "/date",
+              "value": "2026-09-13"
+            }
+          },
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "date": "2026-09-13"
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text-field",
+                    "label": "Date",
+                    "value": "2026-09-13",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "text",
+                    "text": "2026-09-13"
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "date": "not-a-date"
+              },
+              {
+                "date": "still-not-a-date"
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "input",
+          "target": {
+            "kind": "text-field",
+            "label": "Date"
+          },
+          "value": "2026-09-14",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "date": "2026-09-13"
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text-field",
+                    "label": "Date",
+                    "value": "2026-09-14",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "text",
+                    "text": "2026-09-14"
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "date": "not-a-date"
+              },
+              {
+                "date": "still-not-a-date"
+              },
+              {
+                "date": "2026-09-14"
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        },
+        {
+          "op": "render",
+          "expect": {
+            "outcome": "accepted",
+            "serverDataModel": {
+              "date": "2026-09-13"
+            },
+            "view": [
+              {
+                "kind": "group",
+                "children": [
+                  {
+                    "kind": "text-field",
+                    "label": "Date",
+                    "value": "2026-09-14",
+                    "invalid": false,
+                    "validationMessages": []
+                  },
+                  {
+                    "kind": "text",
+                    "text": "2026-09-14"
+                  }
+                ]
+              }
+            ],
+            "localChanges": [
+              {
+                "date": "not-a-date"
+              },
+              {
+                "date": "still-not-a-date"
+              },
+              {
+                "date": "2026-09-14"
+              }
+            ],
+            "actions": [],
+            "deliveries": [],
+            "deliveryResults": []
+          }
+        }
+      ]
     }
   ]
 }

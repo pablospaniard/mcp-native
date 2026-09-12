@@ -133,6 +133,8 @@ implementation executes them through its real callbacks and action-delivery boun
 additional project-level evidence for the existing exact pin, not upstream certification, full
 catalog coverage, or a claim that SwiftUI/Compose runners exist. The corpus documents which lifecycle
 choices belong to its host harness and which checks exercise production protocol/renderer code.
+Render outcomes come from the mounted surface's effective model, including retained local edits;
+a focused `formatDate` case covers render rejection and recovery without expanding the wire profile.
 
 ## Candidate interpretations
 

@@ -39,7 +39,7 @@ There are no imports, expressions, generators, template substitutions, or execut
 Start each case with a fresh surface store, renderer session, and empty callback logs. Install only
 the host's declared component/event/function allowlists and its fixed `authorizeActions` decision.
 The profile covers vertical groups (`Column` and `List`), `Text`, `TextField`, `CheckBox`, `Button`,
-the `required` function, and the `submit` event. A case may narrow those allowlists. Set the clock to
+the `required` and `formatDate` functions, and the `submit` event. A case may narrow those allowlists. Set the clock to
 the suite's exact timestamp for action creation. Do not give expected observations to the runner.
 
 Execute every step in order and settle rendering, local callbacks, and action delivery before
@@ -47,7 +47,7 @@ recording a detached observation. No steps or failed cases may be silently skipp
 
 | Operation       | Meaning                                                                                                                             |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `message`       | Pass the literal envelope to the real surface store, then preflight and render the current surface.                                 |
+| `message`       | Pass the literal envelope to the real surface store, then render the current surface.                                               |
 | `render`        | Render another snapshot of the same store state; this must not invent a server revision or reset local edits.                       |
 | `input`         | Invoke the actual installed control's change callback with the supplied JSON value.                                                 |
 | `press`         | Invoke the actual Button callback, including for a disabled button, and settle the production action-delivery helper.               |
@@ -59,10 +59,14 @@ successful negative cases. A native runner must invoke the corresponding real ev
 than implementing data binding or action serialization in its test adapter.
 
 The host composition used here keeps the previous mounted surface after a rejected store operation.
-After an accepted envelope, a missing surface or failed semantic preflight unmounts its content.
+After an accepted envelope, a missing surface unmounts its content. A production render rejection,
+including one triggered by a local input, also unmounts the content through the surface boundary.
+Each `render` or accepted `message` retries a failed mount against the current server snapshot;
+unmounted local edits are lost. Healthy mounts preserve edits until a server model revision.
 The underlying store may retain semantically invalid data until a correcting update. These are
 explicit host-composition choices; an A2UI parser alone does not own view lifecycle. React's
-registered-host error-boundary behavior is tested separately by the existing test suite.
+reference adapter uses `A2uiV1NativeSurfaceBoundary` and observes original render errors through
+the test root's `onCaughtError` hook. It does not preflight a separate server-only render plan.
 
 ## Observations and comparisons
 
@@ -83,11 +87,14 @@ limit itself uses UTF-8 bytes.
 | `deliveryResults` | Cumulative `delivered`/`denied` results from the production action-delivery helper.                                                                                                                              |
 
 `message-rejected` means the production store rejected the envelope before rendering.
-`surface-rejected` means the store accepted it but the production planner rejected the resulting
-surface. `input-rejected` means the production input callback rejected the value without mutation.
+`surface-rejected` means the mounted renderer rejected the surface using its effective data model,
+including retained local edits. It can follow `message`, `render`, or an accepted input callback;
+that callback's local-change log remains recorded even if its resulting render fails.
+`input-rejected` means the production input callback rejected the value without mutation.
 `event-rejected` means the stateless production resolver rejected the requested event source.
 The reference adapter catches only the relevant production exception types around those calls;
-assertion failures, missing controls, render exceptions, and unexpected exception types fail the test.
+assertion failures, missing controls, and render errors other than `A2uiParseError` fail the test.
+Uncaught and recoverable root errors also fail the test.
 Exact JavaScript exception messages/classes are not a portable requirement.
 
 The semantic projection omits native view classes, React keys, raw styles, and callback objects.
@@ -99,11 +106,14 @@ This does not prove VoiceOver/TalkBack behavior on a device.
 
 ## Cases and evidence limits
 
-The 19 cases cover:
+The 20 cases cover:
 
 - Local string/boolean edits, non-ASCII text, current-state action context, and surface deletion.
 - Equivalent rerenders, component-only updates, changed server values, and same-value server
   revisions. Explicit server model revisions reset local edits; equivalent renders do not.
+- A component update that formats a retained invalid date edit, input-triggered render rejection,
+  and recovery by rerender or server update. This is a narrow `formatDate` regression, not full
+  date-formatting conformance coverage.
 - Allowed/denied delivery, full-model inclusion/omission, and disabled-button checks/recovery.
 - Rejected callback types, unknown wire versions/components/functions/props, malformed updates,
   narrowed component/event policies, and invalid bound-model recovery.

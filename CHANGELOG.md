@@ -8,7 +8,7 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
-- Provisional language-neutral renderer conformance corpus: 19 basic-form scenarios with a strict
+- Provisional language-neutral renderer conformance corpus: 20 basic-form scenarios with a strict
   JSON fixture format, explicit expected observations, and a React Native reference runner covering
   local/server state, actions, host authorization, rejection, and bounded expansion. Included in
   normal checks and available through `npm run test:renderer-conformance`; published APIs and exact
@@ -27,6 +27,10 @@ patch and minor releases remain compatible within their release line.
   from its existing name unchanged, and `@mcp-native/core` is untouched.
 
 ### Fixed
+
+- Renderer conformance outcomes now observe the mounted surface and its retained local edits,
+  removing the duplicate server-model preflight. Regression coverage includes render rejection
+  and recovery; the root workspace declares its Ajv test dependency directly.
 
 - Release recovery supports historical checkouts without renderer-core while rejecting missing
   local dependencies. Version verification now shares the publisher's package inventory.

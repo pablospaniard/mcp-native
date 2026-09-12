@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement } from "react";
 
 import {
   loadRendererConformanceSuite,
@@ -50,6 +51,9 @@ test("the corpus loader rejects unknown contracts, operations, and incomplete ex
       value.cases[0].host.componentNames.push("RemoteCode");
     },
     (value) => {
+      value.cases[0].host.functionNames.push("execute");
+    },
+    (value) => {
       value.cases[1].id = value.cases[0].id;
     },
     (value) => {
@@ -73,3 +77,37 @@ test("a missing interaction target fails the harness instead of passing a reject
     /Interaction target must identify exactly one mounted control/,
   );
 });
+
+for (const error of [new Error("Host render failed"), new TypeError("Host render type error")]) {
+  for (const trigger of ["mount", "input"]) {
+    test(`unexpected render errors fail the harness: ${error.name} after ${trigger}`, async () => {
+      const fixture = {
+        ...suite.cases[0],
+        steps: [suite.cases[0].steps[0]],
+      };
+      if (trigger === "input") {
+        fixture.steps.push({
+          op: "input",
+          target: { kind: "text-field", label: "Name" },
+          value: "Trigger host error",
+        });
+      }
+      await assert.rejects(
+        () =>
+          runReactNativeConformanceCase(fixture, suite.timestamp, {
+            components: {
+              View: "View",
+              Text: "Text",
+              TextInput(props) {
+                if (trigger === "mount" || props.value === "Trigger host error") throw error;
+                return createElement("TextInput", props);
+              },
+              CheckBox: "CheckBox",
+              Button: "Button",
+            },
+          }),
+        (actual) => actual === error,
+      );
+    });
+  }
+}

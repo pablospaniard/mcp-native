@@ -401,9 +401,9 @@
             "functionNames": {
               "type": "array",
               "items": {
-                "enum": ["required"]
+                "enum": ["required", "formatDate"]
               },
-              "maxItems": 1,
+              "maxItems": 2,
               "uniqueItems": true
             },
             "authorizeActions": {

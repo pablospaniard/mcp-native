@@ -11,11 +11,11 @@ import {
   createA2uiV1BasicCatalogPolicy,
   MCP_SCHEMA_REVISION,
 } from "../../packages/a2ui/dist/index.js";
-import { A2uiV1NativeSurface } from "../../packages/react-native/dist/index.js";
 import {
-  createA2uiV1NativeRenderPlan,
-  resolveA2uiV1NativeEvent,
-} from "../../packages/renderer-core/dist/index.js";
+  A2uiV1NativeSurface,
+  A2uiV1NativeSurfaceBoundary,
+} from "../../packages/react-native/dist/index.js";
+import { resolveA2uiV1NativeEvent } from "../../packages/renderer-core/dist/index.js";
 
 const fixtureDirectory = new URL("../fixtures/renderer-conformance/", import.meta.url);
 const schema = JSON.parse(readFileSync(new URL("suite.schema.json", fixtureDirectory), "utf8"));
@@ -103,14 +103,26 @@ function actionRecord(envelope, dataModel) {
 }
 
 /** Executes only fixture inputs. Expected observations are consumed by the test, never this adapter. */
-export async function runReactNativeConformanceCase(fixture, timestamp) {
+export async function runReactNativeConformanceCase(
+  fixture,
+  timestamp,
+  { components: hostComponents = components } = {},
+) {
   const store = new A2uiSurfaceStore();
   const policy = createA2uiV1BasicCatalogPolicy({
     allowedComponentNames: fixture.host.componentNames,
     allowedEventNames: fixture.host.eventNames,
     allowedFunctionNames: fixture.host.functionNames,
   });
-  const root = createRoot({ textComponentTypes: ["Text"] });
+  const renderErrors = [];
+  const unexpectedErrors = [];
+  const root = createRoot({
+    textComponentTypes: ["Text"],
+    onCaughtError: (error) => renderErrors.push(error),
+    onUncaughtError: (error) => unexpectedErrors.push(error),
+    onRecoverableError: (error) => unexpectedErrors.push(error),
+  });
+  let renderAttempt = 0;
   const localChanges = [];
   const actions = [];
   const deliveries = [];
@@ -122,7 +134,7 @@ export async function runReactNativeConformanceCase(fixture, timestamp) {
   });
   const surfaceProps = {
     policy,
-    components,
+    components: hostComponents,
     now: () => timestamp,
     onDataModelChange: (model) => localChanges.push(structuredClone(model)),
     onAction(envelope, dataModel) {
@@ -135,18 +147,21 @@ export async function runReactNativeConformanceCase(fixture, timestamp) {
 
   async function renderCurrentSurface() {
     const surface = store.get(fixture.surfaceId);
-    try {
-      if (surface !== undefined) createA2uiV1NativeRenderPlan(surface, policy);
-    } catch (error) {
-      if (!(error instanceof A2uiParseError)) throw error;
-      await act(async () => root.render(createElement(Fragment)));
-      return "surface-rejected";
-    }
+    renderAttempt += 1;
     await act(async () => {
       root.render(
         surface === undefined
           ? createElement(Fragment)
-          : createElement(A2uiV1NativeSurface, { ...surfaceProps, surface }),
+          : createElement(
+              A2uiV1NativeSurfaceBoundary,
+              {
+                // Retry a failed mount, while preserving local state in a healthy child.
+                resetKey: String(renderAttempt),
+                // The root observer receives the original error before boundary wrapping.
+                onError: () => {},
+              },
+              createElement(A2uiV1NativeSurface, { ...surfaceProps, surface }),
+            ),
       );
     });
     return "accepted";
@@ -209,7 +224,14 @@ export async function runReactNativeConformanceCase(fixture, timestamp) {
     for (const step of fixture.steps) {
       // Steps are deliberately ordered and each observation is detached before the next mutation.
       // eslint-disable-next-line no-await-in-loop
-      const outcome = await perform(step);
+      const result = await perform(step);
+      if (unexpectedErrors.length > 0) throw unexpectedErrors[0];
+      const errors = renderErrors.splice(0);
+      for (const error of errors) {
+        if (!(error instanceof A2uiParseError)) throw error;
+      }
+      // Input callbacks can also trigger a render failure after accepting a local edit.
+      const outcome = errors.length > 0 ? "surface-rejected" : result;
       observations.push(
         structuredClone({
           outcome,
