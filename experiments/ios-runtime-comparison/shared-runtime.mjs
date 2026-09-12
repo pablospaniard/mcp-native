@@ -41,6 +41,7 @@ export class SharedSession {
     }
     try {
       this.plan = createA2uiV1NativeRenderPlan(surface, this.policy, { dataModel: this.model });
+      validateExperimentDepth(this.plan);
       return "accepted";
     } catch (error) {
       if (!(error instanceof A2uiParseError)) throw error;
@@ -54,6 +55,13 @@ export class SharedSession {
     let outcome = "accepted";
     if (step.op === "message") {
       try {
+        if (
+          step.message === null ||
+          typeof step.message !== "object" ||
+          Array.isArray(step.message)
+        ) {
+          throw new A2uiParseError("Expected a message object");
+        }
         const payloads = [
           "createSurface",
           "updateComponents",
@@ -133,6 +141,20 @@ export class SharedSession {
       localChanges: this.localChanges,
       actions: this.actions,
     };
+  }
+}
+
+function validateExperimentDepth(root) {
+  // Match NativeSession's 64-component path limit before serializing a nested observation.
+  // The production planner already bounds this walk to at most 1024 expanded nodes.
+  const pending = [{ node: root, depth: 1 }];
+  while (pending.length > 0) {
+    const { node, depth } = pending.pop();
+    // The form profile's Button text child is folded into props by the shared planner.
+    if (depth > 64 || (node.component === "Button" && depth === 64)) {
+      throw new A2uiParseError("Experiment render graph depth limit");
+    }
+    for (const child of node.children ?? []) pending.push({ node: child, depth: depth + 1 });
   }
 }
 

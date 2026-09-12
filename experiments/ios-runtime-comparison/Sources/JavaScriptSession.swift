@@ -40,7 +40,13 @@ final class JavaScriptSession: SemanticSession {
       close()
       throw ProbeError.harness("JavaScript exchange failed")
     }
-    let response = try JSON.decode(Data(text.utf8))
+    let response: JSON
+    do {
+      response = try JSON.decode(Data(text.utf8), maxDepth: JSON.bridgeResponseMaxDepth)
+    } catch {
+      close()
+      throw error
+    }
     guard response["ok"] == .bool(true), let value = response["value"] else {
       close()
       throw ProbeError.harness(

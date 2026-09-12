@@ -16,6 +16,8 @@ decision, supported iOS SDK, or milestone completion.
 | Closed session, stale generation, fresh-session isolation    | Passes                                      | Passes                                      |
 | Unknown MIME, cycle, JSON/pointer depth, required whitespace | Probes pass                                 | Probes pass                                 |
 | Retained local value overrides invalid server date           | Probe passes                                | Probe passes                                |
+| Nested layouts through the graph limit / excessive depth     | Probes pass                                 | Probes pass                                 |
+| Non-object envelopes preserve local edits and session        | Probes pass                                 | Probes pass                                 |
 | Device latency, startup, retained memory                     | Deferred                                    | Deferred                                    |
 
 Tested on macOS 26.6.2 (25G83), arm64, Xcode 26.6 (17F113), Swift 6.3.3; iPhone 17 Pro simulator,
@@ -49,6 +51,13 @@ JSON exchange, generation, policy and views. Additional JavaScript code owns loc
 binding writes and session lifetime. That glue currently duplicates some React Native adapter
 behavior. A production shared-runtime choice would need one tested session implementation, not
 another independent copy maintained inside each platform adapter.
+
+Review probes also found two bridge defects outside the original corpus: nested view serialization
+exceeded the server JSON depth budget, and a `null` envelope closed the JavaScript session. Separate
+bounded response decoding and object validation fix those cases. Both engines now exercise complete
+nested layouts through the common 64-component graph limit, excessive-depth rejection, and malformed
+envelopes followed by rendering with retained edits. This reinforces the need to test adapter
+boundaries even when the semantic implementation is shared.
 
 **The small Swift interpreter already exposed semantic maintenance costs.** `required` must not trim
 whitespace. Rendering must use the effective local model, including when a later component update

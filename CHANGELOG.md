@@ -34,6 +34,12 @@ patch and minor releases remain compatible within their release line.
 
 ### Fixed
 
+- Temporary iOS comparison bridge preserves supported nested layouts with a bounded response-depth
+  budget and a common 64-component graph limit. Malformed non-object envelopes reject without losing
+  session state; cross-engine regression probes cover depth boundaries and retained local edits.
+  The simulator runner explicitly boots the selected device and disables test worker clones so
+  independent report collection also works on cold CI simulators.
+
 - Renderer conformance outcomes now observe the mounted surface and its retained local edits,
   removing the duplicate server-model preflight. Regression coverage includes render rejection
   and recovery; the root workspace declares its Ajv test dependency directly.

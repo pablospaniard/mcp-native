@@ -20,6 +20,8 @@ const device = requested
   : (devices.find(({ state }) => state === "Booted") ?? devices[0]);
 if (!device) throw new Error("No matching iPhone simulator installed");
 console.log(`Simulator: ${device.name}, ${device.runtime}, ${device.udid}`);
+// Own the boot before XCTest so cold CI devices remain available for report collection.
+execFileSync("xcrun", ["simctl", "bootstatus", device.udid, "-b"], { stdio: "inherit" });
 execFileSync(
   "xcodebuild",
   [
@@ -29,6 +31,9 @@ execFileSync(
     "RuntimeComparison",
     "-destination",
     `platform=iOS Simulator,id=${device.udid}`,
+    // Collect from this exact device rather than an XCTest parallel worker clone.
+    "-parallel-testing-enabled",
+    "NO",
     "-derivedDataPath",
     `${directory}dist/DerivedData`,
     "test",

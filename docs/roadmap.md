@@ -564,8 +564,9 @@ behavioral fixtures without introducing platform dependencies into protocol-inde
 ### Milestone 13: first-class SwiftUI renderer
 
 The [scoped experiment](../experiments/ios-runtime-comparison/README.md) proves the small shared form
-profile on an iOS 26.5 simulator, including a local tool-result-to-action flow and host admission
-cancellation. It is not a shipped SDK or completion of the broader exit criteria below. Native date,
+profile on an iOS 26.5 simulator, including a local tool-result-to-action flow, host admission
+cancellation, bounded nested layouts, and session recovery after malformed envelopes.
+It is not a shipped SDK or completion of the broader exit criteria below. Native date,
 field, Unicode-key and schema coverage remains narrower than the production React Native profile.
 
 - [ ] Build a SwiftUI renderer and Apple-platform host integration with native view lifecycle,

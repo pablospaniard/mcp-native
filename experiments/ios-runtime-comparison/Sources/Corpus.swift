@@ -175,11 +175,27 @@ enum Corpus {
       throw ProbeError.harness("Server-only preflight overrode a valid local date")
     }
     dateHost.close()
+    try testNestedLayouts(engine, bundle, policy, timestamp)
+    try testMalformedEnvelopes(engine, bundle, policy, timestamp, toolResult, input)
     do {
       _ = try JSON.decode(
         Data((String(repeating: "[", count: 65) + "0" + String(repeating: "]", count: 65)).utf8))
       throw ProbeError.harness("Excessive JSON depth accepted")
     } catch ProbeError.invalid {}
+    for depth in [JSON.bridgeResponseMaxDepth, JSON.bridgeResponseMaxDepth + 1] {
+      let data = Data(
+        (String(repeating: "[", count: depth) + "0" + String(repeating: "]", count: depth)).utf8)
+      do {
+        _ = try JSON.decode(data, maxDepth: JSON.bridgeResponseMaxDepth)
+        guard depth == JSON.bridgeResponseMaxDepth else {
+          throw ProbeError.harness("Excessive response depth accepted")
+        }
+      } catch ProbeError.invalid {
+        guard depth > JSON.bridgeResponseMaxDepth else {
+          throw ProbeError.harness("Supported response depth rejected")
+        }
+      }
+    }
     do {
       _ = try writePointer(
         .object([:]), String(repeating: "/a", count: 65), .bool(true), existing: false)
@@ -200,6 +216,104 @@ enum Corpus {
       "requiredWhitespace": .bool(true), "jsonAndPointerDepthBounded": .bool(true),
       "localOverridesInvalidServerDate": .bool(true),
       "asciiRestrictionsEnforced": .bool(true),
+      "nestedLayoutsAndDepthLimit": .bool(true),
+      "malformedEnvelopesPreserveSession": .bool(true),
     ])
+  }
+
+  private static func testNestedLayouts(
+    _ engine: Engine, _ bundle: String, _ policy: JSON, _ timestamp: String
+  ) throws {
+    // 31 Columns reproduce the original response-depth failure; 63 reach the graph limit.
+    for (columns, button) in [(31, false), (63, false), (64, false), (62, true), (63, true)] {
+      let host = try ExperimentHost(
+        engine: engine, bundle: bundle, policy: policy, timestamp: timestamp)
+      defer { host.close() }
+      var components: [JSON] = (0..<columns).map { index in
+        .object([
+          "id": .string(index == 0 ? "root" : "c\(index)"), "component": .string("Column"),
+          "children": .array([.string(index == columns - 1 ? "leaf" : "c\(index + 1)")]),
+        ])
+      }
+      var expected: JSON
+      if button {
+        components.append(
+          .object([
+            "id": .string("leaf"), "component": .string("Button"), "child": .string("label"),
+            "action": .object(["event": .object(["name": .string("submit")])]),
+          ]))
+        components.append(
+          .object([
+            "id": .string("label"), "component": .string("Text"), "text": .string("Deep button"),
+          ]))
+        expected = .object([
+          "kind": .string("button"), "label": .string("Deep button"),
+          "disabled": .bool(false), "validationMessages": .array([]),
+        ])
+      } else {
+        components.append(
+          .object([
+            "id": .string("leaf"), "component": .string("TextField"),
+            "label": .string("Deep field"), "value": .string("Retained leaf"),
+          ]))
+        expected = .object([
+          "kind": .string("text-field"), "label": .string("Deep field"),
+          "value": .string("Retained leaf"), "invalid": .bool(false),
+          "validationMessages": .array([]),
+        ])
+      }
+      let step: JSON = .object([
+        "op": .string("message"),
+        "message": .object([
+          "version": .string("v1.0"),
+          "createSurface": .object([
+            "surfaceId": .string("form"), "components": .array(components),
+            "dataModel": .object([:]),
+          ]),
+        ]),
+      ])
+      let result = try host.step(step, ticket: host.generation)
+      if columns + (button ? 2 : 1) > 64 {
+        guard result["outcome"] == .string("surface-rejected"), result["view"] == .array([]) else {
+          throw ProbeError.harness("Excessive layout depth accepted")
+        }
+      } else {
+        for _ in 0..<columns {
+          expected = .object(["kind": .string("group"), "children": .array([expected])])
+        }
+        guard result["outcome"] == .string("accepted"), result["view"] == .array([expected])
+        else { throw ProbeError.harness("Nested layout changed across the bridge or render") }
+      }
+      guard try host.step(.object(["op": .string("render")]), ticket: host.generation) == result
+      else {
+        throw ProbeError.harness("Layout depth outcome changed on render")
+      }
+    }
+  }
+
+  private static func testMalformedEnvelopes(
+    _ engine: Engine, _ bundle: String, _ policy: JSON, _ timestamp: String,
+    _ toolResult: JSON, _ input: JSON
+  ) throws {
+    let host = try ExperimentHost(
+      engine: engine, bundle: bundle, policy: policy, timestamp: timestamp)
+    defer { host.close() }
+    _ = try host.toolResult(toolResult, ticket: host.generation)
+    let edited = try host.step(input, ticket: host.generation)
+    var rejected = try object(edited)
+    rejected["outcome"] = .string("message-rejected")
+    for source in ["null", "[]", #""invalid""#, "42", "true"] {
+      var result = try object(toolResult)
+      var content = try array(result["content"])
+      var item = try object(content[0])
+      var resource = try object(item["resource"])
+      resource["text"] = .string(source)
+      item["resource"] = .object(resource)
+      content[0] = .object(item)
+      result["content"] = .array(content)
+      guard try host.toolResult(.object(result), ticket: host.generation) == .object(rejected),
+        try host.step(.object(["op": .string("render")]), ticket: host.generation) == edited
+      else { throw ProbeError.harness("Malformed envelope changed session state") }
+    }
   }
 }

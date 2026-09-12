@@ -24,7 +24,11 @@ indirect enum JSON: Equatable {
     return value[key]
   }
 
-  static func decode(_ data: Data) throws -> JSON {
+  // A 64-node render path adds a node object and children array per level, plus the
+  // bridge envelope, observation, view array and leaf validation-message array.
+  static let bridgeResponseMaxDepth = 2 * 64 + 4
+
+  static func decode(_ data: Data, maxDepth: Int = 64) throws -> JSON {
     guard data.count <= 1_048_576 else { throw ProbeError.invalid("JSON byte limit") }
     // Bound nesting before Foundation allocates the parsed object graph.
     var depth = 0
@@ -43,7 +47,7 @@ indirect enum JSON: Equatable {
         quoted = true
       } else if byte == 123 || byte == 91 {
         depth += 1
-        guard depth <= 64 else { throw ProbeError.invalid("JSON depth limit") }
+        guard depth <= maxDepth else { throw ProbeError.invalid("JSON depth limit") }
       } else if byte == 125 || byte == 93 {
         depth -= 1
       }

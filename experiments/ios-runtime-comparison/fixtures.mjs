@@ -44,6 +44,8 @@ export function verifyReport(path) {
       jsonAndPointerDepthBounded: true,
       localOverridesInvalidServerDate: true,
       asciiRestrictionsEnforced: true,
+      nestedLayoutsAndDepthLimit: true,
+      malformedEnvelopesPreserveSession: true,
     });
   }
   return result;

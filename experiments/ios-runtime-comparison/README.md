@@ -41,6 +41,8 @@ both engines' observations against all 20 shared cases. The simulator command al
 app, runs both XCTest UI flows, and independently compares the simulator's saved observations with
 the original corpus. Generated `dist/inputs.json` has no expected snapshots; neither engine receives
 the expectations. The Node comparator rejects missing cases and any observation mismatch.
+The runner boots the selected simulator before testing and disables parallel test worker clones so
+the report is collected from that same device, including when starting from a shut-down simulator.
 
 Build outputs and reports stay in the ignored `dist/` directory. After generation, open
 `RuntimeComparison.xcodeproj` in Xcode to interact with the same app. The separate
@@ -109,8 +111,16 @@ distinct JSON identifiers. Text and input **values** retain Unicode, including t
 This restriction is narrower than the production TypeScript profile and is a production blocker,
 not an assertion that non-ASCII JSON keys are invalid A2UI.
 
+Malformed non-object envelopes, including embedded resource text `null`, yield `message-rejected`
+without changing the mounted view, local edits or session. Both engines exercise these failures.
+
 One host owns one `form` surface, at most 64 operations, and at most one emitted action per press.
-Native planning caps graph depth at 64, expanded nodes at 1024, checks per component at 32,
+Both experiment engines cap graph paths at 64 components, counting the root and Button text child.
+Bridge responses allow 132 JSON container levels to accommodate nested view objects and children
+arrays plus observation wrappers; server JSON retains its 64-level limit. Response byte, value and
+string budgets remain unchanged. Boundary probes compare complete nested views, repeat rendering,
+and reject excessive graph and response depth.
+Native planning also caps expanded nodes at 1024, checks per component at 32,
 cumulative policy/evaluation work at 10,000, and rendered strings at 1,048,576 UTF-16 units. Response
 decoding and retained observation output are bounded by the host's 1 MiB boundary; exceeding it closes
 the session. The shared planner also retains its production resource/expansion limits. These tighter

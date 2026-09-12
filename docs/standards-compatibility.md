@@ -30,6 +30,8 @@ records exact JSON inputs and expected state, view, action, and rejection observ
 form profile at the existing A2UI pin, including retained-edit render rejection and recovery.
 It runs on React Native and two [scoped iOS experiment paths](../experiments/ios-runtime-comparison/README.md):
 JavaScriptCore semantics and independent Swift form semantics, using the same SwiftUI views.
+Experiment boundary probes also cover nested layouts through their common 64-component path limit
+and malformed envelopes that preserve session state.
 The latter have narrower declared inputs and simulator evidence only; supported SDK, full native
 profile, physical-device and Compose compatibility claims are unchanged.
 
