@@ -8,6 +8,11 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Scoped iOS runtime comparison: JavaScriptCore and independent Swift form semantics run the shared
+  20-case corpus and the same SwiftUI interaction/lifecycle checks. Includes a pinned upstream reuse
+  assessment, bounded native host, reproducible simulator command and CI job. Runtime/package choice,
+  full native parity and physical-device performance remain open; no public API or version changes.
+
 - Provisional language-neutral renderer conformance corpus: 20 basic-form scenarios with a strict
   JSON fixture format, explicit expected observations, and a React Native reference runner covering
   local/server state, actions, host authorization, rejection, and bounded expansion. Included in

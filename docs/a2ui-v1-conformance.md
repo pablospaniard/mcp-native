@@ -131,10 +131,13 @@ The provisional [shared renderer corpus](../tests/fixtures/renderer-conformance/
 language-neutral, machine-checkable basic-form scenarios for milestone 12. The current React Native
 implementation executes them through its real callbacks and action-delivery boundary. This is
 additional project-level evidence for the existing exact pin, not upstream certification, full
-catalog coverage, or a claim that SwiftUI/Compose runners exist. The corpus documents which lifecycle
+catalog coverage, or a supported native SDK claim. The corpus documents which lifecycle
 choices belong to its host harness and which checks exercise production protocol/renderer code.
 Render outcomes come from the mounted surface's effective model, including retained local edits;
 a focused `formatDate` case covers render rejection and recovery without expanding the wire profile.
+Two [experimental iOS runners](../experiments/ios-runtime-comparison/README.md) now execute the same
+cases through JavaScriptCore and independent Swift semantics. Their narrower input limits and
+simulator evidence do not expand this production conformance profile; no Compose runner exists yet.
 
 ## Candidate interpretations
 

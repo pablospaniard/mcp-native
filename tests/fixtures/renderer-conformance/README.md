@@ -123,8 +123,10 @@ The 20 cases cover:
   makes that same source unreachable. This does not claim to test retained React callbacks,
   asynchronous native queues, events after session teardown, or generation-token enforcement.
 
-Only the existing JavaScript/React Native implementation currently runs this corpus. It does not
-establish SwiftUI/Compose support, the full 18-component profile, every resource/formatting limit,
+The existing React Native implementation and two [experimental iOS paths](../../../experiments/ios-runtime-comparison/README.md)
+run this corpus. The experiment compares JavaScriptCore and independent Swift form semantics with
+the same SwiftUI controls; its additional limits and simulator evidence are documented separately.
+Passing the corpus does not establish supported SwiftUI/Compose SDKs, the full 18-component profile, every resource/formatting limit,
 MCP transport interoperability, device accessibility, cancellation, process-death recovery, or
 performance. The existing broader tests remain authoritative for their respective coverage.
 Those missing dimensions need separate experiments before RFC-0002's runtime decision.

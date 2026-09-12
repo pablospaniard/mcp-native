@@ -1,0 +1,12 @@
+{
+  "content": [
+    {
+      "type": "resource",
+      "resource": {
+        "uri": "a2ui://experiment/form",
+        "mimeType": "application/a2ui+json",
+        "text": "{\"version\":\"v1.0\",\"createSurface\":{\"surfaceId\":\"form\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"greeting\",\"name\",\"consent\",\"submit\"]},{\"id\":\"greeting\",\"component\":\"Text\",\"text\":{\"path\":\"/name\"}},{\"id\":\"name\",\"component\":\"TextField\",\"label\":\"Name\",\"value\":{\"path\":\"/name\"}},{\"id\":\"consent\",\"component\":\"CheckBox\",\"label\":\"Consent\",\"value\":{\"path\":\"/consent\"}},{\"id\":\"submit\",\"component\":\"Button\",\"child\":\"submit-label\",\"action\":{\"event\":{\"name\":\"submit\",\"context\":{\"name\":{\"path\":\"/name\"},\"consent\":{\"path\":\"/consent\"}}}}},{\"id\":\"submit-label\",\"component\":\"Text\",\"text\":\"Submit\"}],\"dataModel\":{\"name\":\"Ada\",\"consent\":false},\"sendDataModel\":true}}"
+      }
+    }
+  ]
+}

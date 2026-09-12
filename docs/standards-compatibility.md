@@ -28,8 +28,10 @@ compatibility, or imply automatic compatibility with later Candidate revisions.
 Milestone 12's provisional [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md)
 records exact JSON inputs and expected state, view, action, and rejection observations for a small
 form profile at the existing A2UI pin, including retained-edit render rejection and recovery.
-It runs on the current React Native implementation only;
-cross-platform and device compatibility claims are unchanged.
+It runs on React Native and two [scoped iOS experiment paths](../experiments/ios-runtime-comparison/README.md):
+JavaScriptCore semantics and independent Swift form semantics, using the same SwiftUI views.
+The latter have narrower declared inputs and simulator evidence only; supported SDK, full native
+profile, physical-device and Compose compatibility claims are unchanged.
 
 ## Official references
 
