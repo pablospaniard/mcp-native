@@ -543,8 +543,8 @@ Next, review the proposal, implement the internal session without changing publi
 add deterministic async host scenarios. Review and implement the proposed
 [surface-ID lifetime policy](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation),
 including bounded host-owned tracking, cross-generation routing and migration acceptance tests,
-before adopting the native contract. The contract is not yet implemented or frozen; the milestone
-checkboxes and exit criteria remain unchanged.
+before adopting the native contract. The contract is not yet implemented or frozen. The shared-store
+opt-in below is a separate milestone 12 exit gate; completing only the private session does not close it.
 
 - [ ] Extract and freeze platform-neutral renderer inputs, state transitions, actions, errors,
       lifecycle, limits, and conformance fixtures without moving SwiftUI, Compose, React Native,
@@ -566,10 +566,35 @@ This extraction satisfies the package/dependency-boundary bullet and proves Reac
 passes the shared fixtures, but the first bullet is only partly done — state reconciliation and
 data-model binding updates have not moved out of `@mcp-native/react-native` yet — and the
 milestone's full exit criterion — multiple native renderers consuming the same contract — is not
-yet provable with only one renderer in the repository. It stays open until both are addressed.
+yet provable with only one renderer in the repository. It stays open until both are addressed and
+the shared-store follow-up below is complete.
+
+#### Shared-store lifetime uniqueness
+
+Owner/tracking: [milestone 12 / #92](https://github.com/pablospaniard/mcp-native/issues/92).
+This is required before closing milestone 12, independently of the private native-session adoption gate.
+
+- [ ] Add opt-in lifetime uniqueness to the published surface store, preserving current `1.x`
+      defaults. Specify the relationship between the store lifetime and the rendering context;
+      replacing an engine/store must not silently reset a continuing context's used IDs.
+- [ ] Record the shared-registry design decision before implementing the opt-in: reuse the common
+      retention/equality/budget logic or define an explicit registry interface where practical;
+      justify separate implementations where host/engine boundaries require them. Keep context
+      routing, pre-dispatch admission, uncertain outcomes and teardown host-owned.
+- [ ] Enforce retained-ID count, per-ID size and cumulative string budgets; retain accepted IDs
+      after deletion without eviction. Preserve recoverable rejection and atomic `applyAll` rollback
+      of both retained IDs and budget charges. Test failed creations/batches and exhaustion as well
+      as accepted create/delete/recreate sequences.
+- [ ] Expose and test a React Native opt-in path and the published package-consumer API. Prove old
+      callers retain their behavior and strict callers enforce the documented lifetime. Document
+      migration, context boundaries and exhaustion handling, and update conformance evidence.
+
+API design, implementation and acceptance tests are follow-up work; this RFC does not publish an
+option or claim that the existing store is compliant.
 
 Exit criterion: multiple native renderers can consume the same trusted semantic contract and shared
-behavioral fixtures without introducing platform dependencies into protocol-independent core.
+behavioral fixtures without introducing platform dependencies into protocol-independent core, and
+the published store/React Native opt-in above provides a tested lifetime-uniqueness path.
 
 ### Milestone 13: first-class SwiftUI renderer
 
