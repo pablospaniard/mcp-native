@@ -13,6 +13,7 @@ const repositoryRoot = realpathSync(resolve(scriptDirectory, ".."));
 const packageDirectories = Object.freeze({
   "@mcp-native/a2ui": "packages/a2ui",
   "@mcp-native/core": "packages/core",
+  "@mcp-native/renderer-core": "packages/renderer-core",
   "@mcp-native/react-native": "packages/react-native",
   "@mcp-native/webview": "packages/webview",
   "mcp-native": "packages/mcp-native",

@@ -1,10 +1,10 @@
 # RFC-0001: MCP Native architecture
 
-- Status: Accepted; architecture retained through Milestone 10
+- Status: Accepted; architecture retained through Milestone 12
 - Protocol profiles: [MCP](protocol-support.md), [A2UI v1.0 Candidate](a2ui-v1-conformance.md), and
   [MCP Apps](mcp-apps-compatibility.md)
 - Date: 2026-08-25
-- Last updated: 2026-09-06
+- Last updated: 2026-09-12
 
 ## Summary
 
@@ -23,6 +23,17 @@ Milestone 10 includes `@mcp-native/host` above these boundaries. That package co
 connection, negotiation, result classification, resource loading, rendering, policy, and lifecycle;
 it does not move transport or UI dependencies into core or create a new server trust path.
 
+Milestone 12 extracts `@mcp-native/renderer-core` from `@mcp-native/react-native`: the render-plan
+builders, closed component catalog, prop-shape contracts, mount-diagnostic types, numeric limits,
+and shared conformance fixtures that were already platform-neutral in practice move into a package
+with zero React dependency, so a future SwiftUI or Jetpack Compose renderer can depend on the same
+trusted contract instead of on React Native. `@mcp-native/react-native`'s public API is unchanged;
+every extracted name is re-exported under its existing name.
+
+This extraction is provisional on `feature/native-platforms`.
+[RFC-0002](RFC-0002-native-platforms.md) evaluates shared JavaScript and native implementations
+before committing to a new public package or finalizing the cross-platform contract.
+
 ## Non-negotiable security rule
 
 Remote MCP servers may provide declarative UI and actions, but MCP Native never downloads and executes arbitrary React Native JavaScript.
@@ -39,7 +50,8 @@ flowchart TD
     Host <--> Core["@mcp-native/core<br/>runtime contracts and policy"]
     Host --> Result{"Negotiated result"}
     Result -->|"A2UI JSONL resource"| A2UI["@mcp-native/a2ui<br/>parse, state, validate"]
-    A2UI --> RN["@mcp-native/react-native<br/>trusted render plan"]
+    A2UI --> RC["@mcp-native/renderer-core<br/>platform-neutral render plan"]
+    RC --> RN["@mcp-native/react-native<br/>React catalog and rendering"]
     RN --> Native["Host-owned native components"]
     Result -->|"MCP App resource"| Apps["@mcp-native/webview<br/>sandbox and bridge"]
     Apps --> WebView["Host-owned WebView"]
@@ -78,9 +90,20 @@ closed at their applicable boundary.
 
 The v1 adapter parses schema-validated lifecycle envelopes into bounded ordered state and requires a complete policy-gated snapshot before the React Native package adapts the supported subset, including bounded dynamic lists, into a trusted plan. It constructs pinned renderer-to-agent `action` envelopes and parses every renderer-to-agent message kind as owned data. Parsing never authorizes function execution, transport, or device access; agent-initiated renderer-function execution remains excluded from the [feature-scoped conformance profile](a2ui-v1-conformance.md).
 
+### `@mcp-native/renderer-core`
+
+Owns the platform-neutral renderer contract shared by every native renderer: the closed A2UI v1
+basic-catalog component-name list, render-plan builder functions, event and `openUrl` resolution,
+mount-diagnostic types, platform-neutral prop-shape contracts, fixed numeric and structural limits,
+and the shared catalog-conformance fixtures published under `@mcp-native/renderer-core/testing`. It
+depends only on `@mcp-native/a2ui` and `@mcp-native/core` and has no React, React Native, SwiftUI,
+or Jetpack Compose dependency, and no concrete host component implementations. A platform renderer
+package composes this trusted plan with its own locally bundled component catalog; this package
+never resolves or renders anything itself.
+
 ### `@mcp-native/react-native`
 
-Owns the native component catalog, React Native rendering, event translation, accessibility defaults, and host customization. The v1 typed render plan covers the supported semantics of all 18 pinned A2UI basic-catalog components plus exactly negotiated local host extensions.
+Composes `@mcp-native/renderer-core`'s trusted render plan with a locally bundled React catalog: it owns React Native rendering, event translation, accessibility defaults, and host customization. The v1 typed render plan covers the supported semantics of all 18 pinned A2UI basic-catalog components plus exactly negotiated local host extensions.
 
 The renderer accepts a catalog of locally bundled components instead of importing or resolving components named by the server. It explicitly selects every prop crossing into that catalog, derives closed accessibility semantics, and never spreads unchecked plan or server props. Hosts may use typed adapter helpers to translate those selected props into Expo UI, Gluestack, another design system, or application-owned components. The v1 catalog requires the four base primitives and provides optional slots for `Image`, `Icon`, `Divider`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Tabs`, `Modal`, `Video`, and `AudioPlayer`; capability advertising is derived from installed, policy-ready slots. Closed variant catalogs may substitute host-owned structure, text, button, input, image, and choice-picker implementations. Required image and media grants carry exact resource and playback budgets to enforcing host loaders. Exactly negotiated, namespaced host extensions bind closed local manifests to helper-created registrations and explicit capability grants; inline catalogs remain disabled. None of these mechanisms lets a server select an import, native class, SVG payload, raw style, arbitrary prop, or command.
 

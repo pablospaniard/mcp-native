@@ -17,7 +17,7 @@ import {
   verifyPublishedUpgradeBaseline,
 } from "./verify-package-upgrade.mjs";
 
-const packages = [
+const publishedUpgradePackages = [
   "@mcp-native/core",
   "@mcp-native/mcp",
   "@mcp-native/a2ui",
@@ -26,12 +26,22 @@ const packages = [
   "@mcp-native/host",
   "mcp-native",
 ];
-const publishedUpgradePackages = packages;
+const packages = [
+  "@mcp-native/core",
+  "@mcp-native/mcp",
+  "@mcp-native/a2ui",
+  "@mcp-native/renderer-core",
+  "@mcp-native/webview",
+  "@mcp-native/react-native",
+  "@mcp-native/host",
+  "mcp-native",
+];
 const workspacePackageNames = new Set(packages);
 const workspacePackageDirectories = [
   "packages/core",
   "packages/mcp",
   "packages/a2ui",
+  "packages/renderer-core",
   "packages/webview",
   "packages/react-native",
   "packages/host",

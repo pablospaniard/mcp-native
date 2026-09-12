@@ -28,14 +28,20 @@ import {
   type ReactNode,
 } from "react";
 
+import type { NativeComponentCatalog, NativeViewComponentProps } from "./component-adapters.js";
+import {
+  isNativeHostExtensionRegistration,
+  renderNativeHostExtensionRegistration,
+} from "./component-adapters.js";
+
 import type {
   NativeAccessibilityProps,
   NativeButtonComponentProps,
   NativeChoicePickerComponentProps,
   NativeChoicePickerOption,
-  NativeComponentCatalog,
   NativeComponentLayoutContract,
   NativeComponentLayoutContracts,
+  NativeElement,
   NativeIconComponentProps,
   NativeImageComponentProps,
   NativeImageResourcePolicy,
@@ -45,18 +51,17 @@ import type {
   NativeMediaResourcePolicy,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
-  NativeViewComponentProps,
   NativeViewStyle,
   NativeViewVariant,
   NativeSurfaceParentLayout,
-} from "./component-adapters.js";
+  NativeComponentName,
+  A2uiV1NativeMountDiagnostic,
+  A2uiV1NativeMountDiagnosticCode,
+  A2uiV1NativeMountReport,
+  InspectA2uiV1NativeMountOptions,
+} from "@mcp-native/renderer-core";
 import {
   A2UI_V1_NATIVE_ICON_NAMES,
-  isNativeHostExtensionRegistration,
-  renderNativeHostExtensionRegistration,
-} from "./component-adapters.js";
-
-import {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
   createA2uiV1NativeRenderPlan,
   createA2uiV1NativeRenderPlanForLocalEdits,
@@ -65,15 +70,16 @@ import {
   resolveA2uiV1NativeEvent,
   resolveA2uiV1NativeOpenUrl,
   validateA2uiV1NativeDateTimeInputChange,
+  A2uiV1NativeMountError,
   type A2uiV1NativeEventDescriptor,
   type A2uiV1NativeImagePolicy,
   type A2uiV1NativeHostExtensionPolicy,
   type A2uiV1NativeMediaPolicy,
   type A2uiV1NativeOpenUrlDescriptor,
-} from "./v1.js";
+} from "@mcp-native/renderer-core";
 
+export { A2UI_V1_NATIVE_ICON_NAMES };
 export {
-  A2UI_V1_NATIVE_ICON_NAMES,
   createNativeButtonAdapter,
   createNativeAudioPlayerAdapter,
   createNativeCheckBoxAdapter,
@@ -93,6 +99,14 @@ export {
 } from "./component-adapters.js";
 export type { NativeComponentPropMapper } from "./component-adapters.js";
 export type {
+  NativeComponentCatalog,
+  NativeComponentVariants,
+  NativeModalComponentProps,
+  NativeTabItem,
+  NativeTabsComponentProps,
+  NativeViewComponentProps,
+} from "./component-adapters.js";
+export type {
   NativeAccessibilityProps,
   NativeAccessibilityRole,
   NativeAccessibilityState,
@@ -104,11 +118,9 @@ export type {
   NativeChoicePickerDisplayStyle,
   NativeChoicePickerOption,
   NativeChoicePickerVariant,
-  NativeComponentCatalog,
   NativeCatalogComponentName,
   NativeComponentLayoutContract,
   NativeComponentLayoutContracts,
-  NativeComponentVariants,
   NativeDateTimeInputComponentProps,
   NativeDividerComponentProps,
   NativeIconComponentProps,
@@ -122,38 +134,18 @@ export type {
   NativeHostExtensionEventOptions,
   NativeHostExtensionRegistration,
   NativeMediaResourcePolicy,
-  NativeModalComponentProps,
   NativeSliderComponentProps,
-  NativeTabItem,
-  NativeTabsComponentProps,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
   NativeTextInputVariant,
   NativeTextVariant,
-  NativeViewComponentProps,
   NativeViewStyle,
   NativeViewVariant,
   NativeVideoComponentProps,
   NativeSurfaceParentLayout,
-} from "./component-adapters.js";
+} from "@mcp-native/renderer-core";
 
-export type NativeComponentName =
-  | "AudioPlayer"
-  | "Button"
-  | "CheckBox"
-  | "ChoicePicker"
-  | "DateTimeInput"
-  | "Divider"
-  | "Icon"
-  | "Image"
-  | "HostExtension"
-  | "Modal"
-  | "Slider"
-  | "Tabs"
-  | "Text"
-  | "TextInput"
-  | "Video"
-  | "View";
+export type { NativeComponentName, NativeElement } from "@mcp-native/renderer-core";
 
 const A2UI_V1_NATIVE_BASE_COMPONENT_NAMES = Object.freeze([
   "Button",
@@ -270,52 +262,11 @@ export interface A2uiV1NativeHost {
   readonly hostExtensionLayoutContracts: Readonly<Record<string, NativeComponentLayoutContract>>;
 }
 
-export type A2uiV1NativeMountDiagnosticCode =
-  | "component-not-allowed"
-  | "layout-incompatible"
-  | "missing-component"
-  | "missing-extension-registration"
-  | "render-plan-rejected"
-  | "surface-invalid";
-
-export interface A2uiV1NativeMountDiagnostic {
-  readonly code: A2uiV1NativeMountDiagnosticCode;
-  readonly message: string;
-  readonly componentName?: string;
-  readonly nativeElementKey?: string;
-  readonly parentLayout?: NativeSurfaceParentLayout;
-  readonly sourceComponentId?: string;
-}
-
-export interface A2uiV1NativeMountReport {
-  readonly ok: boolean;
-  readonly diagnostics: readonly A2uiV1NativeMountDiagnostic[];
-  readonly requiredNativeComponentNames: readonly NativeComponentName[];
-}
-
-export interface InspectA2uiV1NativeMountOptions {
-  /** External parent supplied by the application shell. Defaults to `unbounded`. */
-  readonly parentLayout?: NativeSurfaceParentLayout;
-}
-
-/** Stable mount failure with no raw server, transport, or adapter exception in its message. */
-export class A2uiV1NativeMountError extends Error {
-  readonly code: A2uiV1NativeMountDiagnosticCode;
-  readonly diagnostic: A2uiV1NativeMountDiagnostic;
-  readonly report: A2uiV1NativeMountReport;
-
-  constructor(report: A2uiV1NativeMountReport, options?: ErrorOptions) {
-    const diagnostic = report.diagnostics[0];
-    if (diagnostic === undefined) {
-      throw new TypeError("A native mount error requires at least one diagnostic");
-    }
-    super(diagnostic.message, options);
-    this.name = "A2uiV1NativeMountError";
-    this.code = diagnostic.code;
-    this.diagnostic = diagnostic;
-    this.report = report;
-  }
-}
+export type { A2uiV1NativeMountDiagnosticCode } from "@mcp-native/renderer-core";
+export type { A2uiV1NativeMountDiagnostic } from "@mcp-native/renderer-core";
+export type { A2uiV1NativeMountReport } from "@mcp-native/renderer-core";
+export type { InspectA2uiV1NativeMountOptions } from "@mcp-native/renderer-core";
+export { A2uiV1NativeMountError };
 
 const nativeHosts = new WeakSet<A2uiV1NativeHost>();
 const nativeHostResetKeys = new WeakMap<A2uiV1NativeHost, number>();
@@ -788,17 +739,6 @@ function freezeMountReport(
     diagnostics: frozenDiagnostics,
     requiredNativeComponentNames: orderedRequired,
   });
-}
-
-/**
- * A serializable render plan. A React Native host maps these trusted component
- * names to locally bundled components; the MCP server never supplies code.
- */
-export interface NativeElement {
-  readonly key: string;
-  readonly component: NativeComponentName;
-  readonly props: Readonly<Record<string, unknown>>;
-  readonly children?: readonly NativeElement[];
 }
 
 export type A2uiV1NativeActionHandler = (
@@ -2547,7 +2487,7 @@ export {
   createA2uiV1NativeRenderPlan,
   resolveA2uiV1NativeEvent,
   resolveA2uiV1NativeOpenUrl,
-} from "./v1.js";
+} from "@mcp-native/renderer-core";
 export type {
   A2uiV1NativeEventDescriptor,
   A2uiV1NativeEventResolutionOptions,
@@ -2563,10 +2503,10 @@ export type {
   A2uiV1NativeOpenUrlDescriptor,
   A2uiV1NativeOpenUrlResolutionOptions,
   A2uiV1NativeRenderPlanOptions,
-} from "./v1.js";
+} from "@mcp-native/renderer-core";
 
 /** Concise public names for the current React Native A2UI renderer profile. */
-export { A2UI_V1_NATIVE_ICON_NAMES as ICON_NAMES } from "./component-adapters.js";
+export { A2UI_V1_NATIVE_ICON_NAMES as ICON_NAMES } from "@mcp-native/renderer-core";
 export {
   A2UI_V1_NATIVE_COMPONENT_NAMES as COMPONENT_NAMES,
   A2UI_V1_NATIVE_MAX_CHOICE_OPTIONS as MAX_CHOICE_OPTIONS,
@@ -2591,7 +2531,7 @@ export {
   createA2uiV1NativeRenderPlan as createRenderPlan,
   resolveA2uiV1NativeEvent as resolveEvent,
   resolveA2uiV1NativeOpenUrl as resolveOpenUrl,
-} from "./v1.js";
+} from "@mcp-native/renderer-core";
 export type {
   A2uiV1NativeEventDescriptor as EventDescriptor,
   A2uiV1NativeEventResolutionOptions as EventResolutionOptions,
@@ -2607,7 +2547,7 @@ export type {
   A2uiV1NativeOpenUrlDescriptor as OpenUrlDescriptor,
   A2uiV1NativeOpenUrlResolutionOptions as OpenUrlResolutionOptions,
   A2uiV1NativeRenderPlanOptions as RenderPlanOptions,
-} from "./v1.js";
+} from "@mcp-native/renderer-core";
 
 export {
   A2uiV1NativeHostSurface as HostSurface,

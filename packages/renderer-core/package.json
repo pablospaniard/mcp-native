@@ -1,13 +1,13 @@
 {
-  "name": "@mcp-native/react-native",
+  "name": "@mcp-native/renderer-core",
   "version": "1.0.1",
-  "description": "React Native renderer primitives for MCP Native.",
+  "description": "Platform-neutral renderer contract for MCP Native.",
   "keywords": [
     "a2ui",
     "mcp",
     "model-context-protocol",
     "native-ui",
-    "react-native"
+    "typescript"
   ],
   "homepage": "https://github.com/pablospaniard/mcp-native#readme",
   "bugs": {
@@ -17,7 +17,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pablospaniard/mcp-native.git",
-    "directory": "packages/react-native"
+    "directory": "packages/renderer-core"
   },
   "files": [
     "dist",
@@ -34,11 +34,6 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./legacy": {
-      "types": "./dist/legacy.d.ts",
-      "import": "./dist/legacy.js",
-      "default": "./dist/legacy.js"
-    },
     "./testing": {
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js",
@@ -50,15 +45,6 @@
   },
   "dependencies": {
     "@mcp-native/a2ui": "^1.0.1",
-    "@mcp-native/core": "^1.0.1",
-    "@mcp-native/renderer-core": "^1.0.1"
-  },
-  "devDependencies": {
-    "@types/react": "19.1.17",
-    "react": "19.2.8",
-    "test-renderer": "1.2.0"
-  },
-  "peerDependencies": {
-    "react": ">=18.1.0"
+    "@mcp-native/core": "^1.0.1"
   }
 }

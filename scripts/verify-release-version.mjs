@@ -1,16 +1,6 @@
-import { readFileSync } from "node:fs";
+import { loadReleasePackages } from "./publish-release.mjs";
 
-const packageJsonPaths = [
-  "packages/core/package.json",
-  "packages/mcp/package.json",
-  "packages/a2ui/package.json",
-  "packages/webview/package.json",
-  "packages/react-native/package.json",
-  "packages/host/package.json",
-  "packages/mcp-native/package.json",
-];
-
-const packages = packageJsonPaths.map((path) => JSON.parse(readFileSync(path, "utf8")));
+const packages = loadReleasePackages();
 const versions = new Set(packages.map(({ version }) => version));
 
 if (versions.size !== 1) {
