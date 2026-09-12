@@ -44,8 +44,8 @@ coverage does not redefine the production TypeScript validator. For comparison, 
 ASCII identifier/key restriction and Unicode string values until exact cross-language key identity
 has separate tests. The Android/JavaScript implementations may support more than this intersection.
 
-The [21-case corpus](../tests/fixtures/renderer-conformance/README.md) specifies existing observable
-semantics, with each case labeled by its schema, project-semantics or host-composition basis.
+The [shared corpus](../tests/fixtures/renderer-conformance/README.md) documents existing observable
+semantics and the provenance of its expectations.
 If an expectation conflicts with a pinned normative rule, resolve and document that conflict rather
 than treating the TypeScript implementation as the specification. The async rules introduced here
 need additional project-owned scenarios; passing the current corpus alone is insufficient.
@@ -77,7 +77,7 @@ Use distinct identities; none are supplied or chosen by the server:
 | Identity              | Lifetime and purpose                                                                                                                               |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Session generation    | Fresh opaque host token on open; invalidated on close/failure. Prevents results from an old engine reaching a replacement.                         |
-| Surface incarnation   | Fresh host identity for each successful creation, including reuse of the same wire `surfaceId` after deletion.                                     |
+| Surface incarnation   | Fresh host identity for each permitted creation; independent of the wire `surfaceId`.                                                              |
 | Request sequence      | Strictly increasing within a generation, echoed by exactly one result. Never wraps or resets within that generation.                               |
 | Render revision       | Increases on every successful plan publication or unmount; binds controls and pending proposals to a particular displayed snapshot.                |
 | Server model revision | Changes only on accepted model-changing lifecycle operations, including an equal-value `updateDataModel`; never synthesized by an ordinary render. |
@@ -103,6 +103,22 @@ semantic rejection, consumes exactly one sequence. A missing, duplicate, out-of-
 engine response is a fatal boundary failure. A completion belonging to an already closed generation
 is discarded and cannot fail or mutate the replacement generation. Sequence/revision exhaustion
 closes the session before integer precision or wraparound can make an old identity current again.
+
+### Surface-ID lifetime interpretation
+
+A fresh host incarnation does not authorize reuse of a wire `surfaceId`. The pinned
+[create-surface schema](../packages/a2ui/src/v1/vendor/agent_to_renderer.json) requires that ID to
+remain globally unique for the renderer's lifetime. Its preceding wording about deleting an existing
+surface does not remove that lifetime requirement. The current
+[store](../packages/a2ui/src/v1/store.ts) checks only active IDs and accepts creation after deletion;
+that behavior is an unresolved compatibility gap, not evidence that the schema permits reuse.
+
+Before adopting or freezing the native contract, a decision PR must define the renderer lifetime,
+resolve this gap and document compatibility/migration effects with lifecycle regression tests.
+A session generation is not automatically a renderer lifetime: replacing a failed engine must not
+silently reset wire-ID uniqueness. If enforcing uniqueness requires retaining used IDs, bound that
+registry and reject new creation at capacity rather than evicting entries that would permit reuse.
+This proposal neither changes the published store nor approves an exception to the pinned rule.
 
 ## State transitions
 
@@ -216,11 +232,17 @@ measure memory reclamation. The Apple experiment only demonstrates admission can
 work off the main actor does not prove bounded interruption or reclamation of JavaScriptCore work.
 No iOS preview can claim this lifecycle contract until that gap has an explicit supported policy.
 
-Bound outstanding cleanup work as well as live sessions. Do not repeatedly create replacement VMs
-while a timed-out worker remains alive; the initial host allows at most one retired worker pending
-cleanup and refuses replacement while it is outstanding. The engine implementation PR must define
-and test the cleanup acknowledgment, elapsed-time policy and behavior when acknowledgment never
-arrives. Do not rely on garbage collection timing as a teardown acknowledgment.
+Account for initializing, live and retiring engines against finite host-wide resource budgets from
+trusted configuration. Reserve capacity before creating an engine; moving it to retirement or
+replacing its session generation does not release that reservation. Refuse creation or replacement
+before allocation when capacity is exhausted. Release a reservation exactly once, only after the
+engine's supported cleanup acknowledgment; a timed-out worker with unacknowledged cleanup remains
+charged. These budgets survive generation replacement and bound repeated failures across sessions.
+
+The engine implementation PR must define the accounting units, finite limits, cleanup acknowledgment
+and elapsed-time policy, including behavior when acknowledgment never arrives. Test saturation,
+repeated timeouts, generation replacement and late/duplicate cleanup acknowledgments. Do not rely
+on garbage collection timing as a teardown acknowledgment.
 
 ## Work and output limits
 
@@ -234,7 +256,7 @@ experiment values are an evidence baseline, not accepted production budgets:
 | Expanded plan    | 1,024 nodes; component-path depth 64, including a Button's folded text child                                       | Count cumulative expansion and retained bytes; derive platform constants from one trusted definition                       |
 | Engine result    | 1 MiB; response depth `2 * maxComponentDepth + 4` for the current observation format                               | Version the internal result shape deliberately; recalculate depth for the real plan schema rather than copying 132 blindly |
 | Lifetime         | One form, 64 experiment steps                                                                                      | Define finite preview lifetime/work budgets and explicit exhaustion behavior; never silently reopen state                  |
-| Pending work     | Proposed: one semantic request, one pending action, no implicit request queue                                      | Add saturation, close-race and transport-handoff tests                                                                     |
+| Pending work     | [Admission policy](#identity-and-admission)                                                                        | Add saturation, close-race and transport-handoff tests                                                                     |
 | Engine resources | Android requests a 64 MiB isolate heap; test waits use ten-second deadlines                                        | Device/engine-specific limits and supported cleanup behavior remain undecided; no latency scores                           |
 
 Use the existing semantic budgets for dynamic lists, interpolation, formatting, validation messages
@@ -252,24 +274,22 @@ server/local model is exposed to application logging by default.
 
 ## Evidence and implementation gates
 
-At the baseline commit, React Native, JavaScriptCore, independent Swift and Android's shared
-JavaScript path pass all 21 corpus cases. The native runs used iPhone 17 Pro/iOS 26.5 and Android
-37/arm64 with WebView provider `151.0.7922.202`; deployment targets are not tested support minima.
-The Android bundle is 335,625 bytes, SHA-256
-`2f299bea87d6c7d59068b07891963fdbfc2914115c2ab90db6ef2dd53e252ff1`.
-See the immutable [Apple findings](https://github.com/pablospaniard/mcp-native/blob/7535b4b917c33b35f6d0bacdb0012dd732a35105/experiments/ios-runtime-comparison/RESULTS.md)
-and [Android findings](https://github.com/pablospaniard/mcp-native/blob/7535b4b917c33b35f6d0bacdb0012dd732a35105/experiments/android-runtime-probe/RESULTS.md).
+The immutable [Apple findings](https://github.com/pablospaniard/mcp-native/blob/7535b4b917c33b35f6d0bacdb0012dd732a35105/experiments/ios-runtime-comparison/RESULTS.md)
+and [Android findings](https://github.com/pablospaniard/mcp-native/blob/7535b4b917c33b35f6d0bacdb0012dd732a35105/experiments/android-runtime-probe/RESULTS.md)
+record the baseline corpus results, tested environments and bundle measurements. Those records are
+the source for exact evidence details; their tested environments are not support minima.
 Physical-device performance remains deferred and unscored.
 
-| Contract area                       | Existing evidence                                                                                                                 | Required before an implementation claims this contract                                                                                                        |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reconciliation and rejected renders | `same-value-server-update`, `component-update-preserves-edits`, `local-edit-render-rejection-recovery`, malformed-envelope probes | Execute unchanged expectations against the extracted session and mounted React Native adapter                                                                 |
-| Array updates and expanded lists    | `array-pointer-updates`, `dynamic-list-order`, `expanded-node-limit`; depth probes                                                | Keep rejection atomicity and add scoped callbacks across list reorder/delete/recreate                                                                         |
-| Host authorization                  | Allow/deny and model-omission cases; generation and close probes                                                                  | Pause authorization, update/delete/close the surface, then resolve allow: zero dispatch; duplicate completion: at most one dispatch                           |
-| Response integrity                  | Android strict JSON, malformed response and pending-close probes                                                                  | Both adapters reject wrong sequence/generation, duplicate replies and malformed observation/action shapes; old completions cannot affect replacement sessions |
-| Cancellation                        | Android running-loop termination; Apple admission cancellation                                                                    | Close during evaluation without blocking UI/admission; late result discarded; bounded retirement and unavailable-replacement behavior on both platforms       |
-| Result retention                    | Current bounded experiment logs                                                                                                   | Long sequence of valid operations emits deltas; retained host/session output stays within configured bounds and resets on close                               |
-| Native controls                     | Two SwiftUI UI flows; Android engine only                                                                                         | Adapter input/focus/accessibility/lifecycle acceptance tests; Compose controls remain unimplemented                                                           |
+| Contract area                       | Existing evidence                                                                                                                 | Required before an implementation claims this contract                                                                                                                                      |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reconciliation and rejected renders | `same-value-server-update`, `component-update-preserves-edits`, `local-edit-render-rejection-recovery`, malformed-envelope probes | Execute unchanged expectations against the extracted session and mounted React Native adapter                                                                                               |
+| Array updates and expanded lists    | `array-pointer-updates`, `dynamic-list-order`, `expanded-node-limit`; depth probes                                                | Keep rejection atomicity and add scoped callbacks across list reordering and row replacement                                                                                                |
+| Surface-ID lifetime                 | Current store checks active IDs only; [interpretation gap](#surface-id-lifetime-interpretation)                                   | Decide renderer lifetime and compatibility; test delete/recreate rejection, engine replacement and any used-ID registry exhaustion under the approved policy                                |
+| Host authorization                  | Allow/deny and model-omission cases; generation and close probes                                                                  | Pause authorization, update/delete/close the surface, then resolve allow: zero dispatch; duplicate completion: at most one dispatch                                                         |
+| Response integrity                  | Android strict JSON, malformed response and pending-close probes                                                                  | Both adapters reject wrong sequence/generation, duplicate replies and malformed observation/action shapes; old completions cannot affect replacement sessions                               |
+| Cancellation                        | Android running-loop termination; Apple admission cancellation                                                                    | Close during evaluation without blocking UI/admission; late result discarded; host-wide capacity exhaustion, repeated timeouts and late/duplicate cleanup acknowledgments on both platforms |
+| Result retention                    | Current bounded experiment logs                                                                                                   | Long sequence of valid operations emits deltas; retained host/session output stays within configured bounds and resets on close                                                             |
+| Native controls                     | Two SwiftUI UI flows; Android engine only                                                                                         | Adapter input/focus/accessibility/lifecycle acceptance tests; Compose controls remain unimplemented                                                                                         |
 
 These are required test scenarios, not additional passing fixtures. Implement them with deterministic
 barriers around evaluation, authorization and dispatch rather than timing-dependent sleeps. No new
@@ -281,7 +301,8 @@ CI workflow, package or production behavior is introduced by this document.
    12 stays open; review acceptance alone does not freeze exports or establish multi-renderer support.
 2. Implement an internal session using existing JavaScript validation, store and planner code.
    Replace experiment reconciliation glue and add a React Native adapter path exercised by the same
-   corpus. Preserve existing published behavior and imports; demonstrate parity before adoption.
+   corpus. Preserve existing published behavior and imports; demonstrate parity and resolve the
+   [surface-ID lifetime gap](#surface-id-lifetime-interpretation) before adoption.
 3. Add the async host scenarios above and implement independent native admission/result validation.
    Resolve Apple interruption/retirement policy and the Android provider support/failure policy.
 4. Submit the RFC-0002 runtime/package decision with these results. Keep renderer-core private until
@@ -289,9 +310,9 @@ CI workflow, package or production behavior is introduced by this document.
 5. Build the scoped SwiftUI preview, then the equivalent Compose preview, with explicit tested
    platform matrices. Agree physical-device budgets before scoring performance or claiming a winner.
 
-Still open: the internal request/result schema and diagnostic vocabulary, engine-specific cleanup
-acknowledgment, supported provider/OS ranges, production resource budgets, app background/foreground
-policy and transport-specific cancellation outcomes. Unsupported environments must fail explicitly;
+Still open: the surface-ID lifetime decision above, the internal request/result schema and diagnostic
+vocabulary, engine-specific cleanup acknowledgment, supported provider/OS ranges, production
+resource budgets, app background/foreground policy and transport-specific cancellation outcomes. Unsupported environments must fail explicitly;
 no silent WebView or alternate-engine fallback is approved.
 
 The existing experiment sunset remains mandatory before integration reaches `main`, even if the

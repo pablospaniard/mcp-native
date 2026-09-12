@@ -147,7 +147,10 @@ or native Kotlin semantic parity.
 
 The proposed [native session contract](RFC-0003-native-session-contract.md) preserves these semantic
 observations and identifies additional async host scenarios that are not yet implemented. It does
-not expand normative wire support or freeze a public session API.
+not expand normative wire support or freeze a public session API. The
+[surface-ID lifetime gap](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
+requires a compatibility decision before native contract adoption; existing store behavior is not
+proof of compliance with the pinned lifetime-uniqueness rule.
 
 ## Candidate interpretations
 

@@ -540,7 +540,9 @@ Broader provider support, full native parity, device performance and the final s
 outstanding. [RFC-0003](RFC-0003-native-session-contract.md) proposes the shared session boundary,
 including revision identity, state transitions, native authorization, cancellation and output bounds.
 Next, review the proposal, implement the internal session without changing published behavior, and
-add deterministic async host scenarios. The contract is not yet implemented or frozen; the milestone
+add deterministic async host scenarios. Resolve the
+[surface-ID lifetime gap](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
+before adopting the native contract. The contract is not yet implemented or frozen; the milestone
 checkboxes and exit criteria remain unchanged.
 
 - [ ] Extract and freeze platform-neutral renderer inputs, state transitions, actions, errors,
