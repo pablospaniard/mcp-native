@@ -17,8 +17,9 @@ language runtime. The [initial iOS comparison](../experiments/ios-runtime-compar
 made shared JavaScript the leading next experiment: both paths pass the small corpus, while
 native semantics introduce concrete parity work. The [Android engine probe](../experiments/android-runtime-probe/RESULTS.md)
 now passes the same corpus with the exact shared bundle on one provider and demonstrates running-isolate
-termination. This supports reviewing a common session contract next. It is not an accepted runtime
-decision or measured performance result; broader Android provider support, iOS lifecycle design and
+termination. [RFC-0003](RFC-0003-native-session-contract.md) now proposes the common session contract
+for review, including state revisions, instance tickets, action authorization and cancellation.
+It is not an accepted runtime decision or measured performance result; broader Android provider support, iOS lifecycle design and
 physical-device evaluation remain open.
 Shared JavaScript has a substantial counterargument: it reuses the existing validation and semantic
 implementation and reduces the number of security-sensitive implementations to maintain. If native
@@ -183,6 +184,10 @@ simulator-only evidence and unresolved cancellation/parity gaps do not complete 
 The Android probe now establishes shared-bundle feasibility and isolate termination on one emulator
 provider. Its provider feature gates and untested platform matrix remain decision inputs, not a
 supported Android SDK claim.
+
+The [session-contract proposal](RFC-0003-native-session-contract.md) records existing semantic evidence
+and the async host tests still required. Review it before extracting a reusable internal session;
+its acceptance alone does not select a runtime, freeze exports or satisfy a preview gate.
 
 Milestone 12 supplies a draft contract and corpus to a scoped milestone 13 prototype, then incorporates
 the prototype's findings. Its final exit gate must not block the experiment needed to satisfy it.
