@@ -46,7 +46,9 @@ Its async identity, authorization and lifecycle requirements are implementation 
 passing conformance cases or changes to the pinned wire profile. Native SDK and device-performance
 claims remain unchanged. The
 [surface-ID lifetime interpretation](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
-is an unresolved compatibility gap and an adoption gate; this proposal does not change store behavior.
+proposes bounded context-owned ID tracking and migration while preserving published defaults.
+The current lifetime-uniqueness gap remains until implementation and acceptance tests prove the
+strict native path; this decision does not expand passing conformance claims.
 
 ## Official references
 
