@@ -42,11 +42,11 @@
       }
     },
     "@mcp-native/renderer-core": {
-      "declarationSha256": "c1d44ccb5e50ccdff894a544a8bdcea208366f524cd260ddc1e5dff4757eb40c",
+      "declarationSha256": "d7345839b313d5bd1e8e92c05ab000357adade8c9441665982fd573f3f36cbf1",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "0f50e3d217f495b0285383d04a074923e8fd01d6f558529f799ca7f2ac8b4fe5",
+          "runtimeSha256": "6b0f420bde43aefc65e79ee4592497314110741c34a4a3221a7c50a2cbc131dc",
           "types": "./dist/index.d.ts"
         },
         "./testing": {

@@ -19,6 +19,7 @@ export async function runComparison() {
       "-O",
       "-framework",
       "JavaScriptCore",
+      `${dist}/ExperimentLimits.swift`,
       ...sources,
       `${directory}Sources/Runner.swift`,
       "-o",

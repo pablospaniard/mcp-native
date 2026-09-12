@@ -222,7 +222,8 @@ const Surface = reactNative.HostSurface;
 The package root always means the current supported profile. Exact protocol identity remains in
 negotiated values such as `PROTOCOL_VERSION === "v1.0"`, in schemas, and in compatibility docs; it
 is not repeated in every TypeScript name. Previous `A2ui*`, `A2uiV1*`, and `A2UI_V1_*` exports
-remain compatible aliases throughout the `1.x` line. New code should use the concise names.
+remain compatible aliases throughout the `1.x` line. New code and examples must use the concise
+names; see the [repository naming rule](CONTRIBUTING.md#naming).
 Existing integrations can follow the [migration guide](docs/migration-to-1.0.md).
 
 ## Examples

@@ -17,36 +17,16 @@ import {
   verifyPublishedUpgradeBaseline,
 } from "./verify-package-upgrade.mjs";
 
-const publishedUpgradePackages = [
-  "@mcp-native/core",
-  "@mcp-native/mcp",
-  "@mcp-native/a2ui",
-  "@mcp-native/webview",
-  "@mcp-native/react-native",
-  "@mcp-native/host",
-  "mcp-native",
-];
-const packages = [
-  "@mcp-native/core",
-  "@mcp-native/mcp",
-  "@mcp-native/a2ui",
-  "@mcp-native/renderer-core",
-  "@mcp-native/webview",
-  "@mcp-native/react-native",
-  "@mcp-native/host",
-  "mcp-native",
-];
+import { loadWorkspacePackages } from "./workspace-packages.mjs";
+
+const workspaces = loadWorkspacePackages();
+// This older published baseline deliberately excludes workspaces introduced after 0.9.
+const publishedUpgradePackages = workspaces
+  .filter(({ upgradeBaseline }) => upgradeBaseline)
+  .map(({ manifest }) => manifest.name);
+const packages = workspaces.map(({ manifest }) => manifest.name);
 const workspacePackageNames = new Set(packages);
-const workspacePackageDirectories = [
-  "packages/core",
-  "packages/mcp",
-  "packages/a2ui",
-  "packages/renderer-core",
-  "packages/webview",
-  "packages/react-native",
-  "packages/host",
-  "packages/mcp-native",
-];
+const workspacePackageDirectories = workspaces.map(({ directory }) => directory);
 const expectedVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
 const rootLicenseText = readFileSync("LICENSE", "utf8");
 const publishedUpgradeRange = "^0.9.0";

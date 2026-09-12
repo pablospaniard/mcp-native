@@ -14,9 +14,12 @@ package. A source module does not need to be a separately published package to e
 
 The initial preference was native Swift and Kotlin for platform ownership and avoiding a second
 language runtime. The [initial iOS comparison](../experiments/ios-runtime-comparison/RESULTS.md)
-now makes shared JavaScript the leading next experiment: both paths pass the small corpus, while
-native semantics introduce concrete parity work. This is not an accepted runtime decision or a
-measured performance result; Android feasibility and physical-device evaluation remain open.
+made shared JavaScript the leading next experiment: both paths pass the small corpus, while
+native semantics introduce concrete parity work. The [Android engine probe](../experiments/android-runtime-probe/RESULTS.md)
+now passes the same corpus with the exact shared bundle on one provider and demonstrates running-isolate
+termination. This supports reviewing a common session contract next. It is not an accepted runtime
+decision or measured performance result; broader Android provider support, iOS lifecycle design and
+physical-device evaluation remain open.
 Shared JavaScript has a substantial counterargument: it reuses the existing validation and semantic
 implementation and reduces the number of security-sensitive implementations to maintain. If native
 parity proves too expensive, or the JavaScript bridge is demonstrably small and reliable, choose the
@@ -40,12 +43,14 @@ scope. The integration branch is not a release channel, and this RFC does not au
 or package-version changes.
 
 Experiment code has an explicit sunset. The runtime decision PR records what is retained, and the
-promotion PR must remove the iOS comparison directory and its temporary CI/scripts/tests even if
+promotion PR must remove the iOS comparison and Android probe directories and their temporary CI/scripts/tests even if
 the decision is deferred. Preserve findings under `docs/` and the shared language-neutral corpus;
 move a selected implementation into reviewed platform code only after its production acceptance
 criteria are met. Remove unused experiment dependencies and repair references as part of that PR.
 Milestone 12/13 maintainers own this review; git history retains discarded prototypes. See the
 [cleanup inventory](../experiments/ios-runtime-comparison/README.md#temporary-lifecycle).
+The Android probe consumes the iOS bundle builder, so both temporary implementations must be
+disposed of together; see its [cleanup inventory](../experiments/android-runtime-probe/README.md#temporary-lifecycle).
 
 ## What the repository already proves
 
@@ -60,8 +65,9 @@ Milestone 12/13 maintainers own this review; git history retains discarded proto
 - React Native still owns local-state reconciliation, binding writes, several callback checks,
   mount inspection, and application lifecycle integration. The extracted planner is not a complete
   reusable interactive session runtime.
-- The repository now has 20 language-neutral cases with explicit observations, executed by React
-  Native and the two scoped iOS experiment paths. Published fixture factories remain unchanged.
+- The repository now has 21 language-neutral cases with explicit observations, executed by React
+  Native, the two scoped iOS experiment paths and the Android engine probe. Published fixture
+  factories remain unchanged; the Android probe has no Compose UI or independent Kotlin semantics.
 - A shared SwiftUI screen exercises JavaScriptCore and independent Swift form semantics on an iOS
   simulator. Neither path is a supported native SDK; Compose and device-performance work remain open.
 
@@ -158,16 +164,25 @@ separation. Reduce integration choices first; change physical packaging only whe
 Aim for one primary integration product per platform, with advanced entry points for genuine
 composition needs. Do not create new published packages for each validator, state machine, fixture
 set, bridge, or capability. Share fixtures as repository data until external distribution is needed.
+The provisional renderer-core manifest is private; release preflight blocks public packages that
+depend on it until a reviewed packaging decision resolves that dependency. Local tarball testing does
+not authorize publication.
 No existing package or export is removed by this RFC. Any eventual removal needs a major-version
 migration; an additive facade must also preserve optional dependency behavior and class identity.
+New native-platform code and examples follow the [version-neutral naming rule](../CONTRIBUTING.md#naming),
+including the provisional renderer-core entry points. Existing versioned names are compatibility
+aliases, while exact wire versions and schema pins remain explicit and unchanged.
 
 ## Experiments and milestone sequence
 
 The initial [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) implements
-the JSON fixture portion of step 1 with 20 cases executed by the current React Native renderer.
+the JSON fixture portion of step 1 with 21 cases executed by the current React Native renderer.
 The [iOS experiment](../experiments/ios-runtime-comparison/README.md) now runs those cases through
 both native paths, plus SwiftUI interaction and host-lifecycle checks. Its narrower input profile,
 simulator-only evidence and unresolved cancellation/parity gaps do not complete the runtime decision.
+The Android probe now establishes shared-bundle feasibility and isolate termination on one emulator
+provider. Its provider feature gates and untested platform matrix remain decision inputs, not a
+supported Android SDK claim.
 
 Milestone 12 supplies a draft contract and corpus to a scoped milestone 13 prototype, then incorporates
 the prototype's findings. Its final exit gate must not block the experiment needed to satisfy it.

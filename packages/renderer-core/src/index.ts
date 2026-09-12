@@ -1,5 +1,6 @@
 import type { NativeCatalogComponentName } from "./component-shapes.js";
 
+export * from "./names.js";
 export * from "./component-shapes.js";
 export * from "./v1.js";
 export * from "./mount-types.js";

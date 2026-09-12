@@ -1,21 +1,19 @@
+import limits from "./limits.json" with { type: "json" };
 import { parseJsonObject, parseJsonValue } from "../../packages/core/dist/index.js";
 import {
-  A2uiParseError,
-  A2uiSurfaceStore,
-  createA2uiV1ActionEnvelope,
-  createA2uiV1BasicCatalogPolicy,
+  ParseError,
+  SurfaceStore,
+  createActionEnvelope,
+  createBasicCatalogPolicy,
 } from "../../packages/a2ui/dist/index.js";
-import {
-  createA2uiV1NativeRenderPlan,
-  resolveA2uiV1NativeEvent,
-} from "../../packages/renderer-core/dist/index.js";
+import { createRenderPlan, resolveEvent } from "../../packages/renderer-core/dist/index.js";
 
 // Experiment-only session glue. No React, Node, network, or native callbacks in this bundle.
 // Binding/reconciliation remains adapter work; renderer-core is not a complete session runtime.
 export class SharedSession {
   constructor(host, timestamp) {
-    this.store = new A2uiSurfaceStore();
-    this.policy = createA2uiV1BasicCatalogPolicy({
+    this.store = new SurfaceStore();
+    this.policy = createBasicCatalogPolicy({
       allowedComponentNames: host.componentNames,
       allowedEventNames: host.eventNames,
       allowedFunctionNames: host.functionNames,
@@ -40,11 +38,11 @@ export class SharedSession {
       this.revision = surface.dataModelRevision;
     }
     try {
-      this.plan = createA2uiV1NativeRenderPlan(surface, this.policy, { dataModel: this.model });
+      this.plan = createRenderPlan(surface, this.policy, { dataModel: this.model });
       validateExperimentDepth(this.plan);
       return "accepted";
     } catch (error) {
-      if (!(error instanceof A2uiParseError)) throw error;
+      if (!(error instanceof ParseError)) throw error;
       this.plan = this.model = undefined;
       return "surface-rejected";
     }
@@ -60,7 +58,7 @@ export class SharedSession {
           typeof step.message !== "object" ||
           Array.isArray(step.message)
         ) {
-          throw new A2uiParseError("Expected a message object");
+          throw new ParseError("Expected a message object");
         }
         const payloads = [
           "createSurface",
@@ -69,11 +67,11 @@ export class SharedSession {
           "deleteSurface",
         ].filter((key) => Object.hasOwn(step.message, key));
         if (payloads.length !== 1 || step.message[payloads[0]]?.surfaceId !== "form") {
-          throw new A2uiParseError("The experiment accepts one form surface");
+          throw new ParseError("The experiment accepts one form surface");
         }
         this.store.apply(step.message);
       } catch (error) {
-        if (!(error instanceof A2uiParseError)) throw error;
+        if (!(error instanceof ParseError)) throw error;
         outcome = "message-rejected";
       }
       if (outcome === "accepted") outcome = this.render();
@@ -83,9 +81,9 @@ export class SharedSession {
       const surface = this.store.get("form");
       if (!surface) throw new Error("Missing resolver surface");
       try {
-        resolveA2uiV1NativeEvent(surface, this.policy, step.sourceComponentId, surface.dataModel);
+        resolveEvent(surface, this.policy, step.sourceComponentId, surface.dataModel);
       } catch (error) {
-        if (!(error instanceof A2uiParseError)) throw error;
+        if (!(error instanceof ParseError)) throw error;
         outcome = "event-rejected";
       }
     } else if (step.op === "input" || step.op === "press") {
@@ -115,7 +113,7 @@ export class SharedSession {
         }
       } else if (node.props.disabled !== true) {
         const surface = this.store.get("form");
-        const event = resolveA2uiV1NativeEvent(
+        const event = resolveEvent(
           surface,
           this.policy,
           node.props.event.sourceComponentId,
@@ -123,7 +121,7 @@ export class SharedSession {
           { instanceKey: node.props.event.instanceKey },
         );
         this.actions.push({
-          envelope: createA2uiV1ActionEnvelope({
+          envelope: createActionEnvelope({
             name: event.name,
             surfaceId: event.surfaceId,
             sourceComponentId: event.sourceComponentId,
@@ -151,8 +149,11 @@ function validateExperimentDepth(root) {
   while (pending.length > 0) {
     const { node, depth } = pending.pop();
     // The form profile's Button text child is folded into props by the shared planner.
-    if (depth > 64 || (node.component === "Button" && depth === 64)) {
-      throw new A2uiParseError("Experiment render graph depth limit");
+    if (
+      depth > limits.maxComponentDepth ||
+      (node.component === "Button" && depth === limits.maxComponentDepth)
+    ) {
+      throw new ParseError("Experiment render graph depth limit");
     }
     for (const child of node.children ?? []) pending.push({ node: child, depth: depth + 1 });
   }

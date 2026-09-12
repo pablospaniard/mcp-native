@@ -1,6 +1,7 @@
 {
   "name": "@mcp-native/renderer-core",
   "version": "1.0.1",
+  "private": true,
   "description": "Platform-neutral renderer contract for MCP Native.",
   "keywords": [
     "a2ui",
@@ -39,9 +40,6 @@
       "import": "./dist/testing.js",
       "default": "./dist/testing.js"
     }
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "dependencies": {
     "@mcp-native/a2ui": "^1.0.1",

@@ -11,6 +11,7 @@
     "api:verify": "npm run build && node scripts/verify-public-api.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && node scripts/verify-public-api.mjs && npm run schemas:verify && npm run test:coverage && npm run test:performance && npm run test:conformance",
     "clean": "tsc -b --clean",
+    "experiment:android": "npm run build && node experiments/android-runtime-probe/run.mjs",
     "experiment:ios:check": "npm run build && node experiments/ios-runtime-comparison/run.mjs",
     "experiment:ios:simulator": "npm run build && node experiments/ios-runtime-comparison/test-ios.mjs",
     "format": "oxfmt .",

@@ -22,7 +22,11 @@ plan with its own concrete host components.
 This package is a provisional workspace on `feature/native-platforms`; it is not a released product
 or a finalized cross-platform contract. The
 [runtime and package assessment](../../docs/RFC-0002-native-platforms.md) will determine whether it
-becomes a separate public package. Existing React Native imports retain their compatibility contract.
+becomes a separate public package. Its manifest is `private: true`, so npm cannot publish it.
+Local packing remains available for integration smoke tests. Release automation rejects public
+packages that depend on this private workspace until the packaging decision is implemented.
+The workspace version supports local dependency resolution and is not publication approval.
+Existing React Native imports retain their compatibility contract.
 
 ## Install
 
@@ -40,47 +44,46 @@ Run these commands from the repository root. The workspace depends on `@mcp-nati
 
 Most applications never import this package directly; use a platform renderer such as
 [`@mcp-native/react-native`](https://www.npmjs.com/package/@mcp-native/react-native), which
-re-exports everything under its own concise public names. Import `@mcp-native/renderer-core`
+re-exports the shared public contract under concise names. Import `@mcp-native/renderer-core`
 directly only when building another platform renderer or when sharing catalog-conformance
 fixtures across renderer test suites:
 
 ```ts
-import { createA2uiV1BasicCatalogPolicy } from "@mcp-native/a2ui";
-import {
-  createA2uiV1NativeRenderPlan,
-  A2UI_V1_NATIVE_COMPONENT_NAMES,
-} from "@mcp-native/renderer-core";
-import { createA2uiV1NativeCatalogConformanceCases } from "@mcp-native/renderer-core/testing";
+import { createBasicCatalogPolicy } from "@mcp-native/a2ui";
+import { createRenderPlan, COMPONENT_NAMES } from "@mcp-native/renderer-core";
+import { createCatalogConformanceCases } from "@mcp-native/renderer-core/testing";
 
 // `validatedSurface` comes from your A2UI v1 surface store; see @mcp-native/a2ui.
-const policy = createA2uiV1BasicCatalogPolicy({
-  allowedComponentNames: A2UI_V1_NATIVE_COMPONENT_NAMES,
+const policy = createBasicCatalogPolicy({
+  allowedComponentNames: COMPONENT_NAMES,
 });
-const plan = createA2uiV1NativeRenderPlan(validatedSurface, policy);
+const plan = createRenderPlan(validatedSurface, policy);
 
-for (const testCase of createA2uiV1NativeCatalogConformanceCases()) {
+for (const testCase of createCatalogConformanceCases()) {
   // Feed testCase.surface through a platform renderer and assert testCase.expectedBehaviors.
 }
 ```
 
 ## Public API
 
-| Export                                                                                                                                                   | Purpose                                                                     |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `A2UI_V1_NATIVE_COMPONENT_NAMES`                                                                                                                         | The closed, pinned basic-catalog component name list.                       |
-| `createA2uiV1NativeRenderPlan`, `createA2uiV1NativeRenderPlanForLocalEdits`, `createA2uiV1NativeStructuralRenderPlan`                                    | Turn a validated surface into a trusted, ordered native render plan.        |
-| `resolveA2uiV1NativeEvent`, `resolveA2uiV1NativeOpenUrl`, `parseA2uiV1NativeOpenUrlDescriptor`                                                           | Resolve catalog action, event, and `openUrl` semantics against host policy. |
-| `validateA2uiV1NativeDateTimeInputChange`                                                                                                                | Validate a `DateTimeInput` callback value against its declared component.   |
-| `NativeElement`, `NativeComponentName`                                                                                                                   | The trusted render-tree node shape and closed component-name union.         |
-| `A2uiV1NativeMountDiagnostic`, `A2uiV1NativeMountDiagnosticCode`, `A2uiV1NativeMountReport`, `InspectA2uiV1NativeMountOptions`, `A2uiV1NativeMountError` | Mount-time diagnostic types shared by every platform renderer.              |
-| Prop-shape types (`NativeButtonComponentProps`, `NativeTextComponentProps`, `NativeImageComponentProps`, `NativeSliderComponentProps`, …)                | Platform-neutral prop contracts for each catalog component.                 |
-| `A2UI_V1_NATIVE_ICON_NAMES`                                                                                                                              | The closed pinned icon-name list.                                           |
-| `A2UI_V1_NATIVE_MAX_RENDER_NODES`, `A2UI_V1_NATIVE_MAX_OPEN_URL_LENGTH`, `A2UI_V1_NATIVE_MAX_IMAGE_*`, `A2UI_V1_NATIVE_MAX_MEDIA_*`                      | Fixed complexity and resource limits enforced while building a render plan. |
-| `createA2uiV1NativeCatalogConformanceCases` (from `@mcp-native/renderer-core/testing`)                                                                   | Shared fixtures every platform renderer's test suite can assert against.    |
+| Export                                                                                                                                    | Purpose                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `COMPONENT_NAMES`                                                                                                                         | The closed, pinned basic-catalog component name list.                       |
+| `createRenderPlan`, `createRenderPlanForLocalEdits`, `createStructuralRenderPlan`                                                         | Turn a validated surface into a trusted, ordered native render plan.        |
+| `resolveEvent`, `resolveOpenUrl`, `parseOpenUrlDescriptor`                                                                                | Resolve catalog action, event, and `openUrl` semantics against host policy. |
+| `validateDateTimeInputChange`                                                                                                             | Validate a `DateTimeInput` callback value against its declared component.   |
+| `NativeElement`, `NativeComponentName`                                                                                                    | The trusted render-tree node shape and closed component-name union.         |
+| `MountDiagnostic`, `MountDiagnosticCode`, `MountReport`, `InspectMountOptions`, `MountError`                                              | Mount-time diagnostic types shared by every platform renderer.              |
+| Prop-shape types (`NativeButtonComponentProps`, `NativeTextComponentProps`, `NativeImageComponentProps`, `NativeSliderComponentProps`, …) | Platform-neutral prop contracts for each catalog component.                 |
+| `ICON_NAMES`                                                                                                                              | The closed pinned icon-name list.                                           |
+| `MAX_RENDER_NODES`, `MAX_OPEN_URL_LENGTH`, `MAX_IMAGE_*`, `MAX_MEDIA_*`                                                                   | Fixed complexity and resource limits enforced while building a render plan. |
+| `createCatalogConformanceCases` (from `@mcp-native/renderer-core/testing`)                                                                | Shared fixtures every platform renderer's test suite can assert against.    |
 
-`@mcp-native/react-native` preserves its existing public names and concise aliases
-(for example `createRenderPlan`). Newly exposed internal planner helpers in this experimental
-workspace are not additional React Native exports; see the existing
+New code uses these version-neutral names, following the [repository naming rule](../../CONTRIBUTING.md#naming).
+Existing versioned exports remain compatibility aliases with the same function, constant and class
+identities. The underlying pre-existing implementation and exact protocol version are unchanged.
+`@mcp-native/react-native` preserves its existing public contract (including `createRenderPlan`).
+Newly exposed internal planner helpers in this experimental workspace are not additional React Native exports; see the existing
 [migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
 
 ## Design boundaries
