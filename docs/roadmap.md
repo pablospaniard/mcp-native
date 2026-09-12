@@ -532,7 +532,9 @@ language-neutral basic-form cases and a React Native reference runner, including
 action authorization, invalid input, unreachable event sources, and bounded list expansion.
 Render-rejection cases exercise the mounted local state and recovery through the surface boundary.
 `npm run test:renderer-conformance` runs it independently; the normal check suite also includes it.
-Native runtime probes, SwiftUI/Compose runners, and the final shared contract remain outstanding.
+The [iOS comparison](../experiments/ios-runtime-comparison/RESULTS.md) also runs all 20 cases through
+JavaScriptCore and independent Swift form semantics, with the same SwiftUI controls. Android probes,
+full native parity, device performance, and the final shared contract remain outstanding.
 
 - [ ] Extract and freeze platform-neutral renderer inputs, state transitions, actions, errors,
       lifecycle, limits, and conformance fixtures without moving SwiftUI, Compose, React Native,
@@ -560,6 +562,12 @@ Exit criterion: multiple native renderers can consume the same trusted semantic 
 behavioral fixtures without introducing platform dependencies into protocol-independent core.
 
 ### Milestone 13: first-class SwiftUI renderer
+
+The [scoped experiment](../experiments/ios-runtime-comparison/README.md) proves the small shared form
+profile on an iOS 26.5 simulator, including a local tool-result-to-action flow, host admission
+cancellation, bounded nested layouts, and session recovery after malformed envelopes.
+It is not a shipped SDK or completion of the broader exit criteria below. Native date,
+field, Unicode-key and schema coverage remains narrower than the production React Native profile.
 
 - [ ] Build a SwiftUI renderer and Apple-platform host integration with native view lifecycle,
       bindings, focus, navigation handoff, accessibility, Dynamic Type, reduced motion, localization,

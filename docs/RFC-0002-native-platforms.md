@@ -12,9 +12,11 @@ Keep the existing security and dependency boundaries, simplify the application-f
 path, and compare two small native implementations before committing to another stable public
 package. A source module does not need to be a separately published package to enforce a boundary.
 
-Prefer native Swift and Kotlin implementations as the provisional product direction for first-class
-native hosts. They fit platform ownership and avoid asking native applications to operate a second
-language runtime. This preference is architectural judgment, not a measured performance result.
+The initial preference was native Swift and Kotlin for platform ownership and avoiding a second
+language runtime. The [initial iOS comparison](../experiments/ios-runtime-comparison/RESULTS.md)
+now makes shared JavaScript the leading next experiment: both paths pass the small corpus, while
+native semantics introduce concrete parity work. This is not an accepted runtime decision or a
+measured performance result; Android feasibility and physical-device evaluation remain open.
 Shared JavaScript has a substantial counterargument: it reuses the existing validation and semantic
 implementation and reduces the number of security-sensitive implementations to maintain. If native
 parity proves too expensive, or the JavaScript bridge is demonstrably small and reliable, choose the
@@ -37,6 +39,14 @@ review the resulting public API, migration requirements, supported platform matr
 scope. The integration branch is not a release channel, and this RFC does not authorize publication
 or package-version changes.
 
+Experiment code has an explicit sunset. The runtime decision PR records what is retained, and the
+promotion PR must remove the iOS comparison directory and its temporary CI/scripts/tests even if
+the decision is deferred. Preserve findings under `docs/` and the shared language-neutral corpus;
+move a selected implementation into reviewed platform code only after its production acceptance
+criteria are met. Remove unused experiment dependencies and repair references as part of that PR.
+Milestone 12/13 maintainers own this review; git history retains discarded prototypes. See the
+[cleanup inventory](../experiments/ios-runtime-comparison/README.md#temporary-lifecycle).
+
 ## What the repository already proves
 
 - Seven published packages share one coordinated release version; the current extraction introduces
@@ -45,14 +55,15 @@ or package-version changes.
   `a2ui` owns pinned parsing and validation; `webview` owns a separate HTML trust boundary.
 - The extracted planner has no React dependency, but its A2UI dependency uses Ajv and bundled JSON
   schemas. Formatting uses JavaScript `Intl` APIs. npm ESM output alone is not an embedded-runtime
-  distribution and has not been tested in a native JavaScript engine.
+  distribution. The iOS experiment bundles it for JavaScriptCore and supplies a WHATWG URL polyfill
+  required by Ajv; the selected form corpus passes in that engine.
 - React Native still owns local-state reconciliation, binding writes, several callback checks,
   mount inspection, and application lifecycle integration. The extracted planner is not a complete
   reusable interactive session runtime.
-- The existing conformance fixture factory executes TypeScript/JavaScript and includes prose
-  expectations. Native runners need language-neutral inputs and machine-checkable expected results.
-- No SwiftUI or Compose implementation or native-engine performance comparison has been completed
-  by this extraction.
+- The repository now has 20 language-neutral cases with explicit observations, executed by React
+  Native and the two scoped iOS experiment paths. Published fixture factories remain unchanged.
+- A shared SwiftUI screen exercises JavaScriptCore and independent Swift form semantics on an iOS
+  simulator. Neither path is a supported native SDK; Compose and device-performance work remain open.
 
 These statements follow the current source and package manifests. Passing JavaScript package checks
 does not establish native-runtime compatibility, accessibility, or behavioral parity.
@@ -154,7 +165,9 @@ migration; an additive facade must also preserve optional dependency behavior an
 
 The initial [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) implements
 the JSON fixture portion of step 1 with 20 cases executed by the current React Native renderer.
-It does not complete the engine probes, native prototypes, or runtime decision described below.
+The [iOS experiment](../experiments/ios-runtime-comparison/README.md) now runs those cases through
+both native paths, plus SwiftUI interaction and host-lifecycle checks. Its narrower input profile,
+simulator-only evidence and unresolved cancellation/parity gaps do not complete the runtime decision.
 
 Milestone 12 supplies a draft contract and corpus to a scoped milestone 13 prototype, then incorporates
 the prototype's findings. Its final exit gate must not block the experiment needed to satisfy it.

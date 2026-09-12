@@ -8,6 +8,12 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Scoped iOS runtime comparison: JavaScriptCore and independent Swift form semantics run the shared
+  20-case corpus and the same SwiftUI interaction/lifecycle checks. Includes a pinned upstream reuse
+  assessment, bounded native host, reproducible simulator command and CI scoped to relevant
+  integration PRs. Experiment cleanup is required before mainline promotion. Runtime/package choice,
+  full native parity and physical-device performance remain open; no public API or version changes.
+
 - Provisional language-neutral renderer conformance corpus: 20 basic-form scenarios with a strict
   JSON fixture format, explicit expected observations, and a React Native reference runner covering
   local/server state, actions, host authorization, rejection, and bounded expansion. Included in
@@ -27,6 +33,12 @@ patch and minor releases remain compatible within their release line.
   from its existing name unchanged, and `@mcp-native/core` is untouched.
 
 ### Fixed
+
+- Temporary iOS comparison bridge preserves supported nested layouts with a bounded response-depth
+  budget and a common 64-component graph limit. Malformed non-object envelopes reject without losing
+  session state; cross-engine regression probes cover depth boundaries and retained local edits.
+  The simulator runner explicitly boots the selected device and disables test worker clones so
+  independent report collection also works on cold CI simulators.
 
 - Renderer conformance outcomes now observe the mounted surface and its retained local edits,
   removing the duplicate server-model preflight. Regression coverage includes render rejection
