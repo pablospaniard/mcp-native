@@ -14,7 +14,10 @@ patch and minor releases remain compatible within their release line.
   renderer-core publication and native SDK support remain undecided. The proposal defines host-wide
   cleanup accounting and proposes context-lifetime surface-ID uniqueness, bounded reservation
   handling and an explicit migration path. Enforcement and acceptance tests remain native adoption gates;
-  published store and React Native defaults are unchanged.
+  published store and React Native defaults are unchanged. Clarifies why cross-generation admission
+  remains host-owned without excluding an additive shared-store option. Tracks published-store
+  lifetime uniqueness under milestone 12 / #92, including a registry-sharing decision, bounded
+  retention, atomic batch rollback and a tested React Native opt-in path, as a milestone exit gate.
 
 - Temporary Android engine feasibility probe: the exact iOS JavaScript bundle and 21-case corpus run
   through AndroidX JavaScriptEngine with native JSON, authorization, lifecycle and limit checks.

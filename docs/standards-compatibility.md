@@ -48,7 +48,9 @@ claims remain unchanged. The
 [surface-ID lifetime interpretation](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
 proposes bounded context-owned ID tracking and migration while preserving published defaults.
 The current lifetime-uniqueness gap remains until implementation and acceptance tests prove the
-strict native path; this decision does not expand passing conformance claims.
+strict native path; this decision does not expand passing conformance claims. The
+[shared-store opt-in](roadmap.md#shared-store-lifetime-uniqueness) is also a milestone 12 / #92
+exit gate, covering published store and React Native consumers with unchanged defaults.
 
 ## Official references
 

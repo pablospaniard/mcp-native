@@ -49,6 +49,9 @@ It does not enforce the pinned schema's renderer-lifetime uniqueness requirement
 [proposed native-session policy](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
 defines a host-owned lifetime, bounded ID tracking and an explicit migration path. That policy is
 not yet implemented; existing lifecycle tests and schema validation do not close this gap.
+The [shared-store opt-in follow-up](roadmap.md#shared-store-lifetime-uniqueness), owned by milestone
+12 / #92, separately tracks a compliant path for published store and React Native consumers while
+preserving their defaults. Neither the opt-in nor its conformance evidence is implemented yet.
 
 Every accepted renderer-to-agent envelope has exactly `version: "v1.0"` and exactly one known
 message field. Strings and JSON graphs are bounded. Unknown versions, kinds, functions, fields on

@@ -106,9 +106,10 @@ closes the session before integer precision or wraparound can make an old identi
 
 ### Surface-ID lifetime interpretation
 
-**Decision proposed:** enforce wire-ID uniqueness for the lifetime of a host-owned rendering
-context in the new internal native session. This section defines the policy for review; enforcement
-and its acceptance tests remain implementation gates. Published `1.x` behavior is unchanged.
+**Decision proposed:** add opt-in lifetime uniqueness to the shared surface store and reuse its
+common enforcement in the internal native-session path. The host owns the rendering-context lifetime
+across engines. This section defines the policy for review; implementation and acceptance tests
+remain gates. Published `1.x` defaults are unchanged.
 
 The pinned [upstream create-surface schema](https://github.com/a2ui-project/a2ui/blob/8ff4651232ab0e02b0123730b502711170637a3a/specification/v1_0/json/agent_to_renderer.json)
 requires `surfaceId` to remain globally unique for the renderer's lifetime. Its preceding wording
@@ -171,9 +172,29 @@ operation; they do not change the published store's atomic `applyAll` contract o
 
 #### Compatibility and migration
 
-Implement this policy inside the existing private session boundary, with the host owning the
-registry across engines; no new package or public store option is required by this decision.
-Keep the published store and React Native defaults unchanged in `1.x`. Their active-ID-only behavior
+The host must own admission and retain lifetime state outside a replaceable engine: a store-local
+set would be lost when that engine is replaced and cannot by itself resolve acceptance after a
+timeout or cancellation. Context identity, dispatch reservations, uncertain outcomes and teardown
+therefore remain host responsibilities. This ownership requirement does not imply that identifier
+retention, equality and budget accounting must be independently reimplemented by every consumer.
+
+Keep the published store and React Native defaults unchanged in `1.x`. This compatibility constraint
+permits an additive opt-in lifetime-uniqueness option on the shared store. Deliver that option and
+the private native-session integration as coordinated work under
+[milestone 12 / #92](https://github.com/pablospaniard/mcp-native/issues/92), with the concrete
+[roadmap acceptance criteria](roadmap.md#shared-store-lifetime-uniqueness).
+Resolve the shared-registry design before implementing either path. Keep reusable identifier
+retention, equality and budget logic in the existing A2UI layer and use it for in-process consumers.
+Where an isolated engine or native language requires a separate representation, specify the trusted
+registry boundary and verify it against the same semantic cases; document why direct reuse is not
+possible. A store-owned set alone is sufficient only when that store spans the entire declared
+renderer lifetime. The integrated design must preserve host-owned state across engine replacement
+and the store's atomic `applyAll` rollback of IDs and budget charges;
+adding an unbounded set that survives deletion is not sufficient. A failed batch releases only IDs
+and charges introduced by that batch, never history that predates it. Public API shape and implementation
+remain follow-up work, not prerequisites for accepting this behavioral RFC.
+
+The published store's and React Native renderer's current active-ID-only behavior
 must remain disclosed in the [conformance profile](a2ui-v1-conformance.md#envelope-and-lifecycle-profile).
 The existing corpus remains a baseline for shared behavior; the scenarios below form additional
 native-session acceptance tests, not retroactive passing coverage for published renderers.
@@ -182,8 +203,8 @@ Before an existing application adopts the strict session, its server must alloca
 every accepted creation in the same rendering flow, retain that ID for subsequent updates/actions,
 and stop recreating deleted surfaces under their old IDs. The host must establish the context routing
 and teardown boundary above, select finite budgets and handle exhaustion without automatic restart.
-Upgrading packages alone must not opt an existing host into the stricter behavior. A future public
-integration may be explicitly opt-in in a compatible release; changing existing defaults requires a
+Upgrading packages alone must not opt an existing host into the stricter behavior. The tracked public
+integration must be explicitly opt-in in a compatible release; changing existing defaults requires a
 major release and migration notes under the [compatibility policy](compatibility-policy.md).
 This decision does not invoke the security-fix exception or authorize a release/version change.
 
@@ -383,7 +404,8 @@ CI workflow, package or production behavior is introduced by this document.
 
 1. Review this behavioral proposal and the conservative render-ticket invalidation rule. Milestone
    12 stays open; review acceptance alone does not freeze exports or establish multi-renderer support.
-2. Implement an internal session using existing JavaScript validation, store and planner code.
+2. Resolve the shared-registry design, then implement the store opt-in and internal session using
+   existing JavaScript validation, store and planner code.
    Replace experiment reconciliation glue and add a React Native adapter path exercised by the same
    corpus. Preserve existing published behavior and imports; demonstrate shared-semantic parity and
    implement the [surface-ID lifetime policy](#surface-id-lifetime-interpretation) before native adoption.
@@ -394,8 +416,11 @@ CI workflow, package or production behavior is introduced by this document.
 5. Build the scoped SwiftUI preview, then the equivalent Compose preview, with explicit tested
    platform matrices. Agree physical-device budgets before scoring performance or claiming a winner.
 
-Still open: review and implementation of the lifetime policy above, the internal request/result
-schema and diagnostic vocabulary, engine-specific cleanup acknowledgment, supported provider/OS
+Still open: review and implementation of the lifetime policy above; the
+[published-store lifetime-uniqueness opt-in](roadmap.md#shared-store-lifetime-uniqueness) owned by
+milestone 12 / #92, including the registry-sharing decision, bounded retention, atomic batch rollback
+and React Native integration; the internal request/result schema and diagnostic vocabulary,
+engine-specific cleanup acknowledgment, supported provider/OS
 ranges, production resource budgets, app background/foreground policy and transport-specific
 cancellation outcomes. Unsupported environments must fail explicitly;
 no silent WebView or alternate-engine fallback is approved.
