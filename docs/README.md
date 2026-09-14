@@ -64,17 +64,20 @@ Runnable examples:
 
 - [RFC-0001](RFC-0001-architecture.md) — package boundaries, data flow, capability model, and threat
   model.
+- [RFC-0002](RFC-0002-contract-registry.md) — proposed standard contract registry, custom adapters,
+  opt-in API, and validation/fallback boundaries; not yet implemented.
 - [Compatibility policy](compatibility-policy.md) — finalized `1.x` API and behavior surface.
 - [1.0 readiness](1.0-readiness.md) — completed implementation, validation, and review gates, plus
   publication actions.
-- [Roadmap](roadmap.md) — completed milestones, the stable-release gate, and undated post-1.0 work.
+- [Roadmap](roadmap.md) — shipped v1 scope, release audit tracking, and undated post-1.0 work.
 - [Release process](releasing.md) — coordinated packages, trusted publishing, and provenance.
 - [Security policy](../SECURITY.md) — supported releases and private vulnerability reporting.
 
 ## Current status
 
-MCP Native is ready for v1. The public API is finalized across the high-level host, its React
-Native provider, and the independently usable low-level packages. Independent reviews and release
-readiness decisions are complete. The [compatibility policy](compatibility-policy.md) defines the
-adopted `1.x` contract. Coordinated stable publication is tracked in the
-[release checklist](1.0-readiness.md); the [changelog](../CHANGELOG.md) records published versions.
+MCP Native `1.0.1` is published. The public API is finalized across the high-level host, its React
+Native provider, and the independently usable low-level packages. The
+[compatibility policy](compatibility-policy.md) defines the adopted `1.x` contract. The
+[release checklist](1.0-readiness.md) records completed publication and the remaining registry audit
+record; the [changelog](../CHANGELOG.md) records published versions. Milestone 11 begins with the
+proposed [contract registry design](RFC-0002-contract-registry.md).

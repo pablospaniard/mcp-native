@@ -6,6 +6,14 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+### Documentation
+
+- Propose the Milestone 11 standard contract registry and custom input adapter design, including
+  separate opt-in APIs, exact negotiation, disjoint routing, cumulative limits, and acceptance gates.
+  No custom contract API or protocol support is implemented by this proposal.
+- Correct v1 release status to reflect published `1.0.0` and `1.0.1` packages, while keeping the
+  post-publication registry audit record distinct from successful release verification/publication.
+
 ## 1.0.1 - 2026-09-07
 
 Documentation-only patch release of all seven coordinated packages. Runtime behavior, public APIs,
