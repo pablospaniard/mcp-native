@@ -361,3 +361,9 @@ The optional registry `standards` selection and immutable `.standards` inventory
 [maintained standard contracts](standard-contracts.md). Omission preserves defaults; excluded client
 advertisements fail before reads. [Authoring tools](contract-authoring.md) provide reproducible schema
 bundles and bounded fixture reports without granting runtime authority.
+
+Render work callbacks are revoked when their view unmounts, including while the controller retains
+the result. A new view lease may consume the remaining result budget; a stale callback cannot spend
+it. Strict Mode may reactivate the same lease. Invalid preparation charges fail the call even when
+caught by the callback, and invalid render charges exhaust the result allowance, including events.
+See the [acceptance review](milestone-11-acceptance.md) for regression evidence.

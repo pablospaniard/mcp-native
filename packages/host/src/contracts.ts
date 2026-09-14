@@ -560,10 +560,14 @@ export async function resolveContractResult(
     if (!payloadField?.enumerable || !("value" in payloadField)) fail("invalid-contract-input");
     const input = copyObject(payloadField.value, budget, "invalid-contract-input");
     validate(state.inputSchema, input, budget, "invalid-contract-input");
+    let invalidCharge = false;
     const context = Object.freeze({
       consume(work: number) {
         if (options.signal?.aborted) fail("cancelled");
-        if (!Number.isSafeInteger(work) || work < 1) fail("adapter-failed");
+        if (invalidCharge || !Number.isSafeInteger(work) || work < 1) {
+          invalidCharge = true;
+          fail("adapter-failed");
+        }
         budget.spend(work);
       },
     });
@@ -581,6 +585,7 @@ export async function resolveContractResult(
       fail("invalid-contract-model");
     }
     if (options.signal?.aborted) fail("cancelled");
+    if (invalidCharge) fail("adapter-failed");
     const model = copyObject(prepared, budget, "invalid-contract-model");
     validate(state.modelSchema, model, budget, "invalid-contract-model");
     if (options.signal?.aborted) fail("cancelled");

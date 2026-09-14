@@ -648,3 +648,32 @@ test("opt-in extension snapshots bound cumulative unrecognized metadata before n
   });
   assert.equal(calls.prepare + calls.reads, 0);
 });
+
+test("catching an invalid preparation charge cannot turn the failed call into a valid model", async () => {
+  for (const work of [0, -1, NaN, Infinity, 0.5]) {
+    let secondRejected = false;
+    let returnedModel = false;
+    const { options } = setup({
+      prepare(input, context) {
+        try {
+          context.consume(work);
+        } catch {
+          /* An author callback cannot clear the failed charge. */
+        }
+        try {
+          context.consume(1);
+        } catch (error) {
+          secondRejected = error.code === "adapter-failed";
+        }
+        returnedModel = true;
+        return input;
+      },
+    });
+    assert.deepEqual(await resolveContractResult(options), {
+      kind: "contract-error",
+      code: "adapter-failed",
+    });
+    assert.equal(returnedModel, true);
+    assert.equal(secondRejected, true);
+  }
+});

@@ -294,6 +294,18 @@ test("selected schema, preparation, and budget failures never retry or read reso
     [{}, claim({ title: 3 }), "invalid-contract-input"],
     [
       {
+        prepare: (input, context) => {
+          try {
+            context.consume(NaN);
+          } catch {}
+          return input;
+        },
+      },
+      claim(),
+      "adapter-failed",
+    ],
+    [
+      {
         prepare: () => {
           throw new Error("secret");
         },

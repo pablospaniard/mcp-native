@@ -36,6 +36,13 @@ patch and minor releases remain compatible within their release line.
   private current-result mount leases, whole-surface error containment, optional pinned event schemas,
   and a separate custom/A2UI/Apps authorization gate. Extend the todo example with a native summary.
 
+### Fixed
+
+- Revoke native contract render-budget callbacks on unmount so stale callbacks cannot exhaust a
+  remounted result. Preserve usable Strict Mode reactivation without resetting result budgets.
+- Keep invalid preparation and render charges failed even when local callbacks catch the error;
+  reject model publication or event delivery accordingly. Record Milestone 11 acceptance evidence.
+
 ### Security
 
 - Reject forged/duplicate registrations, reserved claims, unknown schema features, malformed

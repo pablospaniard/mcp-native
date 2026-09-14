@@ -528,3 +528,43 @@ test("duplicate custom views cannot both own actionable leases", async () => {
   assert.equal(outcomes.filter((outcome) => outcome.kind === "delivered").length, 1);
   await mounted.close();
 });
+
+test("unmounted render work cannot exhaust a remounted result, and Strict Mode restores the live lease", async () => {
+  const mounted = await mount({ provider: { surfaceLimits: { maxWork: 10 } } });
+  const stale = mounted.props;
+  await mounted.hide();
+  assert.throws(() => stale.consume(100001), { code: "cancelled" });
+  await mounted.show();
+  assert.equal(mounted.errors.length, 0);
+  assert.notEqual(mounted.props, stale);
+  assert.throws(() => stale.consume(1), { code: "cancelled" });
+  assert.doesNotThrow(() => mounted.props.consume(1));
+  await mounted.close();
+  const strict = await mount({ strict: true });
+  assert.doesNotThrow(() => strict.props.consume(1));
+  await strict.close();
+});
+
+test("a caught invalid render charge still exhausts that result's event budget", async () => {
+  let deliveries = 0;
+  const mounted = await mount({
+    provider: {
+      authorization: createContractActionAuthorization({ authorize: () => true }),
+      onEvent: () => {
+        deliveries++;
+      },
+    },
+  });
+  assert.throws(() => mounted.props.consume(0), { code: "contract-limit-exceeded" });
+  assert.deepEqual(await mounted.props.dispatchEvent(event), {
+    kind: "rejected",
+    code: "limit-exceeded",
+  });
+  assert.equal(deliveries, 0);
+  await mounted.hide();
+  await mounted.show();
+  assert.equal(mounted.errors.length, 1);
+  await mounted.replace();
+  assert.equal((await mounted.props.dispatchEvent(event)).kind, "delivered");
+  await mounted.close();
+});

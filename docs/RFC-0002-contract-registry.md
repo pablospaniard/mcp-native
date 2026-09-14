@@ -295,3 +295,6 @@ migration guides, standards inventory, roadmap, and changelog with implemented s
 The bounded inline implementation now includes the independently packaged adapter interface,
 negative tests, native lifecycle tests, and separate tarball consumer gate. Issue #91 remains open for
 acceptance review; the synthetic fixture does not claim a new real upstream standard is certified.
+
+See the [implementation acceptance review](milestone-11-acceptance.md) for the requirement/evidence
+mapping, fixed lifecycle/budget findings, and remaining maintainer decision.

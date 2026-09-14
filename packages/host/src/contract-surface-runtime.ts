@@ -124,6 +124,7 @@ export class ContractSurfaceRuntime {
     const allowance = lifetime;
     const token = {};
     let mounted = false;
+    let revoked = false;
     let failed = false;
     let abort: SurfaceAbortController | undefined;
     let unsubscribe: (() => void) | undefined;
@@ -134,6 +135,7 @@ export class ContractSurfaceRuntime {
       this.#active === token &&
       this.#controller.isCurrentResult(result);
     const revoke = () => {
+      revoked = true;
       mounted = false;
       abort?.abort();
       unsubscribe?.();
@@ -144,9 +146,14 @@ export class ContractSurfaceRuntime {
       }
     };
     const consume = (work: number) => {
-      if (failed || this.#disposed || !this.#controller.isCurrentResult(result)) fail("cancelled");
-      if (allowance.exhausted || !Number.isSafeInteger(work) || work < 1)
+      // Initial render may charge before activation; cleanup permanently revokes that render
+      // unless React reactivates this same lease during its Strict Mode effect replay.
+      if (revoked || failed || this.#disposed || !this.#controller.isCurrentResult(result))
+        fail("cancelled");
+      if (allowance.exhausted || !Number.isSafeInteger(work) || work < 1) {
+        allowance.exhausted = true;
         fail("contract-limit-exceeded");
+      }
       try {
         allowance.budget.spend(work);
       } catch {
@@ -234,6 +241,7 @@ export class ContractSurfaceRuntime {
           fail("invalid-registration");
         this.#active = token;
         this.#revoke = revoke;
+        revoked = false;
         mounted = true;
         unsubscribe = this.#controller.subscribe(() => {
           if (!this.#controller.isCurrentResult(result)) revoke();

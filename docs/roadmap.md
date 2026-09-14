@@ -510,7 +510,8 @@ schemas, cumulative limits, and immutable data resolution through `@mcp-native/h
 are implemented. [Separately packaged reviewed adapters](reviewed-standard-adapters.md) now support
 the closed inline-JSON interface with exact markers and negotiation. Custom resources, broader wire
 grammars, and live updates remain later work. Existing closed v1 result and action unions are unchanged.
-The bounded implementation remains unreleased and pending acceptance review in issue #91.
+The bounded implementation remains unreleased. Its [implementation acceptance review](milestone-11-acceptance.md)
+records the completed checks and two fixed budget/lifecycle findings; maintainer acceptance in issue #91 remains open.
 
 - [x] Add the separate headless registry/inline-resolution API and binding documentation,
       hostile-input tests, built-in parity checks, and packed consumer coverage.
