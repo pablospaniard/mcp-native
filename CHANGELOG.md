@@ -6,11 +6,29 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+### Added
+
+- Add the opt-in `@mcp-native/host/contracts` entry point with local adapter and registry factories,
+  a closed schema subset, and connection-bound inline JSON resolution. Existing host exports and
+  result/action/error unions retain their behavior; custom results carry inert data only.
+- Define the project-owned `io.github.pablospaniard/mcp-native-contracts` binding at `0.1` with exact
+  descriptor negotiation. Native rendering, custom actions, resources, and controller integration
+  remain later Milestone 11 work. Existing MCP, A2UI, and MCP Apps pins are unchanged.
+
+### Security
+
+- Reject forged/duplicate registrations, reserved claims, unknown schema features, malformed
+  negotiation, and mixed standard/custom claims before adapter or resource work. Bound aggregate
+  registry retention and per-call input, output, validation, and cooperative preparation work.
+- Preserve strict custom payload/descriptor checks before optional SDK field normalization can
+  omit unknown properties. Freeze owned input/output, contain callback failures, and never retry
+  failed selected validation through another executable path.
+
 ### Documentation
 
 - Propose the Milestone 11 standard contract registry and custom input adapter design, including
   separate opt-in APIs, exact negotiation, disjoint routing, cumulative limits, and acceptance gates.
-  No custom contract API or protocol support is implemented by this proposal.
+  Document the initial headless API and the remaining renderer/lifecycle stages separately.
 - Correct v1 release status to reflect published `1.0.0` and `1.0.1` packages, while keeping the
   post-publication registry audit record distinct from successful release verification/publication.
 

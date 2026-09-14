@@ -39,6 +39,11 @@
       "types": "./dist/react-native.d.ts",
       "import": "./dist/react-native.js",
       "default": "./dist/react-native.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts.d.ts",
+      "import": "./dist/contracts.js",
+      "default": "./dist/contracts.js"
     }
   },
   "publishConfig": {

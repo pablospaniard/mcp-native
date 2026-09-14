@@ -27,6 +27,13 @@ compatibility, or imply automatic compatibility with later Candidate revisions.
 
 ## Official references
 
+The unreleased [inline custom-contract binding](custom-contracts.md) adds the project-owned
+`io.github.pablospaniard/mcp-native-contracts` extension at exact binding version `0.1` through
+`@mcp-native/host/contracts`. It resolves installed, exactly negotiated JSON contracts into inert
+validated data. This is not an official MCP UI standard or expanded A2UI/MCP Apps conformance.
+Existing MCP `2026-07-28`, A2UI Candidate `8ff4651232ab0e02b0123730b502711170637a3a`, and
+MCP Apps `2026-01-26` pins are unchanged.
+
 ### Protocol and wire contracts
 
 | Reference                                                                                                                                                      | Role in MCP Native                                                                         | Requirement level                     |

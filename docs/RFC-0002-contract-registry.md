@@ -1,11 +1,23 @@
 # RFC-0002: standard contract registry and custom input adapters
 
-- Status: Proposed; design only, no exported API or wire support
+- Status: Partially implemented; headless inline-data slice available in source, later integration proposed
 - Date: 2026-09-14
 - Tracking: [Milestone 11 / issue #91](https://github.com/pablospaniard/mcp-native/issues/91)
 - Foundation: [RFC-0001](RFC-0001-architecture.md) and the [1.x compatibility policy](compatibility-policy.md)
 
 ## Problem and scope
+
+The first implementation exports `@mcp-native/host/contracts`: local adapter/registry factories,
+strict inline schemas, and `resolveContractResult`. See [the binding and API guide](custom-contracts.md)
+for the exact implemented grammar, limits, fallback table, and author responsibilities. This is an
+unreleased addition; published `1.0.1` does not contain it. The rest of this design includes later
+renderer and lifecycle integration.
+
+This slice returns inert `contract-data`, not a live surface handle. Its separate result union
+retains no custom surface state. Registration currently enables only headless data preparation;
+renderer-readiness advertising, handles, native mounting, actions, and the registered controller/
+provider remain later work. The schema digest is authored and checked at build/fixture time;
+runtime validates its syntax and exact negotiation.
 
 The v1 host recognizes a fixed set of A2UI and MCP Apps results. An application with its own
 receipt, itinerary, or other semantic document must currently orchestrate that format outside the
@@ -22,9 +34,9 @@ Linked custom resources, streaming updates, generic device capabilities, and new
 remain later slices. Existing A2UI host extensions continue to serve applications that only need
 additional components inside the current A2UI contract.
 
-All new rules and example wire fields below are proposed MCP Native project policy. They are not
-requirements or approved extensions of MCP, A2UI, or MCP Apps. This RFC does not change the supported
-profiles, schema pins, package versions, or current fallback behavior.
+All new rules and wire fields are MCP Native project policy, not requirements or approved
+extensions of MCP, A2UI, or MCP Apps. The implemented inline binding is documented separately;
+existing standard profiles, schema pins, package versions, and v1 host behavior are unchanged.
 
 ## Compatibility and package ownership
 
@@ -33,9 +45,8 @@ resolver, controller, provider, hook, action-authorization union, error codes, a
 retain their current types and behavior. Adding another member to those unions would break
 exhaustive consumers and is not an additive minor-release change.
 
-The proposed opt-in entry points are `@mcp-native/host/contracts` for registry and headless
-orchestration, and `@mcp-native/host/contracts/react-native` for registered rendering. These names
-are reserved only by this proposal; they are not available imports. A separately named registered
+The opt-in entry point `@mcp-native/host/contracts` provides the first headless slice.
+`@mcp-native/host/contracts/react-native` remains proposed and is not an available import. A separately named registered
 controller/provider owns an extended result and action surface. It may share private orchestration
 with the existing host, but it cannot widen existing declarations or change their defaults.
 
@@ -124,9 +135,9 @@ result with that exact descriptor and a schema-valid receipt object can reach th
 compiled receipt renderer. Merely writing that ID into `_meta`, embedding JavaScript in the payload,
 or linking a renderer URL cannot register or enable anything.
 
-The binding is proposal-only. Implementation must add a dedicated binding document with the exact
-schema, examples, bounds, MCP capability placement, and mismatch fixtures before advertising it.
-The current project-owned A2UI binding and official Apps extension keep their exact wire contracts.
+The [implemented binding](custom-contracts.md) specifies the schema subset, examples, bounds,
+MCP capability placement, and mismatch behavior for headless inline data. The current project-owned
+A2UI binding and official Apps extension keep their exact wire contracts.
 
 ## Deterministic selection and fallback
 

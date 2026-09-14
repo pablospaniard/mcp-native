@@ -26,8 +26,9 @@ Focused package guides: [core](../packages/core/README.md), [MCP SDK adapter](..
 | Native and HTML regions on one app-owned screen          | Separate sibling regions                 | [Mixed surfaces](mixed-surfaces.md)                                   |
 | Text or structured data with no supported UI claim       | Bounded inert ordinary-content rendering | [High-level host](../packages/host/README.md)                         |
 
-Unknown or ambiguous executable formats are not guessed. Application-defined input contracts are
-tracked after 1.0 and are not part of the current host.
+Unknown or ambiguous executable formats are not guessed. The unreleased
+[inline custom-contract API](custom-contracts.md) provides installed headless data adapters;
+custom native rendering is not part of the current high-level host.
 
 ## Implement a production host
 
@@ -64,8 +65,8 @@ Runnable examples:
 
 - [RFC-0001](RFC-0001-architecture.md) — package boundaries, data flow, capability model, and threat
   model.
-- [RFC-0002](RFC-0002-contract-registry.md) — proposed standard contract registry, custom adapters,
-  opt-in API, and validation/fallback boundaries; not yet implemented.
+- [RFC-0002](RFC-0002-contract-registry.md) — contract registry design, initial headless implementation,
+  and later renderer/lifecycle work; [custom contracts](custom-contracts.md) defines the implemented API.
 - [Compatibility policy](compatibility-policy.md) — finalized `1.x` API and behavior surface.
 - [1.0 readiness](1.0-readiness.md) — completed implementation, validation, and review gates, plus
   publication actions.
@@ -79,5 +80,6 @@ MCP Native `1.0.1` is published. The public API is finalized across the high-lev
 Native provider, and the independently usable low-level packages. The
 [compatibility policy](compatibility-policy.md) defines the adopted `1.x` contract. The
 [release checklist](1.0-readiness.md) records completed publication and the remaining registry audit
-record; the [changelog](../CHANGELOG.md) records published versions. Milestone 11 begins with the
-proposed [contract registry design](RFC-0002-contract-registry.md).
+record; the [changelog](../CHANGELOG.md) records published versions. Milestone 11 has an unreleased
+[headless inline-data implementation](custom-contracts.md) under the broader
+[contract registry design](RFC-0002-contract-registry.md).

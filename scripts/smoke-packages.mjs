@@ -325,7 +325,26 @@ const reactNative = loaded.get("@mcp-native/react-native");
 const umbrella = loaded.get("mcp-native");
 const host = loaded.get("@mcp-native/host");
 const hostReactNative = localMode ? await import("@mcp-native/host/react-native") : undefined;
+const contracts = localMode ? await import("@mcp-native/host/contracts") : undefined;
 const reactNativeTesting = localMode ? await import("@mcp-native/react-native/testing") : undefined;
+if (contracts !== undefined) {
+  const schema = { type: "object", properties: { label: { type: "string", maxLength: 20 } }, required: ["label"], additionalProperties: false };
+  const { createHash } = await import("node:crypto");
+  const descriptor = { id: "com.example/smoke", version: "1.0.0", transport: "structured-content", mimeType: "application/vnd.example.smoke+json",
+    schemaRevision: "sha256:" + createHash("sha256").update(JSON.stringify({ inputSchema: schema, modelSchema: schema })).digest("hex") };
+  const registry = contracts.createContractRegistry([contracts.createContractAdapter({ descriptor, inputSchema: schema, modelSchema: schema, prepare: (input) => input })]);
+  const options = { registry, tool: { name: "smoke", inputSchema: { type: "object" } },
+    result: { content: [], structuredContent: { label: "packed consumer" }, _meta: { [contracts.CONTRACT_EXTENSION_ID]: descriptor } },
+    client: { getClientExtensionSettings: () => registry.extensionSettings, getServerExtensionSettings: () => registry.extensionSettings,
+      async readResource() { throw new Error("Custom inline data must not read resources"); } } };
+  const resolved = await contracts.resolveContractResult(options);
+  if (resolved.kind !== "contract-data" || resolved.model.label !== "packed consumer" || !Object.isFrozen(resolved.model)) {
+    throw new Error("Packed contract resolution failed");
+  }
+  if ((await host.resolveMcpNativeHostResult(options)).kind !== "ordinary" || Object.hasOwn(host, "resolveContractResult")) {
+    throw new Error("The opt-in contract API changed the existing host root");
+  }
+}
 if (localMode) {
   for (const [moduleName, module, names] of [
     ["@mcp-native/a2ui", a2ui, ["A2UI_VERSION", "parseA2uiSurface", "resolveA2uiResourceFromToolResult"]],
@@ -489,6 +508,41 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
     }
   }
   runConsumerSmoke("local");
+
+  // Compile a new subpath consumer alongside an exhaustive pre-existing v1 result consumer.
+  const contractTypeFixture = join(consumerDirectory, "contracts-consumer.mts");
+  writeFileSync(
+    contractTypeFixture,
+    `import type { McpNativeHostResult } from "@mcp-native/host";
+import { createContractAdapter, createContractRegistry, resolveContractResult, type ContractSchema, type ContractResult } from "@mcp-native/host/contracts";
+export function existingConsumer(result: McpNativeHostResult): string {
+  switch (result.kind) {
+    case "a2ui": return result.resource.uri;
+    case "mcp-app": return result.resource.uri;
+    case "ordinary": return String(result.result.content.length);
+    case "invalid": return result.code;
+    default: { const exhaustive: never = result; return exhaustive; }
+  }
+}
+const schema: ContractSchema = { type: "object", properties: {}, required: [], additionalProperties: false };
+const registry = createContractRegistry([createContractAdapter({ descriptor: { id: "com.example/typecheck", version: "1.0.0", schemaRevision: "sha256:" + "0".repeat(64), transport: "structured-content", mimeType: "application/vnd.example.typecheck+json" }, inputSchema: schema, modelSchema: schema, prepare: input => input })]);
+export const resolve = (client: Parameters<typeof resolveContractResult>[0]["client"]): Promise<ContractResult> => resolveContractResult({ registry, client, tool: {}, result: {} });
+`,
+  );
+  execFileSync(
+    join(process.cwd(), "node_modules", ".bin", "tsc"),
+    [
+      "--noEmit",
+      "--strict",
+      "--skipLibCheck",
+      "--target",
+      "ES2022",
+      "--module",
+      "NodeNext",
+      contractTypeFixture,
+    ],
+    { cwd: consumerDirectory, stdio: "inherit" },
+  );
 
   execFileSync(
     "npm",

@@ -64,10 +64,12 @@ on the active connection; reconnect clears both discovered tools and prior call 
 automatically discovering again. Explicit `refreshTools()` ignores a still-fresh SDK cache entry and
 replaces it with a newly fetched, validated aggregate.
 
-The proposed [Milestone 11 contract registry](RFC-0002-contract-registry.md) must use separate opt-in
-entry points and result/action unions. It cannot widen the closed v1 unions or reinterpret current
-fallback behavior as a minor-release change. The RFC is a design proposal, not an available API or
-an expansion of the supported protocol profiles.
+The unreleased [Milestone 11 inline contract API](custom-contracts.md) uses the separate
+`@mcp-native/host/contracts` entry point and `ContractResult` union. Existing resolver/controller,
+result/action/error unions, default extension map, and root exports are unchanged. The new API
+adds inert `contract-data` and `contract-error` outcomes; applications opt in explicitly. It does
+not expand supported A2UI or MCP Apps profiles. The broader renderer and lifecycle design in
+[RFC-0002](RFC-0002-contract-registry.md) remains later work.
 
 The additive React Native host registration, mount-report fields and error codes, layout-contract
 vocabulary, registered surface, reusable render boundary, and `/testing` subpath are stable
