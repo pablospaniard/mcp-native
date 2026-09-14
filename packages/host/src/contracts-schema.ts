@@ -47,6 +47,7 @@ export type ContractErrorCode =
   | "conflicting-contract-claims"
   | "invalid-contract-input"
   | "invalid-contract-model"
+  | "invalid-contract-event"
   | "contract-limit-exceeded"
   | "adapter-failed";
 

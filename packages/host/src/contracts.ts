@@ -30,6 +30,7 @@ import {
   type ContractLimits,
   type ContractSchema,
 } from "./contracts-schema.js";
+import { adapters, registries, type AdapterState } from "./contract-registry-state.js";
 import type { McpNativeHostAbortSignal } from "./controller.js";
 
 export { ContractHostController, createContractHostController } from "./contract-controller.js";
@@ -38,6 +39,14 @@ export type {
   ContractHostCallState,
   ContractHostSnapshot,
 } from "./contract-controller.js";
+
+export { createContractActionAuthorization } from "./contract-actions.js";
+export type {
+  ContractActionAuthorization,
+  ContractActionAuthorizationOptions,
+  ContractActionAuthorizationRequest,
+  ContractActionRequest,
+} from "./contract-actions.js";
 
 export { CONTRACT_LIMITS, ContractError } from "./contracts-schema.js";
 export type { ContractErrorCode, ContractLimits, ContractSchema } from "./contracts-schema.js";
@@ -65,6 +74,8 @@ export interface ContractAdapterOptions {
   readonly descriptor: ContractDescriptor;
   readonly inputSchema: ContractSchema;
   readonly modelSchema: ContractSchema;
+  /** Optional closed event schema, included in the descriptor schema digest. Omission disables events. */
+  readonly eventSchema?: ContractSchema;
   readonly limits?: Partial<ContractLimits>;
   /** Synchronous trusted local transformation. Both its input and output are schema validated. */
   readonly prepare: (input: JsonObject, context: ContractPreparationContext) => JsonObject;
@@ -105,16 +116,6 @@ export interface ResolveContractResultOptions extends ResolveMcpNativeHostResult
   readonly signal?: McpNativeHostAbortSignal;
 }
 
-interface AdapterState {
-  readonly descriptor: ContractDescriptor;
-  readonly inputSchema: ContractSchema;
-  readonly modelSchema: ContractSchema;
-  readonly limits: ContractLimits;
-  readonly prepare: ContractAdapterOptions["prepare"];
-}
-
-const adapters = new WeakMap<ContractAdapter, AdapterState>();
-const registries = new WeakMap<ContractRegistry, ReadonlyMap<string, AdapterState>>();
 const DESCRIPTOR_KEYS = ["id", "version", "schemaRevision", "transport", "mimeType"];
 const RESERVED_NAMESPACES = [
   "io.modelcontextprotocol",
@@ -179,7 +180,7 @@ export function createContractAdapter(options: ContractAdapterOptions): Contract
     const value = object(options, "invalid-registration");
     keys(
       value,
-      ["descriptor", "inputSchema", "modelSchema", "limits", "prepare"],
+      ["descriptor", "inputSchema", "modelSchema", "eventSchema", "limits", "prepare"],
       "invalid-registration",
     );
     if (typeof value.prepare !== "function") fail("invalid-registration");
@@ -187,6 +188,7 @@ export function createContractAdapter(options: ContractAdapterOptions): Contract
       descriptor: parseContractDescriptor(value.descriptor),
       inputSchema: parseSchema(value.inputSchema),
       modelSchema: parseSchema(value.modelSchema),
+      ...(value.eventSchema === undefined ? {} : { eventSchema: parseSchema(value.eventSchema) }),
       limits: parseLimits(value.limits === undefined ? {} : value.limits),
       prepare: value.prepare as ContractAdapterOptions["prepare"],
     });
@@ -217,6 +219,7 @@ export function createContractRegistry(installed: readonly ContractAdapter[]): C
       copyObject(state.descriptor, budget, "invalid-registry");
       copyObject(state.inputSchema, budget, "invalid-registry");
       copyObject(state.modelSchema, budget, "invalid-registry");
+      if (state.eventSchema) copyObject(state.eventSchema, budget, "invalid-registry");
       byIdentity.set(identity(state.descriptor), state);
     }
     const contracts = Object.freeze([...byIdentity.values()].map((entry) => entry.descriptor));

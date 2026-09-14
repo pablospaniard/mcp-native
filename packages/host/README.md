@@ -220,8 +220,9 @@ The source tree also includes an unreleased opt-in `@mcp-native/host/contracts` 
 `resolveContractResult`, and `createContractHostController`. It validates exactly negotiated inline custom JSON into immutable
 `contract-data`, with a separate `ContractResult` union. It is not included in published `1.0.1`.
 `ContractHostController` owns discovery, cancellation, reconnect, and result lifetime. The new
-`@mcp-native/host/contracts/react-native` subpath exports lifecycle-only `ContractHostProvider` and
-`useContractHost`; it does not mount custom data or grant actions. See the
+`@mcp-native/host/contracts/react-native` subpath exports `ContractHostProvider`, `useContractHost`, native registration/registry factories, and
+`ContractNativeResultView`. Mounting requires the exact native registry; events require a closed
+local event schema, `createContractActionAuthorization`, and a host delivery callback. See the
 [custom contract guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/custom-contracts.md)
 for registration, schemas, budgets, connection ownership, and later integration scope.
 

@@ -11,6 +11,15 @@ cancellation, reconnect, and result lifetime. `ContractHostProvider`/`useContrac
 `ContractResult` union. Do not pass custom data to existing host views as A2UI or MCP Apps. See the
 [API and binding guide](custom-contracts.md) for schema pins, limits, lifecycle configuration, and provider ownership rules. Existing default policy, standard pins, root exports, and closed unions are unchanged.
 
+For custom native mounting, bind adapters with `createContractNativeRegistration`, construct a
+`createContractNativeRegistry`, and use its exact `.registry` for the controller. Supply the native
+registry to the provider and mount `ContractNativeResultView` with accessible fallback UI. Event
+adopters add `eventSchema` to the adapter and schema digest, install a factory-issued
+`createContractActionAuthorization` gate, and provide a local `onEvent` callback. Data-only adapters
+with no event schema retain their existing descriptor and cannot dispatch events. Native provider
+configuration is fixed for its lifetime; replace the entire controller/provider for a new principal
+or registration set.
+
 ## Align the A2UI schema revision on both peers
 
 The v1 protocol baseline uses upstream A2UI revision

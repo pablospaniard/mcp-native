@@ -1,6 +1,6 @@
 # RFC-0002: standard contract registry and custom input adapters
 
-- Status: Partially implemented; inline data and controller/provider lifecycle available in source; rendering/actions proposed
+- Status: Partially implemented; inline data, lifecycle, and static native rendering/events available in source; broader profiles proposed
 - Date: 2026-09-14
 - Tracking: [Milestone 11 / issue #91](https://github.com/pablospaniard/mcp-native/issues/91)
 - Foundation: [RFC-0001](RFC-0001-architecture.md) and the [1.x compatibility policy](compatibility-policy.md)
@@ -11,12 +11,13 @@ The first implementation exports `@mcp-native/host/contracts`: local adapter/reg
 strict inline schemas, and `resolveContractResult`. See [the binding and API guide](custom-contracts.md)
 for the exact implemented grammar, limits, fallback table, and author responsibilities. This is an
 unreleased addition; published `1.0.1` does not contain it. The rest of this design includes later
-renderer and action integration.
+standard-profile and resource integration.
 
 This slice returns inert `contract-data`, not a live surface handle. Its separate result union
-retains no custom surface state. Registration currently enables only headless data preparation;
-renderer-readiness advertising, handles, native mounting, and actions remain later work. The
-opt-in `ContractHostController` and `ContractHostProvider` now own data-result lifecycle. The schema digest is authored and checked at build/fixture time;
+retains no executable surface state. Data-adapter registration alone enables headless preparation;
+native mounting and schema-validated events now require an explicit native registry whose
+advertisements include only locally installed renderers. The opt-in controller/provider own
+data-result lifecycle and private mount leases; no transferable public surface handle is exposed. The schema digest is authored and checked at build/fixture time;
 runtime validates its syntax and exact negotiation.
 
 The v1 host recognizes a fixed set of A2UI and MCP Apps results. An application with its own
@@ -48,20 +49,21 @@ retain their current types and defaults. Adding another member to those unions w
 exhaustive consumers and is not an additive minor-release change.
 
 The opt-in entry point `@mcp-native/host/contracts` provides registration, resolution, and
-`ContractHostController`. `@mcp-native/host/contracts/react-native` exports the lifecycle-only
-`ContractHostProvider` and `useContractHost`. These share private orchestration with the existing
-host without widening its declarations or changing its defaults. A future registered view/action
-surface remains proposed.
+`ContractHostController`. `@mcp-native/host/contracts/react-native` exports
+`ContractHostProvider` and `useContractHost`. The same subpath now also exports local renderer/registry factories and `ContractNativeResultView`.
+A separate shared authorization factory adds custom event requests without widening the v1 union.
+These APIs share private orchestration with the existing host without changing its defaults.
 
 The headless entry point owns selection, registration validation, operation ownership, and budget
-accounting. The React Native entry point currently owns provider lifecycle and snapshots. A future view will
-bind a registry-issued local registration to a compiled renderer and contain mount failures. Protocol packages retain parsing, negotiation, action
+accounting. The React Native entry point owns provider lifecycle, snapshots, compiled renderer bindings, and
+whole-surface mount failure containment. Its static view handles custom data; a combined view for
+registered built-in profiles remains future work. Protocol packages retain parsing, negotiation, action
 serialization, and sandbox authority for their profiles. No implementation or registry moves into
 `@mcp-native/core`, and no new package dependency is required for this design.
 
 Adoption is explicit: an application installs adapters, creates a frozen registry before connecting,
-and opts into the contract controller/provider for data lifecycle. A registered view will require
-separate adoption once implemented. Applications remaining on the v1 API
+and opts into the contract controller/provider for data lifecycle. Native mounting requires a matching native registry and result view; custom event delivery additionally
+requires an event schema and explicit policy. Applications remaining on the v1 API
 need no migration. The new API can ship in a minor release only after declaration and packed-consumer
 tests demonstrate that the old API is unchanged. No release number is assigned here.
 
@@ -192,11 +194,13 @@ and signatures belong to the implementation PR and must retain these ownership c
 An implementation should expose a local registration factory that captures the schema, parser,
 semantic validator, model preparer, event schema, limits, and renderer binding as one immutable
 unit. Neither a structural object supplied by the server nor a fabricated registration handle can
-stand in for that unit. The resolver returns an opaque surface handle bound to its registry,
-adapter, connection, and operation; it does not return an executable renderer reference in JSON.
-The registered renderer rejects forged, disposed, or foreign-registry handles.
+stand in for that unit. The broader design permits an opaque surface handle bound to registry, adapter, connection, and
+operation. The implemented static slice instead retains inert `contract-data` and issues private
+mount leases only for the controller's current result. Native registries bind factory-issued adapters
+to compiled components; forged or foreign registries cannot mount. No executable renderer reference
+is returned in JSON.
 
-The new registered result type contains the existing built-in outcomes plus separately named
+A future generalized registered result type may contain existing built-in outcomes plus separately named
 contract-surface and contract-error outcomes. A contract-surface handle records its exact installed
 profile and lane; it can represent a custom contract or a future maintained standard without adding
 a union member for every profile. The initial built-ins retain their existing outcomes. The API
@@ -252,10 +256,11 @@ is no generic native command or implicit tool execution in the custom event cont
 2. **Registry and inline resolution:** add the exact custom binding/schema and local registration
    factories, fixed selection, immutable validated models, shared limits, and a separate result API.
    Verify built-in parity and failure routing before any custom mounting is enabled.
-3. **Registered host integration:** controller/provider lifecycle, cancellation, result ownership,
-   bounded stale work, and disposal are implemented. The registered view, contained local renderer,
-   action authorization, and maintained native example remain open. Verify native behavior before
-   exposing an end-to-end rendering path.
+3. **Registered host integration:** controller/provider lifecycle, static native registry/view,
+   private mount leases, whole-surface containment, schema-validated custom events, serialized
+   authorization, bounded event lifetime, cancellation, and a maintained native example are
+   implemented. A combined registered built-in view, editable models, and generalized public
+   surface handles remain outside this slice.
 4. **Adapter-author and release readiness:** provide author tooling, fixtures, compatibility and
    migration guidance, package-consumer coverage, and exact supported-entry documentation. Review
    additional standards or resource transports separately.

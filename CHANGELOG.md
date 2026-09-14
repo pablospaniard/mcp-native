@@ -12,13 +12,17 @@ patch and minor releases remain compatible within their release line.
   a closed schema subset, and connection-bound inline JSON resolution. Existing host exports and
   result/action/error unions retain their behavior; custom results carry inert data only.
 - Define the project-owned `io.github.pablospaniard/mcp-native-contracts` binding at `0.1` with exact
-  descriptor negotiation. Native rendering, custom actions, and resources remain later
+  descriptor negotiation. Custom resources, live updates, and additional standard factories remain later
   Milestone 11 work. Existing MCP, A2UI, and MCP Apps pins are unchanged.
 
 - Add `ContractHostController`/`createContractHostController` with frozen registry settings, exact
   discovered-tool ownership, cancellation, reconnect, bounded pending work, explicit result clearing,
-  and idempotent shutdown. Add lifecycle-only `ContractHostProvider`/`useContractHost` through
+  and idempotent shutdown. Add `ContractHostProvider`/`useContractHost` through
   `@mcp-native/host/contracts/react-native`, including Strict Mode and single-provider ownership.
+
+- Add explicit compiled native registration/registry factories and `ContractNativeResultView`,
+  private current-result mount leases, whole-surface error containment, optional pinned event schemas,
+  and a separate custom/A2UI/Apps authorization gate. Extend the todo example with a native summary.
 
 ### Security
 
@@ -33,11 +37,15 @@ patch and minor releases remain compatible within their release line.
   release snapshots/listeners immediately on shutdown while sharing bounded cleanup completion.
   Preserve existing controller declarations, root exports, and closed result/action/error unions.
 
+- Bound cumulative custom event/render work across remounts, event attempts, unsettled callbacks,
+  and review/delivery deadlines. Revoke authority on replacement, unmount, render failure, and
+  shutdown; late approval cannot invoke delivery. Custom policies deny by default.
+
 ### Documentation
 
 - Propose the Milestone 11 standard contract registry and custom input adapter design, including
   separate opt-in APIs, exact negotiation, disjoint routing, cumulative limits, and acceptance gates.
-  Document the implemented data/lifecycle APIs and the remaining renderer/action stages separately.
+  Document the implemented data/lifecycle APIs and the remaining standard-profile/resource stages separately.
 - Correct v1 release status to reflect published `1.0.0` and `1.0.1` packages, while keeping the
   post-publication registry audit record distinct from successful release verification/publication.
 

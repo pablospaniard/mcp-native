@@ -503,16 +503,18 @@ Applications continue to advertise only their installed, policy-ready subset.
 
 ### Milestone 11: standard contract registry and custom input adapters
 
-Status: inline data and controller/provider lifecycle implemented in source, not yet released. The
+Status: inline data, lifecycle, and static native rendering/events implemented in source, not yet released. The
 [inline contract guide](custom-contracts.md) defines local registration, exact negotiation, strict
 schemas, cumulative limits, and immutable data resolution through `@mcp-native/host/contracts`.
-[RFC-0002](RFC-0002-contract-registry.md) retains the broader design. Native rendering, actions,
-adapter-author tooling, and additional standard factories remain open. Existing closed v1 result and action unions are unchanged.
+[RFC-0002](RFC-0002-contract-registry.md) retains the broader design. Generalized standard factories,
+adapter-author tooling, custom resources, and live updates remain open. Existing closed v1 result and action unions are unchanged.
 
 - [x] Add the separate headless registry/inline-resolution API and binding documentation,
       hostile-input tests, built-in parity checks, and packed consumer coverage.
 - [x] Add opt-in controller/provider lifecycle with exact connection ownership, cancellation,
       bounded pending work, reconnect discovery, result clearing, and disposal tests.
+- [x] Add static compiled native rendering, private current-result mount leases, pinned event schemas,
+      shared custom/A2UI/Apps authorization, cumulative surface budgets, and a maintained native example.
 
 The v1 host has a closed built-in set of standard result handlers. This milestone adds the public
 choice between maintained standard contracts and explicitly installed application-defined contracts.
@@ -522,10 +524,10 @@ choice between maintained standard contracts and explicitly installed applicatio
 - [ ] Publish a standard-contract registry for supported MCP, A2UI, and MCP Apps profiles. Each entry
       has an exact identifier, version or revision, negotiation requirements, MIME types, limits,
       compatibility status, and conformance status.
-- [ ] Allow applications to register namespaced custom input contracts with exact runtime schemas,
+- [x] Allow applications to register namespaced custom input contracts with exact runtime schemas,
       cumulative work/output limits, locally installed renderers, action policies, and deterministic
       failure behavior.
-- [ ] Keep standard and custom lanes disjoint. Failed standard validation never retries through a
+- [x] Keep standard and custom lanes disjoint. Failed standard validation never retries through a
       custom adapter, custom metadata cannot impersonate a reserved standard, and unrecognized input
       falls back only to inert ordinary MCP content.
 - [ ] Add adapter-author tooling, fixtures, negative tests, package-consumer tests, compatibility

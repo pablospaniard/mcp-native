@@ -1,14 +1,17 @@
-# Inline custom contract data
+# Custom contract data and native rendering
 
 Status: implemented in source for the next compatible release; not included in published `1.0.1`.
-The data and lifecycle slices of [Milestone 11](roadmap.md#milestone-11-standard-contract-registry-and-custom-input-adapters)
-provide validated immutable JSON and opt-in connection ownership. It does not mount UI, dispatch actions, or load custom resources.
+The data, lifecycle, and static native rendering slices of [Milestone 11](roadmap.md#milestone-11-standard-contract-registry-and-custom-input-adapters)
+provide validated immutable JSON, connection ownership, and explicitly installed native renderers.
+Custom events require a local schema and authorization; custom resource loading remains unavailable.
 The existing high-level provider and controller continue to accept their built-in profiles.
 
 ## Local registration
 
 Import from `@mcp-native/host/contracts`. `createContractAdapter` snapshots an exact descriptor,
-closed input/model schemas, optional lower limits, and synchronous local `prepare` callback.
+closed input/model schemas, an optional closed `eventSchema`, optional lower limits, and synchronous
+local `prepare` callback. Include `eventSchema` in the exact schema bundle digest when present;
+omitting it disables custom events.
 `createContractRegistry` accepts only factory-issued adapters and rejects duplicate ID/version pairs.
 A spread copy or cast is not a registration.
 
@@ -56,9 +59,8 @@ reuse data across principals. Each client/server settings snapshot is read once 
 connection-bound resource reader. Client advertisements of uninstalled descriptors are errors.
 
 The registry includes unchanged built-in A2UI and MCP Apps maps. An empty registry advertises only
-those maps. Custom registration enables headless data preparation only. There is no renderer grant,
-surface handle, or action authority. The optional `/contracts/react-native` entry point provides
-connection lifecycle and snapshots only.
+those maps. Data registration alone enables headless preparation. Native mounting additionally requires a
+factory-issued local renderer registration and its matching native registry, described below.
 
 ## Managed connection lifecycle
 
@@ -146,8 +148,89 @@ pending calls immediately and schedules shutdown in a microtask; Strict Mode eff
 the same connection. Throwing or rejecting error observers cannot interrupt cleanup. Application
 code must create a new controller for a later mount after shutdown.
 
-This provider does not mount results, register renderers, or dispatch custom actions. Native
-rendering containment, live surface handles, and action authorization remain later RFC work.
+The original provider options remain lifecycle-only. To render custom results, supply a
+`nativeRegistry` created from compiled renderers and construct the controller with that exact
+`nativeRegistry.registry`. `ContractNativeResultView` mounts only the controller's current
+`contract-data`; ordinary, invalid, and built-in results use its required host-authored fallback.
+Existing A2UI/Apps views remain separate integrations; this view does not relabel those results.
+
+## Static native rendering and events
+
+`createContractNativeRegistration({ adapter, component })` binds one factory-issued adapter to a
+compiled function or class component. `createContractNativeRegistry(registrations)` creates the
+matching data registry and advertisements; forged registrations, duplicate adapters, and more than
+32 entries fail. Advertising this registry therefore includes only custom adapters with installed
+renderers. A separately created data registry with identical descriptors is not interchangeable.
+
+The renderer receives exactly `{ model, dispatchEvent, consume }`. Map model fields explicitly to
+local props. Charge model-dependent rendering work with `consume(work)` before performing it. No
+server field selects components, props, styles, or code. The private mount lease binds the current
+result, registry, and mounted view; there is one active view per provider. Unmount revokes handlers
+immediately, while remounting the same result preserves its lifetime budget. A whole-surface error
+boundary revokes the lease, reports a generic error, and renders `fallback("render-failed")`.
+A fresh result resets the boundary. `fallback("unavailable")` covers absent/custom-ineligible data.
+Supply accessible host-owned fallback UI; raw exception text is never passed to it.
+
+```tsx
+import { createContractActionAuthorization } from "@mcp-native/host/contracts";
+import {
+  createContractNativeRegistration, createContractNativeRegistry,
+  ContractHostProvider, ContractNativeResultView,
+  type ContractNativeRendererProps,
+} from "@mcp-native/host/contracts/react-native";
+
+function Receipt({ model, dispatchEvent, consume }: ContractNativeRendererProps) {
+  consume(1);
+  return <Button title={String(model.title)}
+    onPress={() => { void dispatchEvent({ name: "acknowledge" }); }} />;
+}
+const nativeRegistry = createContractNativeRegistry([
+  createContractNativeRegistration({ adapter: receiptAdapterWithEvents, component: Receipt }),
+]);
+// Create the controller with registry: nativeRegistry.registry before connecting.
+const authorization = createContractActionAuthorization({
+  authorize: request => request.kind === "contract" && request.event.name === "acknowledge",
+});
+<ContractHostProvider controller={controller} nativeRegistry={nativeRegistry}
+  authorization={authorization} onEvent={deliverAcknowledgment} onError={reportHostError}>
+  <ContractNativeResultView fallback={status => <Text accessibilityRole="alert">
+    {status === "render-failed" ? "Receipt unavailable" : "No receipt to display"}
+  </Text>} />;
+```
+
+Here `Button`/`Text` are application-imported native primitives. The application supplies
+`receiptAdapterWithEvents` with a closed schema admitting `{ name: "acknowledge" }`, a digest that
+includes that schema, and local delivery/error callbacks. Construct native configuration once:
+replacing registry, authorization, delivery callback, limits, or deadline on a mounted provider is
+rejected. Model editing and custom resource/streaming protocols are outside this static slice.
+
+`createContractActionAuthorization` returns a factory-issued shared gate with
+`authorizeA2uiAction` and `authorizeMcpAppsToolCall` policies for existing protocol integrations.
+Its new request union also admits `kind: "contract"` with an exact descriptor, current immutable
+model, validated immutable `event`, and host abort `signal`. Omitted policy, overlap, policy failure,
+and any decision other than exact `true` deny. Review is serialized across all three lanes; a
+cancelled/timed-out policy still occupies that gate until its promise settles. Existing protocol
+parsers and action delivery boundaries remain responsible for their own inputs and lifecycle.
+
+Before calling `onEvent`, custom dispatch rechecks mount and controller identity after asynchronous
+review. No tool client or native capability is supplied. The host delivery callback owns any I/O and
+must observe `signal` for its own cancellable work; the library cannot undo a callback already invoked.
+Clearing/replacing the result, disconnect, shutdown, unmount, or render failure revokes pending work
+and prevents late approval from invoking delivery. Outcomes are `delivered` or `rejected` with
+`denied`, `invalid-event`, `stale`, `busy`, `limit-exceeded`, `delivery-failed`, or `timeout`.
+
+Each result has a separate surface-lifetime budget shared by event copying/validation and cooperative
+render work. Defaults are the existing `CONTRACT_LIMITS`, lowered by adapter limits and provider
+`surfaceLimits`; budgets do not reset per event or on view remount. At most 128 event attempts run per
+result, one event is active per view, and 8 unsettled event operations are retained per provider
+across replacements. Rejected input consumes its attempted work. Exhaustion remains exhausted even
+if local rendering catches the exception. There is no event queue. Review plus delivery has a
+30-second deadline, lowerable with `eventTimeoutMs`; timeout aborts authority but unsettled callbacks
+continue counting against capacity. React owns synchronous mount cleanup; no asynchronous adapter
+disposal hook or public transferable surface handle is introduced.
+
+The maintained [todo example](../examples/expo-go-todolist/README.md) exercises a native task-count
+snapshot, exact event schema digest, explicit acknowledgment policy, and modal mount/unmount.
 
 ## Project-owned binding `0.1`
 
@@ -268,6 +351,5 @@ Malformed resolver options use existing `invalid` / `invalid-input`. Error outpu
 server value or original callback exception.
 
 Tests cover SDK-backed resolution, standard parity, forbidden claims, strict schemas, callback
-counts, aggregate budgets, immutable ownership, and packed runtime/declaration consumers. Native
-rendering, actions, updates, additional maintained standard factories, and resource transports
-remain later [RFC-0002](RFC-0002-contract-registry.md) work.
+counts, aggregate budgets, immutable ownership, and packed runtime/declaration consumers. Live
+updates, additional maintained standard factories, and custom resource transports remain later [RFC-0002](RFC-0002-contract-registry.md) work.

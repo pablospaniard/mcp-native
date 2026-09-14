@@ -333,7 +333,11 @@ if (contracts !== undefined) {
   const { createHash } = await import("node:crypto");
   const descriptor = { id: "com.example/smoke", version: "1.0.0", transport: "structured-content", mimeType: "application/vnd.example.smoke+json",
     schemaRevision: "sha256:" + createHash("sha256").update(JSON.stringify({ inputSchema: schema, modelSchema: schema })).digest("hex") };
-  const registry = contracts.createContractRegistry([contracts.createContractAdapter({ descriptor, inputSchema: schema, modelSchema: schema, prepare: (input) => input })]);
+  const adapter = contracts.createContractAdapter({ descriptor, inputSchema: schema, modelSchema: schema, prepare: (input) => input });
+  const nativeRegistry = contractsReactNative.createContractNativeRegistry([contractsReactNative.createContractNativeRegistration({ adapter, component: () => null })]);
+  const registry = nativeRegistry.registry;
+  const authorization = contracts.createContractActionAuthorization();
+  if (await authorization.authorizeMcpAppsToolCall({ type: "tool", name: "smoke", arguments: {} })) throw new Error("Custom authorization must deny by default");
   const options = { registry, tool: { name: "smoke", inputSchema: { type: "object" } },
     result: { content: [], structuredContent: { label: "packed consumer" }, _meta: { [contracts.CONTRACT_EXTENSION_ID]: descriptor } },
     client: { getClientExtensionSettings: () => registry.extensionSettings, getServerExtensionSettings: () => registry.extensionSettings,
@@ -360,7 +364,7 @@ if (contracts !== undefined) {
   }
   await controller.shutdown();
   if (closes !== 1 || controller.getSnapshot().connection.reason !== "shutdown" ||
-      typeof contractsReactNative.ContractHostProvider !== "function" || typeof contractsReactNative.useContractHost !== "function") {
+      typeof contractsReactNative.ContractHostProvider !== "function" || typeof contractsReactNative.useContractHost !== "function" || typeof contractsReactNative.ContractNativeResultView !== "function") {
     throw new Error("Packed contract cleanup/provider exports failed");
   }
 }
@@ -534,7 +538,7 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
     contractTypeFixture,
     `import type { McpNativeHostResult } from "@mcp-native/host";
 import { createContractAdapter, createContractRegistry, createContractHostController, resolveContractResult, type ContractSchema, type ContractResult, type ContractHostControllerOptions, type ContractHostSnapshot } from "@mcp-native/host/contracts";
-import { ContractHostProvider, useContractHost, type ContractHostProviderProps, type ContractHostContextValue } from "@mcp-native/host/contracts/react-native";
+import { ContractHostProvider, useContractHost, ContractNativeResultView, createContractNativeRegistration, createContractNativeRegistry, type ContractNativeRendererProps, type ContractHostProviderProps, type ContractHostContextValue } from "@mcp-native/host/contracts/react-native";
 export function existingConsumer(result: McpNativeHostResult): string {
   switch (result.kind) {
     case "a2ui": return result.resource.uri;
@@ -553,6 +557,9 @@ export function managed(options: Omit<ContractHostControllerOptions, "registry">
   if (snapshot.call.kind === "resolved") controller.isCurrentResult(snapshot.call.result);
   return { controller, onError: () => {} };
 }
+export const nativeView: typeof ContractNativeResultView = ContractNativeResultView;
+export const nativeRegistration = createContractNativeRegistration({ adapter: createContractAdapter({ descriptor: registry.contracts[0]!, inputSchema: schema, modelSchema: schema, eventSchema: schema, prepare: input => input }), component: (props: ContractNativeRendererProps) => { void props.dispatchEvent({}); props.consume(1); return null; } });
+export const nativeRegistry = createContractNativeRegistry([nativeRegistration]);
 export const provider: typeof ContractHostProvider = ContractHostProvider;
 export const hook: () => ContractHostContextValue = useContractHost;
 `,
