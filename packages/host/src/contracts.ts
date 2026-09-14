@@ -1,3 +1,4 @@
+import { equalStandardJson, type ReviewedStandardProfile } from "./reviewed-standard.js";
 import { MIME_TYPE, negotiateMcpBinding } from "@mcp-native/a2ui";
 import {
   JSON_MAX_TOTAL_STRING_CODE_UNITS,
@@ -65,6 +66,15 @@ export type {
   ContractRegistryOptions,
 } from "./contract-standards.js";
 
+export { createReviewedStandardAdapter } from "./reviewed-standard.js";
+export type {
+  ReviewedStandardAdapter,
+  ReviewedStandardAdapterOptions,
+  ReviewedStandardBinding,
+  ReviewedStandardEvidence,
+  ReviewedStandardProfile,
+} from "./reviewed-standard.js";
+
 export { CONTRACT_LIMITS, ContractError } from "./contracts-schema.js";
 export type { ContractErrorCode, ContractLimits, ContractSchema } from "./contracts-schema.js";
 
@@ -98,7 +108,7 @@ export interface ContractAdapterOptions {
   readonly prepare: (input: JsonObject, context: ContractPreparationContext) => JsonObject;
 }
 
-/** Only createContractAdapter-issued objects are accepted by a registry. */
+/** Only local custom or reviewed-standard factory-issued objects are accepted by a registry. */
 export interface ContractAdapter {
   readonly descriptor: ContractDescriptor;
 }
@@ -106,6 +116,8 @@ export interface ContractAdapter {
 /** A host-created immutable snapshot; this is not a renderer or action grant. */
 export interface ContractRegistry {
   readonly contracts: readonly ContractDescriptor[];
+  /** Separately installed inline standard profiles, never advertised through the custom binding. */
+  readonly reviewedStandards: readonly ReviewedStandardProfile[];
   /** Maintained inventory selected for this registry; ordinary fallback is mandatory. */
   readonly standards: readonly StandardContractProfile[];
   /** Built-in profiles plus the exact locally installed custom contracts. Advertise on the same client. */
@@ -244,12 +256,42 @@ export function createContractRegistry(
       copyObject(state.inputSchema, budget, "invalid-registry");
       copyObject(state.modelSchema, budget, "invalid-registry");
       if (state.eventSchema) copyObject(state.eventSchema, budget, "invalid-registry");
+      if (state.reviewed) copyObject(state.reviewed, budget, "invalid-registry");
       byIdentity.set(identity(state.descriptor), state);
     }
-    const contracts = Object.freeze([...byIdentity.values()].map((entry) => entry.descriptor));
+    const states = [...byIdentity.values()];
+    const reviewedStandards = Object.freeze(
+      states.flatMap((state) => (state.reviewed ? [state.reviewed] : [])),
+    );
+    const extensionIds = new Set<string>();
+    const metaKeys = new Set<string>();
+    for (const profile of reviewedStandards) {
+      if (
+        extensionIds.has(profile.binding.extensionId) ||
+        metaKeys.has(profile.binding.resultMetaKey) ||
+        states.some(
+          (state) =>
+            state.descriptor !== profile.descriptor &&
+            (state.descriptor.mimeType === profile.descriptor.mimeType ||
+              state.descriptor.id === profile.descriptor.id),
+        )
+      )
+        fail("invalid-registry");
+      extensionIds.add(profile.binding.extensionId);
+      metaKeys.add(profile.binding.resultMetaKey);
+    }
+    const contracts = Object.freeze(
+      states.filter((state) => !state.reviewed).map((entry) => entry.descriptor),
+    );
     const extensionSettings = copyObject(
       {
         ...Object.assign({}, ...standards.map((profile) => profile.extensions)),
+        ...Object.fromEntries(
+          reviewedStandards.map((profile) => [
+            profile.binding.extensionId,
+            profile.binding.settings,
+          ]),
+        ),
         ...(contracts.length === 0
           ? {}
           : { [CONTRACT_EXTENSION_ID]: { bindingVersion: CONTRACT_BINDING_VERSION, contracts } }),
@@ -257,7 +299,7 @@ export function createContractRegistry(
       new Budget(CONTRACT_LIMITS),
       "invalid-registry",
     ) as McpExtensionSettings;
-    const registry = Object.freeze({ contracts, standards, extensionSettings });
+    const registry = Object.freeze({ contracts, standards, reviewedStandards, extensionSettings });
     registries.set(registry, byIdentity);
     return registry;
   } catch {
@@ -343,7 +385,7 @@ export async function resolveContractResult(
     serverContracts = parseSettings(serverSettings[CONTRACT_EXTENSION_ID]);
     for (const descriptor of clientContracts) {
       const registration = installed.get(identity(descriptor));
-      if (!registration || !same(registration.descriptor, descriptor))
+      if (!registration || registration.reviewed || !same(registration.descriptor, descriptor))
         fail("invalid-contract-settings");
     }
   } catch {
@@ -391,41 +433,110 @@ export async function resolveContractResult(
   } catch {
     return rejected("invalid-claim");
   }
-  if (claimField === undefined) {
-    return resolveBuiltin();
+  const selectionBudget = new Budget(CONTRACT_LIMITS);
+  const negotiated = new Set<AdapterState>();
+  const reviewedClaims: { state: AdapterState; field: PropertyDescriptor }[] = [];
+  try {
+    const meta = Object.getOwnPropertyDescriptor(options.result as object, "_meta")?.value;
+    for (const candidate of installed.values()) {
+      const profile = candidate.reviewed;
+      if (!profile) continue;
+      const { extensionId, settings, resultMetaKey } = profile.binding;
+      const advertised = clientSettings[extensionId];
+      const peer = serverSettings[extensionId];
+      for (const value of [advertised, peer]) {
+        if (
+          value !== undefined &&
+          !equalStandardJson(
+            copyObject(value, selectionBudget, "invalid-standard-settings"),
+            settings,
+            selectionBudget,
+          )
+        )
+          fail("invalid-standard-settings");
+      }
+      if (advertised !== undefined && peer !== undefined) negotiated.add(candidate);
+      const field =
+        meta === undefined ? undefined : Object.getOwnPropertyDescriptor(meta, resultMetaKey);
+      if (field) reviewedClaims.push({ state: candidate, field });
+    }
+  } catch (error) {
+    return rejected(error instanceof ContractError ? error.code : "invalid-standard-settings");
   }
+  if (options.signal?.aborted) return rejected("cancelled");
 
-  // Reserved markers exclude custom routing even when malformed or not negotiated.
+  // Fixed markers exclude other lanes even when malformed, disabled, or not negotiated.
   const reservedMime = (mime: unknown) => mime === MIME_TYPE || mime === MCP_APPS_MIME_TYPE;
-  if (
+  const builtinClaim =
     hasOriginalUi ||
     Object.hasOwn(tool["_meta"] ?? {}, "ui") ||
     result.content.some(
       (block) =>
         ("mimeType" in block && reservedMime(block.mimeType)) ||
         (block.type === "resource" && reservedMime(block.resource.mimeType)),
-    )
-  ) {
-    return rejected("conflicting-contract-claims");
-  }
-
-  let descriptor;
-  try {
-    if (!claimField.enumerable || !("value" in claimField)) fail("invalid-claim");
-    descriptor = parseContractDescriptor(claimField.value);
-  } catch {
-    return rejected("invalid-claim");
-  }
-  const state = installed.get(identity(descriptor));
+    );
+  const reviewedMimes = new Set(
+    [...installed.values()].flatMap((state) => (state.reviewed ? [state.descriptor.mimeType] : [])),
+  );
+  const markedMimes = new Set(
+    result.content.flatMap((block) => {
+      const mime =
+        "mimeType" in block
+          ? block.mimeType
+          : block.type === "resource"
+            ? block.resource.mimeType
+            : undefined;
+      return mime && reviewedMimes.has(mime) ? [mime] : [];
+    }),
+  );
   if (
-    result.isError ||
-    !state ||
-    !same(state.descriptor, descriptor) ||
-    !clientContracts.some((entry) => same(entry, descriptor)) ||
-    !serverContracts.some((entry) => same(entry, descriptor))
-  ) {
-    // Use the existing freezing and ordinary-content behavior, with no custom callbacks or reads.
-    return resolveBuiltin();
+    (claimField && (builtinClaim || reviewedClaims.length || markedMimes.size)) ||
+    ((reviewedClaims.length || markedMimes.size) && builtinClaim) ||
+    reviewedClaims.length > 1 ||
+    (reviewedClaims.length === 1 &&
+      [...markedMimes].some((mime) => mime !== reviewedClaims[0]!.state.descriptor.mimeType))
+  )
+    return rejected("conflicting-contract-claims");
+
+  let state: AdapterState | undefined;
+  if (reviewedClaims.length === 1) {
+    const selected = reviewedClaims[0]!;
+    try {
+      if (
+        !selected.field.enumerable ||
+        !("value" in selected.field) ||
+        !equalStandardJson(
+          copyObject(selected.field.value, selectionBudget, "invalid-standard-claim"),
+          selected.state.reviewed!.binding.resultMeta,
+          selectionBudget,
+        )
+      )
+        fail("invalid-standard-claim");
+    } catch (error) {
+      return rejected(error instanceof ContractError ? error.code : "invalid-standard-claim");
+    }
+    if (result.isError || !negotiated.has(selected.state)) return resolveBuiltin();
+    state = selected.state;
+  } else {
+    if (claimField === undefined) return resolveBuiltin();
+    let descriptor;
+    try {
+      if (!claimField.enumerable || !("value" in claimField)) fail("invalid-claim");
+      descriptor = parseContractDescriptor(claimField.value);
+    } catch {
+      return rejected("invalid-claim");
+    }
+    state = installed.get(identity(descriptor));
+    // A standard cannot be invoked through the project-owned custom binding.
+    if (state?.reviewed) return rejected("conflicting-contract-claims");
+    if (
+      result.isError ||
+      !state ||
+      !same(state.descriptor, descriptor) ||
+      !clientContracts.some((entry) => same(entry, descriptor)) ||
+      !serverContracts.some((entry) => same(entry, descriptor))
+    )
+      return resolveBuiltin();
   }
 
   try {

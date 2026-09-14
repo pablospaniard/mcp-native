@@ -88,3 +88,4 @@ record; the [changelog](../CHANGELOG.md) records published versions. Milestone 1
 
 - [Maintained standard contracts](standard-contracts.md) — pinned inventory and explicit selection.
 - [Contract adapter authoring](contract-authoring.md) — canonical bundles, fixtures, and digest migration.
+- [Reviewed standard adapters](reviewed-standard-adapters.md) — separately packaged inline profiles and their review boundary.

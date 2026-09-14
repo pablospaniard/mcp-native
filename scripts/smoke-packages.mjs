@@ -305,6 +305,14 @@ try {
     },
   );
 
+  const [reviewedFixturePack] = JSON.parse(
+    execFileSync("npm", ["pack", "--json", "--pack-destination", temporaryDirectory], {
+      cwd: "tests/fixtures/reviewed-standard-package",
+      encoding: "utf8",
+      env: npmEnvironment,
+    }),
+  );
+  const reviewedFixtureTarball = join(temporaryDirectory, reviewedFixturePack.filename);
   const consumerDirectory = join(temporaryDirectory, "consumer");
   mkdirSync(consumerDirectory);
   writeFileSync(
@@ -341,6 +349,18 @@ if (contracts !== undefined) {
   if (!report.passed) throw new Error("Packed authoring fixtures failed");
   const selected = contracts.createContractRegistry([], { standards: [contracts.createA2uiStandardContract()] });
   if (selected.standards.length !== 2 || selected.standards[1].id !== "org.a2ui/native") throw new Error("Packed standard selection failed");
+  const { createFixtureAdapter, binding: reviewedBinding } = await import("@mcp-native-test/inline-standard");
+  const reviewedAdapter = await createFixtureAdapter();
+  const reviewedNative = contractsReactNative.createContractNativeRegistry([contractsReactNative.createContractNativeRegistration({ adapter: reviewedAdapter, component: () => null })], { standards: [] });
+  const reviewedRegistry = reviewedNative.registry;
+  if (reviewedRegistry.contracts.length !== 0 || reviewedRegistry.reviewedStandards.length !== 1 || Object.hasOwn(reviewedRegistry.extensionSettings, contracts.CONTRACT_EXTENSION_ID)) throw new Error("Separately packed standard entered the custom lane");
+  const reviewedResult = await contracts.resolveContractResult({ registry: reviewedRegistry, tool: { name: "reviewed", inputSchema: { type: "object" } },
+    result: { content: [], structuredContent: { title: "Packed profile" }, _meta: { [reviewedBinding.resultMetaKey]: reviewedBinding.resultMeta } },
+    client: { getClientExtensionSettings: () => reviewedRegistry.extensionSettings, getServerExtensionSettings: () => reviewedRegistry.extensionSettings,
+      async readResource() { throw new Error("Reviewed inline standard cannot load resources"); } } });
+  if (reviewedResult.kind !== "contract-data" || reviewedResult.model.title !== "Packed profile") throw new Error("Separately packed standard did not resolve");
+  const reviewedReport = await authoring.runContractAdapterFixtures({ adapter: reviewedAdapter, fixtures: [{ name: "packed profile", input: { title: "Paid" }, expected: { kind: "contract-data", model: { title: "Paid" } } }] });
+  if (!reviewedReport.passed) throw new Error("Separately packed standard fixtures failed");
   const authorization = contracts.createContractActionAuthorization();
   if (await authorization.authorizeMcpAppsToolCall({ type: "tool", name: "smoke", arguments: {} })) throw new Error("Custom authorization must deny by default");
   const options = { registry, tool: { name: "smoke", inputSchema: { type: "object" } },
@@ -508,6 +528,7 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
       reactTarball,
       ...externalTarballs,
       ...tarballs,
+      reviewedFixtureTarball,
     ],
     {
       cwd: consumerDirectory,
@@ -542,7 +563,7 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
   writeFileSync(
     contractTypeFixture,
     `import type { McpNativeHostResult } from "@mcp-native/host";
-import { createContractAdapter, createContractRegistry, createContractHostController, resolveContractResult, type ContractSchema, type ContractResult, type ContractHostControllerOptions, type ContractHostSnapshot, createA2uiStandardContract, type StandardContractProfile } from "@mcp-native/host/contracts";
+import { createContractAdapter, createContractRegistry, createContractHostController, resolveContractResult, type ContractSchema, type ContractResult, type ContractHostControllerOptions, type ContractHostSnapshot, createA2uiStandardContract, type StandardContractProfile, createReviewedStandardAdapter, type ReviewedStandardAdapterOptions, type ReviewedStandardProfile } from "@mcp-native/host/contracts";
 import { createContractSchemaBundle, runContractAdapterFixtures, type ContractAdapterFixtureReport } from "@mcp-native/host/contracts/authoring";
 import { ContractHostProvider, useContractHost, ContractNativeResultView, createContractNativeRegistration, createContractNativeRegistry, type ContractNativeRendererProps, type ContractHostProviderProps, type ContractHostContextValue } from "@mcp-native/host/contracts/react-native";
 export function existingConsumer(result: McpNativeHostResult): string {
@@ -566,6 +587,11 @@ export function managed(options: Omit<ContractHostControllerOptions, "registry">
 export const nativeView: typeof ContractNativeResultView = ContractNativeResultView;
 export const nativeRegistration = createContractNativeRegistration({ adapter: createContractAdapter({ descriptor: registry.contracts[0]!, inputSchema: schema, modelSchema: schema, eventSchema: schema, prepare: input => input }), component: (props: ContractNativeRendererProps) => { void props.dispatchEvent({}); props.consume(1); return null; } });
 export const nativeRegistry = createContractNativeRegistry([nativeRegistration]);
+export function reviewedConsumer(options: ReviewedStandardAdapterOptions): ReviewedStandardProfile {
+  const adapter = createReviewedStandardAdapter(options);
+  const native = createContractNativeRegistry([createContractNativeRegistration({ adapter, component: () => null })]);
+  return native.registry.reviewedStandards[0]!;
+}
 export const selected = createContractRegistry([], { standards: [createA2uiStandardContract()] });
 export const profile: StandardContractProfile = selected.standards[0]!;
 export const schemaBundle = createContractSchemaBundle({ inputSchema: schema, modelSchema: schema });

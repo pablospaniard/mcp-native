@@ -507,7 +507,10 @@ Status: inline data, lifecycle, and static native rendering/events implemented i
 [inline contract guide](custom-contracts.md) defines local registration, exact negotiation, strict
 schemas, cumulative limits, and immutable data resolution through `@mcp-native/host/contracts`.
 [RFC-0002](RFC-0002-contract-registry.md) retains the broader design. The [maintained standard inventory](standard-contracts.md) and [adapter-author tooling](contract-authoring.md)
-are implemented. Independently shipped standard adapters, custom resources, and live updates remain open. Existing closed v1 result and action unions are unchanged.
+are implemented. [Separately packaged reviewed adapters](reviewed-standard-adapters.md) now support
+the closed inline-JSON interface with exact markers and negotiation. Custom resources, broader wire
+grammars, and live updates remain later work. Existing closed v1 result and action unions are unchanged.
+The bounded implementation remains unreleased and pending acceptance review in issue #91.
 
 - [x] Add the separate headless registry/inline-resolution API and binding documentation,
       hostile-input tests, built-in parity checks, and packed consumer coverage.
@@ -519,8 +522,9 @@ are implemented. Independently shipped standard adapters, custom resources, and 
 The v1 host has a closed built-in set of standard result handlers. This milestone adds the public
 choice between maintained standard contracts and explicitly installed application-defined contracts.
 
-- [ ] Define a closed, versioned renderable-result adapter interface with separate recognition,
+- [x] Define a closed, versioned renderable-result adapter interface with separate recognition,
       parsing, validation, resource access, rendering, action, lifecycle, and fallback responsibilities.
+      The implemented separately packaged profile is inline JSON; resource access is explicitly disabled.
 - [x] Publish a standard-contract registry for supported MCP, A2UI, and MCP Apps profiles. Each entry
       has an exact identifier, version or revision, negotiation requirements, MIME types, limits,
       compatibility status, and conformance status.

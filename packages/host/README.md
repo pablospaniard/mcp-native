@@ -275,3 +275,8 @@ pinned profile evidence and responsibilities. See the [inventory guide](https://
 The separate `/contracts/authoring` entry point exports `createContractSchemaBundle` and
 `runContractAdapterFixtures` for build/test use. See the [authoring guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/contract-authoring.md)
 for canonical source bytes, bounds, fixture reports, and migration from hand-hashed descriptors.
+
+`createReviewedStandardAdapter` adds separately packaged inline-JSON profiles with exact extension
+settings, result metadata, and local review evidence. Install the returned adapter in the data or
+native registry; `.reviewedStandards` remains separate from custom descriptors and maintained profiles.
+Existing native authorization and lifecycle controls apply. See the [reviewed adapter guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/reviewed-standard-adapters.md).

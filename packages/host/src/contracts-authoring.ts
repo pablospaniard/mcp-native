@@ -292,7 +292,9 @@ export async function runContractAdapterFixtures(
       result: {
         content: [],
         structuredContent: fixture.input,
-        _meta: { [CONTRACT_EXTENSION_ID]: state.descriptor },
+        _meta: state.reviewed
+          ? { [state.reviewed.binding.resultMetaKey]: state.reviewed.binding.resultMeta }
+          : { [CONTRACT_EXTENSION_ID]: state.descriptor },
       },
       client: {
         getClientExtensionSettings: () => registry.extensionSettings,

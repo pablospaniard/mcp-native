@@ -152,4 +152,7 @@ unchanged. A client advertising an excluded standard fails with the new contract
 `invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
 canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;
 adopting the fixture runner requires updating installed and peer-advertised digests together.
-Independently shipped standard adapters remain proposed in [RFC-0002](RFC-0002-contract-registry.md).
+[Separately packaged reviewed adapters](reviewed-standard-adapters.md) now support the closed inline
+JSON interface, with their own exact bindings, review evidence, and `.reviewedStandards` inventory.
+The new `invalid-standard-claim` code is confined to the opt-in API. Existing custom adapters are not
+promoted; broader wire/resource interfaces remain proposed in [RFC-0002](RFC-0002-contract-registry.md).

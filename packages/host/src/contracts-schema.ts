@@ -45,6 +45,7 @@ export type ContractErrorCode =
   | "invalid-claim"
   | "invalid-contract-settings"
   | "invalid-standard-settings"
+  | "invalid-standard-claim"
   | "conflicting-contract-claims"
   | "invalid-contract-input"
   | "invalid-contract-model"

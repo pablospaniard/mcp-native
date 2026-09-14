@@ -70,12 +70,14 @@ intermediate serialization are charged. Individually valid schemas can exceed th
 
 ## Run fixtures
 
-The runner requires a factory-issued adapter and verifies its digest against the v1 bundle before
+The runner accepts custom and [reviewed standard adapters](reviewed-standard-adapters.md). Reviewed
+fixtures use the profile's own exact extension and result marker. It requires factory identity and
+verifies the digest against the v1 bundle before
 calling preparation code. Supply at least one data fixture and at most 64 data/event fixtures in
 total. Names must be unique across both arrays, 1–80 ASCII letters, digits, spaces, dots,
 underscores, or hyphens, starting with a letter or digit. Fixture and expectation fields are closed.
 
-Data fixtures run serially through the real resolver with exact mutual custom negotiation and no
+Data fixtures run serially through the real resolver with exact mutual adapter negotiation and no
 standard resource loading. Expected outcomes are exact model equality, `invalid-input`, or the
 custom failures `invalid-contract-input`, `invalid-contract-model`, `contract-limit-exceeded`, and
 `adapter-failed`. Object key order is ignored for model comparison; array order is significant.

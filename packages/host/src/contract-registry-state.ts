@@ -1,3 +1,4 @@
+import type { ReviewedStandardProfile } from "./reviewed-standard.js";
 import type {
   ContractAdapter,
   ContractAdapterOptions,
@@ -7,6 +8,7 @@ import type {
 import type { ContractLimits, ContractSchema } from "./contracts-schema.js";
 
 export interface AdapterState {
+  readonly reviewed?: ReviewedStandardProfile;
   readonly descriptor: ContractDescriptor;
   readonly inputSchema: ContractSchema;
   readonly modelSchema: ContractSchema;

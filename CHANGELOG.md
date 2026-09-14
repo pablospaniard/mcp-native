@@ -8,6 +8,12 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Add `createReviewedStandardAdapter` for separately packaged inline JSON profiles with exact
+  connection negotiation, fixed result markers, pinned review evidence, and a separate registry
+  inventory. Reuse bounded schemas, native mounting, authorization, and lifecycle; reject cross-lane
+  claims and cumulative selection amplification. Verify a synthetic adapter installed as its own
+  tarball and document that local review attestations are not upstream certification.
+
 - Add maintained ordinary MCP, A2UI, and MCP Apps factories with immutable pinned profile manifests
   and registry subset selection. Defaults remain unchanged; excluded client advertisements fail closed.
 - Add `@mcp-native/host/contracts/authoring` with versioned canonical schema bundles and bounded
@@ -18,7 +24,7 @@ patch and minor releases remain compatible within their release line.
   a closed schema subset, and connection-bound inline JSON resolution. Existing host exports and
   result/action/error unions retain their behavior; custom results carry inert data only.
 - Define the project-owned `io.github.pablospaniard/mcp-native-contracts` binding at `0.1` with exact
-  descriptor negotiation. Custom resources, live updates, and independently shipped standard adapters remain later
+  descriptor negotiation. Custom resources, live updates, and broader standard wire grammars remain later
   Milestone 11 work. Existing MCP, A2UI, and MCP Apps pins are unchanged.
 
 - Add `ContractHostController`/`createContractHostController` with frozen registry settings, exact

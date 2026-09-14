@@ -1,6 +1,6 @@
 # RFC-0002: standard contract registry and custom input adapters
 
-- Status: Partially implemented; inline data, lifecycle, and static native rendering/events available in source; broader profiles proposed
+- Status: Bounded inline implementation available in source, including separately packaged reviewed profiles; unreleased and pending acceptance review
 - Date: 2026-09-14
 - Tracking: [Milestone 11 / issue #91](https://github.com/pablospaniard/mcp-native/issues/91)
 - Foundation: [RFC-0001](RFC-0001-architecture.md) and the [1.x compatibility policy](compatibility-policy.md)
@@ -20,8 +20,9 @@ advertisements include only locally installed renderers. The opt-in controller/p
 data-result lifecycle and private mount leases; no transferable public surface handle is exposed. The schema digest is authored and checked at build/fixture time;
 runtime validates its syntax and exact negotiation. The [authoring subpath](contract-authoring.md) now generates
 versioned canonical bundles and checks bounded data/event fixtures. The [maintained inventory](standard-contracts.md)
-provides factories and subset selection for the existing three profiles; independently shipped standard
-adapters still require the broader interface described here.
+provides factories and subset selection for the existing three profiles. The [reviewed standard adapter
+interface](reviewed-standard-adapters.md) now supports separately packaged inline-JSON profiles with
+exact own-extension negotiation and result metadata; broader resource/wire interfaces remain proposed.
 
 The v1 host recognizes a fixed set of A2UI and MCP Apps results. An application with its own
 receipt, itinerary, or other semantic document must currently orchestrate that format outside the
@@ -266,8 +267,10 @@ is no generic native command or implicit tool execution in the custom event cont
    surface handles remain outside this slice.
 4. **Adapter-author and maintained inventory:** canonical schema bundles, bounded data/event fixtures,
    maintained standard factories and selection, compatibility/migration guidance, and packed-consumer
-   coverage are implemented. Review independently shipped standard adapters and resource transports
-   separately; the closed inventory does not yet satisfy that extensibility exit criterion.
+   coverage are implemented. Separately packaged reviewed inline adapters now share the bounded
+   data/native lifecycle while retaining their own exact wire markers and advertisements. The
+   synthetic tarball fixture proves installation without changing host source; actual upstream
+   compatibility claims require profile-specific review. Resource transports remain separate work.
 
 Required regression and failure-path coverage includes:
 
@@ -289,5 +292,6 @@ Required regression and failure-path coverage includes:
 Implementation requires `npm run check`, `npm run package:smoke` for added exports/declarations,
 and applicable native integration checks. Update the API baseline intentionally, compatibility and
 migration guides, standards inventory, roadmap, and changelog with implemented scope and exact pins.
-The milestone remains open for the independently shipped reviewed-standard adapter interface and its
-end-to-end acceptance gates. The maintained inventory alone does not meet that exit criterion.
+The bounded inline implementation now includes the independently packaged adapter interface,
+negative tests, native lifecycle tests, and separate tarball consumer gate. Issue #91 remains open for
+acceptance review; the synthetic fixture does not claim a new real upstream standard is certified.

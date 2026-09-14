@@ -345,7 +345,7 @@ Malformed custom claims fail even without negotiation. Error results never call 
 
 Registration, registry construction, and descriptor parsing throw `ContractError` with respectively
 `invalid-registration`, `invalid-registry`, and `invalid-claim`. Resolver custom codes are
-`invalid-registry`, `invalid-standard-settings`, `invalid-contract-settings`, `conflicting-contract-claims`, `invalid-claim`,
+`invalid-registry`, `invalid-standard-settings`, `invalid-standard-claim`, `invalid-contract-settings`, `conflicting-contract-claims`, `invalid-claim`,
 `invalid-contract-input`, `invalid-contract-model`, `contract-limit-exceeded`, `adapter-failed`,
 and `cancelled`.
 Malformed resolver options use existing `invalid` / `invalid-input`. Error output never retains a
@@ -353,7 +353,9 @@ server value or original callback exception.
 
 Tests cover SDK-backed resolution, standard parity, forbidden claims, strict schemas, callback
 counts, aggregate budgets, immutable ownership, and packed runtime/declaration consumers. Live
-updates, independently shipped standard adapters, and custom resource transports remain later [RFC-0002](RFC-0002-contract-registry.md) work.
+updates and custom resource transports remain later [RFC-0002](RFC-0002-contract-registry.md) work.
+[Separately packaged reviewed inline profiles](reviewed-standard-adapters.md) now use their own exact
+bindings and a separate `.reviewedStandards` inventory; they cannot enter the custom binding.
 
 The optional registry `standards` selection and immutable `.standards` inventory are documented in
 [maintained standard contracts](standard-contracts.md). Omission preserves defaults; excluded client

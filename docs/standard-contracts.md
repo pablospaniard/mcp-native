@@ -1,8 +1,9 @@
 # Maintained standard contracts
 
 Status: implemented in source, unreleased. `@mcp-native/host/contracts` exposes a closed inventory
-of the three existing maintained implementations. It does not install independently shipped
-standard parsers. That extension mechanism remains part of [Milestone 11](roadmap.md#milestone-11-standard-contract-registry-and-custom-input-adapters).
+of the three existing maintained implementations. Separately packaged inline profiles use the
+[reviewed standard adapter interface](reviewed-standard-adapters.md); they do not replace these
+maintained registrations or inherit their conformance claims.
 
 ```ts
 import { createContractRegistry, createA2uiStandardContract } from "@mcp-native/host/contracts";
