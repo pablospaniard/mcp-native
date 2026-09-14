@@ -8,11 +8,17 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Add maintained ordinary MCP, A2UI, and MCP Apps factories with immutable pinned profile manifests
+  and registry subset selection. Defaults remain unchanged; excluded client advertisements fail closed.
+- Add `@mcp-native/host/contracts/authoring` with versioned canonical schema bundles and bounded
+  data/event fixture reports, negative tests, and packed-consumer coverage. Migrate the maintained
+  summary fixture to the public helper and document coordinated digest migration.
+
 - Add the opt-in `@mcp-native/host/contracts` entry point with local adapter and registry factories,
   a closed schema subset, and connection-bound inline JSON resolution. Existing host exports and
   result/action/error unions retain their behavior; custom results carry inert data only.
 - Define the project-owned `io.github.pablospaniard/mcp-native-contracts` binding at `0.1` with exact
-  descriptor negotiation. Custom resources, live updates, and additional standard factories remain later
+  descriptor negotiation. Custom resources, live updates, and independently shipped standard adapters remain later
   Milestone 11 work. Existing MCP, A2UI, and MCP Apps pins are unchanged.
 
 - Add `ContractHostController`/`createContractHostController` with frozen registry settings, exact

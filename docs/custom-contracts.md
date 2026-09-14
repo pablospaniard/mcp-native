@@ -58,7 +58,7 @@ the same map as `clientExtensions`. Never manufacture settings independently of 
 reuse data across principals. Each client/server settings snapshot is read once through the same
 connection-bound resource reader. Client advertisements of uninstalled descriptors are errors.
 
-The registry includes unchanged built-in A2UI and MCP Apps maps. An empty registry advertises only
+By default the registry includes unchanged built-in A2UI and MCP Apps maps. An empty custom list advertises only
 those maps. Data registration alone enables headless preparation. Native mounting additionally requires a
 factory-issued local renderer registration and its matching native registry, described below.
 
@@ -261,9 +261,10 @@ their dot-separated subnamespaces are reserved. Vendor JSON MIME syntax excludes
 MCP Apps MIME types. For example, a host may install `com.example/receipt`, version `1.0.0`, MIME
 `application/vnd.example.receipt+json`, and its exact locally generated schema revision.
 
-Generate `schemaRevision` during the application's build from the exact UTF-8 bytes of a checked-in
-JSON bundle with `inputSchema` and `modelSchema`: use Node's SHA-256 `createHash` on those bytes and
-parse that same file for registration. Runtime checks digest syntax and exact equality; it neither
+Generate `schemaRevision` with `createContractSchemaBundle` from
+`@mcp-native/host/contracts/authoring` during the application build. Persist its exact canonical UTF-8
+source and register the returned input/model/optional event schemas. See the [authoring guide](contract-authoring.md)
+for the versioned byte format, fixture runner, and migration from a previously hand-hashed bundle. Runtime checks digest syntax and exact equality; it neither
 fetches schemas nor recomputes hashes. Keeping the digest consistent with installed schemas is a
 trusted adapter-author build/fixture responsibility. A schema change requires a new digest and a
 reviewed contract-version decision.
@@ -337,14 +338,14 @@ limits still apply. This added cap is local to the new API; the existing host re
 | Valid selected payload and prepared model                                                            | `contract-data` with exact descriptor and immutable model                      |
 | Selected input/model failure, exhausted budget, or callback throw                                    | `contract-error`; no other adapter, standard path, or ordinary retry           |
 
-Precedence is MCP/extension validation, custom settings, standard/custom conflict, descriptor,
+Precedence is MCP/extension validation, installed standard settings, custom settings, standard/custom conflict, descriptor,
 negotiation, then input/preparation/model validation. Standard markers include top-level and embedded
 resource MIME types `application/a2ui+json` and `text/html;profile=mcp-app`, plus any tool `_meta.ui`.
 Malformed custom claims fail even without negotiation. Error results never call custom adapters.
 
 Registration, registry construction, and descriptor parsing throw `ContractError` with respectively
 `invalid-registration`, `invalid-registry`, and `invalid-claim`. Resolver custom codes are
-`invalid-registry`, `invalid-contract-settings`, `conflicting-contract-claims`, `invalid-claim`,
+`invalid-registry`, `invalid-standard-settings`, `invalid-contract-settings`, `conflicting-contract-claims`, `invalid-claim`,
 `invalid-contract-input`, `invalid-contract-model`, `contract-limit-exceeded`, `adapter-failed`,
 and `cancelled`.
 Malformed resolver options use existing `invalid` / `invalid-input`. Error output never retains a
@@ -352,4 +353,9 @@ server value or original callback exception.
 
 Tests cover SDK-backed resolution, standard parity, forbidden claims, strict schemas, callback
 counts, aggregate budgets, immutable ownership, and packed runtime/declaration consumers. Live
-updates, additional maintained standard factories, and custom resource transports remain later [RFC-0002](RFC-0002-contract-registry.md) work.
+updates, independently shipped standard adapters, and custom resource transports remain later [RFC-0002](RFC-0002-contract-registry.md) work.
+
+The optional registry `standards` selection and immutable `.standards` inventory are documented in
+[maintained standard contracts](standard-contracts.md). Omission preserves defaults; excluded client
+advertisements fail before reads. [Authoring tools](contract-authoring.md) provide reproducible schema
+bundles and bounded fixture reports without granting runtime authority.

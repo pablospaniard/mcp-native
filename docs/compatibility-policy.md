@@ -115,3 +115,13 @@ The [support matrix](support-matrix.md) records the supported dependency lanes. 
 [`1.0.0` readiness checklist](1.0-readiness.md) records completed readiness gates and the coordinated
 publication actions. Check results may be summarized in a pull request or release;
 their raw output is not a required committed artifact.
+
+## Unreleased contract inventory and authoring additions
+
+The opt-in [maintained standard factories](standard-contracts.md) add immutable registry inventory and
+subset selection; defaults, existing v1 declarations, protocol/schema pins, and package versions stay
+unchanged. A client advertising an excluded standard fails with the new contract-only
+`invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
+canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;
+adopting the fixture runner requires updating installed and peer-advertised digests together.
+Independently shipped standard adapters remain proposed in [RFC-0002](RFC-0002-contract-registry.md).

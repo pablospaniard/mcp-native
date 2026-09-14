@@ -202,3 +202,7 @@ accessible status to **Summary acknowledged**. It grants no tool or device acces
 modal revokes the view's handlers and shuts down the controller; reopening creates a new snapshot.
 See `src/summary-contract.ts` for the fixture and `src/summary.tsx` for explicit native prop mapping,
 policy, fallback UI, and lifecycle integration.
+
+The summary descriptor now pins the v1 canonical schema bundle produced by
+`@mcp-native/host/contracts/authoring`. Its test runs public data/event fixtures, including inconsistent
+counts, out-of-range input, and rejected events. See the [authoring guide](../../docs/contract-authoring.md).

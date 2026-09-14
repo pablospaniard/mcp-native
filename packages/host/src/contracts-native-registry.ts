@@ -4,6 +4,7 @@ import {
   createContractRegistry,
   type ContractAdapter,
   type ContractRegistry,
+  type ContractRegistryOptions,
 } from "./contracts.js";
 import { adapters, type AdapterState } from "./contract-registry-state.js";
 import { fail, keys, object } from "./contracts-schema.js";
@@ -50,6 +51,7 @@ export function createContractNativeRegistration(
 /** Advertise only adapters with an explicitly installed compiled renderer. */
 export function createContractNativeRegistry(
   installed: readonly ContractNativeRegistration[],
+  options: ContractRegistryOptions = {},
 ): ContractNativeRegistry {
   if (!Array.isArray(installed) || installed.length > 32) fail("invalid-registry");
   const states = new Map<AdapterState, NativeState>();
@@ -60,7 +62,7 @@ export function createContractNativeRegistry(
     states.set(state.adapter, state);
     dataAdapters.push(registration.adapter);
   }
-  const registry = Object.freeze({ registry: createContractRegistry(dataAdapters) });
+  const registry = Object.freeze({ registry: createContractRegistry(dataAdapters, options) });
   nativeRegistries.set(registry, states);
   return registry;
 }

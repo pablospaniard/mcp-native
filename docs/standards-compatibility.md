@@ -237,3 +237,13 @@ non-boolean check conditions.
 - State compatibility by exact revision, implemented feature profile, operation, and transport.
 - Base compatibility statements on passing pinned conformance tests and scoped integration results.
 - Update compatibility statements alongside the executable policy, tests, matrix, and release notes.
+
+## Unreleased contract inventory and authoring additions
+
+The opt-in [maintained standard factories](standard-contracts.md) add immutable registry inventory and
+subset selection; defaults, existing v1 declarations, protocol/schema pins, and package versions stay
+unchanged. A client advertising an excluded standard fails with the new contract-only
+`invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
+canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;
+adopting the fixture runner requires updating installed and peer-advertised digests together.
+Independently shipped standard adapters remain proposed in [RFC-0002](RFC-0002-contract-registry.md).

@@ -330,12 +330,17 @@ const contractsReactNative = localMode ? await import("@mcp-native/host/contract
 const reactNativeTesting = localMode ? await import("@mcp-native/react-native/testing") : undefined;
 if (contracts !== undefined) {
   const schema = { type: "object", properties: { label: { type: "string", maxLength: 20 } }, required: ["label"], additionalProperties: false };
-  const { createHash } = await import("node:crypto");
+  const authoring = await import("@mcp-native/host/contracts/authoring");
+  const bundle = await authoring.createContractSchemaBundle({ inputSchema: schema, modelSchema: schema });
   const descriptor = { id: "com.example/smoke", version: "1.0.0", transport: "structured-content", mimeType: "application/vnd.example.smoke+json",
-    schemaRevision: "sha256:" + createHash("sha256").update(JSON.stringify({ inputSchema: schema, modelSchema: schema })).digest("hex") };
+    schemaRevision: bundle.schemaRevision };
   const adapter = contracts.createContractAdapter({ descriptor, inputSchema: schema, modelSchema: schema, prepare: (input) => input });
   const nativeRegistry = contractsReactNative.createContractNativeRegistry([contractsReactNative.createContractNativeRegistration({ adapter, component: () => null })]);
   const registry = nativeRegistry.registry;
+  const report = await authoring.runContractAdapterFixtures({ adapter, fixtures: [{ name: "packed data", input: { label: "packed consumer" }, expected: { kind: "contract-data", model: { label: "packed consumer" } } }] });
+  if (!report.passed) throw new Error("Packed authoring fixtures failed");
+  const selected = contracts.createContractRegistry([], { standards: [contracts.createA2uiStandardContract()] });
+  if (selected.standards.length !== 2 || selected.standards[1].id !== "org.a2ui/native") throw new Error("Packed standard selection failed");
   const authorization = contracts.createContractActionAuthorization();
   if (await authorization.authorizeMcpAppsToolCall({ type: "tool", name: "smoke", arguments: {} })) throw new Error("Custom authorization must deny by default");
   const options = { registry, tool: { name: "smoke", inputSchema: { type: "object" } },
@@ -537,7 +542,8 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
   writeFileSync(
     contractTypeFixture,
     `import type { McpNativeHostResult } from "@mcp-native/host";
-import { createContractAdapter, createContractRegistry, createContractHostController, resolveContractResult, type ContractSchema, type ContractResult, type ContractHostControllerOptions, type ContractHostSnapshot } from "@mcp-native/host/contracts";
+import { createContractAdapter, createContractRegistry, createContractHostController, resolveContractResult, type ContractSchema, type ContractResult, type ContractHostControllerOptions, type ContractHostSnapshot, createA2uiStandardContract, type StandardContractProfile } from "@mcp-native/host/contracts";
+import { createContractSchemaBundle, runContractAdapterFixtures, type ContractAdapterFixtureReport } from "@mcp-native/host/contracts/authoring";
 import { ContractHostProvider, useContractHost, ContractNativeResultView, createContractNativeRegistration, createContractNativeRegistry, type ContractNativeRendererProps, type ContractHostProviderProps, type ContractHostContextValue } from "@mcp-native/host/contracts/react-native";
 export function existingConsumer(result: McpNativeHostResult): string {
   switch (result.kind) {
@@ -560,6 +566,10 @@ export function managed(options: Omit<ContractHostControllerOptions, "registry">
 export const nativeView: typeof ContractNativeResultView = ContractNativeResultView;
 export const nativeRegistration = createContractNativeRegistration({ adapter: createContractAdapter({ descriptor: registry.contracts[0]!, inputSchema: schema, modelSchema: schema, eventSchema: schema, prepare: input => input }), component: (props: ContractNativeRendererProps) => { void props.dispatchEvent({}); props.consume(1); return null; } });
 export const nativeRegistry = createContractNativeRegistry([nativeRegistration]);
+export const selected = createContractRegistry([], { standards: [createA2uiStandardContract()] });
+export const profile: StandardContractProfile = selected.standards[0]!;
+export const schemaBundle = createContractSchemaBundle({ inputSchema: schema, modelSchema: schema });
+export const fixtures = (): Promise<ContractAdapterFixtureReport> => runContractAdapterFixtures({ adapter: nativeRegistration.adapter, fixtures: [{ name: "typed", input: {}, expected: { kind: "contract-data", model: {} } }] });
 export const provider: typeof ContractHostProvider = ContractHostProvider;
 export const hook: () => ContractHostContextValue = useContractHost;
 `,

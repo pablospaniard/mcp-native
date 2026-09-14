@@ -83,3 +83,8 @@ Native provider, and the independently usable low-level packages. The
 record; the [changelog](../CHANGELOG.md) records published versions. Milestone 11 has an unreleased
 [inline-data, lifecycle, and native implementation](custom-contracts.md) under the broader
 [contract registry design](RFC-0002-contract-registry.md).
+
+## Unreleased contract tooling
+
+- [Maintained standard contracts](standard-contracts.md) — pinned inventory and explicit selection.
+- [Contract adapter authoring](contract-authoring.md) — canonical bundles, fixtures, and digest migration.

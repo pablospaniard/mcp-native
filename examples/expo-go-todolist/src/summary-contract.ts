@@ -34,7 +34,7 @@ export const summaryAdapter = createContractAdapter({
     version: "1.0.0",
     transport: "structured-content",
     mimeType: "application/vnd.example.todo-summary+json",
-    schemaRevision: "sha256:af880a398c404a2d1cc4c54ac0fba59c095fa808a9618c80b178c55a32aa41f8",
+    schemaRevision: "sha256:4a11de47cbc0d7ef189994dbbf29f57563ccb41cf1c2c1f470e239f1c4ee6cb8",
   },
   ...summarySchemaBundle,
   prepare(input, budget) {

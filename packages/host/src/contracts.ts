@@ -10,7 +10,6 @@ import { parseMcpSdkTool, parseMcpSdkToolCallResult } from "@mcp-native/mcp";
 import { MCP_APPS_MIME_TYPE, negotiateMcpApps } from "@mcp-native/webview";
 
 import {
-  MCP_NATIVE_HOST_EXTENSION_CAPABILITIES,
   resolveMcpNativeHostResult,
   type McpNativeHostResult,
   type ResolveMcpNativeHostResultOptions,
@@ -30,6 +29,12 @@ import {
   type ContractLimits,
   type ContractSchema,
 } from "./contracts-schema.js";
+import {
+  selectStandards,
+  hasUninstalledStandard,
+  type StandardContractProfile,
+  type ContractRegistryOptions,
+} from "./contract-standards.js";
 import { adapters, registries, type AdapterState } from "./contract-registry-state.js";
 import type { McpNativeHostAbortSignal } from "./controller.js";
 
@@ -47,6 +52,18 @@ export type {
   ContractActionAuthorizationRequest,
   ContractActionRequest,
 } from "./contract-actions.js";
+
+export {
+  createMcpOrdinaryContract,
+  createA2uiStandardContract,
+  createMcpAppsStandardContract,
+} from "./contract-standards.js";
+export type {
+  StandardContractId,
+  StandardContractProfile,
+  StandardContractRegistration,
+  ContractRegistryOptions,
+} from "./contract-standards.js";
 
 export { CONTRACT_LIMITS, ContractError } from "./contracts-schema.js";
 export type { ContractErrorCode, ContractLimits, ContractSchema } from "./contracts-schema.js";
@@ -89,6 +106,8 @@ export interface ContractAdapter {
 /** A host-created immutable snapshot; this is not a renderer or action grant. */
 export interface ContractRegistry {
   readonly contracts: readonly ContractDescriptor[];
+  /** Maintained inventory selected for this registry; ordinary fallback is mandatory. */
+  readonly standards: readonly StandardContractProfile[];
   /** Built-in profiles plus the exact locally installed custom contracts. Advertise on the same client. */
   readonly extensionSettings: McpExtensionSettings;
 }
@@ -201,10 +220,15 @@ export function createContractAdapter(options: ContractAdapterOptions): Contract
 }
 
 /** Select only host-installed adapters. Order never acts as precedence and duplicates are rejected. */
-export function createContractRegistry(installed: readonly ContractAdapter[]): ContractRegistry {
+export function createContractRegistry(
+  installed: readonly ContractAdapter[],
+  options: ContractRegistryOptions = {},
+): ContractRegistry {
   try {
     if (!Array.isArray(installed) || installed.length > CONTRACT_MAX_ADAPTERS)
       fail("invalid-registry");
+    keys(object(options, "invalid-registry"), ["standards"], "invalid-registry");
+    const standards = selectStandards(options.standards);
     const byIdentity = new Map<string, AdapterState>();
     const budget = new Budget({
       maxDepth: 32,
@@ -225,7 +249,7 @@ export function createContractRegistry(installed: readonly ContractAdapter[]): C
     const contracts = Object.freeze([...byIdentity.values()].map((entry) => entry.descriptor));
     const extensionSettings = copyObject(
       {
-        ...MCP_NATIVE_HOST_EXTENSION_CAPABILITIES,
+        ...Object.assign({}, ...standards.map((profile) => profile.extensions)),
         ...(contracts.length === 0
           ? {}
           : { [CONTRACT_EXTENSION_ID]: { bindingVersion: CONTRACT_BINDING_VERSION, contracts } }),
@@ -233,7 +257,7 @@ export function createContractRegistry(installed: readonly ContractAdapter[]): C
       new Budget(CONTRACT_LIMITS),
       "invalid-registry",
     ) as McpExtensionSettings;
-    const registry = Object.freeze({ contracts, extensionSettings });
+    const registry = Object.freeze({ contracts, standards, extensionSettings });
     registries.set(registry, byIdentity);
     return registry;
   } catch {
@@ -308,6 +332,9 @@ export async function resolveContractResult(
     if (options.signal?.aborted) return rejected("cancelled");
     return Object.freeze({ kind: "invalid", code: "invalid-extension-settings" });
   }
+
+  if (hasUninstalledStandard(clientSettings, options.registry.extensionSettings))
+    return rejected("invalid-standard-settings");
 
   let clientContracts;
   let serverContracts;

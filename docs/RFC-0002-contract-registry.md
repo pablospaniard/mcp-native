@@ -18,7 +18,10 @@ retains no executable surface state. Data-adapter registration alone enables hea
 native mounting and schema-validated events now require an explicit native registry whose
 advertisements include only locally installed renderers. The opt-in controller/provider own
 data-result lifecycle and private mount leases; no transferable public surface handle is exposed. The schema digest is authored and checked at build/fixture time;
-runtime validates its syntax and exact negotiation.
+runtime validates its syntax and exact negotiation. The [authoring subpath](contract-authoring.md) now generates
+versioned canonical bundles and checks bounded data/event fixtures. The [maintained inventory](standard-contracts.md)
+provides factories and subset selection for the existing three profiles; independently shipped standard
+adapters still require the broader interface described here.
 
 The v1 host recognizes a fixed set of A2UI and MCP Apps results. An application with its own
 receipt, itinerary, or other semantic document must currently orchestrate that format outside the
@@ -261,9 +264,10 @@ is no generic native command or implicit tool execution in the custom event cont
    authorization, bounded event lifetime, cancellation, and a maintained native example are
    implemented. A combined registered built-in view, editable models, and generalized public
    surface handles remain outside this slice.
-4. **Adapter-author and release readiness:** provide author tooling, fixtures, compatibility and
-   migration guidance, package-consumer coverage, and exact supported-entry documentation. Review
-   additional standards or resource transports separately.
+4. **Adapter-author and maintained inventory:** canonical schema bundles, bounded data/event fixtures,
+   maintained standard factories and selection, compatibility/migration guidance, and packed-consumer
+   coverage are implemented. Review independently shipped standard adapters and resource transports
+   separately; the closed inventory does not yet satisfy that extensibility exit criterion.
 
 Required regression and failure-path coverage includes:
 
@@ -285,4 +289,5 @@ Required regression and failure-path coverage includes:
 Implementation requires `npm run check`, `npm run package:smoke` for added exports/declarations,
 and applicable native integration checks. Update the API baseline intentionally, compatibility and
 migration guides, standards inventory, roadmap, and changelog with implemented scope and exact pins.
-The milestone remains open until the adapter-author and end-to-end acceptance gates pass.
+The milestone remains open for the independently shipped reviewed-standard adapter interface and its
+end-to-end acceptance gates. The maintained inventory alone does not meet that exit criterion.

@@ -264,3 +264,14 @@ Use the [focused packages](https://github.com/pablospaniard/mcp-native/tree/main
 ## License
 
 [MIT](https://github.com/pablospaniard/mcp-native/blob/main/LICENSE)
+
+## Unreleased standard inventory and authoring
+
+The `/contracts` entry point also exports `createMcpOrdinaryContract`, `createA2uiStandardContract`,
+and `createMcpAppsStandardContract`. Registry factories accept optional `{ standards: [...] }`;
+omission preserves defaults and ordinary fallback is always retained. Inspect `.standards` for
+pinned profile evidence and responsibilities. See the [inventory guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/standard-contracts.md).
+
+The separate `/contracts/authoring` entry point exports `createContractSchemaBundle` and
+`runContractAdapterFixtures` for build/test use. See the [authoring guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/contract-authoring.md)
+for canonical source bytes, bounds, fixture reports, and migration from hand-hashed descriptors.
