@@ -39,6 +39,7 @@ export const CONTRACT_LIMITS: Readonly<ContractLimits> = Object.freeze({
 });
 
 export type ContractErrorCode =
+  | "cancelled"
   | "invalid-registration"
   | "invalid-registry"
   | "invalid-claim"

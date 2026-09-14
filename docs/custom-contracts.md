@@ -1,8 +1,8 @@
 # Inline custom contract data
 
 Status: implemented in source for the next compatible release; not included in published `1.0.1`.
-This first headless slice of [Milestone 11](roadmap.md#milestone-11-standard-contract-registry-and-custom-input-adapters)
-provides validated immutable JSON. It does not mount UI, dispatch actions, or load custom resources.
+The data and lifecycle slices of [Milestone 11](roadmap.md#milestone-11-standard-contract-registry-and-custom-input-adapters)
+provide validated immutable JSON and opt-in connection ownership. It does not mount UI, dispatch actions, or load custom resources.
 The existing high-level provider and controller continue to accept their built-in profiles.
 
 ## Local registration
@@ -57,7 +57,97 @@ connection-bound resource reader. Client advertisements of uninstalled descripto
 
 The registry includes unchanged built-in A2UI and MCP Apps maps. An empty registry advertises only
 those maps. Custom registration enables headless data preparation only. There is no renderer grant,
-surface handle, or `/contracts/react-native` entry point in this slice.
+surface handle, or action authority. The optional `/contracts/react-native` entry point provides
+connection lifecycle and snapshots only.
+
+## Managed connection lifecycle
+
+Use `createContractHostController` when the host should own discovery, calls, cancellation,
+reconnection, and the current result. Its immutable registry is fixed before connecting. The
+connection factory receives the frozen extension map; use it for both actual SDK advertising and
+adapter settings, and return a fresh client/transport unit for every attempt:
+
+```ts
+import { Client } from "@modelcontextprotocol/client";
+import { createMcpNativeClientOptions, McpSdkClientAdapter } from "@mcp-native/mcp";
+import { createContractHostController } from "@mcp-native/host/contracts";
+
+const controller = createContractHostController({
+  registry,
+  createConnection(extensions) {
+    const transport = createTransport(); // Application-owned server and authentication setup.
+    const sdk = new Client(
+      { name: "receipt-host", version: "1.0.0" },
+      createMcpNativeClientOptions("auto", { extensions }),
+    );
+    return {
+      client: new McpSdkClientAdapter(sdk, { clientExtensions: extensions }),
+      connect: (signal) => sdk.connect(transport, { signal }),
+      close: () => sdk.close(),
+    };
+  },
+  classifyError: () => ({ kind: "retryable", code: "connection-failed" }),
+});
+
+await controller.start();
+const result = await controller.callTool("receipt", {}, { signal: abortController.signal });
+if (result.kind === "contract-data" && controller.isCurrentResult(result)) {
+  consumeReceiptData(result.model);
+}
+controller.clearResult();
+await controller.shutdown();
+```
+
+The snippet uses the registry above and application-owned `createTransport`, `abortController`,
+and `consumeReceiptData`. The controller accepts the existing host retry, timeout, diagnostics,
+online-state, and A2UI parsing options, plus optional lower contract `limits`. It snapshots those
+contract limits. `getSnapshot()`/`subscribe()` expose `ContractHostSnapshot`; only its resolved
+call result uses the extended `ContractResult` union. `retry()`, `setOnline()`, `refreshTools()`,
+and `cancelCurrentCall()` follow the existing host lifecycle. Discovery rejects partial tool lists;
+calls use only exact definitions discovered on the current connection. Reusing a connection unit or
+adapted client across attempts fails. Applications remain responsible for fresh transport ownership,
+server selection, authentication, secure storage, and truthful connection settings.
+
+One discovery or call may run at a time. The existing controller ceilings also apply: 8 unsettled
+operations, including abandoned work, and 64 snapshot listeners. Cancelled requests keep their slot
+until the underlying promise settles. Reconnect clears tools and results and requires discovery
+again. Cancellation and connection-generation checks run before SDK requests, resource processing,
+and custom preparation, and before publishing completion. Late responses cannot invoke preparation
+or replace current data. Operational failures reject with `McpNativeHostControllerError`; selected
+contract validation failures resolve as `contract-error` in a resolved call snapshot.
+
+`clearResult()` releases the controller's resolved result and reports whether anything was cleared.
+`isCurrentResult(result)` checks reference identity and live connection ownership; it is not an action
+permission. A new call, discovery refresh, connection replacement, explicit clear, or shutdown drops
+that ownership. Already returned JSON remains readable and inert; callers own their retained copies.
+`shutdown()` immediately revokes operations, clears tools/results/listeners, and exposes a shutdown
+snapshot, then awaits bounded transport cleanup. Repeated calls share the same completion promise.
+
+Standalone `resolveContractResult` accepts an optional `signal` and returns `contract-error` /
+`cancelled` when cancellation is observed. It suppresses subsequent preparation and late resource
+processing, but does not interrupt synchronous local code or make an unsettled resource promise
+finish. Standalone callers still own connection generations and concurrent-call limits.
+
+## React lifecycle provider
+
+Import `ContractHostProvider` and `useContractHost` from
+`@mcp-native/host/contracts/react-native`. Supply one fresh controller and a required `onError`
+callback; the provider starts it and exposes `{ controller, snapshot }` through the hook:
+
+```tsx
+<ContractHostProvider controller={controller} onError={reportHostError}>
+  <ReceiptDataConsumer />
+</ContractHostProvider>
+```
+
+The child calls `useContractHost()` to observe snapshots and invoke controller methods. Do not
+replace the controller prop or share one controller between mounted providers. Real unmount cancels
+pending calls immediately and schedules shutdown in a microtask; Strict Mode effect replay retains
+the same connection. Throwing or rejecting error observers cannot interrupt cleanup. Application
+code must create a new controller for a later mount after shutdown.
+
+This provider does not mount results, register renderers, or dispatch custom actions. Native
+rendering containment, live surface handles, and action authorization remain later RFC work.
 
 ## Project-owned binding `0.1`
 
@@ -145,9 +235,9 @@ effective limits are their minimum. A caught budget-exhaustion exception cannot 
 
 Registry construction charges all retained descriptors and both schemas together: at most 32
 adapters, 16384 values, 131072 string/key code units, depth 32, and 524288 work units. Repeated
-references count at each occurrence. There is no retained custom-result cache or live surface state.
-Applications own concurrent-call limits, connection generation, cancellation, disposal of their data
-references, and later use of returned models.
+references count at each occurrence. There is no custom-result cache or live surface state. The optional controller owns one current
+result and bounded operations; standalone callers own concurrent-call limits and connection
+generations. Applications own their retained data references and later use of returned models.
 
 The opt-in resolver also caps each complete extension snapshot at 1048576 cumulative string/key
 code units before negotiation, including unrecognized extension data. Existing per-value MCP JSON
@@ -172,11 +262,12 @@ Malformed custom claims fail even without negotiation. Error results never call 
 Registration, registry construction, and descriptor parsing throw `ContractError` with respectively
 `invalid-registration`, `invalid-registry`, and `invalid-claim`. Resolver custom codes are
 `invalid-registry`, `invalid-contract-settings`, `conflicting-contract-claims`, `invalid-claim`,
-`invalid-contract-input`, `invalid-contract-model`, `contract-limit-exceeded`, and `adapter-failed`.
+`invalid-contract-input`, `invalid-contract-model`, `contract-limit-exceeded`, `adapter-failed`,
+and `cancelled`.
 Malformed resolver options use existing `invalid` / `invalid-input`. Error output never retains a
 server value or original callback exception.
 
 Tests cover SDK-backed resolution, standard parity, forbidden claims, strict schemas, callback
 counts, aggregate budgets, immutable ownership, and packed runtime/declaration consumers. Native
-rendering, actions, updates, additional maintained standard factories, resource transports, and
-controller/provider integration remain later [RFC-0002](RFC-0002-contract-registry.md) work.
+rendering, actions, updates, additional maintained standard factories, and resource transports
+remain later [RFC-0002](RFC-0002-contract-registry.md) work.

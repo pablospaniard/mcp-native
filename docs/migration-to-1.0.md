@@ -5,10 +5,11 @@
 The source tree adds an unreleased `@mcp-native/host/contracts` subpath; published `1.0.1` does not
 include it. Existing v1 consumers need no migration. Adopters install local schemas and adapters,
 advertise the registry's extension map on their actual MCP client, and call `resolveContractResult`
-with that connection's tool/result. Handle `contract-data` and `contract-error` through the separate
+with that connection's tool/result, or use `createContractHostController` to own discovery, calls,
+cancellation, reconnect, and result lifetime. `ContractHostProvider`/`useContractHost` from
+`@mcp-native/host/contracts/react-native` optionally own that controller for one React mount. Handle `contract-data` and `contract-error` through the separate
 `ContractResult` union. Do not pass custom data to existing host views as A2UI or MCP Apps. See the
-[API and binding guide](custom-contracts.md) for schema pins, limits, and host-owned lifecycle
-responsibilities. Existing default policy, standard pins, root exports, and closed unions are unchanged.
+[API and binding guide](custom-contracts.md) for schema pins, limits, lifecycle configuration, and provider ownership rules. Existing default policy, standard pins, root exports, and closed unions are unchanged.
 
 ## Align the A2UI schema revision on both peers
 

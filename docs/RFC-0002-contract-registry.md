@@ -1,6 +1,6 @@
 # RFC-0002: standard contract registry and custom input adapters
 
-- Status: Partially implemented; headless inline-data slice available in source, later integration proposed
+- Status: Partially implemented; inline data and controller/provider lifecycle available in source; rendering/actions proposed
 - Date: 2026-09-14
 - Tracking: [Milestone 11 / issue #91](https://github.com/pablospaniard/mcp-native/issues/91)
 - Foundation: [RFC-0001](RFC-0001-architecture.md) and the [1.x compatibility policy](compatibility-policy.md)
@@ -11,12 +11,12 @@ The first implementation exports `@mcp-native/host/contracts`: local adapter/reg
 strict inline schemas, and `resolveContractResult`. See [the binding and API guide](custom-contracts.md)
 for the exact implemented grammar, limits, fallback table, and author responsibilities. This is an
 unreleased addition; published `1.0.1` does not contain it. The rest of this design includes later
-renderer and lifecycle integration.
+renderer and action integration.
 
 This slice returns inert `contract-data`, not a live surface handle. Its separate result union
 retains no custom surface state. Registration currently enables only headless data preparation;
-renderer-readiness advertising, handles, native mounting, actions, and the registered controller/
-provider remain later work. The schema digest is authored and checked at build/fixture time;
+renderer-readiness advertising, handles, native mounting, and actions remain later work. The
+opt-in `ContractHostController` and `ContractHostProvider` now own data-result lifecycle. The schema digest is authored and checked at build/fixture time;
 runtime validates its syntax and exact negotiation.
 
 The v1 host recognizes a fixed set of A2UI and MCP Apps results. An application with its own
@@ -36,28 +36,32 @@ additional components inside the current A2UI contract.
 
 All new rules and wire fields are MCP Native project policy, not requirements or approved
 extensions of MCP, A2UI, or MCP Apps. The implemented inline binding is documented separately;
-existing standard profiles, schema pins, package versions, and v1 host behavior are unchanged.
+existing standard profiles, schema pins, package versions, and v1 public types are unchanged.
+Shared controller cleanup now skips cancelled work before parsing/preparation and releases state
+immediately on shutdown.
 
 ## Compatibility and package ownership
 
 `McpNativeHostResult` remains the closed `a2ui | mcp-app | ordinary | invalid` union. Existing
 resolver, controller, provider, hook, action-authorization union, error codes, and result views
-retain their current types and behavior. Adding another member to those unions would break
+retain their current types and defaults. Adding another member to those unions would break
 exhaustive consumers and is not an additive minor-release change.
 
-The opt-in entry point `@mcp-native/host/contracts` provides the first headless slice.
-`@mcp-native/host/contracts/react-native` remains proposed and is not an available import. A separately named registered
-controller/provider owns an extended result and action surface. It may share private orchestration
-with the existing host, but it cannot widen existing declarations or change their defaults.
+The opt-in entry point `@mcp-native/host/contracts` provides registration, resolution, and
+`ContractHostController`. `@mcp-native/host/contracts/react-native` exports the lifecycle-only
+`ContractHostProvider` and `useContractHost`. These share private orchestration with the existing
+host without widening its declarations or changing its defaults. A future registered view/action
+surface remains proposed.
 
 The headless entry point owns selection, registration validation, operation ownership, and budget
-accounting. The React Native entry point binds a registry-issued local registration to a compiled
-renderer and contains mount failures. Protocol packages retain parsing, negotiation, action
+accounting. The React Native entry point currently owns provider lifecycle and snapshots. A future view will
+bind a registry-issued local registration to a compiled renderer and contain mount failures. Protocol packages retain parsing, negotiation, action
 serialization, and sandbox authority for their profiles. No implementation or registry moves into
 `@mcp-native/core`, and no new package dependency is required for this design.
 
 Adoption is explicit: an application installs adapters, creates a frozen registry before connecting,
-and switches to the registered controller and view together. Applications remaining on the v1 API
+and opts into the contract controller/provider for data lifecycle. A registered view will require
+separate adoption once implemented. Applications remaining on the v1 API
 need no migration. The new API can ship in a minor release only after declaration and packed-consumer
 tests demonstrate that the old API is unchanged. No release number is assigned here.
 
@@ -248,9 +252,10 @@ is no generic native command or implicit tool execution in the custom event cont
 2. **Registry and inline resolution:** add the exact custom binding/schema and local registration
    factories, fixed selection, immutable validated models, shared limits, and a separate result API.
    Verify built-in parity and failure routing before any custom mounting is enabled.
-3. **Registered host integration:** implement the opt-in controller/provider/view, contained local
-   renderer, authorization, cancellation, disposal, and maintained example. Verify headless and
-   native behavior before exposing an end-to-end supported path.
+3. **Registered host integration:** controller/provider lifecycle, cancellation, result ownership,
+   bounded stale work, and disposal are implemented. The registered view, contained local renderer,
+   action authorization, and maintained native example remain open. Verify native behavior before
+   exposing an end-to-end rendering path.
 4. **Adapter-author and release readiness:** provide author tooling, fixtures, compatibility and
    migration guidance, package-consumer coverage, and exact supported-entry documentation. Review
    additional standards or resource transports separately.

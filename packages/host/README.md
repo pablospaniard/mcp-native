@@ -216,10 +216,12 @@ by trusted application code remain a separate boundary.
 ## Public API
 
 The source tree also includes an unreleased opt-in `@mcp-native/host/contracts` subpath for
-`createContractAdapter`, `createContractRegistry`, `parseContractDescriptor`, and
-`resolveContractResult`. It validates exactly negotiated inline custom JSON into immutable
+`createContractAdapter`, `createContractRegistry`, `parseContractDescriptor`,
+`resolveContractResult`, and `createContractHostController`. It validates exactly negotiated inline custom JSON into immutable
 `contract-data`, with a separate `ContractResult` union. It is not included in published `1.0.1`.
-The existing controller/provider does not mount this data or grant it actions. See the
+`ContractHostController` owns discovery, cancellation, reconnect, and result lifetime. The new
+`@mcp-native/host/contracts/react-native` subpath exports lifecycle-only `ContractHostProvider` and
+`useContractHost`; it does not mount custom data or grant actions. See the
 [custom contract guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/custom-contracts.md)
 for registration, schemas, budgets, connection ownership, and later integration scope.
 

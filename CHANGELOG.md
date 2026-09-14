@@ -12,8 +12,13 @@ patch and minor releases remain compatible within their release line.
   a closed schema subset, and connection-bound inline JSON resolution. Existing host exports and
   result/action/error unions retain their behavior; custom results carry inert data only.
 - Define the project-owned `io.github.pablospaniard/mcp-native-contracts` binding at `0.1` with exact
-  descriptor negotiation. Native rendering, custom actions, resources, and controller integration
-  remain later Milestone 11 work. Existing MCP, A2UI, and MCP Apps pins are unchanged.
+  descriptor negotiation. Native rendering, custom actions, and resources remain later
+  Milestone 11 work. Existing MCP, A2UI, and MCP Apps pins are unchanged.
+
+- Add `ContractHostController`/`createContractHostController` with frozen registry settings, exact
+  discovered-tool ownership, cancellation, reconnect, bounded pending work, explicit result clearing,
+  and idempotent shutdown. Add lifecycle-only `ContractHostProvider`/`useContractHost` through
+  `@mcp-native/host/contracts/react-native`, including Strict Mode and single-provider ownership.
 
 ### Security
 
@@ -24,11 +29,15 @@ patch and minor releases remain compatible within their release line.
   omit unknown properties. Freeze owned input/output, contain callback failures, and never retry
   failed selected validation through another executable path.
 
+- Guard shared host operations before SDK requests and late resource processing/preparation, and
+  release snapshots/listeners immediately on shutdown while sharing bounded cleanup completion.
+  Preserve existing controller declarations, root exports, and closed result/action/error unions.
+
 ### Documentation
 
 - Propose the Milestone 11 standard contract registry and custom input adapter design, including
   separate opt-in APIs, exact negotiation, disjoint routing, cumulative limits, and acceptance gates.
-  Document the initial headless API and the remaining renderer/lifecycle stages separately.
+  Document the implemented data/lifecycle APIs and the remaining renderer/action stages separately.
 - Correct v1 release status to reflect published `1.0.0` and `1.0.1` packages, while keeping the
   post-publication registry audit record distinct from successful release verification/publication.
 

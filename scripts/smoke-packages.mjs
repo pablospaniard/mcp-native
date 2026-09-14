@@ -326,6 +326,7 @@ const umbrella = loaded.get("mcp-native");
 const host = loaded.get("@mcp-native/host");
 const hostReactNative = localMode ? await import("@mcp-native/host/react-native") : undefined;
 const contracts = localMode ? await import("@mcp-native/host/contracts") : undefined;
+const contractsReactNative = localMode ? await import("@mcp-native/host/contracts/react-native") : undefined;
 const reactNativeTesting = localMode ? await import("@mcp-native/react-native/testing") : undefined;
 if (contracts !== undefined) {
   const schema = { type: "object", properties: { label: { type: "string", maxLength: 20 } }, required: ["label"], additionalProperties: false };
@@ -343,6 +344,24 @@ if (contracts !== undefined) {
   }
   if ((await host.resolveMcpNativeHostResult(options)).kind !== "ordinary" || Object.hasOwn(host, "resolveContractResult")) {
     throw new Error("The opt-in contract API changed the existing host root");
+  }
+  let closes = 0;
+  const controller = contracts.createContractHostController({ registry,
+    classifyError: () => ({ kind: "retryable", code: "network-unavailable" }),
+    createConnection(extensions) {
+      if (extensions !== registry.extensionSettings) throw new Error("Registry advertising changed");
+      return { client: { ...options.client, async listTools() { return { tools: [options.tool] }; }, async callTool() { return options.result; } },
+        async connect() {}, async close() { closes++; } };
+    } });
+  await controller.start();
+  const managed = await controller.callTool("smoke");
+  if (managed.kind !== "contract-data" || !controller.isCurrentResult(managed) || !controller.clearResult() || controller.isCurrentResult(managed)) {
+    throw new Error("Packed contract lifecycle failed");
+  }
+  await controller.shutdown();
+  if (closes !== 1 || controller.getSnapshot().connection.reason !== "shutdown" ||
+      typeof contractsReactNative.ContractHostProvider !== "function" || typeof contractsReactNative.useContractHost !== "function") {
+    throw new Error("Packed contract cleanup/provider exports failed");
   }
 }
 if (localMode) {
@@ -514,7 +533,8 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
   writeFileSync(
     contractTypeFixture,
     `import type { McpNativeHostResult } from "@mcp-native/host";
-import { createContractAdapter, createContractRegistry, resolveContractResult, type ContractSchema, type ContractResult } from "@mcp-native/host/contracts";
+import { createContractAdapter, createContractRegistry, createContractHostController, resolveContractResult, type ContractSchema, type ContractResult, type ContractHostControllerOptions, type ContractHostSnapshot } from "@mcp-native/host/contracts";
+import { ContractHostProvider, useContractHost, type ContractHostProviderProps, type ContractHostContextValue } from "@mcp-native/host/contracts/react-native";
 export function existingConsumer(result: McpNativeHostResult): string {
   switch (result.kind) {
     case "a2ui": return result.resource.uri;
@@ -527,6 +547,14 @@ export function existingConsumer(result: McpNativeHostResult): string {
 const schema: ContractSchema = { type: "object", properties: {}, required: [], additionalProperties: false };
 const registry = createContractRegistry([createContractAdapter({ descriptor: { id: "com.example/typecheck", version: "1.0.0", schemaRevision: "sha256:" + "0".repeat(64), transport: "structured-content", mimeType: "application/vnd.example.typecheck+json" }, inputSchema: schema, modelSchema: schema, prepare: input => input })]);
 export const resolve = (client: Parameters<typeof resolveContractResult>[0]["client"]): Promise<ContractResult> => resolveContractResult({ registry, client, tool: {}, result: {} });
+export function managed(options: Omit<ContractHostControllerOptions, "registry">): ContractHostProviderProps {
+  const controller = createContractHostController({ ...options, registry });
+  const snapshot: ContractHostSnapshot = controller.getSnapshot();
+  if (snapshot.call.kind === "resolved") controller.isCurrentResult(snapshot.call.result);
+  return { controller, onError: () => {} };
+}
+export const provider: typeof ContractHostProvider = ContractHostProvider;
+export const hook: () => ContractHostContextValue = useContractHost;
 `,
   );
   execFileSync(

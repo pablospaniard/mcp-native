@@ -65,11 +65,14 @@ automatically discovering again. Explicit `refreshTools()` ignores a still-fresh
 replaces it with a newly fetched, validated aggregate.
 
 The unreleased [Milestone 11 inline contract API](custom-contracts.md) uses the separate
-`@mcp-native/host/contracts` entry point and `ContractResult` union. Existing resolver/controller,
+`@mcp-native/host/contracts` entry point and `ContractResult` union. Existing resolver/controller declarations,
 result/action/error unions, default extension map, and root exports are unchanged. The new API
 adds inert `contract-data` and `contract-error` outcomes; applications opt in explicitly. It does
-not expand supported A2UI or MCP Apps profiles. The broader renderer and lifecycle design in
-[RFC-0002](RFC-0002-contract-registry.md) remains later work.
+not expand supported A2UI or MCP Apps profiles. The opt-in controller and
+`@mcp-native/host/contracts/react-native` provider add data-result lifecycle without custom rendering
+or actions. Both controllers share cancellation guards that prevent late parsing/preparation and
+immediately drop tools/results on shutdown; existing public declarations are preserved. The broader
+renderer/action design in [RFC-0002](RFC-0002-contract-registry.md) remains later work.
 
 The additive React Native host registration, mount-report fields and error codes, layout-contract
 vocabulary, registered surface, reusable render boundary, and `/testing` subpath are stable

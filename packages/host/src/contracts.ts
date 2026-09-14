@@ -30,6 +30,14 @@ import {
   type ContractLimits,
   type ContractSchema,
 } from "./contracts-schema.js";
+import type { McpNativeHostAbortSignal } from "./controller.js";
+
+export { ContractHostController, createContractHostController } from "./contract-controller.js";
+export type {
+  ContractHostControllerOptions,
+  ContractHostCallState,
+  ContractHostSnapshot,
+} from "./contract-controller.js";
 
 export { CONTRACT_LIMITS, ContractError } from "./contracts-schema.js";
 export type { ContractErrorCode, ContractLimits, ContractSchema } from "./contracts-schema.js";
@@ -93,6 +101,8 @@ export interface ResolveContractResultOptions extends ResolveMcpNativeHostResult
   readonly registry: ContractRegistry;
   /** Optional per-call host ceilings. They cannot raise installed adapter limits. */
   readonly limits?: Partial<ContractLimits>;
+  /** Cancellation prevents subsequent preparation/resource work and suppresses late results. */
+  readonly signal?: McpNativeHostAbortSignal;
 }
 
 interface AdapterState {
@@ -112,6 +122,11 @@ const RESERVED_NAMESPACES = [
   "io.mcp-native",
   "org.a2ui",
 ];
+
+/** Test factory-issued registry identity without treating a structural copy as a registration. */
+export function isContractRegistry(value: unknown): value is ContractRegistry {
+  return typeof value === "object" && value !== null && registries.has(value as ContractRegistry);
+}
 
 /** Validate the closed custom wire descriptor without performing negotiation or granting execution. */
 export function parseContractDescriptor(input: unknown): ContractDescriptor {
@@ -239,11 +254,21 @@ export async function resolveContractResult(
     const value = object(options, "invalid-registration");
     keys(
       value,
-      ["registry", "tool", "result", "client", "limits", "a2uiParseOptions"],
+      ["registry", "tool", "result", "client", "limits", "a2uiParseOptions", "signal"],
       "invalid-registration",
     );
     installed = registries.get(options.registry);
     if (!installed) return rejected("invalid-registry");
+    if (
+      options.signal !== undefined &&
+      (options.signal === null ||
+        typeof options.signal !== "object" ||
+        typeof options.signal.aborted !== "boolean" ||
+        typeof options.signal.addEventListener !== "function" ||
+        typeof options.signal.removeEventListener !== "function")
+    )
+      return Object.freeze({ kind: "invalid", code: "invalid-input" });
+    if (options.signal?.aborted) return rejected("cancelled");
     client = options.client;
     if (
       !client ||
@@ -268,6 +293,7 @@ export async function resolveContractResult(
         maxTotalStringCodeUnits: JSON_MAX_TOTAL_STRING_CODE_UNITS,
       }),
     );
+    if (options.signal?.aborted) return rejected("cancelled");
     serverSettings = parseMcpExtensionSettings(
       parseJsonObject(client.getServerExtensionSettings(), "server extensions", {
         maxTotalStringCodeUnits: JSON_MAX_TOTAL_STRING_CODE_UNITS,
@@ -276,6 +302,7 @@ export async function resolveContractResult(
     negotiateMcpBinding(clientSettings, serverSettings);
     negotiateMcpApps(clientSettings, serverSettings);
   } catch {
+    if (options.signal?.aborted) return rejected("cancelled");
     return Object.freeze({ kind: "invalid", code: "invalid-extension-settings" });
   }
 
@@ -292,6 +319,28 @@ export async function resolveContractResult(
   } catch {
     return rejected("invalid-contract-settings");
   }
+  if (options.signal?.aborted) return rejected("cancelled");
+
+  const resolveBuiltin = async (): Promise<ContractResult> => {
+    const resolved = await resolveMcpNativeHostResult({
+      tool,
+      result,
+      client: {
+        readResource: async (uri) => {
+          if (options.signal?.aborted) fail("cancelled");
+          const resource = await client.readResource(uri);
+          if (options.signal?.aborted) fail("cancelled");
+          return resource;
+        },
+        getClientExtensionSettings: () => clientSettings,
+        getServerExtensionSettings: () => serverSettings,
+      },
+      ...(options.a2uiParseOptions === undefined
+        ? {}
+        : { a2uiParseOptions: options.a2uiParseOptions }),
+    });
+    return options.signal?.aborted ? rejected("cancelled") : resolved;
+  };
 
   let claimField: PropertyDescriptor | undefined;
   let hasOriginalUi = false;
@@ -313,18 +362,7 @@ export async function resolveContractResult(
     return rejected("invalid-claim");
   }
   if (claimField === undefined) {
-    return resolveMcpNativeHostResult({
-      tool,
-      result,
-      client: {
-        readResource: (uri) => client.readResource(uri),
-        getClientExtensionSettings: () => clientSettings,
-        getServerExtensionSettings: () => serverSettings,
-      },
-      ...(options.a2uiParseOptions === undefined
-        ? {}
-        : { a2uiParseOptions: options.a2uiParseOptions }),
-    });
+    return resolveBuiltin();
   }
 
   // Reserved markers exclude custom routing even when malformed or not negotiated.
@@ -357,18 +395,11 @@ export async function resolveContractResult(
     !serverContracts.some((entry) => same(entry, descriptor))
   ) {
     // Use the existing freezing and ordinary-content behavior, with no custom callbacks or reads.
-    return resolveMcpNativeHostResult({
-      tool,
-      result,
-      client: {
-        readResource: (uri) => client.readResource(uri),
-        getClientExtensionSettings: () => clientSettings,
-        getServerExtensionSettings: () => serverSettings,
-      },
-    });
+    return resolveBuiltin();
   }
 
   try {
+    if (options.signal?.aborted) fail("cancelled");
     const effective = Object.fromEntries(
       Object.keys(CONTRACT_LIMITS).map((key) => [
         key,
@@ -390,6 +421,7 @@ export async function resolveContractResult(
     validate(state.inputSchema, input, budget, "invalid-contract-input");
     const context = Object.freeze({
       consume(work: number) {
+        if (options.signal?.aborted) fail("cancelled");
         if (!Number.isSafeInteger(work) || work < 1) fail("adapter-failed");
         budget.spend(work);
       },
@@ -398,6 +430,7 @@ export async function resolveContractResult(
     try {
       prepared = state.prepare(input, context);
     } catch (error) {
+      if (options.signal?.aborted) fail("cancelled");
       if (error instanceof ContractError && error.code === "contract-limit-exceeded") throw error;
       fail("adapter-failed");
     }
@@ -406,8 +439,10 @@ export async function resolveContractResult(
       void prepared.catch(() => {});
       fail("invalid-contract-model");
     }
+    if (options.signal?.aborted) fail("cancelled");
     const model = copyObject(prepared, budget, "invalid-contract-model");
     validate(state.modelSchema, model, budget, "invalid-contract-model");
+    if (options.signal?.aborted) fail("cancelled");
     return Object.freeze({ kind: "contract-data", descriptor: state.descriptor, model });
   } catch (error) {
     return rejected(error instanceof ContractError ? error.code : "adapter-failed");
