@@ -7,7 +7,7 @@ The original author acceptance review was rejected by the user after identifying
 lifecycle issues. Its earlier readiness conclusion is withdrawn. The implementation now addresses
 slow delivery after timeout, replay-safe render accounting, and generation-gated provider cancellation.
 The regression evidence and API correction are recorded below. This remains an author-maintained
-implementation record, not independent certification or maintainer approval. Issue #91 and the draft
+implementation record, not independent certification or maintainer approval. Issue #91 and the
 PR remain open for renewed review.
 
 ## Scope checked against issue #91
