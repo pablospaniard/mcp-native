@@ -1,14 +1,14 @@
 # Milestone 11 implementation acceptance review
 
-Date: 2026-09-14. Scope: the bounded inline implementation in [PR #137](https://github.com/pablospaniard/mcp-native/pull/137),
+Initial review: 2026-09-14. Corrective validation completed: 2026-09-15. Scope: the bounded inline implementation in [PR #137](https://github.com/pablospaniard/mcp-native/pull/137),
 including the acceptance fixes following implementation commit `ec6cc67`.
 
-The implementation satisfies the documented inline adapter interface and its automated acceptance
-gates. The review found and fixed stale render-budget callbacks and recoverable invalid budget
-charges. No further blocking finding was identified in this implementation review. This is the
-implementation author's review and evidence record; it does not represent independent security
-certification, maintainer approval, an accepted upstream standard, or a release. Issue #91 remains
-open for maintainer acceptance and the PR remains a draft.
+The original author acceptance review was rejected by the user after identifying three missed
+lifecycle issues. Its earlier readiness conclusion is withdrawn. The implementation now addresses
+slow delivery after timeout, replay-safe render accounting, and generation-gated provider cancellation.
+The regression evidence and API correction are recorded below. This remains an author-maintained
+implementation record, not independent certification or maintainer approval. Issue #91 and the draft
+PR remain open for renewed review.
 
 ## Scope checked against issue #91
 
@@ -28,7 +28,7 @@ interface; it does not assert that any additional real upstream profile has pass
 Host-supplied review evidence is an attestation, and local preparation/rendering/delivery callbacks
 remain trusted code with cooperative work accounting.
 
-## Findings and regression evidence
+## Initial findings and regression evidence (superseded render design)
 
 1. **Stale render charges could affect a remount.** After hiding a native result view while retaining
    its current controller result, a saved `consume()` callback could still spend or exhaust that
@@ -43,13 +43,40 @@ remain trusted code with cooperative work accounting.
    allowance. Regression tests first observed `contract-data` and delivered events after invalid
    charges, then passed with `adapter-failed` and `limit-exceeded`. A fresh result gets a fresh budget.
 
-Both fixes apply to custom and reviewed inline adapters through the shared implementation. The
-existing closed error codes suffice; there is no public API or wire-format change.
+The preparation-charge fix still applies to both custom and reviewed adapters. The initial shared
+render/event budget design above was incorrect under React replay and is superseded by the following
+review fixes. Existing error codes and wire formats remain unchanged; the unreleased renderer API changes.
+
+## User review and corrective changes
+
+1. **Timeout released a live delivery gate.** The original timeout race cleared the lease gate while
+   `onEvent` could still be running. A new regression reproduced a second delivered event instead of
+   `busy`. The result now retains its single-flight gate until the underlying review/delivery settles,
+   including across view remounts. Resolve and reject paths are tested, along with resumed delivery
+   after settlement. Earlier slow-delivery capacity tests covered replacements but missed this retry.
+2. **Rendering mutated lifetime state.** The unconditional renderer `consume()` charge made Strict
+   Mode and discarded/replayed renders spend a shared budget. Renderers now call `createRenderBudget()`
+   once per invocation and share that local budget across their traversal. Its charges do not change
+   event state or another render's allowance. A Suspense regression exercises discarded attempts,
+   Strict Mode replay, and state rerenders at the exact work limit. Local cumulative exhaustion,
+   boundary containment, and saved-budget revocation remain tested. Renderers must not memoize the
+   budget or allocate a new budget for every traversal element.
+3. **Replay requested cancellation.** Provider cleanup called `cancelCurrentCall()` before checking
+   its generation. A regression observed one cancellation during Strict Mode replay where zero was
+   required. Cancellation now shares shutdown's generation guard; a real unmount still cancels and
+   closes once. Existing pending-call unmount tests verify actual cancellation.
+
+The renderer migration is explicit: replace the unreleased `consume` prop with
+`createRenderBudget(): ContractRenderBudget`. `ContractPreparationContext.consume()` is unchanged.
+The maintained example and packed typed consumer use the new API. The API baseline changes only the
+host declarations for this opt-in renderer surface; published v1 exports and controller declarations
+remain identical. Timeout is not an exactly-once I/O guarantee; the host cannot undo an effect or
+force a non-cooperative handler to finish. No automatic retry occurs.
 
 ## Validation record
 
-- `npm run clean`, `npm run check`, and `npm test`: format, lint, types, unchanged API baseline,
-  pinned schemas, coverage, performance, conformance, and 609 passing tests.
+- `npm run clean`, `npm run check`, and `npm test`: format, lint, types, reviewed API baseline,
+  pinned schemas, coverage, performance, conformance, and 612 passing tests.
 - `npm run package:smoke`: seven library tarballs plus the independent profile fixture, public
   runtime/type consumers, React 18.1, and the 0.9.3 upgrade path.
 - Todo example: type checking, 12 tests, and both iOS/Android bundles.
@@ -61,7 +88,7 @@ existing closed error codes suffice; there is no public API or wire-format chang
 
 ## Remaining scope and acceptance decision
 
-The bounded implementation is ready for maintainer acceptance review. It supports custom and
+The bounded implementation awaits renewed review after these corrections. It supports custom and
 separately packaged reviewed **inline JSON** adapters with exact own-extension/result-marker
 bindings and compiled native rendering. Existing maintained A2UI and Apps implementations retain
 their separate rendering and resource authority.

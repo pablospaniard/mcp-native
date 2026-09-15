@@ -280,3 +280,7 @@ for canonical source bytes, bounds, fixture reports, and migration from hand-has
 settings, result metadata, and local review evidence. Install the returned adapter in the data or
 native registry; `.reviewedStandards` remains separate from custom descriptors and maintained profiles.
 Existing native authorization and lifecycle controls apply. See the [reviewed adapter guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/reviewed-standard-adapters.md).
+
+The unreleased native contract renderer now receives `createRenderBudget()` instead of a shared
+`consume` prop. Create a fresh budget per render invocation; event budgets remain cumulative per
+result. This corrects React replay behavior. See the [renderer migration](https://github.com/pablospaniard/mcp-native/blob/main/docs/custom-contracts.md#unreleased-renderer-migration-after-review).

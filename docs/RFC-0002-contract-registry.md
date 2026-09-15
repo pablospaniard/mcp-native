@@ -298,3 +298,7 @@ acceptance review; the synthetic fixture does not claim a new real upstream stan
 
 See the [implementation acceptance review](milestone-11-acceptance.md) for the requirement/evidence
 mapping, fixed lifecycle/budget findings, and remaining maintainer decision.
+
+Review correction: native rendering uses a fresh cumulative budget for each render invocation;
+React render attempts never mutate lifetime event accounting. Single-flight event ownership persists
+after timeout until actual review/delivery settlement. See the [corrected review record](milestone-11-acceptance.md).

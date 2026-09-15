@@ -27,6 +27,7 @@ export type {
   ContractNativeRegistration,
   ContractNativeRegistry,
   ContractNativeRendererProps,
+  ContractRenderBudget,
 } from "./contracts-native-registry.js";
 export type { ContractEventOutcome } from "./contract-surface-runtime.js";
 
@@ -129,10 +130,10 @@ export function ContractHostProvider({
     });
     return () => {
       mounted = false;
-      controller.cancelCurrentCall();
-      // Strict Mode replays setup immediately. Only a real unmount owns shutdown after this microtask.
+      // Strict Mode replays setup immediately. Only a real unmount owns cancellation and shutdown after this microtask.
       void Promise.resolve().then(() => {
         if (generation.current !== mountedGeneration) return;
+        controller.cancelCurrentCall();
         if (owners.get(controller) === owner) owners.delete(controller);
         native.runtime?.dispose();
         return controller.shutdown().catch((error: unknown) => report(errors.current, error));

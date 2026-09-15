@@ -10,11 +10,15 @@ import { adapters, type AdapterState } from "./contract-registry-state.js";
 import { fail, keys, object } from "./contracts-schema.js";
 import type { ContractEventOutcome } from "./contract-surface-runtime.js";
 
+export interface ContractRenderBudget {
+  /** Charge cumulative work within this render attempt; a failed charge stays failed. */
+  readonly consume: (work: number) => void;
+}
 export interface ContractNativeRendererProps {
   readonly model: JsonObject;
   readonly dispatchEvent: (event: JsonObject) => Promise<ContractEventOutcome>;
-  /** Charge model-dependent render work before performing it, across this result's lifetime. */
-  readonly consume: (work: number) => void;
+  /** Create once per render invocation and share across that invocation's traversal. Never memoize. */
+  readonly createRenderBudget: () => ContractRenderBudget;
 }
 export interface ContractNativeRegistrationOptions {
   readonly adapter: ContractAdapter;

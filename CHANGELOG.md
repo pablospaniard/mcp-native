@@ -38,10 +38,15 @@ patch and minor releases remain compatible within their release line.
 
 ### Fixed
 
-- Revoke native contract render-budget callbacks on unmount so stale callbacks cannot exhaust a
-  remounted result. Preserve usable Strict Mode reactivation without resetting result budgets.
-- Keep invalid preparation and render charges failed even when local callbacks catch the error;
-  reject model publication or event delivery accordingly. Record Milestone 11 acceptance evidence.
+- Retain each result's event gate after timeout or unmount until the underlying review/delivery
+  settles, preventing overlapping same-result delivery across retries and remounts.
+- Replace the unreleased renderer `consume` prop with `createRenderBudget()` for fresh per-render
+  cumulative accounting. React replay and discarded renders no longer spend event or other render
+  budgets. Migrate the example and document the API correction.
+- Gate provider cancellation and shutdown together so Strict Mode effect cleanup does not cancel
+  live work. Record the rejected initial acceptance review and corrective regression evidence.
+- Keep invalid preparation charges failed even when local callbacks catch the error. Revoke saved
+  render budgets on unmount and keep failed charges local to their render attempt.
 
 ### Security
 
@@ -56,7 +61,7 @@ patch and minor releases remain compatible within their release line.
   release snapshots/listeners immediately on shutdown while sharing bounded cleanup completion.
   Preserve existing controller declarations, root exports, and closed result/action/error unions.
 
-- Bound cumulative custom event/render work across remounts, event attempts, unsettled callbacks,
+- Bound cumulative custom event work across remounts, per-render work, event attempts, unsettled callbacks,
   and review/delivery deadlines. Revoke authority on replacement, unmount, render failure, and
   shutdown; late approval cannot invoke delivery. Custom policies deny by default.
 

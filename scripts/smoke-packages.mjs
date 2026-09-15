@@ -585,7 +585,7 @@ export function managed(options: Omit<ContractHostControllerOptions, "registry">
   return { controller, onError: () => {} };
 }
 export const nativeView: typeof ContractNativeResultView = ContractNativeResultView;
-export const nativeRegistration = createContractNativeRegistration({ adapter: createContractAdapter({ descriptor: registry.contracts[0]!, inputSchema: schema, modelSchema: schema, eventSchema: schema, prepare: input => input }), component: (props: ContractNativeRendererProps) => { void props.dispatchEvent({}); props.consume(1); return null; } });
+export const nativeRegistration = createContractNativeRegistration({ adapter: createContractAdapter({ descriptor: registry.contracts[0]!, inputSchema: schema, modelSchema: schema, eventSchema: schema, prepare: input => input }), component: (props: ContractNativeRendererProps) => { void props.dispatchEvent; const budget = props.createRenderBudget(); budget.consume(1); return null; } });
 export const nativeRegistry = createContractNativeRegistry([nativeRegistration]);
 export function reviewedConsumer(options: ReviewedStandardAdapterOptions): ReviewedStandardProfile {
   const adapter = createReviewedStandardAdapter(options);

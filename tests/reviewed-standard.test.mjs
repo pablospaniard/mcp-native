@@ -359,7 +359,7 @@ test("reviewed native adapters share event authorization, stale-result revocatio
         adapter,
         component: (props) => {
           renderer = props;
-          props.consume(1);
+          props.createRenderBudget().consume(1);
           return createElement("Text", null, props.model.title);
         },
       }),

@@ -128,3 +128,7 @@ adopting the fixture runner requires updating installed and peer-advertised dige
 JSON interface, with their own exact bindings, review evidence, and `.reviewedStandards` inventory.
 The new `invalid-standard-claim` code is confined to the opt-in API. Existing custom adapters are not
 promoted; broader wire/resource interfaces remain proposed in [RFC-0002](RFC-0002-contract-registry.md).
+
+The unreleased native contract renderer now receives `createRenderBudget()` instead of a shared
+`consume` prop. Create a fresh budget per render invocation; event budgets remain cumulative per
+result. This corrects React replay behavior. See the [renderer migration](custom-contracts.md#unreleased-renderer-migration-after-review).

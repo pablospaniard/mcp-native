@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
 import { createA2uiV1ActionEnvelope } from "../packages/a2ui/dist/index.js";
-import { act, createElement, Fragment, StrictMode } from "react";
+import { act, createElement, Fragment, StrictMode, Suspense, useState } from "react";
 import { createRoot } from "test-renderer";
 import {
   createContractAdapter,
@@ -63,7 +63,7 @@ async function mount(options = {}) {
       options.component ??
       ((value) => {
         props = value;
-        value.consume(1);
+        value.createRenderBudget().consume(1);
         return createElement("Text", null, value.model.title);
       }),
   });
@@ -90,7 +90,10 @@ async function mount(options = {}) {
     onError: (error) => errors.push(error),
     ...options.provider,
   };
-  const view = createElement(ContractNativeResultView, { fallback });
+  const resultView = createElement(ContractNativeResultView, { fallback });
+  const view = options.suspense
+    ? createElement(Suspense, { fallback: createElement("Text", null, "Waiting") }, resultView)
+    : resultView;
   const render = (child = view) =>
     root.render(createElement(ContractHostProvider, providerProps, child));
   await act(async () => {
@@ -349,7 +352,7 @@ test("hanging review times out, revokes authority, and cannot deliver after late
   });
   assert.equal((await mounted.props.dispatchEvent(event)).code, "timeout");
   assert.equal(request.signal.aborted, true);
-  assert.equal((await mounted.props.dispatchEvent(event)).code, "denied");
+  assert.equal((await mounted.props.dispatchEvent(event)).code, "busy");
   review.resolve(true);
   await turn();
   assert.equal(delivered, 0);
@@ -486,25 +489,19 @@ test("provider rejects foreign registries and forged authorization before render
   await controller.shutdown();
 });
 
-test("render work exhaustion stays exhausted after a renderer catches the budget error", async () => {
-  let captured;
+test("render attempts have local cumulative budgets and uncaught exhaustion contains the surface", async () => {
+  let budget;
   const mounted = await mount({
     component: (props) => {
-      captured = props;
-      try {
-        props.consume(100001);
-      } catch {}
-      return createElement("Text", null, "Exhausted");
+      budget = props.createRenderBudget();
+      budget.consume(6);
+      budget.consume(5);
+      return createElement("Text", null, props.model.title);
     },
-    provider: {
-      authorization: createContractActionAuthorization({ authorize: () => true }),
-      onEvent() {},
-    },
+    provider: { surfaceLimits: { maxWork: 10 } },
   });
-  assert.equal((await captured.dispatchEvent(event)).code, "limit-exceeded");
-  await mounted.hide();
-  await mounted.show();
-  assert.equal((await captured.dispatchEvent(event)).code, "limit-exceeded");
+  assert.equal(mounted.errors.length, 1);
+  assert.throws(() => budget.consume(1));
   await mounted.close();
 });
 
@@ -529,23 +526,19 @@ test("duplicate custom views cannot both own actionable leases", async () => {
   await mounted.close();
 });
 
-test("unmounted render work cannot exhaust a remounted result, and Strict Mode restores the live lease", async () => {
+test("saved render budgets are revoked on unmount and new render attempts remain usable", async () => {
   const mounted = await mount({ provider: { surfaceLimits: { maxWork: 10 } } });
-  const stale = mounted.props;
+  const stale = mounted.props.createRenderBudget();
   await mounted.hide();
-  assert.throws(() => stale.consume(100001), { code: "cancelled" });
+  assert.throws(() => stale.consume(1), { code: "cancelled" });
   await mounted.show();
   assert.equal(mounted.errors.length, 0);
-  assert.notEqual(mounted.props, stale);
+  assert.doesNotThrow(() => mounted.props.createRenderBudget().consume(10));
   assert.throws(() => stale.consume(1), { code: "cancelled" });
-  assert.doesNotThrow(() => mounted.props.consume(1));
   await mounted.close();
-  const strict = await mount({ strict: true });
-  assert.doesNotThrow(() => strict.props.consume(1));
-  await strict.close();
 });
 
-test("a caught invalid render charge still exhausts that result's event budget", async () => {
+test("invalid charges poison only their render attempt, without mutating the event budget", async () => {
   let deliveries = 0;
   const mounted = await mount({
     provider: {
@@ -555,16 +548,78 @@ test("a caught invalid render charge still exhausts that result's event budget",
       },
     },
   });
-  assert.throws(() => mounted.props.consume(0), { code: "contract-limit-exceeded" });
-  assert.deepEqual(await mounted.props.dispatchEvent(event), {
-    kind: "rejected",
-    code: "limit-exceeded",
-  });
-  assert.equal(deliveries, 0);
-  await mounted.hide();
-  await mounted.show();
-  assert.equal(mounted.errors.length, 1);
-  await mounted.replace();
-  assert.equal((await mounted.props.dispatchEvent(event)).kind, "delivered");
+  const budget = mounted.props.createRenderBudget();
+  assert.throws(() => budget.consume(0), { code: "contract-limit-exceeded" });
+  assert.throws(() => budget.consume(1), { code: "contract-limit-exceeded" });
+  assert.doesNotThrow(() => mounted.props.createRenderBudget().consume(1));
+  assert.deepEqual(await mounted.props.dispatchEvent(event), { kind: "delivered" });
+  assert.equal(deliveries, 1);
   await mounted.close();
+});
+
+test("Strict Mode, state rerenders, and discarded Suspense attempts do not spend another render's budget", async () => {
+  let suspended = true;
+  const ready = deferred();
+  const budgets = [];
+  let update;
+  const mounted = await mount({
+    strict: true,
+    suspense: true,
+    provider: { surfaceLimits: { maxWork: 3 } },
+    component: (props) => {
+      const [tick, setTick] = useState(0);
+      update = () => setTick((value) => value + 1);
+      const budget = props.createRenderBudget();
+      budgets.push(budget);
+      budget.consume(1);
+      budget.consume(2);
+      if (suspended) throw ready.promise;
+      return createElement("Text", null, String(tick));
+    },
+  });
+  assert.ok(budgets.length > 0);
+  const discarded = budgets.length;
+  await act(async () => {
+    suspended = false;
+    ready.resolve();
+  });
+  assert.ok(budgets.length > discarded);
+  await act(async () => update());
+  await act(async () => update());
+  assert.equal(new Set(budgets).size, budgets.length);
+  assert.equal(mounted.errors.length, 0);
+  await mounted.close();
+});
+
+test("a timed-out delivery blocks same-result retries and remounts until the handler settles", async () => {
+  for (const rejectDelivery of [false, true]) {
+    const work = deferred();
+    let deliveries = 0;
+    const mounted = await mount({
+      provider: {
+        eventTimeoutMs: 5,
+        authorization: createContractActionAuthorization({ authorize: () => true }),
+        onEvent: () => {
+          deliveries++;
+          return deliveries === 1 ? work.promise : undefined;
+        },
+      },
+    });
+    assert.deepEqual(await mounted.props.dispatchEvent(event), {
+      kind: "rejected",
+      code: "timeout",
+    });
+    assert.equal(deliveries, 1);
+    assert.deepEqual(await mounted.props.dispatchEvent(event), { kind: "rejected", code: "busy" });
+    await mounted.hide();
+    await mounted.show();
+    assert.deepEqual(await mounted.props.dispatchEvent(event), { kind: "rejected", code: "busy" });
+    assert.equal(deliveries, 1);
+    if (rejectDelivery) work.reject(new Error("late delivery failure"));
+    else work.resolve();
+    await turn();
+    assert.deepEqual(await mounted.props.dispatchEvent(event), { kind: "delivered" });
+    assert.equal(deliveries, 2);
+    await mounted.close();
+  }
 });

@@ -220,3 +220,18 @@ test("provider contains throwing and rejecting local error observers", async () 
     assert.equal(controller.getSnapshot().connection.reason, "shutdown");
   }
 });
+
+test("Strict Mode cleanup does not request cancellation before real provider disposal", async () => {
+  const { controller, counts } = setup();
+  const cancel = controller.cancelCurrentCall.bind(controller);
+  let cancellations = 0;
+  controller.cancelCurrentCall = () => {
+    cancellations++;
+    return cancel();
+  };
+  const mounted = await mount(controller, { strict: true });
+  assert.equal(cancellations, 0);
+  await act(async () => mounted.root.unmount());
+  assert.equal(cancellations, 1);
+  assert.equal(counts.closes, 1);
+});

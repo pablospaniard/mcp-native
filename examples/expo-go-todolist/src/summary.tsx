@@ -13,8 +13,9 @@ import type { TodoCounts } from "./domain";
 import { appStyles } from "./catalog";
 import { createSummaryController, summaryAdapter } from "./summary-contract";
 
-function SummaryCard({ model, dispatchEvent, consume }: ContractNativeRendererProps) {
-  consume(3);
+function SummaryCard({ model, dispatchEvent, createRenderBudget }: ContractNativeRendererProps) {
+  const renderBudget = createRenderBudget();
+  renderBudget.consume(3);
   const [message, setMessage] = useState("Review your current task counts.");
   const [busy, setBusy] = useState(false);
   return (

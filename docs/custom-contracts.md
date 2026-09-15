@@ -162,8 +162,11 @@ matching data registry and advertisements; forged registrations, duplicate adapt
 32 entries fail. Advertising this registry therefore includes only custom adapters with installed
 renderers. A separately created data registry with identical descriptors is not interchangeable.
 
-The renderer receives exactly `{ model, dispatchEvent, consume }`. Map model fields explicitly to
-local props. Charge model-dependent rendering work with `consume(work)` before performing it. No
+The renderer receives exactly `{ model, dispatchEvent, createRenderBudget }`. Map model fields explicitly
+to local props. Create one fresh budget per render invocation and charge its `consume(work)` before
+model-dependent work, sharing it across that invocation's traversal. Do not memoize or retain that
+budget across renders. Its mutable accounting is local to the render, so Strict Mode, discarded
+Suspense attempts, and subsequent renders do not spend another render's allowance. No
 server field selects components, props, styles, or code. The private mount lease binds the current
 result, registry, and mounted view; there is one active view per provider. Unmount revokes handlers
 immediately, while remounting the same result preserves its lifetime budget. A whole-surface error
@@ -179,8 +182,9 @@ import {
   type ContractNativeRendererProps,
 } from "@mcp-native/host/contracts/react-native";
 
-function Receipt({ model, dispatchEvent, consume }: ContractNativeRendererProps) {
-  consume(1);
+function Receipt({ model, dispatchEvent, createRenderBudget }: ContractNativeRendererProps) {
+  const renderBudget = createRenderBudget();
+  renderBudget.consume(1);
   return <Button title={String(model.title)}
     onPress={() => { void dispatchEvent({ name: "acknowledge" }); }} />;
 }
@@ -219,15 +223,25 @@ Clearing/replacing the result, disconnect, shutdown, unmount, or render failure 
 and prevents late approval from invoking delivery. Outcomes are `delivered` or `rejected` with
 `denied`, `invalid-event`, `stale`, `busy`, `limit-exceeded`, `delivery-failed`, or `timeout`.
 
-Each result has a separate surface-lifetime budget shared by event copying/validation and cooperative
-render work. Defaults are the existing `CONTRACT_LIMITS`, lowered by adapter limits and provider
-`surfaceLimits`; budgets do not reset per event or on view remount. At most 128 event attempts run per
-result, one event is active per view, and 8 unsettled event operations are retained per provider
-across replacements. Rejected input consumes its attempted work. Exhaustion remains exhausted even
-if local rendering catches the exception. There is no event queue. Review plus delivery has a
-30-second deadline, lowerable with `eventTimeoutMs`; timeout aborts authority but unsettled callbacks
-continue counting against capacity. React owns synchronous mount cleanup; no asynchronous adapter
-disposal hook or public transferable surface handle is introduced.
+Each result has a cumulative event copying/validation budget. Each render invocation has a separate
+cooperative work budget. Both use `CONTRACT_LIMITS`, lowered by adapter limits and provider
+`surfaceLimits`. Event budgets and the 128-attempt limit do not reset on remount. A render budget's
+failed charge remains failed within that attempt; it does not mutate event state during render.
+Uncaught render errors revoke the surface through the existing boundary. Trusted renderers must
+share one budget across their complete traversal and let budget failures reach that boundary.
+
+One unsettled review/delivery operation is allowed per result, including across remounts; at most
+8 unsettled operations are retained per provider across replacement results. There is no event
+queue. Review plus delivery has a 30-second deadline, lowerable with `eventTimeoutMs`. Timeout ends
+the caller's wait and aborts the signal; it does not prove I/O stopped or undo a completed effect.
+The same result returns `busy` until the real operation settles, whether it resolves or rejects.
+The library does not automatically retry or promise exactly-once external effects. Delivery handlers
+own cancellation and any idempotency required for later user-initiated actions.
+
+Provider cleanup defers both controller cancellation and shutdown behind its generation check;
+Strict Mode effect replay performs neither. A real unmount disposes the controller on that microtask.
+Native view cleanup still revokes its own event lease synchronously. No asynchronous adapter disposal
+hook or public transferable surface handle is introduced.
 
 The maintained [todo example](../examples/expo-go-todolist/README.md) exercises a native task-count
 snapshot, exact event schema digest, explicit acknowledgment policy, and modal mount/unmount.
@@ -362,8 +376,12 @@ The optional registry `standards` selection and immutable `.standards` inventory
 advertisements fail before reads. [Authoring tools](contract-authoring.md) provide reproducible schema
 bundles and bounded fixture reports without granting runtime authority.
 
-Render work callbacks are revoked when their view unmounts, including while the controller retains
-the result. A new view lease may consume the remaining result budget; a stale callback cannot spend
-it. Strict Mode may reactivate the same lease. Invalid preparation charges fail the call even when
-caught by the callback, and invalid render charges exhaust the result allowance, including events.
-See the [acceptance review](milestone-11-acceptance.md) for regression evidence.
+## Unreleased renderer migration after review
+
+Replace the earlier renderer prop `consume(work)` with a fresh
+`const budget = createRenderBudget()` inside each render invocation, then call `budget.consume(work)`.
+The new `ContractRenderBudget` type is exported from `/contracts/react-native`. Preparation's
+`context.consume()` is unchanged and still fails the whole call after an invalid charge, even if
+caught. Saved render-budget callbacks are revoked on unmount; render attempts no longer change the
+event budget. This changes only the unreleased contract renderer API. Published v1 APIs, wire pins,
+and package versions remain unchanged. See the [review record](milestone-11-acceptance.md).

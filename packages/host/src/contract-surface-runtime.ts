@@ -61,6 +61,7 @@ interface Lifetime {
   readonly budget: Budget;
   attempts: number;
   exhausted: boolean;
+  pending: Promise<unknown> | undefined;
 }
 
 /** Private mount leases: data alone never grants rendering or event authority. */
@@ -118,7 +119,7 @@ export class ContractSurfaceRuntime {
           ),
         ]),
       ) as unknown as ContractLimits;
-      lifetime = { budget: new Budget(limits), attempts: 0, exhausted: false };
+      lifetime = { budget: new Budget(limits), attempts: 0, exhausted: false, pending: undefined };
       this.#lifetimes.set(result, lifetime);
     }
     const allowance = lifetime;
@@ -145,25 +146,31 @@ export class ContractSurfaceRuntime {
         this.#revoke = undefined;
       }
     };
-    const consume = (work: number) => {
-      // Initial render may charge before activation; cleanup permanently revokes that render
-      // unless React reactivates this same lease during its Strict Mode effect replay.
-      if (revoked || failed || this.#disposed || !this.#controller.isCurrentResult(result))
-        fail("cancelled");
-      if (allowance.exhausted || !Number.isSafeInteger(work) || work < 1) {
-        allowance.exhausted = true;
-        fail("contract-limit-exceeded");
-      }
-      try {
-        allowance.budget.spend(work);
-      } catch {
-        allowance.exhausted = true;
-        throw new ContractError("contract-limit-exceeded");
-      }
+    const createRenderBudget = () => {
+      // This allocation and its charges belong only to this render invocation. React may
+      // discard or replay it without changing the result's event budget or another render.
+      const budget = new Budget(allowance.budget.limits);
+      let exhausted = false;
+      return Object.freeze({
+        consume: (work: number) => {
+          if (revoked || failed || this.#disposed || !this.#controller.isCurrentResult(result))
+            fail("cancelled");
+          if (exhausted || !Number.isSafeInteger(work) || work < 1) {
+            exhausted = true;
+            fail("contract-limit-exceeded");
+          }
+          try {
+            budget.spend(work);
+          } catch {
+            exhausted = true;
+            throw new ContractError("contract-limit-exceeded");
+          }
+        },
+      });
     };
     const dispatchEvent = async (event: JsonObject): Promise<ContractEventOutcome> => {
       if (!current()) return rejected("stale");
-      if (abort || this.#pending.size >= 8) return rejected("busy");
+      if (allowance.pending || this.#pending.size >= 8) return rejected("busy");
       if (!state.adapter.eventSchema || !this.#onEvent) return rejected("denied");
       if (allowance.exhausted || ++allowance.attempts > 128) return rejected("limit-exceeded");
       let owned: JsonObject;
@@ -200,11 +207,16 @@ export class ContractSurfaceRuntime {
           ? Object.freeze({ kind: "delivered" })
           : rejected("stale");
       });
+      allowance.pending = raw;
       this.#pending.add(raw);
-      void raw.then(
-        () => this.#pending.delete(raw),
-        () => this.#pending.delete(raw),
-      );
+      const settled = () => {
+        this.#pending.delete(raw);
+        if (allowance.pending === raw) allowance.pending = undefined;
+        if (abort === operation) abort = undefined;
+      };
+      // A timeout only ends the caller's wait. Retain single-flight ownership until the
+      // real review/delivery settles, also across new leases for this same result.
+      void raw.then(settled, settled);
       let timer: unknown;
       let onAbort: () => void = () => {};
       const interrupted = new Promise<ContractEventOutcome>((resolve) => {
@@ -220,13 +232,12 @@ export class ContractSurfaceRuntime {
       } finally {
         platform.clearTimeout(timer);
         operation.signal.removeEventListener("abort", onAbort);
-        if (abort === operation) abort = undefined;
       }
     };
     const props: ContractNativeRendererProps = Object.freeze({
       model: result.model,
       dispatchEvent,
-      consume,
+      createRenderBudget,
     });
     return Object.freeze({
       component: state.component,

@@ -511,7 +511,8 @@ are implemented. [Separately packaged reviewed adapters](reviewed-standard-adapt
 the closed inline-JSON interface with exact markers and negotiation. Custom resources, broader wire
 grammars, and live updates remain later work. Existing closed v1 result and action unions are unchanged.
 The bounded implementation remains unreleased. Its [implementation acceptance review](milestone-11-acceptance.md)
-records the completed checks and two fixed budget/lifecycle findings; maintainer acceptance in issue #91 remains open.
+records the rejected initial review and corrections for timeout delivery, render replay, and provider cleanup;
+renewed acceptance in issue #91 remains open.
 
 - [x] Add the separate headless registry/inline-resolution API and binding documentation,
       hostile-input tests, built-in parity checks, and packed consumer coverage.
