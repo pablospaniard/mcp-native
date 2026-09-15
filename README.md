@@ -260,8 +260,14 @@ compatibility, or automatic compatibility with later upstream revisions. See the
 
 Read the [support matrix](docs/support-matrix.md) and [standards inventory](docs/standards-compatibility.md)
 for the exact tested boundaries and exclusions. First-class SwiftUI, Jetpack Compose, capability
-providers, custom input contracts, and later protocol profiles are tracked as post-1.0 work without
-assigned release dates.
+providers and later protocol profiles remain future work without assigned release dates.
+
+Milestone 11 is implemented in source and remains unreleased: [custom inline contracts](docs/custom-contracts.md),
+[maintained standard selection](docs/standard-contracts.md), [separately packaged reviewed inline
+adapters](docs/reviewed-standard-adapters.md), and [authoring tools](docs/contract-authoring.md). These
+opt-in host subpaths add native rendering and event policy without changing the published v1 API.
+The [review record](docs/milestone-11-acceptance.md) documents the corrections and pending acceptance.
+Published `1.0.1` does not contain these additions.
 
 ## Documentation
 

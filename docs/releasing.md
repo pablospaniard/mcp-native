@@ -4,6 +4,19 @@ MCP Native publishes with npm trusted publishing. GitHub Actions exchanges its s
 identity for package-specific npm credentials, and npm attaches provenance to the published
 artifacts. The repository does not use long-lived npm write tokens.
 
+## Milestone 11 release preparation
+
+Milestone 11's inline contract additions are currently unreleased. The proposed next version is
+`1.1.0`: additive APIs preserve published v1 behavior under the [compatibility policy](compatibility-policy.md).
+The `consume` to `createRenderBudget()` renderer migration affects earlier source checkouts only;
+those contract APIs were never part of published `1.0.1`.
+
+After PR review and merge, prepare a separate coordinated release change: update all seven package
+versions and internal ranges, promote the Unreleased changelog, revise source-only availability
+notes and installation examples, and run the release checks below. Only record the release date and
+published availability when publication is confirmed. Closing Milestone 11 does not itself publish
+packages or imply that broader wire/resource interfaces are supported.
+
 ## Coordinated releases
 
 Before creating a release:

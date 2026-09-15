@@ -84,7 +84,7 @@ Each contract descriptor contains:
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `id`             | Exact namespaced identifier; custom IDs use an application-owned reverse-DNS namespace and a local name separated by `/` |
 | `version`        | Exact semantic contract version, independent of the package version; no ranges or aliases                                |
-| `schemaRevision` | Exact digest of the locally installed input/event schemas; no remote schema lookup                                       |
+| `schemaRevision` | Exact digest of the locally installed input/model/event schemas; no remote schema lookup                                 |
 | `transport`      | One reviewed transport; initially `structured-content` for custom contracts                                              |
 | `mimeType`       | One exact canonical MIME type; parameters and wildcards are rejected in the initial custom binding                       |
 | Local policy     | Input, model, output, resource, action, and lifecycle limits plus required renderer capabilities                         |
@@ -101,8 +101,8 @@ digest, avoiding dependence on object-key serialization order.
 
 Standard registrations come from explicitly imported, maintained factories with runtime-checked
 registration identity. A user-supplied `lane: "standard"` flag or TypeScript cast cannot create one.
-Custom factories cannot replace standard recognizers or reserved-marker checks. Future standard
-packages need a reviewed local factory and exact profile manifest; server metadata cannot confer
+Custom factories cannot replace standard recognizers or reserved-marker checks. Separately packaged
+inline standards use `createReviewedStandardAdapter` and an exact locally reviewed profile manifest; server metadata cannot confer
 standard status. This is an API trust boundary, not a sandbox for malicious application code.
 
 The initial standard inventory wraps the existing implementations:
@@ -119,17 +119,19 @@ turn ordinary content into a negotiated UI contract or imply complete upstream p
 The five-field custom descriptor does not replace standard wire identities: maintained entries
 retain their protocol-specific version syntax, including dated revisions, and existing negotiation.
 
-## Proposed custom binding
+## Implemented custom binding
 
 The initial custom transport is a project-owned extension under
-`io.github.pablospaniard/mcp-native-contracts`. Its proposed closed settings object contains
+`io.github.pablospaniard/mcp-native-contracts`. Its closed settings object contains
 `bindingVersion: "0.1"` and a bounded `contracts` array of the five wire descriptor fields above.
 Local policy and implementation objects never cross the wire. Duplicate tuples, unknown settings,
 and malformed declarations are rejected. Both peers must advertise the exact binding version;
 eligible contracts are the exact descriptor intersection, including version, schema digest,
 transport, and MIME type. No range selection or automatic downgrade occurs.
 
-The connection advertises only registrations with an installed renderer and satisfied host policy.
+A data registry may advertise headless adapters. A native registry advertises only adapters with
+explicitly installed compiled renderers. Neither advertisement satisfies action policy; events
+require their own schema, host authorization, and delivery callback.
 The registry and client/server extension snapshots belong to the same authenticated connection
 generation as the discovered tool and its result. A caller cannot independently supply a
 negotiation grant. Reconnect or principal changes invalidate grants and retained results.
@@ -152,26 +154,33 @@ A2UI binding and official Apps extension keep their exact wire contracts.
 ## Deterministic selection and fallback
 
 The registered resolver first performs the existing bounded SDK-shaped tool/result and extension
-validation. It then examines standard markers and the proposed custom descriptor using fixed,
+validation. It then examines standard markers and the custom descriptor using fixed,
 bounded host logic. Recognition is pure: it cannot fetch resources, call adapters, render, dispatch,
 or ask for permission. Custom selection is an exact registry lookup, not a parser trial.
 
 | Input state                                                                   | Registered-host outcome                            | Permitted work                                                 |
 | ----------------------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------- |
 | Invalid MCP input or malformed extension settings                             | Existing invalid outcome where applicable          | No adapter or resource callback                                |
-| Multiple negotiated standard claims                                           | Existing `ambiguous-standard-result`               | No resource loading                                            |
+| Both maintained A2UI and Apps claims negotiated                               | Existing `ambiguous-standard-result`               | No resource loading                                            |
 | Any recognized standard marker together with a custom descriptor              | New registered-host conflict error                 | No custom callback, even if the standard is unnegotiated       |
-| Standard marker without a custom descriptor                                   | Existing standard resolver outcome                 | Existing negotiation, validation, and fallback rules           |
+| Maintained A2UI or Apps marker without another lane claim                     | Existing standard resolver outcome                 | Existing negotiation, validation, and fallback rules           |
 | No standard or custom claim                                                   | Ordinary MCP content                               | Bounded inert presentation only                                |
 | Malformed custom descriptor or reserved identity/MIME                         | New registered-host invalid-claim error            | No adapter callback                                            |
 | Well-formed custom descriptor with no exact installed and negotiated contract | Ordinary MCP content                               | No custom callback or resource loading                         |
 | Exactly one installed and negotiated custom claim                             | Validate its payload, then prepare its local model | Selected adapter only                                          |
 | Selected custom payload, model, limit, policy, or renderer failure            | Stable registered-host error                       | Tear down that surface; no alternate adapter or ordinary retry |
 
+Separately installed reviewed profiles add their own exact result markers and extension settings.
+Multiple reviewed markers, or a reviewed claim mixed with a built-in/custom claim, return
+`conflicting-contract-claims` even without negotiation. Incorrect installed-profile settings return
+`invalid-standard-settings`; malformed installed markers return `invalid-standard-claim`. A single
+exact negotiated reviewed claim validates inline input and prepares only its installed adapter.
+Missing negotiation leaves a valid claim inert. See the complete [reviewed selection rules](reviewed-standard-adapters.md#selection-and-failures).
+
 Standard markers include the current A2UI resource MIME and Apps tool `_meta.ui` declaration, plus
-the explicitly reserved markers of any installed maintained profile. Invalid standard-shaped
-declarations remain standard claims for exclusion from custom routing. The first implementation
-must enumerate these markers and test malformed and unnegotiated variants; an unknown arbitrary
+the exact markers and MIME identities of installed reviewed profiles. Invalid standard-shaped
+declarations remain standard claims for exclusion from custom routing. The implementation
+enumerates these markers and tests malformed and unnegotiated variants; an unknown arbitrary
 MIME type is never guessed to be executable. Adding a profile must review recognition overlap.
 
 If `result.isError` is true, a custom-only result remains inert ordinary content after descriptor
@@ -219,9 +228,10 @@ conformance must verify cooperative work accounting and absence of input-driven 
 
 ## Limits, lifecycle, and actions
 
-Registration has bounded count and total descriptor/schema size. Each resolution uses one shared
-budget spanning recognition, parsed input, candidate model, prepared output, validation messages,
-and any later resource expansion. Count limits and aggregate byte/work limits apply together;
+Registration has bounded count and total descriptor/schema/profile size. MCP/extension parsing has
+its existing bounds; reviewed-profile selection shares a cumulative settings/marker budget across
+installed profiles. Selected inline input copying, schema validation, preparation, and output share
+one separate per-call adapter/host budget. Resource expansion is not part of this inline interface. Count limits and aggregate byte/work limits apply together;
 individually valid values cannot multiply work through list expansion, interpolation, copying,
 validation, or repeated dispatch. Existing standard-profile limits remain unchanged.
 
@@ -230,7 +240,7 @@ entries, input/model depth and nodes, cumulative strings/bytes, validation issue
 work units, retained handles, listeners, queued events, pending operations, and cleanup deadlines.
 Effective limits are the minimum of library ceilings, installed contract limits, and host policy.
 Per-event limits are supplemented by surface-lifetime budgets; repeated dispatch cannot reset a
-cumulative allowance. Resource caching or deduplication must still charge retained and expanded
+cumulative allowance. Future resource caching or deduplication must still charge retained and expanded
 output, and must preserve server/principal/registry isolation.
 
 Parsing and preparation complete before mounting; failures expose no partially actionable surface.
@@ -241,8 +251,8 @@ unsettled callbacks count toward the pending-work limit until they settle. Timeo
 but do not claim to stop arbitrary trusted code; a full pending-work budget rejects further work.
 
 The first custom slice is a static snapshot, not a server-driven live-update protocol. A fresh tool
-result creates a new surface. If a renderer permits local edits, it owns a bounded validated local
-model; event construction uses the latest model and rejects stale identities. No server-authored
+result creates a new surface with an immutable model. Local model editing is not supported by this
+interface; adding it would require bounded validation and events tied to the current edited model. No server-authored
 event name alone grants an action. Events require an installed closed schema, a current surface,
 a host-created interaction handler, and explicit host policy before an application-owned delivery
 callback runs. The default is denial; grants are not cached or inherited from A2UI or Apps.

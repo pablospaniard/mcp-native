@@ -206,3 +206,9 @@ policy, fallback UI, and lifecycle integration.
 The summary descriptor now pins the v1 canonical schema bundle produced by
 `@mcp-native/host/contracts/authoring`. Its test runs public data/event fixtures, including inconsistent
 counts, out-of-range input, and rejected events. See the [authoring guide](../../docs/contract-authoring.md).
+
+`SummaryCard` creates a fresh `createRenderBudget()` inside each render invocation. Charges are local
+to that invocation, so Strict Mode, state rerenders, and discarded render attempts do not spend a
+shared lifetime allowance. Event validation keeps its own cumulative result budget. A timed-out
+handler retains the result's single-flight gate until it settles; timeout does not imply that an
+external side effect was undone. The example's acknowledgment has no external side effects.

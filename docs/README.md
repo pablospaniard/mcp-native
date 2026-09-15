@@ -28,7 +28,7 @@ Focused package guides: [core](../packages/core/README.md), [MCP SDK adapter](..
 
 Unknown or ambiguous executable formats are not guessed. The unreleased
 [inline custom-contract API](custom-contracts.md) provides installed data adapters, controller/provider lifecycle, and static native rendering/events;
-custom native rendering is not part of the current high-level host.
+these opt-in subpaths are not included in published `1.0.1` or its root result union.
 
 ## Implement a production host
 
@@ -66,7 +66,8 @@ Runnable examples:
 - [RFC-0001](RFC-0001-architecture.md) — package boundaries, data flow, capability model, and threat
   model.
 - [RFC-0002](RFC-0002-contract-registry.md) — contract registry design, data, lifecycle, and static native implementation,
-  with later standard-profile/resource work; [custom contracts](custom-contracts.md) defines the implemented API.
+  including separately packaged reviewed inline profiles; broader wire/resource interfaces remain future
+  work. [Custom contracts](custom-contracts.md) defines the implemented API.
 - [Compatibility policy](compatibility-policy.md) — finalized `1.x` API and behavior surface.
 - [1.0 readiness](1.0-readiness.md) — completed implementation, validation, and review gates, plus
   publication actions.

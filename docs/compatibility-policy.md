@@ -73,7 +73,8 @@ not expand supported A2UI or MCP Apps profiles. The opt-in controller and
 data and schema-validated events through `createContractActionAuthorization`; the new decision union
 is separate from existing host authorization. Both controllers share cancellation guards that prevent late parsing/preparation and
 immediately drop tools/results on shutdown; existing public declarations are preserved. The broader
-standard-profile/resource design in [RFC-0002](RFC-0002-contract-registry.md) remains later work.
+wire/resource design in [RFC-0002](RFC-0002-contract-registry.md) remains later work; separately
+packaged reviewed inline profiles are implemented through their own exact bindings.
 
 The additive React Native host registration, mount-report fields and error codes, layout-contract
 vocabulary, registered surface, reusable render boundary, and `/testing` subpath are stable

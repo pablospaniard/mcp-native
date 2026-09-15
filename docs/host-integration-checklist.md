@@ -161,3 +161,17 @@ the A2UI parser/store, and connection lifecycle by hand:
 - Record exact native/Expo/component-library versions separately. Use the maintained [Expo Go todo
   app](../examples/expo-go-todolist/README.md) as a reproducible integration reference alongside the
   protocol and package release gates.
+
+## Unreleased inline contract integrations
+
+- Install custom or reviewed adapters locally; advertise the exact frozen registry settings on the
+  same connection used for results and resources. Bind compiled renderers through the native registry.
+- Use the contract controller/provider and current-result view. Keep event schemas, explicit host
+  authorization, and delivery callbacks separate from registration and negotiation.
+- Create one fresh `createRenderBudget()` per render invocation and share it across the complete
+  traversal. Do not memoize the budget or mutate event/lifetime accounting inside React render.
+- Treat timeout as an interrupted wait, not proof that an external effect stopped. A same-result
+  operation remains `busy` until the underlying review/delivery settles, even across remounts.
+  Delivery code owns cancellation and any idempotency required for later user actions.
+- Follow the [custom contract guide](custom-contracts.md), [reviewed adapter guide](reviewed-standard-adapters.md),
+  and [authoring guide](contract-authoring.md). These APIs are not included in published `1.0.1`.
