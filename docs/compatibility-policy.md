@@ -64,7 +64,7 @@ on the active connection; reconnect clears both discovered tools and prior call 
 automatically discovering again. Explicit `refreshTools()` ignores a still-fresh SDK cache entry and
 replaces it with a newly fetched, validated aggregate.
 
-The unreleased [Milestone 11 inline contract API](custom-contracts.md) uses the separate
+The `1.1.0` [Milestone 11 inline contract API](custom-contracts.md) uses the separate
 `@mcp-native/host/contracts` entry point and `ContractResult` union. Existing resolver/controller declarations,
 result/action/error unions, default extension map, and root exports are unchanged. The new API
 adds inert `contract-data` and `contract-error` outcomes; applications opt in explicitly. It does
@@ -117,10 +117,10 @@ The [support matrix](support-matrix.md) records the supported dependency lanes. 
 publication actions. Check results may be summarized in a pull request or release;
 their raw output is not a required committed artifact.
 
-## Unreleased contract inventory and authoring additions
+## Contract inventory and authoring additions in 1.1
 
 The opt-in [maintained standard factories](standard-contracts.md) add immutable registry inventory and
-subset selection; defaults, existing v1 declarations, protocol/schema pins, and package versions stay
+subset selection in `1.1.0`; defaults, existing v1 declarations, and protocol/schema pins stay
 unchanged. A client advertising an excluded standard fails with the new contract-only
 `invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
 canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;
@@ -130,6 +130,6 @@ JSON interface, with their own exact bindings, review evidence, and `.reviewedSt
 The new `invalid-standard-claim` code is confined to the opt-in API. Existing custom adapters are not
 promoted; broader wire/resource interfaces remain proposed in [RFC-0002](RFC-0002-contract-registry.md).
 
-The unreleased native contract renderer now receives `createRenderBudget()` instead of a shared
-`consume` prop. Create a fresh budget per render invocation; event budgets remain cumulative per
+The `1.1.0` native contract renderer receives `createRenderBudget()`. Earlier source checkouts
+used a shared `consume` prop that was never published. Create a fresh budget per render invocation; event budgets remain cumulative per
 result. This corrects React replay behavior. See the [renderer migration](custom-contracts.md#unreleased-renderer-migration-after-review).

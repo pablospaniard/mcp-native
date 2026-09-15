@@ -1,6 +1,6 @@
 # Separately packaged inline standard adapters
 
-Status: implemented in source, unreleased. `createReviewedStandardAdapter` from
+Included in `1.1.0`; see [publication status](releasing.md#110-release-preparation). `createReviewedStandardAdapter` from
 `@mcp-native/host/contracts` installs a host-reviewed inline JSON profile without changes to the
 host package. It uses exact extension settings and result metadata, closed schemas, and the existing
 bounded preparation, compiled native rendering, authorization, and lifecycle controls.
@@ -132,14 +132,14 @@ binding and still checks its local canonical schema digest before preparation.
 
 ## Scope and migration
 
-The new factory, profile inventory, and `invalid-standard-claim` code belong to the unreleased opt-in
-API. Existing v1 root exports, result/action unions, declaration compatibility, defaults, schema pins,
-and package versions remain unchanged. Existing custom adapters remain custom; adding a profile
+The new factory, profile inventory, and `invalid-standard-claim` code belong to the opt-in
+API introduced in `1.1.0`. Existing v1 root exports, result/action unions, declaration compatibility, defaults, and schema pins
+remain unchanged. Existing custom adapters remain custom; adding a profile
 property or wire marker cannot promote one. Moving an integration to a reviewed profile requires
 explicit local installation and coordinated peer support for its exact binding.
 
 This implements independently packaged adapters for the closed inline-JSON interface. Arbitrary
 standard wire grammars, non-vendor MIME identities, linked resources, streaming updates, and a combined
 standard/custom result view require separate designs. No additional real upstream profile is claimed
-by the synthetic package tests. Milestone 11's bounded implementation is available for review; the
-PR remains unreleased and issue #91 remains open for acceptance review.
+by the synthetic package tests. Milestone 11's bounded implementation was merged in
+[PR #137](https://github.com/pablospaniard/mcp-native/pull/137) and is included in `1.1.0`.

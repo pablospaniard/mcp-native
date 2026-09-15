@@ -1,6 +1,7 @@
 # Custom contract data and native rendering
 
-Status: implemented in source for the next compatible release; not included in published `1.0.1`.
+Included in `1.1.0`; see the [migration guide](migration-to-1.1.md) and
+[publication status](releasing.md#110-release-preparation).
 The data, lifecycle, and static native rendering slices of [Milestone 11](roadmap.md#milestone-11-standard-contract-registry-and-custom-input-adapters)
 provide validated immutable JSON, connection ownership, and explicitly installed native renderers.
 Custom events require a local schema and authorization; custom resource loading remains unavailable.
@@ -143,9 +144,10 @@ callback; the provider starts it and exposes `{ controller, snapshot }` through 
 ```
 
 The child calls `useContractHost()` to observe snapshots and invoke controller methods. Do not
-replace the controller prop or share one controller between mounted providers. Real unmount cancels
-pending calls immediately and schedules shutdown in a microtask; Strict Mode effect replay retains
-the same connection. Throwing or rejecting error observers cannot interrupt cleanup. Application
+replace the controller prop or share one controller between mounted providers. Cleanup schedules
+pending-call cancellation and shutdown together in a generation-guarded microtask; Strict Mode effect
+replay invalidates that cleanup and retains the same connection. Native view cleanup revokes its
+mount lease synchronously. Throwing or rejecting error observers cannot interrupt cleanup. Application
 code must create a new controller for a later mount after shutdown.
 
 The original provider options remain lifecycle-only. To render custom results, supply a
@@ -316,7 +318,8 @@ Checks stop at the first failure and expose a fixed host code without a validati
 Callbacks may perform additional semantic checks and throw on failure.
 
 `prepare` is trusted synchronous application code. Output is inert JSON, without renderer or action
-authority. Future rendering must explicitly map validated semantic fields to host components.
+authority. The native registry binds that model to a compiled renderer, which must explicitly map
+validated semantic fields to host components.
 Native Promise outputs are rejected and their rejections contained. No transport or device object
 is supplied to callbacks. The library cannot preempt arbitrary local JavaScript: authors must charge
 additional input-driven work with `budget.consume()` before doing it. Throws are redacted; async
@@ -383,5 +386,5 @@ Replace the earlier renderer prop `consume(work)` with a fresh
 The new `ContractRenderBudget` type is exported from `/contracts/react-native`. Preparation's
 `context.consume()` is unchanged and still fails the whole call after an invalid charge, even if
 caught. Saved render-budget callbacks are revoked on unmount; render attempts no longer change the
-event budget. This changes only the unreleased contract renderer API. Published v1 APIs, wire pins,
-and package versions remain unchanged. See the [review record](milestone-11-acceptance.md).
+event budget. This correction is included in the contract renderer API’s first release, `1.1.0`.
+Existing `1.0.x` APIs and wire pins remain unchanged. See the [review record](milestone-11-acceptance.md).

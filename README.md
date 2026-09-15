@@ -108,7 +108,8 @@ For native A2UI, the app installs a catalog that maps supported semantic names t
 Native primitives or design-system adapters. The renderer has semantics for the pinned A2UI basic
 catalog, but the host advertises only components whose local implementation and required policy are
 installed. Domain-specific widgets can use an exactly negotiated, locally compiled host extension;
-application-defined input-format adapters are separate post-1.0 work.
+application-defined inline JSON adapters use the separate
+[contract APIs added in 1.1.0](docs/custom-contracts.md).
 
 For MCP Apps, the app supplies a WebView wrapper. MCP Native validates the stable Apps profile and
 creates closed sandbox, navigation, storage, permission, bridge, and lifecycle descriptors. HTML
@@ -262,12 +263,12 @@ Read the [support matrix](docs/support-matrix.md) and [standards inventory](docs
 for the exact tested boundaries and exclusions. First-class SwiftUI, Jetpack Compose, capability
 providers and later protocol profiles remain future work without assigned release dates.
 
-Milestone 11 is implemented in source and remains unreleased: [custom inline contracts](docs/custom-contracts.md),
+The `1.1.0` release includes Milestone 11: [custom inline contracts](docs/custom-contracts.md),
 [maintained standard selection](docs/standard-contracts.md), [separately packaged reviewed inline
 adapters](docs/reviewed-standard-adapters.md), and [authoring tools](docs/contract-authoring.md). These
 opt-in host subpaths add native rendering and event policy without changing the published v1 API.
-The [review record](docs/milestone-11-acceptance.md) documents the corrections and pending acceptance.
-Published `1.0.1` does not contain these additions.
+The [review record](docs/milestone-11-acceptance.md) documents the review corrections.
+See the [1.1 migration guide](docs/migration-to-1.1.md) and [publication status](docs/releasing.md#110-release-preparation).
 
 ## Documentation
 

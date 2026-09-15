@@ -33,9 +33,9 @@ after `1.0.0` and will receive their own integration requirements.
 official schema package pin, and absence of Expo or React Native package dependencies part of the
 normal CI gate. `npm run package:smoke` separately verifies the packed artifacts and upgrade path.
 
-## Unreleased contract integration
+## Contract integration in 1.1
 
-The source-only `/contracts`, `/contracts/react-native`, and `/contracts/authoring` subpaths retain
+The `1.1.0` `/contracts`, `/contracts/react-native`, and `/contracts/authoring` subpaths retain
 the requirements above and do not add Expo, React Native, or WebView dependencies. The authoring
 helpers require Web Crypto SHA-256 and `TextEncoder` in the build/test environment; generated schema
 bundles and digests can be imported by the mobile runtime without those helpers.

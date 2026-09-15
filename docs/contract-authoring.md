@@ -1,6 +1,6 @@
 # Contract adapter authoring
 
-Status: implemented in source, unreleased. Import build/test helpers from
+Included in `1.1.0`; see [publication status](releasing.md#110-release-preparation). Import build/test helpers from
 `@mcp-native/host/contracts/authoring`. Runtime registration and negotiation remain in
 [`@mcp-native/host/contracts`](custom-contracts.md).
 

@@ -1,6 +1,6 @@
 # RFC-0002: standard contract registry and custom input adapters
 
-- Status: Bounded inline implementation available in source, including separately packaged reviewed profiles; unreleased and pending acceptance review
+- Status: Bounded inline implementation merged in PR #137 for `1.1.0`, including separately packaged reviewed profiles; broader wire/resource interfaces remain proposed
 - Date: 2026-09-14
 - Tracking: [Milestone 11 / issue #91](https://github.com/pablospaniard/mcp-native/issues/91)
 - Foundation: [RFC-0001](RFC-0001-architecture.md) and the [1.x compatibility policy](compatibility-policy.md)
@@ -10,7 +10,7 @@
 The first implementation exports `@mcp-native/host/contracts`: local adapter/registry factories,
 strict inline schemas, and `resolveContractResult`. See [the binding and API guide](custom-contracts.md)
 for the exact implemented grammar, limits, fallback table, and author responsibilities. This is an
-unreleased addition; published `1.0.1` does not contain it. The rest of this design includes later
+additive `1.1.0` API; see the [migration guide](migration-to-1.1.md) and [publication status](releasing.md#110-release-preparation). The rest of this design includes later
 standard-profile and resource integration.
 
 This slice returns inert `contract-data`, not a live surface handle. Its separate result union
@@ -41,7 +41,7 @@ additional components inside the current A2UI contract.
 
 All new rules and wire fields are MCP Native project policy, not requirements or approved
 extensions of MCP, A2UI, or MCP Apps. The implemented inline binding is documented separately;
-existing standard profiles, schema pins, package versions, and v1 public types are unchanged.
+existing standard profiles, schema pins, and v1 public types are unchanged.
 Shared controller cleanup now skips cancelled work before parsing/preparation and releases state
 immediately on shutdown.
 
@@ -303,11 +303,12 @@ Implementation requires `npm run check`, `npm run package:smoke` for added expor
 and applicable native integration checks. Update the API baseline intentionally, compatibility and
 migration guides, standards inventory, roadmap, and changelog with implemented scope and exact pins.
 The bounded inline implementation now includes the independently packaged adapter interface,
-negative tests, native lifecycle tests, and separate tarball consumer gate. Issue #91 remains open for
-acceptance review; the synthetic fixture does not claim a new real upstream standard is certified.
+negative tests, native lifecycle tests, and separate tarball consumer gate. PR #137 was merged for
+`1.1.0`; issue #91 remains the milestone tracking record. The synthetic fixture does not claim a
+new real upstream standard is certified.
 
 See the [implementation acceptance review](milestone-11-acceptance.md) for the requirement/evidence
-mapping, fixed lifecycle/budget findings, and remaining maintainer decision.
+mapping and fixed lifecycle/budget findings.
 
 Review correction: native rendering uses a fresh cumulative budget for each render invocation;
 React render attempts never mutate lifetime event accounting. Single-flight event ownership persists
