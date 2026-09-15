@@ -4,21 +4,32 @@ MCP Native publishes with npm trusted publishing. GitHub Actions exchanges its s
 identity for package-specific npm credentials, and npm attaches provenance to the published
 artifacts. The repository does not use long-lived npm write tokens.
 
-## 1.1.0 release preparation
+<a id="110-release-preparation"></a>
 
-All seven package manifests and internal dependency ranges target `1.1.0`. This release includes
-Milestone 11's inline contract APIs merged in [PR #137](https://github.com/pablospaniard/mcp-native/pull/137).
+## 1.1.0 publication
+
+All seven packages were published at `1.1.0` on 2026-09-15, and every npm `latest` tag resolves to
+that version. The [GitHub Release](https://github.com/pablospaniard/mcp-native/releases/tag/v1.1.0)
+and [successful publication workflow](https://github.com/pablospaniard/mcp-native/actions/runs/34939889963)
+resolve to the merged release commit `ec57c6e8f980fb1f7f10aa591d29804ded138e80`.
+The release includes Milestone 11's inline contract APIs from
+[PR #137](https://github.com/pablospaniard/mcp-native/pull/137), with coordinated versions and
+release documentation merged in [PR #138](https://github.com/pablospaniard/mcp-native/pull/138).
+
 The additive APIs preserve existing v1 behavior under the [compatibility policy](compatibility-policy.md).
 See the [release notes](../CHANGELOG.md) and [1.1 migration guide](migration-to-1.1.md).
-
-Publication is pending: `1.0.1` is the latest confirmed published version. Installation commands
-selecting `1.1.0` require publication to finish. Merge the release PR, publish the matching GitHub
-Release, and verify all seven npm packages before recording a release date and published availability.
-The release workflow below performs publication; merging either PR alone does not publish packages.
-
 The `consume` to `createRenderBudget()` renderer migration affects earlier source checkouts only;
 those contract APIs were never part of published `1.0.1`. Broader wire/resource interfaces remain
 outside this release.
+
+A clean registry consumer verified all seven package manifests and internal ranges, all 16 public
+entry points and the reviewed declaration/export baseline, READMEs, MIT licenses, runtime and
+declaration source maps, the CLI, and positive/negative contract-authoring fixtures.
+`npm audit signatures` verified all 29 installed registry signatures and 13 provenance attestations,
+including all seven MCP Native packages. Each package’s verified provenance names `release.yml`,
+`refs/tags/v1.1.0`, the release commit above, and the successful workflow run.
+These checks concern `1.1.0`; they do not retroactively
+complete the separate `1.0.0` audit record.
 
 ## Coordinated releases
 

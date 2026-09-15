@@ -8,7 +8,7 @@ patch and minor releases remain compatible within their release line.
 
 No changes yet.
 
-## 1.1.0 - pending publication
+## 1.1.0 - 2026-09-15
 
 Coordinated minor release of all seven packages with opt-in contract registration, native hosting,
 and adapter authoring. Existing v1 APIs, default policies, and MCP/A2UI/MCP Apps pins are preserved.
@@ -79,8 +79,8 @@ See the [1.1 migration guide](docs/migration-to-1.1.md).
   separate opt-in APIs, exact negotiation, disjoint routing, cumulative limits, and acceptance gates.
   Document the implemented data/lifecycle APIs and the broader wire/resource interfaces separately.
 - Align product, package, architecture, component, and review documentation with the merged inline
-  contract implementation and `1.1.0` migration path. Keep publication pending until confirmed, and
-  distinguish historical v1 review/audit evidence from current release status.
+  contract implementation and `1.1.0` migration path. Record confirmed publication separately from
+  historical v1 review/audit evidence.
 
 ## 1.0.1 - 2026-09-07
 

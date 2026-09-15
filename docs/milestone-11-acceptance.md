@@ -9,7 +9,7 @@ slow delivery after timeout, replay-safe render accounting, and generation-gated
 The regression evidence and API correction are recorded below. This remains an author-maintained
 implementation record, not independent certification or a substitute for maintainer review.
 PR #137 was merged on 2026-09-15 after the corrections. The implementation is included in the
-`1.1.0` release preparation; [publication remains pending](releasing.md#110-release-preparation).
+`1.1.0` release, [published on 2026-09-15](releasing.md#110-release-preparation).
 Issue #91 remains the milestone tracking record. The historical evidence below describes the
 implementation review, before the separate release version and dependency-range updates.
 

@@ -1,6 +1,7 @@
 # Roadmap
 
-MCP Native shipped `1.0.0` on 2026-09-06 and the documentation-only `1.0.1` patch on 2026-09-07.
+MCP Native shipped `1.0.0` on 2026-09-06, the documentation-only `1.0.1` patch on 2026-09-07,
+and the additive `1.1.0` inline contract release on 2026-09-15.
 Milestones 0–9 and the Milestone 10 implementation, validation, independent-review, documentation,
 API-finalization, and publication steps are complete. The high-level host
 provides the connect-call-render workflow above the independently usable protocol, runtime,
@@ -463,7 +464,7 @@ stability policy is published, and every release-blocking review result is resol
 The stable React Native host is a foundation, not the end of the product. The following initiatives
 are deliberately excluded from the `1.0.0` exit criteria and tracked as separate GitHub milestones.
 The stable host API and `1.x` compatibility policy have shipped. Milestone 11’s bounded inline
-implementation is assigned to `1.1.0`, with publication pending. Later release numbers and dates
+implementation shipped in `1.1.0` on 2026-09-15. Later release numbers and dates
 remain unassigned. Work may overlap, but dependency order remains explicit.
 
 | Milestone                                                     | Initiative                                                                                                    | Depends on                                                               |
@@ -505,7 +506,7 @@ Applications continue to advertise only their installed, policy-ready subset.
 
 ### Milestone 11: standard contract registry and custom input adapters
 
-Status: inline data, lifecycle, and static native rendering/events implemented in source, not yet released. The
+Status: inline data, lifecycle, and static native rendering/events published in `1.1.0` on 2026-09-15. The
 [inline contract guide](custom-contracts.md) defines local registration, exact negotiation, strict
 schemas, cumulative limits, and immutable data resolution through `@mcp-native/host/contracts`.
 [RFC-0002](RFC-0002-contract-registry.md) retains the broader design. The [maintained standard inventory](standard-contracts.md) and [adapter-author tooling](contract-authoring.md)
@@ -513,7 +514,7 @@ are implemented. [Separately packaged reviewed adapters](reviewed-standard-adapt
 the closed inline-JSON interface with exact markers and negotiation. Custom resources, broader wire
 grammars, and live updates remain later work. Existing closed v1 result and action unions are unchanged.
 The bounded implementation was merged in [PR #137](https://github.com/pablospaniard/mcp-native/pull/137)
-and is included in the coordinated `1.1.0` release preparation. Its [implementation acceptance review](milestone-11-acceptance.md)
+and was published in the coordinated `1.1.0` release on 2026-09-15. Its [implementation acceptance review](milestone-11-acceptance.md)
 records the rejected initial review and corrections for timeout delivery, render replay, and provider cleanup.
 See [publication status](releasing.md#110-release-preparation); Milestone 12 work has not started.
 

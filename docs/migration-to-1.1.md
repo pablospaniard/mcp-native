@@ -3,7 +3,7 @@
 `1.1.0` is a compatible minor release of all seven MCP Native packages. Existing `1.0.x`
 integrations need no code changes: root exports, controller declarations, closed result/action/error
 unions, default authorization policies, and MCP/A2UI/MCP Apps pins are preserved.
-See [publication status](releasing.md#110-release-preparation) before installing this version.
+All seven packages are [published on npm](releasing.md#110-release-preparation).
 
 ## Upgrade packages together
 

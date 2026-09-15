@@ -77,12 +77,11 @@ Runnable examples:
 
 ## Current status
 
-MCP Native `1.1.0` is prepared for publication; `1.0.1` remains the latest confirmed release.
+MCP Native `1.1.0` was published on 2026-09-15 across all seven packages.
 See [release status](releasing.md#110-release-preparation). The public API is finalized across the high-level host, its React
 Native provider, and the independently usable low-level packages. The
 [compatibility policy](compatibility-policy.md) defines the adopted `1.x` contract. The
-[release checklist](1.0-readiness.md) records completed publication and the remaining registry audit
-record; the [changelog](../CHANGELOG.md) records release changes. Milestone 11 adds the `1.1.0`
+[v1 release checklist](1.0-readiness.md) retains the historical `1.0.0` audit status; the [changelog](../CHANGELOG.md) records release changes. Milestone 11 adds the `1.1.0`
 [inline-data, lifecycle, and native implementation](custom-contracts.md) under the broader
 [contract registry design](RFC-0002-contract-registry.md).
 
