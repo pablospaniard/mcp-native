@@ -7,8 +7,11 @@ The original author acceptance review was rejected by the user after identifying
 lifecycle issues. Its earlier readiness conclusion is withdrawn. The implementation now addresses
 slow delivery after timeout, replay-safe render accounting, and generation-gated provider cancellation.
 The regression evidence and API correction are recorded below. This remains an author-maintained
-implementation record, not independent certification or maintainer approval. Issue #91 and the
-PR remain open for renewed review.
+implementation record, not independent certification or a substitute for maintainer review.
+PR #137 was merged on 2026-09-15 after the corrections. The implementation is included in the
+`1.1.0` release preparation; [publication remains pending](releasing.md#110-release-preparation).
+Issue #91 remains the milestone tracking record. The historical evidence below describes the
+implementation review, before the separate release version and dependency-range updates.
 
 ## Scope checked against issue #91
 
@@ -86,15 +89,15 @@ force a non-cooperative handler to finish. No automatic retry occurs.
 - All six CI jobs on implementation commit `ec6cc67` passed, including pinned iOS and Android host
   builds. Subsequent commit status is reported by the PR checks; this record does not predeclare it.
 
-## Remaining scope and acceptance decision
+## Merged scope and remaining work
 
-The bounded implementation awaits renewed review after these corrections. It supports custom and
+The merged bounded implementation supports custom and
 separately packaged reviewed **inline JSON** adapters with exact own-extension/result-marker
 bindings and compiled native rendering. Existing maintained A2UI and Apps implementations retain
 their separate rendering and resource authority.
 
 Broader standard wire grammars, non-vendor MIME identities, linked custom resources, streaming or
 editable models, a combined standard/custom result view, and transferable surface handles remain
-outside this interface. Supporting them requires separate design and acceptance evidence. No
-milestone/issue closure, PR merge, package publication, or new upstream compatibility claim is made
-by this review.
+outside this interface. Supporting them requires separate design and acceptance evidence. The
+recorded PR merge does not establish milestone/issue closure, package publication, or additional
+upstream compatibility.

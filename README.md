@@ -108,7 +108,8 @@ For native A2UI, the app installs a catalog that maps supported semantic names t
 Native primitives or design-system adapters. The renderer has semantics for the pinned A2UI basic
 catalog, but the host advertises only components whose local implementation and required policy are
 installed. Domain-specific widgets can use an exactly negotiated, locally compiled host extension;
-application-defined input-format adapters are separate post-1.0 work.
+application-defined inline JSON adapters use the separate
+[contract APIs added in 1.1.0](docs/custom-contracts.md).
 
 For MCP Apps, the app supplies a WebView wrapper. MCP Native validates the stable Apps profile and
 creates closed sandbox, navigation, storage, permission, bridge, and lifecycle descriptors. HTML

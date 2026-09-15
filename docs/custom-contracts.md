@@ -144,9 +144,10 @@ callback; the provider starts it and exposes `{ controller, snapshot }` through 
 ```
 
 The child calls `useContractHost()` to observe snapshots and invoke controller methods. Do not
-replace the controller prop or share one controller between mounted providers. Real unmount cancels
-pending calls immediately and schedules shutdown in a microtask; Strict Mode effect replay retains
-the same connection. Throwing or rejecting error observers cannot interrupt cleanup. Application
+replace the controller prop or share one controller between mounted providers. Cleanup schedules
+pending-call cancellation and shutdown together in a generation-guarded microtask; Strict Mode effect
+replay invalidates that cleanup and retains the same connection. Native view cleanup revokes its
+mount lease synchronously. Throwing or rejecting error observers cannot interrupt cleanup. Application
 code must create a new controller for a later mount after shutdown.
 
 The original provider options remain lifecycle-only. To render custom results, supply a
@@ -317,7 +318,8 @@ Checks stop at the first failure and expose a fixed host code without a validati
 Callbacks may perform additional semantic checks and throw on failure.
 
 `prepare` is trusted synchronous application code. Output is inert JSON, without renderer or action
-authority. Future rendering must explicitly map validated semantic fields to host components.
+authority. The native registry binds that model to a compiled renderer, which must explicitly map
+validated semantic fields to host components.
 Native Promise outputs are rejected and their rejections contained. No transport or device object
 is supplied to callbacks. The library cannot preempt arbitrary local JavaScript: authors must charge
 additional input-driven work with `budget.consume()` before doing it. Throws are redacted; async

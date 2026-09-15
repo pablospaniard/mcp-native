@@ -78,8 +78,9 @@ See the [1.1 migration guide](docs/migration-to-1.1.md).
 - Document the Milestone 11 standard contract registry and custom input adapter design, including
   separate opt-in APIs, exact negotiation, disjoint routing, cumulative limits, and acceptance gates.
   Document the implemented data/lifecycle APIs and the broader wire/resource interfaces separately.
-- Correct v1 release status to reflect published `1.0.0` and `1.0.1` packages, while keeping the
-  post-publication registry audit record distinct from successful release verification/publication.
+- Align product, package, architecture, component, and review documentation with the merged inline
+  contract implementation and `1.1.0` migration path. Keep publication pending until confirmed, and
+  distinguish historical v1 review/audit evidence from current release status.
 
 ## 1.0.1 - 2026-09-07
 

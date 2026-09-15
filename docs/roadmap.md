@@ -462,7 +462,8 @@ stability policy is published, and every release-blocking review result is resol
 
 The stable React Native host is a foundation, not the end of the product. The following initiatives
 are deliberately excluded from the `1.0.0` exit criteria and tracked as separate GitHub milestones.
-The stable host API and `1.x` compatibility policy have shipped. Post-v1 release numbers and dates
+The stable host API and `1.x` compatibility policy have shipped. Milestone 11’s bounded inline
+implementation is assigned to `1.1.0`, with publication pending. Later release numbers and dates
 remain unassigned. Work may overlap, but dependency order remains explicit.
 
 | Milestone                                                     | Initiative                                                                                                    | Depends on                                                               |
@@ -479,7 +480,8 @@ remain unassigned. Work may overlap, but dependency order remains explicit.
 Status: planned post-v1 workstream; initial component selection, release number, and date are pending.
 This work builds on the shipped Milestone 8 host-extension boundary. Adapters that need broader
 device capabilities must coordinate with Milestone 15; ordinary semantic component adapters can
-use the existing extension contract without waiting for that provider framework or Milestone 11.
+use the existing extension contract independently of that provider framework or the `1.1.0` inline
+contract registry.
 
 The deliverable is a bounded, maintained catalog of additional semantic components with named
 adapters and an iOS/Android support matrix. It does not promise to bundle every React Native
