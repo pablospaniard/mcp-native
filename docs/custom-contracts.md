@@ -1,6 +1,7 @@
 # Custom contract data and native rendering
 
-Status: implemented in source for the next compatible release; not included in published `1.0.1`.
+Included in `1.1.0`; see the [migration guide](migration-to-1.1.md) and
+[publication status](releasing.md#110-release-preparation).
 The data, lifecycle, and static native rendering slices of [Milestone 11](roadmap.md#milestone-11-standard-contract-registry-and-custom-input-adapters)
 provide validated immutable JSON, connection ownership, and explicitly installed native renderers.
 Custom events require a local schema and authorization; custom resource loading remains unavailable.
@@ -383,5 +384,5 @@ Replace the earlier renderer prop `consume(work)` with a fresh
 The new `ContractRenderBudget` type is exported from `/contracts/react-native`. Preparation's
 `context.consume()` is unchanged and still fails the whole call after an invalid charge, even if
 caught. Saved render-budget callbacks are revoked on unmount; render attempts no longer change the
-event budget. This changes only the unreleased contract renderer API. Published v1 APIs, wire pins,
-and package versions remain unchanged. See the [review record](milestone-11-acceptance.md).
+event budget. This correction is included in the contract renderer API’s first release, `1.1.0`.
+Existing `1.0.x` APIs and wire pins remain unchanged. See the [review record](milestone-11-acceptance.md).

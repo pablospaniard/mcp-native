@@ -6,6 +6,14 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+No changes yet.
+
+## 1.1.0 - pending publication
+
+Coordinated minor release of all seven packages with opt-in contract registration, native hosting,
+and adapter authoring. Existing v1 APIs, default policies, and MCP/A2UI/MCP Apps pins are preserved.
+See the [1.1 migration guide](docs/migration-to-1.1.md).
+
 ### Added
 
 - Add `createReviewedStandardAdapter` for separately packaged inline JSON profiles with exact
@@ -25,7 +33,7 @@ patch and minor releases remain compatible within their release line.
   result/action/error unions retain their behavior; custom results carry inert data only.
 - Define the project-owned `io.github.pablospaniard/mcp-native-contracts` binding at `0.1` with exact
   descriptor negotiation. Custom resources, live updates, and broader standard wire grammars remain later
-  Milestone 11 work. Existing MCP, A2UI, and MCP Apps pins are unchanged.
+  work outside the bounded Milestone 11 scope. Existing MCP, A2UI, and MCP Apps pins are unchanged.
 
 - Add `ContractHostController`/`createContractHostController` with frozen registry settings, exact
   discovered-tool ownership, cancellation, reconnect, bounded pending work, explicit result clearing,
@@ -67,9 +75,9 @@ patch and minor releases remain compatible within their release line.
 
 ### Documentation
 
-- Propose the Milestone 11 standard contract registry and custom input adapter design, including
+- Document the Milestone 11 standard contract registry and custom input adapter design, including
   separate opt-in APIs, exact negotiation, disjoint routing, cumulative limits, and acceptance gates.
-  Document the implemented data/lifecycle APIs and the remaining standard-profile/resource stages separately.
+  Document the implemented data/lifecycle APIs and the broader wire/resource interfaces separately.
 - Correct v1 release status to reflect published `1.0.0` and `1.0.1` packages, while keeping the
   post-publication registry audit record distinct from successful release verification/publication.
 

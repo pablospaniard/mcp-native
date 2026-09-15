@@ -162,7 +162,7 @@ the A2UI parser/store, and connection lifecycle by hand:
   app](../examples/expo-go-todolist/README.md) as a reproducible integration reference alongside the
   protocol and package release gates.
 
-## Unreleased inline contract integrations
+## Inline contract integrations in 1.1
 
 - Install custom or reviewed adapters locally; advertise the exact frozen registry settings on the
   same connection used for results and resources. Bind compiled renderers through the native registry.
@@ -174,4 +174,4 @@ the A2UI parser/store, and connection lifecycle by hand:
   operation remains `busy` until the underlying review/delivery settles, even across remounts.
   Delivery code owns cancellation and any idempotency required for later user actions.
 - Follow the [custom contract guide](custom-contracts.md), [reviewed adapter guide](reviewed-standard-adapters.md),
-  and [authoring guide](contract-authoring.md). These APIs are not included in published `1.0.1`.
+  and [authoring guide](contract-authoring.md). These APIs require `1.1.0` or later; see the [migration guide](migration-to-1.1.md).

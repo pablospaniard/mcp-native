@@ -27,7 +27,7 @@ compatibility, or imply automatic compatibility with later Candidate revisions.
 
 ## Official references
 
-The unreleased [inline custom-contract binding](custom-contracts.md) adds the project-owned
+The `1.1.0` [inline custom-contract binding](custom-contracts.md) adds the project-owned
 `io.github.pablospaniard/mcp-native-contracts` extension at exact binding version `0.1` through
 `@mcp-native/host/contracts`. It resolves installed, exactly negotiated JSON contracts into inert
 validated data; the opt-in controller/provider add lifecycle ownership and static compiled native mounting.
@@ -238,10 +238,10 @@ non-boolean check conditions.
 - Base compatibility statements on passing pinned conformance tests and scoped integration results.
 - Update compatibility statements alongside the executable policy, tests, matrix, and release notes.
 
-## Unreleased contract inventory and authoring additions
+## Contract inventory and authoring additions in 1.1
 
 The opt-in [maintained standard factories](standard-contracts.md) add immutable registry inventory and
-subset selection; defaults, existing v1 declarations, protocol/schema pins, and package versions stay
+subset selection in `1.1.0`; defaults, existing v1 declarations, and protocol/schema pins stay
 unchanged. A client advertising an excluded standard fails with the new contract-only
 `invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
 canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;

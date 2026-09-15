@@ -26,9 +26,9 @@ Focused package guides: [core](../packages/core/README.md), [MCP SDK adapter](..
 | Native and HTML regions on one app-owned screen          | Separate sibling regions                 | [Mixed surfaces](mixed-surfaces.md)                                   |
 | Text or structured data with no supported UI claim       | Bounded inert ordinary-content rendering | [High-level host](../packages/host/README.md)                         |
 
-Unknown or ambiguous executable formats are not guessed. The unreleased
+Unknown or ambiguous executable formats are not guessed. The `1.1.0`
 [inline custom-contract API](custom-contracts.md) provides installed data adapters, controller/provider lifecycle, and static native rendering/events;
-these opt-in subpaths are not included in published `1.0.1` or its root result union.
+these opt-in subpaths preserve the existing root result union. See the [1.1 migration guide](migration-to-1.1.md).
 
 ## Implement a production host
 
@@ -77,17 +77,19 @@ Runnable examples:
 
 ## Current status
 
-MCP Native `1.0.1` is published. The public API is finalized across the high-level host, its React
+MCP Native `1.1.0` is prepared for publication; `1.0.1` remains the latest confirmed release.
+See [release status](releasing.md#110-release-preparation). The public API is finalized across the high-level host, its React
 Native provider, and the independently usable low-level packages. The
 [compatibility policy](compatibility-policy.md) defines the adopted `1.x` contract. The
 [release checklist](1.0-readiness.md) records completed publication and the remaining registry audit
-record; the [changelog](../CHANGELOG.md) records published versions. Milestone 11 has an unreleased
+record; the [changelog](../CHANGELOG.md) records release changes. Milestone 11 adds the `1.1.0`
 [inline-data, lifecycle, and native implementation](custom-contracts.md) under the broader
 [contract registry design](RFC-0002-contract-registry.md).
 
-## Unreleased contract tooling
+## Contract tooling in 1.1
 
+- [Migration to 1.1](migration-to-1.1.md) — coordinated installation, compatible APIs, and source-checkout changes.
 - [Maintained standard contracts](standard-contracts.md) — pinned inventory and explicit selection.
 - [Contract adapter authoring](contract-authoring.md) — canonical bundles, fixtures, and digest migration.
 - [Reviewed standard adapters](reviewed-standard-adapters.md) — separately packaged inline profiles and their review boundary.
-- [Milestone 11 acceptance review](milestone-11-acceptance.md) — scope, evidence, fixed findings, and remaining acceptance.
+- [Milestone 11 acceptance review](milestone-11-acceptance.md) — scope, evidence, fixed findings, and corrective validation.

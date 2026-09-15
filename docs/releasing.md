@@ -4,18 +4,21 @@ MCP Native publishes with npm trusted publishing. GitHub Actions exchanges its s
 identity for package-specific npm credentials, and npm attaches provenance to the published
 artifacts. The repository does not use long-lived npm write tokens.
 
-## Milestone 11 release preparation
+## 1.1.0 release preparation
 
-Milestone 11's inline contract additions are currently unreleased. The proposed next version is
-`1.1.0`: additive APIs preserve published v1 behavior under the [compatibility policy](compatibility-policy.md).
+All seven package manifests and internal dependency ranges target `1.1.0`. This release includes
+Milestone 11's inline contract APIs merged in [PR #137](https://github.com/pablospaniard/mcp-native/pull/137).
+The additive APIs preserve existing v1 behavior under the [compatibility policy](compatibility-policy.md).
+See the [release notes](../CHANGELOG.md) and [1.1 migration guide](migration-to-1.1.md).
+
+Publication is pending: `1.0.1` is the latest confirmed published version. Installation commands
+selecting `1.1.0` require publication to finish. Merge the release PR, publish the matching GitHub
+Release, and verify all seven npm packages before recording a release date and published availability.
+The release workflow below performs publication; merging either PR alone does not publish packages.
+
 The `consume` to `createRenderBudget()` renderer migration affects earlier source checkouts only;
-those contract APIs were never part of published `1.0.1`.
-
-After PR review and merge, prepare a separate coordinated release change: update all seven package
-versions and internal ranges, promote the Unreleased changelog, revise source-only availability
-notes and installation examples, and run the release checks below. Only record the release date and
-published availability when publication is confirmed. Closing Milestone 11 does not itself publish
-packages or imply that broader wire/resource interfaces are supported.
+those contract APIs were never part of published `1.0.1`. Broader wire/resource interfaces remain
+outside this release.
 
 ## Coordinated releases
 

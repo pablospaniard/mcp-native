@@ -1,6 +1,6 @@
 # Maintained standard contracts
 
-Status: implemented in source, unreleased. `@mcp-native/host/contracts` exposes a closed inventory
+Included in `1.1.0`; see [publication status](releasing.md#110-release-preparation). `@mcp-native/host/contracts` exposes a closed inventory
 of the three existing maintained implementations. Separately packaged inline profiles use the
 [reviewed standard adapter interface](reviewed-standard-adapters.md); they do not replace these
 maintained registrations or inherit their conformance claims.

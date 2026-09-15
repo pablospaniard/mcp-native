@@ -2,8 +2,8 @@
 
 ## Optional post-v1 inline contracts
 
-The source tree adds an unreleased `@mcp-native/host/contracts` subpath; published `1.0.1` does not
-include it. Existing v1 consumers need no migration. Adopters install local schemas and adapters,
+`1.1.0` adds the opt-in `@mcp-native/host/contracts` subpath; see the
+[1.1 migration guide](migration-to-1.1.md). Existing v1 consumers need no migration. Adopters install local schemas and adapters,
 advertise the registry's extension map on their actual MCP client, and call `resolveContractResult`
 with that connection's tool/result, or use `createContractHostController` to own discovery, calls,
 cancellation, reconnect, and result lifetime. `ContractHostProvider`/`useContractHost` from
@@ -144,10 +144,10 @@ A v1 host owns these integration boundaries:
 The v1 API is finalized. Future changes follow the [1.x compatibility policy](compatibility-policy.md);
 breaking changes require a major release and explicit upgrade guidance.
 
-## Unreleased contract inventory and authoring additions
+## Contract inventory and authoring additions in 1.1
 
 The opt-in [maintained standard factories](standard-contracts.md) add immutable registry inventory and
-subset selection; defaults, existing v1 declarations, protocol/schema pins, and package versions stay
+subset selection in `1.1.0`; defaults, existing v1 declarations, and protocol/schema pins stay
 unchanged. A client advertising an excluded standard fails with the new contract-only
 `invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
 canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;
@@ -157,6 +157,6 @@ JSON interface, with their own exact bindings, review evidence, and `.reviewedSt
 The new `invalid-standard-claim` code is confined to the opt-in API. Existing custom adapters are not
 promoted; broader wire/resource interfaces remain proposed in [RFC-0002](RFC-0002-contract-registry.md).
 
-The unreleased native contract renderer now receives `createRenderBudget()` instead of a shared
-`consume` prop. Create a fresh budget per render invocation; event budgets remain cumulative per
+The `1.1.0` native contract renderer receives `createRenderBudget()`. Earlier source checkouts
+used a shared `consume` prop that was never published. Create a fresh budget per render invocation; event budgets remain cumulative per
 result. This corrects React replay behavior. See the [renderer migration](custom-contracts.md#unreleased-renderer-migration-after-review).
