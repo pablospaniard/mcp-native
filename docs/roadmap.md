@@ -506,7 +506,7 @@ Applications continue to advertise only their installed, policy-ready subset.
 
 ### Milestone 11: standard contract registry and custom input adapters
 
-Status: inline data, lifecycle, and static native rendering/events implemented in source, not yet released. The
+Status: inline data, lifecycle, and static native rendering/events published in `1.1.0` on 2026-09-15. The
 [inline contract guide](custom-contracts.md) defines local registration, exact negotiation, strict
 schemas, cumulative limits, and immutable data resolution through `@mcp-native/host/contracts`.
 [RFC-0002](RFC-0002-contract-registry.md) retains the broader design. The [maintained standard inventory](standard-contracts.md) and [adapter-author tooling](contract-authoring.md)
