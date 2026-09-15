@@ -39,6 +39,21 @@
       "types": "./dist/react-native.d.ts",
       "import": "./dist/react-native.js",
       "default": "./dist/react-native.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts.d.ts",
+      "import": "./dist/contracts.js",
+      "default": "./dist/contracts.js"
+    },
+    "./contracts/react-native": {
+      "types": "./dist/contracts-react-native.d.ts",
+      "import": "./dist/contracts-react-native.js",
+      "default": "./dist/contracts-react-native.js"
+    },
+    "./contracts/authoring": {
+      "types": "./dist/contracts-authoring.d.ts",
+      "import": "./dist/contracts-authoring.js",
+      "default": "./dist/contracts-authoring.js"
     }
   },
   "publishConfig": {

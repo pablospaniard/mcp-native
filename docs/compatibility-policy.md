@@ -64,6 +64,18 @@ on the active connection; reconnect clears both discovered tools and prior call 
 automatically discovering again. Explicit `refreshTools()` ignores a still-fresh SDK cache entry and
 replaces it with a newly fetched, validated aggregate.
 
+The unreleased [Milestone 11 inline contract API](custom-contracts.md) uses the separate
+`@mcp-native/host/contracts` entry point and `ContractResult` union. Existing resolver/controller declarations,
+result/action/error unions, default extension map, and root exports are unchanged. The new API
+adds inert `contract-data` and `contract-error` outcomes; applications opt in explicitly. It does
+not expand supported A2UI or MCP Apps profiles. The opt-in controller and
+`@mcp-native/host/contracts/react-native` provider add data-result lifecycle. Optional native registry/view factories mount static custom
+data and schema-validated events through `createContractActionAuthorization`; the new decision union
+is separate from existing host authorization. Both controllers share cancellation guards that prevent late parsing/preparation and
+immediately drop tools/results on shutdown; existing public declarations are preserved. The broader
+wire/resource design in [RFC-0002](RFC-0002-contract-registry.md) remains later work; separately
+packaged reviewed inline profiles are implemented through their own exact bindings.
+
 The additive React Native host registration, mount-report fields and error codes, layout-contract
 vocabulary, registered surface, reusable render boundary, and `/testing` subpath are stable
 `1.x` compatibility surfaces. Layout contracts are local host metadata only: changing them may
@@ -104,3 +116,20 @@ The [support matrix](support-matrix.md) records the supported dependency lanes. 
 [`1.0.0` readiness checklist](1.0-readiness.md) records completed readiness gates and the coordinated
 publication actions. Check results may be summarized in a pull request or release;
 their raw output is not a required committed artifact.
+
+## Unreleased contract inventory and authoring additions
+
+The opt-in [maintained standard factories](standard-contracts.md) add immutable registry inventory and
+subset selection; defaults, existing v1 declarations, protocol/schema pins, and package versions stay
+unchanged. A client advertising an excluded standard fails with the new contract-only
+`invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
+canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;
+adopting the fixture runner requires updating installed and peer-advertised digests together.
+[Separately packaged reviewed adapters](reviewed-standard-adapters.md) now support the closed inline
+JSON interface, with their own exact bindings, review evidence, and `.reviewedStandards` inventory.
+The new `invalid-standard-claim` code is confined to the opt-in API. Existing custom adapters are not
+promoted; broader wire/resource interfaces remain proposed in [RFC-0002](RFC-0002-contract-registry.md).
+
+The unreleased native contract renderer now receives `createRenderBudget()` instead of a shared
+`consume` prop. Create a fresh budget per render invocation; event budgets remain cumulative per
+result. This corrects React replay behavior. See the [renderer migration](custom-contracts.md#unreleased-renderer-migration-after-review).

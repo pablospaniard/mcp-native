@@ -72,7 +72,7 @@
       }
     },
     "@mcp-native/host": {
-      "declarationSha256": "7f05324999b9e324124c48895353143eb3b8fec18134fbf66e1869b33a404969",
+      "declarationSha256": "29c3ded793612266bb45661e1b9965d12f00b7de10d2677ff21cf15b5390b0fc",
       "exports": {
         ".": {
           "import": "./dist/index.js",
@@ -83,6 +83,21 @@
           "import": "./dist/react-native.js",
           "runtimeSha256": "da79733d22932bb3663810fa16d266bad075304eec295192d7b1cead7556a2cf",
           "types": "./dist/react-native.d.ts"
+        },
+        "./contracts": {
+          "import": "./dist/contracts.js",
+          "runtimeSha256": "9f949c941d6bad179588c7adde5bec7c189a389490ba94ba5c57691d66193946",
+          "types": "./dist/contracts.d.ts"
+        },
+        "./contracts/react-native": {
+          "import": "./dist/contracts-react-native.js",
+          "runtimeSha256": "61afb60256070e3797ff420429794e658246f3321f750b650ffa4be583416165",
+          "types": "./dist/contracts-react-native.d.ts"
+        },
+        "./contracts/authoring": {
+          "import": "./dist/contracts-authoring.js",
+          "runtimeSha256": "1688b7ae4c3d3074f980f38f2e0871444234e6959e5626075ea0f7d01d650b47",
+          "types": "./dist/contracts-authoring.d.ts"
         }
       }
     },

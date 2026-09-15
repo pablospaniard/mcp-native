@@ -26,8 +26,9 @@ Focused package guides: [core](../packages/core/README.md), [MCP SDK adapter](..
 | Native and HTML regions on one app-owned screen          | Separate sibling regions                 | [Mixed surfaces](mixed-surfaces.md)                                   |
 | Text or structured data with no supported UI claim       | Bounded inert ordinary-content rendering | [High-level host](../packages/host/README.md)                         |
 
-Unknown or ambiguous executable formats are not guessed. Application-defined input contracts are
-tracked after 1.0 and are not part of the current host.
+Unknown or ambiguous executable formats are not guessed. The unreleased
+[inline custom-contract API](custom-contracts.md) provides installed data adapters, controller/provider lifecycle, and static native rendering/events;
+these opt-in subpaths are not included in published `1.0.1` or its root result union.
 
 ## Implement a production host
 
@@ -64,17 +65,29 @@ Runnable examples:
 
 - [RFC-0001](RFC-0001-architecture.md) — package boundaries, data flow, capability model, and threat
   model.
+- [RFC-0002](RFC-0002-contract-registry.md) — contract registry design, data, lifecycle, and static native implementation,
+  including separately packaged reviewed inline profiles; broader wire/resource interfaces remain future
+  work. [Custom contracts](custom-contracts.md) defines the implemented API.
 - [Compatibility policy](compatibility-policy.md) — finalized `1.x` API and behavior surface.
 - [1.0 readiness](1.0-readiness.md) — completed implementation, validation, and review gates, plus
   publication actions.
-- [Roadmap](roadmap.md) — completed milestones, the stable-release gate, and undated post-1.0 work.
+- [Roadmap](roadmap.md) — shipped v1 scope, release audit tracking, and undated post-1.0 work.
 - [Release process](releasing.md) — coordinated packages, trusted publishing, and provenance.
 - [Security policy](../SECURITY.md) — supported releases and private vulnerability reporting.
 
 ## Current status
 
-MCP Native is ready for v1. The public API is finalized across the high-level host, its React
-Native provider, and the independently usable low-level packages. Independent reviews and release
-readiness decisions are complete. The [compatibility policy](compatibility-policy.md) defines the
-adopted `1.x` contract. Coordinated stable publication is tracked in the
-[release checklist](1.0-readiness.md); the [changelog](../CHANGELOG.md) records published versions.
+MCP Native `1.0.1` is published. The public API is finalized across the high-level host, its React
+Native provider, and the independently usable low-level packages. The
+[compatibility policy](compatibility-policy.md) defines the adopted `1.x` contract. The
+[release checklist](1.0-readiness.md) records completed publication and the remaining registry audit
+record; the [changelog](../CHANGELOG.md) records published versions. Milestone 11 has an unreleased
+[inline-data, lifecycle, and native implementation](custom-contracts.md) under the broader
+[contract registry design](RFC-0002-contract-registry.md).
+
+## Unreleased contract tooling
+
+- [Maintained standard contracts](standard-contracts.md) — pinned inventory and explicit selection.
+- [Contract adapter authoring](contract-authoring.md) — canonical bundles, fixtures, and digest migration.
+- [Reviewed standard adapters](reviewed-standard-adapters.md) — separately packaged inline profiles and their review boundary.
+- [Milestone 11 acceptance review](milestone-11-acceptance.md) — scope, evidence, fixed findings, and remaining acceptance.

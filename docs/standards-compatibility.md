@@ -27,6 +27,16 @@ compatibility, or imply automatic compatibility with later Candidate revisions.
 
 ## Official references
 
+The unreleased [inline custom-contract binding](custom-contracts.md) adds the project-owned
+`io.github.pablospaniard/mcp-native-contracts` extension at exact binding version `0.1` through
+`@mcp-native/host/contracts`. It resolves installed, exactly negotiated JSON contracts into inert
+validated data; the opt-in controller/provider add lifecycle ownership and static compiled native mounting.
+Optional local event schemas participate in the same descriptor digest; custom events are delivered
+to an authorized host callback, with no new MCP wire event protocol.
+This is not an official MCP UI standard or expanded A2UI/MCP Apps conformance.
+Existing MCP `2026-07-28`, A2UI Candidate `8ff4651232ab0e02b0123730b502711170637a3a`, and
+MCP Apps `2026-01-26` pins are unchanged.
+
 ### Protocol and wire contracts
 
 | Reference                                                                                                                                                      | Role in MCP Native                                                                         | Requirement level                     |
@@ -227,3 +237,16 @@ non-boolean check conditions.
 - State compatibility by exact revision, implemented feature profile, operation, and transport.
 - Base compatibility statements on passing pinned conformance tests and scoped integration results.
 - Update compatibility statements alongside the executable policy, tests, matrix, and release notes.
+
+## Unreleased contract inventory and authoring additions
+
+The opt-in [maintained standard factories](standard-contracts.md) add immutable registry inventory and
+subset selection; defaults, existing v1 declarations, protocol/schema pins, and package versions stay
+unchanged. A client advertising an excluded standard fails with the new contract-only
+`invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
+canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;
+adopting the fixture runner requires updating installed and peer-advertised digests together.
+[Separately packaged reviewed adapters](reviewed-standard-adapters.md) now support the closed inline
+JSON interface, with their own exact bindings, review evidence, and `.reviewedStandards` inventory.
+The new `invalid-standard-claim` code is confined to the opt-in API. Existing custom adapters are not
+promoted; broader wire/resource interfaces remain proposed in [RFC-0002](RFC-0002-contract-registry.md).

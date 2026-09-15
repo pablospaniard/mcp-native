@@ -17,6 +17,7 @@
   "dependencies": {
     "@mcp-native/a2ui": "file:../../packages/a2ui",
     "@mcp-native/core": "file:../../packages/core",
+    "@mcp-native/host": "file:../../packages/host",
     "@mcp-native/react-native": "file:../../packages/react-native",
     "expo": "~57.0.19",
     "expo-sqlite": "~57.0.2",

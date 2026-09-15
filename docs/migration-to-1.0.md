@@ -1,5 +1,25 @@
 # Migration to `1.0.0`
 
+## Optional post-v1 inline contracts
+
+The source tree adds an unreleased `@mcp-native/host/contracts` subpath; published `1.0.1` does not
+include it. Existing v1 consumers need no migration. Adopters install local schemas and adapters,
+advertise the registry's extension map on their actual MCP client, and call `resolveContractResult`
+with that connection's tool/result, or use `createContractHostController` to own discovery, calls,
+cancellation, reconnect, and result lifetime. `ContractHostProvider`/`useContractHost` from
+`@mcp-native/host/contracts/react-native` optionally own that controller for one React mount. Handle `contract-data` and `contract-error` through the separate
+`ContractResult` union. Do not pass custom data to existing host views as A2UI or MCP Apps. See the
+[API and binding guide](custom-contracts.md) for schema pins, limits, lifecycle configuration, and provider ownership rules. Existing default policy, standard pins, root exports, and closed unions are unchanged.
+
+For custom native mounting, bind adapters with `createContractNativeRegistration`, construct a
+`createContractNativeRegistry`, and use its exact `.registry` for the controller. Supply the native
+registry to the provider and mount `ContractNativeResultView` with accessible fallback UI. Event
+adopters add `eventSchema` to the adapter and schema digest, install a factory-issued
+`createContractActionAuthorization` gate, and provide a local `onEvent` callback. Data-only adapters
+with no event schema retain their existing descriptor and cannot dispatch events. Native provider
+configuration is fixed for its lifetime; replace the entire controller/provider for a new principal
+or registration set.
+
 ## Align the A2UI schema revision on both peers
 
 The v1 protocol baseline uses upstream A2UI revision
@@ -123,3 +143,20 @@ A v1 host owns these integration boundaries:
 
 The v1 API is finalized. Future changes follow the [1.x compatibility policy](compatibility-policy.md);
 breaking changes require a major release and explicit upgrade guidance.
+
+## Unreleased contract inventory and authoring additions
+
+The opt-in [maintained standard factories](standard-contracts.md) add immutable registry inventory and
+subset selection; defaults, existing v1 declarations, protocol/schema pins, and package versions stay
+unchanged. A client advertising an excluded standard fails with the new contract-only
+`invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
+canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;
+adopting the fixture runner requires updating installed and peer-advertised digests together.
+[Separately packaged reviewed adapters](reviewed-standard-adapters.md) now support the closed inline
+JSON interface, with their own exact bindings, review evidence, and `.reviewedStandards` inventory.
+The new `invalid-standard-claim` code is confined to the opt-in API. Existing custom adapters are not
+promoted; broader wire/resource interfaces remain proposed in [RFC-0002](RFC-0002-contract-registry.md).
+
+The unreleased native contract renderer now receives `createRenderBudget()` instead of a shared
+`consume` prop. Create a fresh budget per render invocation; event budgets remain cumulative per
+result. This corrects React replay behavior. See the [renderer migration](custom-contracts.md#unreleased-renderer-migration-after-review).

@@ -32,3 +32,18 @@ after `1.0.0` and will receive their own integration requirements.
 `tests/support-matrix.test.mjs` makes the Node and TypeScript toolchain, React and MCP SDK peers,
 official schema package pin, and absence of Expo or React Native package dependencies part of the
 normal CI gate. `npm run package:smoke` separately verifies the packed artifacts and upgrade path.
+
+## Unreleased contract integration
+
+The source-only `/contracts`, `/contracts/react-native`, and `/contracts/authoring` subpaths retain
+the requirements above and do not add Expo, React Native, or WebView dependencies. The authoring
+helpers require Web Crypto SHA-256 and `TextEncoder` in the build/test environment; generated schema
+bundles and digests can be imported by the mobile runtime without those helpers.
+
+Contract tests cover exact negotiation, closed schemas, native registration, event policy, timeout
+single-flight retention across remounts, Strict Mode, and discarded Suspense render attempts.
+Package smoke installs a separate synthetic reviewed-adapter tarball and verifies the new typed
+consumer alongside published v1 consumers. The todo example uses fresh per-render budgets; its
+checks and both mobile bundles pass. These checks demonstrate the declared inline interface, not
+conformance of an additional real upstream standard. See the [review record](milestone-11-acceptance.md)
+and [renderer migration](custom-contracts.md#unreleased-renderer-migration-after-review).
