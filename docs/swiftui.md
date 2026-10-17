@@ -5,6 +5,11 @@ profile. SwiftUI owns view lifecycle and native controls; the fixed local JavaSc
 the same `@mcp-native/renderer-core` session as React Native. JSON is the only semantic boundary.
 Native objects and functions never cross into JavaScriptCore.
 
+Consumers add `https://github.com/pablospaniard/mcp-native.git` as a SwiftPM dependency and select
+the `MCPNativeSwiftUI` library product. The repository-root `Package.swift` is the supported remote
+entry point; `packages/swiftui/Package.swift` remains available for focused local development. CI
+tests both manifests and compiles the root product for every supported Apple platform.
+
 ## Compatibility
 
 | Boundary     | Supported floor | Continuous evidence                                     |
