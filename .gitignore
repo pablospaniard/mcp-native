@@ -5,6 +5,8 @@ coverage/
 packages/compose/.gradle/
 packages/compose/library/build/
 packages/compose/local.properties
+tests/fixtures/compose-consumer/.gradle/
+tests/fixtures/compose-consumer/build/
 *.tsbuildinfo
 .DS_Store
 *.log

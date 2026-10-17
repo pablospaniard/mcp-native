@@ -302,16 +302,18 @@ test("prerelease installation commands select the matching npm dist-tag", () => 
 
 test("the recovery workflow resolves a published release to an immutable commit", () => {
   const workflow = parse(readFileSync(".github/workflows/release.yml", "utf8"));
-  const publishJob = workflow.jobs.publish;
-  const steps = publishJob.steps;
-  const resolveRelease = steps.find(({ name }) => name === "Resolve published release");
-  const releaseCheckout = steps.find(({ name }) => name === "Check out immutable release commit");
-  const verifyRelease = steps.find(
+  const resolveJob = workflow.jobs.resolve;
+  const publishJob = workflow.jobs["publish-npm"];
+  const resolveRelease = resolveJob.steps.find(({ name }) => name === "Resolve published release");
+  const releaseCheckout = publishJob.steps.find(
+    ({ name }) => name === "Check out immutable release commit",
+  );
+  const verifyRelease = publishJob.steps.find(
     ({ run }) => run === "node ../automation/scripts/run-release-verification.mjs",
   );
 
   assert.equal(publishJob.environment, "npm-release");
-  assert.match(publishJob.if, /github\.ref == 'refs\/heads\/main'/);
+  assert.match(resolveJob.if, /github\.ref == 'refs\/heads\/main'/);
   const patternLine = resolveRelease.run
     .split("\n")
     .find((line) => line.includes('REQUESTED_TAG}" =~ '));
@@ -323,9 +325,30 @@ test("the recovery workflow resolves a published release to an immutable commit"
   assert.match("v1.0.0", workflowTagPattern);
   assert.match("v1.0.0-beta.1", workflowTagPattern);
   assert.doesNotMatch("v1.0.0-beta.01", workflowTagPattern);
-  assert.equal(releaseCheckout.with.ref, "${{ steps.release.outputs.commit }}");
+  assert.equal(releaseCheckout.with.ref, "${{ needs.resolve.outputs.commit }}");
   assert.equal(releaseCheckout.with["persist-credentials"], false);
-  assert.equal(verifyRelease.env.MCP_NATIVE_RELEASE_TAG, "${{ steps.release.outputs.tag }}");
+  assert.equal(verifyRelease.env.MCP_NATIVE_RELEASE_TAG, "${{ needs.resolve.outputs.tag }}");
+});
+
+test("Maven credentials are isolated from release-controlled build code and resume work", () => {
+  const workflow = parse(readFileSync(".github/workflows/release.yml", "utf8"));
+  const build = workflow.jobs["build-compose"];
+  const publish = workflow.jobs["publish-compose"];
+  const resume = workflow.jobs["resume-compose"];
+
+  assert.doesNotMatch(JSON.stringify(build), /secrets\.|MAVEN_CENTRAL_|MAVEN_SIGNING_/);
+  assert.ok(
+    build.steps.some(({ name }) => name === "Install pinned Android SDK"),
+    "credential-free build installs its Android SDK explicitly",
+  );
+  assert.ok(publish.steps.some(({ name }) => name === "Check out trusted release automation only"));
+  assert.ok(
+    publish.steps.every(({ name }) => name !== "Check out immutable release commit"),
+    "credential-bearing Maven job never checks out release-controlled code",
+  );
+  assert.match(publish.if, /maven_deployment_id == ''/);
+  assert.match(resume.if, /maven_deployment_id != ''/);
+  assert.doesNotMatch(JSON.stringify(resume), /npm ci|publish-release|android:package:smoke/);
 });
 
 test("release recovery supplies the resolved tag to legacy and current verifiers", () => {
