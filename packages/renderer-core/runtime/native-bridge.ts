@@ -190,7 +190,7 @@ function open(configurationInput: unknown, timestamp: unknown): void {
     manifests.length === 0 ? undefined : negotiateHostExtensions(settings, settings);
   const hostExtensions =
     negotiation?.kind === "negotiated"
-      ? createHostExtensionRegistry({ platform: "ios", manifests, negotiation })
+      ? createHostExtensionRegistry({ platform: MCP_NATIVE_PLATFORM, manifests, negotiation })
       : undefined;
   extensionRegistry = hostExtensions;
   const policy = createBasicCatalogPolicy({

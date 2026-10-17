@@ -112,6 +112,22 @@ class RendererSessionTest {
     assertEquals("View", current.publication.value?.root?.component)
   }
 
+  @Test fun acceptsAnAndroidOnlyHostExtensionManifest() = runBlocking {
+    val manifest = BoundedJson.decode(extensionManifest.toByteArray()) as JsonValue.ObjectValue
+    val current = RendererSession.create(
+      compose.activity,
+      RendererPolicy(
+        allowedComponentNames = listOf("Column"),
+        hostExtensions = listOf(HostExtensionGrant(manifest)),
+        locale = "en-US",
+      ),
+      authorize = { true },
+      deliver = {},
+    )
+    session = current
+    assertNull(current.lastDiagnostic.value)
+  }
+
   private val createEnvelope = JsonValue.ObjectValue(mapOf(
     "version" to JsonValue.StringValue("v1.0"),
     "createSurface" to JsonValue.ObjectValue(mapOf(
@@ -133,6 +149,10 @@ class RendererSessionTest {
     JsonValue.ObjectValue(mapOf("id" to JsonValue.StringValue(id), "component" to JsonValue.StringValue(component)) + fields)
 
   private fun strings(vararg values: String) = JsonValue.ArrayValue(values.map(JsonValue::StringValue))
+
+  private val extensionManifest = """
+    {"profileVersion":"1","extensionId":"io.github.pablospaniard/status-badge","catalogId":"io.github.pablospaniard/status-badge@1","catalogVersion":"1","schemaVersion":"1.0.0","componentName":"io.github.pablospaniard/status-badge:StatusBadge","propsSchema":{"type":"object","properties":{"label":{"type":"string","minLength":1,"maxLength":64}},"required":["label"],"additionalProperties":false},"events":[],"platforms":["android"],"accessibility":{"ownership":"host","requiresLabel":true,"behavior":"Expose one static labeled status value."},"resourceNeeds":[],"permissionNeeds":[],"limits":{"maximumInstances":4,"maximumEventPayloadValues":8,"maximumEventPayloadStringCodeUnits":256,"maximumPropsValues":8,"maximumPropsStringCodeUnits":256,"maximumUpdatesPerSurface":16},"fallback":{"kind":"reject"},"compatibility":{"owner":"MCP Native maintainers"}}
+  """.trimIndent()
 
   private fun find(node: NativeNode, component: String): NativeNode? =
     if (node.component == component) node else node.children.firstNotNullOfOrNull { find(it, component) }
