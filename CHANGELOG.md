@@ -12,7 +12,7 @@ patch and minor releases remain compatible within their release line.
   trusted catalog to Jetpack Compose, runs the shared renderer-core session in a fixed bounded
   AndroidX JavaScriptEngine isolate, preserves two-phase action delivery, and exposes closed
   host-owned navigation, resource, media, Compose, and Android View extension seams. Pinned JVM and
-  API 36 emulator checks cover hostile JSON, engine lifecycle, interaction, and accessibility.
+  API 37 emulator checks cover hostile JSON, engine lifecycle, interaction, and accessibility.
 
 - Add the first-class `MCPNativeSwiftUI` Swift Package for iOS, macOS, tvOS, and visionOS. It maps
   all 18 pinned catalog components, runs the shared revisioned session in a fixed local

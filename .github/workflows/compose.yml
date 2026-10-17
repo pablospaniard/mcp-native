@@ -55,15 +55,70 @@ jobs:
       - name: Compile, lint, and run JVM tests
         working-directory: packages/compose
         run: ./gradlew testDebugUnitTest lintDebug assembleDebugAndroidTest --no-daemon
-      - name: Run API 36 renderer and accessibility tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 36
-          target: google_apis_playstore
-          arch: x86_64
-          profile: pixel_6
-          disk-size: 8G
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          disable-animations: true
-          working-directory: packages/compose
-          script: ./gradlew connectedDebugAndroidTest --no-daemon
+      - name: Install the pinned API 37 emulator
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "platform-tools" "platforms;android-36" "system-images;android-37.1;google_apis_ps16k;x86_64"
+          curl --fail --location --output "${RUNNER_TEMP}/emulator.zip" https://dl.google.com/android/repository/emulator-linux_x64-15917651.zip
+          unzip -oq "${RUNNER_TEMP}/emulator.zip" -d "${ANDROID_SDK_ROOT}"
+          emulator -version
+      - name: Run API 37 renderer and accessibility tests
+        working-directory: packages/compose
+        env:
+          ANDROID_AVD_HOME: ${{ runner.temp }}/compose-avd
+        run: |
+          set -euo pipefail
+          mkdir -p "${ANDROID_AVD_HOME}"
+          echo no | avdmanager create avd --force --name compose-api-37 --package "system-images;android-37.1;google_apis_ps16k;x86_64" --device pixel_6
+          printf 'hw.cpu.ncore=2\ndisk.dataPartition.size=8G\n' >> "${ANDROID_AVD_HOME}/compose-api-37.avd/config.ini"
+
+          emulator -port 5554 -avd compose-api-37 -no-window -gpu swangle_indirect -no-snapshot -noaudio > "${RUNNER_TEMP}/compose-emulator.log" 2>&1 &
+          COMPOSE_EMULATOR_PID=$!
+          cleanup() {
+            adb -s emulator-5554 emu kill >/dev/null 2>&1 || true
+            wait "${COMPOSE_EMULATOR_PID}" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          timeout 600 adb -s emulator-5554 wait-for-device
+          COMPOSE_BOOTED=0
+          for _ in $(seq 1 300); do
+            if [[ "$(adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+              COMPOSE_BOOTED=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "${COMPOSE_BOOTED}" != "1" ]]; then
+            tail -n 200 "${RUNNER_TEMP}/compose-emulator.log"
+            exit 1
+          fi
+
+          COMPOSE_SERVICES_READY=0
+          for _ in $(seq 1 60); do
+            if adb -s emulator-5554 shell service check input 2>/dev/null | grep -q "found" && adb -s emulator-5554 shell cmd package list packages >/dev/null 2>&1; then
+              COMPOSE_SERVICES_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "${COMPOSE_SERVICES_READY}" != "1" ]]; then
+            tail -n 200 "${RUNNER_TEMP}/compose-emulator.log"
+            exit 1
+          fi
+          COMPOSE_UNLOCKED=0
+          for _ in $(seq 1 30); do
+            if adb -s emulator-5554 shell input keyevent 82 >/dev/null 2>&1; then
+              COMPOSE_UNLOCKED=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "${COMPOSE_UNLOCKED}" != "1" ]]; then
+            tail -n 200 "${RUNNER_TEMP}/compose-emulator.log"
+            exit 1
+          fi
+          adb -s emulator-5554 shell settings put global window_animation_scale 0.0
+          adb -s emulator-5554 shell settings put global transition_animation_scale 0.0
+          adb -s emulator-5554 shell settings put global animator_duration_scale 0.0
+          ./gradlew connectedDebugAndroidTest --no-daemon

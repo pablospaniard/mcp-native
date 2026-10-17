@@ -17,7 +17,7 @@ compatibility boundaries.
 | Android          | platform requirements inherited from the host                                       | generated x86_64 debug application                          |
 | iOS              | platform requirements inherited from the host                                       | generated unsigned simulator application                    |
 | SwiftUI renderer | Swift 6; iOS 18, macOS 15, tvOS 18, visionOS 2; Xcode 16+                           | SwiftPM tests plus generic Apple simulator builds           |
-| Compose renderer | API 33+; API 36 CI emulator; JDK 17, Gradle 8.14.3, AGP 8.13.2, Kotlin 2.2.20       | JVM limits, Android lint/build, engine and Compose UI tests |
+| Compose renderer | API 33+; API 37 emulator; JDK 17, Gradle 8.14.3, AGP 8.13.2, Kotlin 2.2.20          | JVM limits, Android lint/build, engine and Compose UI tests |
 | MCP SDK          | `@modelcontextprotocol/client ^2.0.0`                                               | package integration and conformance tests                   |
 | A2UI             | feature-scoped v1.0 Candidate at `8ff4651232ab0e02b0123730b502711170637a3a`         | vendored schema checksums and declared profile tests        |
 | MCP Apps         | stable `2026-01-26`, official schema package `@modelcontextprotocol/ext-apps@1.7.5` | interoperability and hostile-message tests                  |
