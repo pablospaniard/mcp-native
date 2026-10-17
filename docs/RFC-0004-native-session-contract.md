@@ -1,29 +1,28 @@
 # RFC-0004: Shared native session contract
 
-- Status: Proposed; behavioral design for review, not an implemented or frozen API
+- Status: Accepted and implemented for the platform-neutral renderer foundation
 - Date: 2026-09-12
 - Baseline: integration commit `7535b4b917c33b35f6d0bacdb0012dd732a35105` (PR #133)
 - Tracking: [milestone 12 / #92](https://github.com/pablospaniard/mcp-native/issues/92)
 - Depends on: [architecture](RFC-0001-architecture.md), [runtime/package assessment](RFC-0003-native-platforms.md)
 
-## Decision proposed
+## Decision
 
 Give platform renderers one semantic session boundary that owns server state, effective local state,
 planning and action resolution. Keep transport, authorization, native controls, navigation and device
-lifecycle in the application host. Implement and test this boundary as an internal module first.
-The initial implementation candidate reuses the existing JavaScript semantics; this RFC does not
-select the production engine, publish renderer-core, add a package, or complete milestone 12.
+lifecycle in the application host. The implementation reuses the existing JavaScript semantics in
+the platform-neutral renderer-core package and leaves device/UI integration to platform renderers.
 
 The central design choice is a serial semantic state machine with immutable, bounded results.
 Native callbacks identify the exact rendered instance that installed them. An action result is a
 proposal requiring native authorization, not permission to dispatch. Logical cancellation makes a
 session unusable immediately even where physical engine interruption is not yet demonstrated.
 
-All requirements below are **proposed project policy** for new native sessions. They do not add
+All requirements below are adopted project policy for new native sessions. They do not add
 requirements to MCP/A2UI or retroactively change published React Native behavior. Terms and operation
-names describe responsibilities, not new exports or a bridge wire schema. A follow-up implementation
-PR must provide the closed request/result schemas and executable race tests before claiming this
-contract. New identifiers follow the [version-neutral naming rule](../CONTRIBUTING.md#naming).
+names describe responsibilities, not a bridge wire schema. Renderer-core provides closed results,
+diagnostics, revision-bound opaque tickets, and executable race tests. New identifiers follow the
+[version-neutral naming rule](../CONTRIBUTING.md#naming).
 
 ## Exact profile and source of truth
 
@@ -106,19 +105,18 @@ closes the session before integer precision or wraparound can make an old identi
 
 ### Surface-ID lifetime interpretation
 
-**Decision proposed:** add opt-in lifetime uniqueness to the shared surface store and reuse its
+**Decision:** add opt-in lifetime uniqueness to the shared surface store and reuse its
 common enforcement in the internal native-session path. The host owns the rendering-context lifetime
-across engines. This section defines the policy for review; implementation and acceptance tests
-remain gates. Published `1.x` defaults are unchanged.
+across engines. The shared registry, surface store, session, and React Native host helper implement
+the policy. Published `1.x` defaults are unchanged.
 
 The pinned [upstream create-surface schema](https://github.com/a2ui-project/a2ui/blob/8ff4651232ab0e02b0123730b502711170637a3a/specification/v1_0/json/agent_to_renderer.json)
 requires `surfaceId` to remain globally unique for the renderer's lifetime. Its preceding wording
 about deleting an existing surface does not remove that requirement. The
 [vendored schema](../packages/a2ui/src/v1/vendor/agent_to_renderer.json) preserves the same wording.
-The current [store](../packages/a2ui/src/v1/store.ts) checks only active IDs and accepts creation
-after deletion; schema validation alone cannot enforce the lifetime rule. That is a known
-implementation gap, not an approved exception. The lifetime boundary and resource policy below are
-project interpretations; they are not additional upstream wire fields.
+The compatible [store](../packages/a2ui/src/v1/store.ts) default checks active IDs. Passing a bounded
+host-owned registry enforces lifetime uniqueness across deletion and replacement stores. The lifetime
+boundary and resource policy below are project interpretations; they are not additional wire fields.
 
 #### Context ownership and end of lifetime
 
@@ -191,8 +189,8 @@ possible. A store-owned set alone is sufficient only when that store spans the e
 renderer lifetime. The integrated design must preserve host-owned state across engine replacement
 and the store's atomic `applyAll` rollback of IDs and budget charges;
 adding an unbounded set that survives deletion is not sufficient. A failed batch releases only IDs
-and charges introduced by that batch, never history that predates it. Public API shape and implementation
-remain follow-up work, not prerequisites for accepting this behavioral RFC.
+and charges introduced by that batch, never history that predates it. The additive APIs implement
+this behavior without changing existing defaults.
 
 The published store's and React Native renderer's current active-ID-only behavior
 must remain disclosed in the [conformance profile](a2ui-v1-conformance.md#envelope-and-lifecycle-profile).
@@ -389,7 +387,7 @@ Physical-device performance remains deferred and unscored.
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Reconciliation and rejected renders | `same-value-server-update`, `component-update-preserves-edits`, `local-edit-render-rejection-recovery`, malformed-envelope probes | Execute unchanged expectations against the extracted session and mounted React Native adapter                                                                                               |
 | Array updates and expanded lists    | `array-pointer-updates`, `dynamic-list-order`, `expanded-node-limit`; depth probes                                                | Keep rejection atomicity and add scoped callbacks across list reordering and row replacement                                                                                                |
-| Surface-ID lifetime                 | Current store checks active IDs only; [interpretation gap](#surface-id-lifetime-interpretation)                                   | Implement the proposed context lifetime and bounded registry; pass the acceptance scenarios in the linked section                                                                           |
+| Surface-ID lifetime                 | Compatible default checks active IDs; strict registry retains IDs for the context lifetime                                        | Bounded registry, replacement-store reuse, rollback, deletion/recreation, and exhaustion scenarios pass                                                                                     |
 | Host authorization                  | Allow/deny and model-omission cases; generation and close probes                                                                  | Pause authorization, update/delete/close the surface, then resolve allow: zero dispatch; duplicate completion: at most one dispatch                                                         |
 | Response integrity                  | Android strict JSON, malformed response and pending-close probes                                                                  | Both adapters reject wrong sequence/generation, duplicate replies and malformed observation/action shapes; old completions cannot affect replacement sessions                               |
 | Cancellation                        | Android running-loop termination; Apple admission cancellation                                                                    | Close during evaluation without blocking UI/admission; late result discarded; host-wide capacity exhaustion, repeated timeouts and late/duplicate cleanup acknowledgments on both platforms |
@@ -400,7 +398,7 @@ These are required test scenarios, not additional passing fixtures. Implement th
 barriers around evaluation, authorization and dispatch rather than timing-dependent sleeps. No new
 CI workflow, package or production behavior is introduced by this document.
 
-## Delivery sequence and open decisions
+## Implementation record and remaining platform decisions
 
 1. Review this behavioral proposal and the conservative render-ticket invalidation rule. Milestone
    12 stays open; review acceptance alone does not freeze exports or establish multi-renderer support.
@@ -411,21 +409,19 @@ CI workflow, package or production behavior is introduced by this document.
    implement the [surface-ID lifetime policy](#surface-id-lifetime-interpretation) before native adoption.
 3. Add the async host scenarios above and implement independent native admission/result validation.
    Resolve Apple interruption/retirement policy and the Android provider support/failure policy.
-4. Submit the RFC-0002 runtime/package decision with these results. Keep renderer-core private until
-   its packaging disposition is implemented; maintain one primary integration surface per platform.
+4. RFC-0003 adopts shared JavaScript semantics and a public renderer-core package boundary; maintain
+   one primary integration surface per platform.
 5. Build the scoped SwiftUI preview, then the equivalent Compose preview, with explicit tested
    platform matrices. Agree physical-device budgets before scoring performance or claiming a winner.
 
-Still open: review and implementation of the lifetime policy above; the
-[published-store lifetime-uniqueness opt-in](roadmap.md#shared-store-lifetime-uniqueness) owned by
-milestone 12 / #92, including the registry-sharing decision, bounded retention, atomic batch rollback
-and React Native integration; the internal request/result schema and diagnostic vocabulary,
-engine-specific cleanup acknowledgment, supported provider/OS
-ranges, production resource budgets, app background/foreground policy and transport-specific
-cancellation outcomes. Unsupported environments must fail explicitly;
+Implemented here: the published-store lifetime opt-in, common bounded registry, atomic rollback,
+renderer-core reconciliation/session contract, React Native host integration, closed results and
+diagnostics, deterministic authorization races, and experiment cleanup.
+
+Still open under platform renderer milestones: engine-specific cleanup acknowledgment, supported
+provider/OS ranges, production device budgets, app background/foreground policy, and
+transport-specific cancellation outcomes. Unsupported environments must fail explicitly;
 no silent WebView or alternate-engine fallback is approved.
 
-The existing experiment sunset remains mandatory before integration reaches `main`, even if the
-runtime decision is deferred. Preserve durable findings and the shared corpus; remove temporary
-runners, generated-code tooling, scripts, tests, dependencies and the iOS experiment workflow, and
-repair their links. This document is durable design context, not a reason to retain those pipelines.
+The experiment sunset is complete: durable findings and the shared corpus remain, while temporary
+runners, generated-code tooling, scripts, tests, dependencies, and the iOS workflow were removed.

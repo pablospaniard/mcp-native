@@ -140,6 +140,9 @@ npm install @mcp-native/core@1 @mcp-native/a2ui@1 @mcp-native/react-native@1
 npm install @mcp-native/webview@1
 ```
 
+Renderer authors can install `@mcp-native/renderer-core` after its first coordinated release; its
+source package defines the shared render-plan, reconciliation, and interactive-session boundary.
+
 All packages are ESM-only and include TypeScript declarations. React `>=18.1.0` is the only UI peer
 dependency. The app supplies React Native, Expo if used, WebView, native components, and other
 platform integrations.
@@ -193,15 +196,16 @@ application-owned responsibilities.
 
 ## Packages
 
-| Package                                             | Responsibility                                                                            |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [`@mcp-native/host`](packages/host)                 | High-level connection, discovery, call, result, lifecycle, and React Native orchestration |
-| [`@mcp-native/core`](packages/core)                 | Protocol-independent runtime contracts, JSON validation, resources, actions, and policy   |
-| [`@mcp-native/mcp`](packages/mcp)                   | Validated adapter for the official MCP TypeScript SDK and native OAuth helpers            |
-| [`@mcp-native/a2ui`](packages/a2ui)                 | A2UI negotiation, parsing, surface state, validation, and action envelopes                |
-| [`@mcp-native/react-native`](packages/react-native) | Trusted A2UI render plans and host-owned native component adapters                        |
-| [`@mcp-native/webview`](packages/webview)           | MCP Apps validation, native WebView policy, sandbox, and bridge lifecycle                 |
-| [`mcp-native`](packages/mcp-native)                 | Convenience re-export of core, A2UI, React Native, WebView, and mixed-surface APIs        |
+| Package                                               | Responsibility                                                                            |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [`@mcp-native/host`](packages/host)                   | High-level connection, discovery, call, result, lifecycle, and React Native orchestration |
+| [`@mcp-native/core`](packages/core)                   | Protocol-independent runtime contracts, JSON validation, resources, actions, and policy   |
+| [`@mcp-native/mcp`](packages/mcp)                     | Validated adapter for the official MCP TypeScript SDK and native OAuth helpers            |
+| [`@mcp-native/a2ui`](packages/a2ui)                   | A2UI negotiation, parsing, surface state, validation, and action envelopes                |
+| [`@mcp-native/renderer-core`](packages/renderer-core) | Platform-neutral trusted render plans, reconciliation, sessions, and renderer fixtures    |
+| [`@mcp-native/react-native`](packages/react-native)   | Trusted A2UI render plans and host-owned native component adapters                        |
+| [`@mcp-native/webview`](packages/webview)             | MCP Apps validation, native WebView policy, sandbox, and bridge lifecycle                 |
+| [`mcp-native`](packages/mcp-native)                   | Convenience re-export of core, A2UI, React Native, WebView, and mixed-surface APIs        |
 
 The split is a security and dependency boundary. In particular, `@mcp-native/core` has no MCP SDK,
 A2UI, React, React Native, or WebView dependency.
@@ -312,7 +316,7 @@ mcp-native/
 ├── examples/
 │   ├── expo-go-todolist/      # Native A2UI workflow
 │   └── expo-go-mixed-surfaces/ # Native and MCP Apps sibling regions
-├── packages/                  # Seven published packages
+├── packages/                  # Eight public package workspaces
 └── tests/                     # Cross-package integration and boundary tests
 ```
 

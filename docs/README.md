@@ -13,8 +13,8 @@ diagrams. This page routes implementation and review work to the document that o
 | Upgrade an existing integration to v1                                | [Migration to 1.0](migration-to-1.0.md)                                                        |
 
 Focused package guides: [core](../packages/core/README.md), [MCP SDK adapter](../packages/mcp/README.md),
-[A2UI](../packages/a2ui/README.md), [React Native](../packages/react-native/README.md), and
-[WebView](../packages/webview/README.md).
+[A2UI](../packages/a2ui/README.md), [renderer core](../packages/renderer-core/README.md),
+[React Native](../packages/react-native/README.md), and [WebView](../packages/webview/README.md).
 
 ## Choose the result surface
 
@@ -68,9 +68,10 @@ Runnable examples:
 - [RFC-0002](RFC-0002-contract-registry.md) — contract registry design, data, lifecycle, and static native implementation,
   including separately packaged reviewed inline profiles; broader wire/resource interfaces remain future
   work. [Custom contracts](custom-contracts.md) defines the implemented API.
-- [RFC-0003](RFC-0003-native-platforms.md) — proposed native runtime comparison, package strategy,
-  and milestone integration workflow on `feature/native-platforms`.
-- [RFC-0004](RFC-0004-native-session-contract.md) — proposed shared native session, lifecycle,
+- [RFC-0003](RFC-0003-native-platforms.md) — accepted shared-JavaScript runtime and public
+  renderer-core package strategy, with preserved [iOS](native-runtime-evaluation-ios.md) and
+  [Android](native-runtime-evaluation-android.md) evaluation evidence.
+- [RFC-0004](RFC-0004-native-session-contract.md) — implemented shared native session, lifecycle,
   cancellation, and surface-identity contract.
 - [Compatibility policy](compatibility-policy.md) — finalized `1.x` API and behavior surface.
 - [1.0 readiness](1.0-readiness.md) — completed implementation, validation, and review gates, plus
@@ -81,7 +82,9 @@ Runnable examples:
 
 ## Current status
 
-MCP Native `1.1.0` was published on 2026-09-15 across all seven packages.
+MCP Native `1.1.0` was published on 2026-09-15 across the seven packages that existed in that
+release. The integration branch now contains an eighth public workspace, renderer-core, whose first
+publication requires a later coordinated release.
 See [release status](releasing.md#110-release-preparation). The public API is finalized across the high-level host, its React
 Native provider, and the independently usable low-level packages. The
 [compatibility policy](compatibility-policy.md) defines the adopted `1.x` contract. The

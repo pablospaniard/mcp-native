@@ -30,11 +30,11 @@ with zero React dependency, so a future SwiftUI or Jetpack Compose renderer can 
 trusted contract instead of on React Native. `@mcp-native/react-native`'s public API is unchanged;
 every extracted name is re-exported under its existing name.
 
-This extraction is provisional on `feature/native-platforms`.
-[RFC-0003](RFC-0003-native-platforms.md) evaluates shared JavaScript and native implementations
-before committing to a new public package or finalizing the cross-platform contract.
-[RFC-0004](RFC-0004-native-session-contract.md) proposes the interactive session boundary and its
-remaining implementation gates; it preserves these accepted ownership and dependency boundaries.
+The Milestone 12 decision adopts this extraction as a public package boundary.
+[RFC-0003](RFC-0003-native-platforms.md) records the shared-JavaScript runtime and packaging
+decision, while [RFC-0004](RFC-0004-native-session-contract.md) defines the implemented interactive
+session boundary. Platform-specific renderers remain separate packages and do not add platform UI
+dependencies to renderer-core.
 
 ## Non-negotiable security rule
 
@@ -97,7 +97,7 @@ The v1 adapter parses schema-validated lifecycle envelopes into bounded ordered 
 Owns the platform-neutral renderer contract shared by every native renderer: the closed A2UI v1
 basic-catalog component-name list, render-plan builder functions, event and `openUrl` resolution,
 mount-diagnostic types, platform-neutral prop-shape contracts, fixed numeric and structural limits,
-and the shared catalog-conformance fixtures available through the private workspace entry point
+and the shared catalog-conformance fixtures available through the public testing entry point
 `@mcp-native/renderer-core/testing`. Published React Native fixture exports remain compatible. It
 depends only on `@mcp-native/a2ui` and `@mcp-native/core` and has no React, React Native, SwiftUI,
 or Jetpack Compose dependency, and no concrete host component implementations. A platform renderer

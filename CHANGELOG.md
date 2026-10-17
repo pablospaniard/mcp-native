@@ -8,43 +8,40 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
-- Proposed shared native session contract (RFC-0004): state transitions and revision identities,
-  instance-bound callbacks, native action authorization, cancellation and bounded output, with
-  existing experiment evidence separated from future implementation gates. Runtime selection,
-  renderer-core publication and native SDK support remain undecided. The proposal defines host-wide
-  cleanup accounting and proposes context-lifetime surface-ID uniqueness, bounded reservation
-  handling and an explicit migration path. Enforcement and acceptance tests remain native adoption gates;
-  published store and React Native defaults are unchanged. Clarifies why cross-generation admission
-  remains host-owned without excluding an additive shared-store option. Tracks published-store
-  lifetime uniqueness under milestone 12 / #92, including a registry-sharing decision, bounded
-  retention, atomic batch rollback and a tested React Native opt-in path, as a milestone exit gate.
+- Implement the shared native session contract (RFC-0004): server/local reconciliation, render and
+  surface revisions, opaque instance-bound callback tickets, asynchronous native authorization,
+  stale/close rejection, cancellation, at-most-once local delivery, and bounded operation work.
+  React Native creates the same session through an immutable host registration.
 
-- Temporary Android engine feasibility probe: the exact iOS JavaScript bundle and 21-case corpus run
+- Add bounded renderer-lifetime surface-ID registries. Surface stores and React Native hosts opt in
+  explicitly, reuse one registry across replacement stores, retain accepted IDs after deletion, and
+  atomically roll back failed-batch claims. Existing active-ID-only defaults remain unchanged.
+
+- Preserve Android engine feasibility evidence: the exact iOS JavaScript bundle and 21-case corpus ran
   through AndroidX JavaScriptEngine with native JSON, authorization, lifecycle and limit checks.
   Provider capabilities, formatting and running-isolate termination are verified on one emulator.
   Includes pinned debug build tooling and independent report comparison; no public package, Compose
-  renderer, native Kotlin semantics or device-performance claim. Cleanup remains required before
-  mainline promotion alongside the iOS experiment.
+  renderer, native Kotlin semantics or device-performance claim. Temporary tooling is removed.
 
-- Scoped iOS runtime comparison: JavaScriptCore and independent Swift form semantics run the shared
+- Preserve the scoped iOS runtime comparison: JavaScriptCore and independent Swift form semantics ran the shared
   21-case corpus and the same SwiftUI interaction/lifecycle checks. Includes a pinned upstream reuse
   assessment, bounded native host, reproducible simulator command and CI scoped to relevant
-  integration PRs. Experiment cleanup is required before mainline promotion. Runtime/package choice,
-  full native parity and physical-device performance remain open; no public API or version changes.
+  integration PRs. Temporary tooling is removed; full platform parity and physical-device performance
+  remain renderer-specific work.
 
-- Provisional language-neutral renderer conformance corpus: 21 basic-form scenarios with a strict
+- Language-neutral renderer conformance corpus: 21 basic-form scenarios with a strict
   JSON fixture format, explicit expected observations, and a React Native reference runner covering
   local/server state, actions, host authorization, rejection, and bounded expansion. Included in
   normal checks and available through `npm run test:renderer-conformance`; published APIs and exact
   protocol/schema pins are unchanged.
 
-- Proposed native-runtime and package-strategy RFC for milestone 11–16 work on
-  `feature/native-platforms`; the renderer-core extraction remains provisional pending comparison
-  of shared JavaScript and native implementations.
+- Accept the shared-JavaScript native-runtime and public renderer-core package strategy after the
+  Apple and Android feasibility comparisons.
 
 - New package `@mcp-native/renderer-core`: the platform-neutral A2UI v1 renderer contract
   (render-plan builders, closed component catalog, prop-shape types, mount-diagnostic types,
-  numeric limits, and shared catalog-conformance fixtures under `@mcp-native/renderer-core/testing`)
+  numeric limits, local-state reconciliation, semantic sessions, and shared catalog-conformance
+  fixtures under `@mcp-native/renderer-core/testing`)
   extracted from `@mcp-native/react-native`. It has no React, React Native, SwiftUI, or Jetpack
   Compose dependency, so future native renderers can depend on it directly. This is additive and
   non-breaking: every export `@mcp-native/react-native` previously declared inline is re-exported
@@ -56,8 +53,8 @@ patch and minor releases remain compatible within their release line.
   invalid observation/action responses. Native regression probes verify both failure paths.
 - Swift experiment supports store-compatible array append, nested append and removal, with a new
   shared corpus case covering rejected indices and unchanged state after failure.
-- Renderer-core is private and release preflight rejects public dependencies on private workspaces.
-  Package tooling shares one inventory while preserving the historical seven-package upgrade baseline.
+- Renderer-core is a public package boundary; package tooling preserves the historical seven-package
+  upgrade baseline while validating its independent pre-release workspace version.
 - iOS simulator conformance runs once off the main actor; UI flows no longer repeat it at launch.
   Native component-depth constants derive from one experiment configuration, and test renderers
   reuse the shared host-component stub.

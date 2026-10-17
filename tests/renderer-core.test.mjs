@@ -11,9 +11,46 @@ test("React Native keeps the extracted planner, error, and fixture identities", 
   assert.equal(native.createRenderPlan, renderer.createRenderPlan);
   assert.equal(native.MountError, renderer.MountError);
   assert.equal(native.ICON_NAMES, renderer.ICON_NAMES);
+  assert.equal(native.updateDataModelBinding, renderer.updateDataModelBinding);
+  assert.equal(native.createDataModelSourceKey, renderer.createDataModelSourceKey);
   assert.equal(
     nativeTesting.createCatalogConformanceCases,
     rendererTesting.createCatalogConformanceCases,
+  );
+});
+
+test("renderer-core owns typed local binding updates and reconciliation identities", () => {
+  const source = {
+    form: { name: "Ada", active: true, score: 1, tags: ["a"] },
+  };
+  const updated = renderer.updateDataModelBinding(source, "/form/name", "Grace");
+  assert.deepEqual(updated, {
+    form: { name: "Grace", active: true, score: 1, tags: ["a"] },
+  });
+  assert.deepEqual(source, {
+    form: { name: "Ada", active: true, score: 1, tags: ["a"] },
+  });
+  assert.throws(() => renderer.updateDataModelBinding(source, "/form/name", false), /preserve/);
+  assert.throws(() => renderer.updateDataModelBinding(source, "/form/missing", "x"), /missing/);
+  assert.throws(() => renderer.updateDataModelBinding(source, "/form/~2", "x"), /escape/);
+
+  const surface = {
+    surfaceId: "surface",
+    sendDataModel: false,
+    dataModelRevision: 1,
+    dataModel: source,
+    components: new Map([["root", { id: "root", component: "Text", text: "x" }]]),
+  };
+  assert.notEqual(
+    renderer.createDataModelSourceKey(surface),
+    renderer.createDataModelSourceKey({ ...surface, dataModelRevision: 2 }),
+  );
+  assert.equal(
+    renderer.createComponentSourceKey(surface),
+    renderer.createComponentSourceKey({
+      ...surface,
+      components: new Map([...surface.components].reverse()),
+    }),
   );
 });
 

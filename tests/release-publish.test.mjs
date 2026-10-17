@@ -93,7 +93,12 @@ test("recovery rejects workspace dependencies appearing after their consumer", (
 test("release version verification includes renderer-core", (t) => {
   const root = createReleaseFixture(t, {
     editManifest(manifest) {
-      if (manifest.name === "@mcp-native/renderer-core") manifest.version = "0.0.0";
+      manifest.version = manifest.name === "@mcp-native/renderer-core" ? "0.0.0" : releaseVersion;
+      for (const dependencyName of Object.keys(manifest.dependencies ?? {})) {
+        if (dependencyName.startsWith("@mcp-native/")) {
+          manifest.dependencies[dependencyName] = `^${releaseVersion}`;
+        }
+      }
     },
   });
   const result = spawnSync(process.execPath, [resolve("scripts/verify-release-version.mjs")], {
@@ -122,22 +127,10 @@ test("an approved public release includes the host after its package dependencie
   );
 });
 
-test("provisional dependencies block release before any package can publish", async () => {
-  assert.throws(
-    () => loadReleasePackages(),
-    /depends on private workspace @mcp-native\/renderer-core/,
-  );
-  let published = false;
-  await assert.rejects(
-    () =>
-      publishMissingReleasePackages({
-        publish: () => {
-          published = true;
-        },
-      }),
-    /private workspace/,
-  );
-  assert.equal(published, false);
+test("renderer-core is included in the public source package inventory", () => {
+  const packages = loadReleasePackages();
+  assert.equal(packages.length, 8);
+  assert.ok(packages.some(({ name }) => name === "@mcp-native/renderer-core"));
 });
 
 test("private standalone workspaces are excluded from a release", (t) => {
@@ -367,8 +360,18 @@ test("release recovery rejects an invalid tag before starting verification", () 
 });
 
 test("release verification prefers the explicitly resolved tag", (t) => {
+  const root = createReleaseFixture(t, {
+    editManifest(manifest) {
+      manifest.version = releaseVersion;
+      for (const dependencyName of Object.keys(manifest.dependencies ?? {})) {
+        if (dependencyName.startsWith("@mcp-native/")) {
+          manifest.dependencies[dependencyName] = `^${releaseVersion}`;
+        }
+      }
+    },
+  });
   const result = spawnSync(process.execPath, [resolve("scripts/verify-release-version.mjs")], {
-    cwd: createReleaseFixture(t),
+    cwd: root,
     env: {
       ...process.env,
       GITHUB_REF_NAME: "main",

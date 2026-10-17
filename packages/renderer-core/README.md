@@ -19,26 +19,20 @@ catalog-conformance fixtures. It has no dependency on React, React Native, Swift
 Compose — a platform renderer package (such as `@mcp-native/react-native`) composes this trusted
 plan with its own concrete host components.
 
-This package is a provisional workspace on `feature/native-platforms`; it is not a released product
-or a finalized cross-platform contract. The
-[runtime and package assessment](../../docs/RFC-0003-native-platforms.md) will determine whether it
-becomes a separate public package. Its manifest is `private: true`, so npm cannot publish it.
-Local packing remains available for integration smoke tests. Release automation rejects public
-packages that depend on this private workspace until the packaging decision is implemented.
-The workspace version supports local dependency resolution and is not publication approval.
+This package is the reviewed shared boundary selected by the
+[runtime and package assessment](../../docs/RFC-0003-native-platforms.md). Publication still occurs
+only through a coordinated release; the source manifest version is not a publication claim.
 Existing React Native imports retain their compatibility contract.
 
 ## Install
 
-Use the monorepo workspace for the experiment:
+Install it when authoring another native renderer:
 
 ```bash
-npm ci
-npm run build
+npm install @mcp-native/renderer-core @mcp-native/a2ui @mcp-native/core
 ```
 
-Run these commands from the repository root. The workspace depends on `@mcp-native/a2ui` and
-`@mcp-native/core`. Its build is ESM-only and includes TypeScript declarations.
+The package is ESM-only and includes TypeScript declarations.
 
 ## Quick start
 
@@ -64,27 +58,35 @@ for (const testCase of createCatalogConformanceCases()) {
 }
 ```
 
+For interactive adapters, `createNativeSession()` owns strict renderer-lifetime surface IDs,
+server/local reconciliation, render revisions, opaque control tickets, action authorization,
+cancellation, and bounded operation work. React Native's `createSession()` binds the same session
+to an immutable registered host.
+
 ## Public API
 
-| Export                                                                                                                                    | Purpose                                                                     |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `COMPONENT_NAMES`                                                                                                                         | The closed, pinned basic-catalog component name list.                       |
-| `createRenderPlan`, `createRenderPlanForLocalEdits`, `createStructuralRenderPlan`                                                         | Turn a validated surface into a trusted, ordered native render plan.        |
-| `resolveEvent`, `resolveOpenUrl`, `parseOpenUrlDescriptor`                                                                                | Resolve catalog action, event, and `openUrl` semantics against host policy. |
-| `validateDateTimeInputChange`                                                                                                             | Validate a `DateTimeInput` callback value against its declared component.   |
-| `NativeElement`, `NativeComponentName`                                                                                                    | The trusted render-tree node shape and closed component-name union.         |
-| `MountDiagnostic`, `MountDiagnosticCode`, `MountReport`, `InspectMountOptions`, `MountError`                                              | Mount-time diagnostic types shared by every platform renderer.              |
-| Prop-shape types (`NativeButtonComponentProps`, `NativeTextComponentProps`, `NativeImageComponentProps`, `NativeSliderComponentProps`, …) | Platform-neutral prop contracts for each catalog component.                 |
-| `ICON_NAMES`                                                                                                                              | The closed pinned icon-name list.                                           |
-| `MAX_RENDER_NODES`, `MAX_OPEN_URL_LENGTH`, `MAX_IMAGE_*`, `MAX_MEDIA_*`                                                                   | Fixed complexity and resource limits enforced while building a render plan. |
-| `createCatalogConformanceCases` (from `@mcp-native/renderer-core/testing`)                                                                | Shared fixtures every platform renderer's test suite can assert against.    |
+| Export                                                                                                                                    | Purpose                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `COMPONENT_NAMES`                                                                                                                         | The closed, pinned basic-catalog component name list.                         |
+| `createRenderPlan`, `createRenderPlanForLocalEdits`, `createStructuralRenderPlan`                                                         | Turn a validated surface into a trusted, ordered native render plan.          |
+| `resolveEvent`, `resolveOpenUrl`, `parseOpenUrlDescriptor`                                                                                | Resolve catalog action, event, and `openUrl` semantics against host policy.   |
+| `validateDateTimeInputChange`                                                                                                             | Validate a `DateTimeInput` callback value against its declared component.     |
+| `createNativeSession`, `NativeSession`                                                                                                    | Own revisioned state, callbacks, authorization, and delivery for one surface. |
+| `createDataModelSourceKey`, `createComponentSourceKey`, `updateDataModelBinding`                                                          | Shared local-state reconciliation and typed binding updates.                  |
+| `NativeElement`, `NativeComponentName`                                                                                                    | The trusted render-tree node shape and closed component-name union.           |
+| `MountDiagnostic`, `MountDiagnosticCode`, `MountReport`, `InspectMountOptions`, `MountError`                                              | Mount-time diagnostic types shared by every platform renderer.                |
+| Prop-shape types (`NativeButtonComponentProps`, `NativeTextComponentProps`, `NativeImageComponentProps`, `NativeSliderComponentProps`, …) | Platform-neutral prop contracts for each catalog component.                   |
+| `ICON_NAMES`                                                                                                                              | The closed pinned icon-name list.                                             |
+| `MAX_RENDER_NODES`, `MAX_OPEN_URL_LENGTH`, `MAX_IMAGE_*`, `MAX_MEDIA_*`                                                                   | Fixed complexity and resource limits enforced while building a render plan.   |
+| `createCatalogConformanceCases` (from `@mcp-native/renderer-core/testing`)                                                                | Shared fixtures every platform renderer's test suite can assert against.      |
 
 New code uses these version-neutral names, following the [repository naming rule](../../CONTRIBUTING.md#naming).
 Existing versioned exports remain compatibility aliases with the same function, constant and class
 identities. The underlying pre-existing implementation and exact protocol version are unchanged.
 `@mcp-native/react-native` preserves its existing public contract (including `createRenderPlan`).
-Newly exposed internal planner helpers in this experimental workspace are not additional React Native exports; see the existing
-[migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.0.md).
+The platform-neutral state helpers are exported by renderer-core and re-exported by React Native;
+existing React Native names and identities remain compatible. See the repository
+[compatibility policy](https://github.com/pablospaniard/mcp-native/blob/main/docs/compatibility-policy.md).
 
 ## Design boundaries
 

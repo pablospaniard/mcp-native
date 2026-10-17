@@ -1,6 +1,6 @@
 # RFC-0003: Native platform runtime and package strategy
 
-- Status: Proposed; runtime choice and package consolidation are not accepted decisions
+- Status: Accepted for the shared JavaScript renderer-core package strategy
 - Date: 2026-09-12
 - Integration branch: `feature/native-platforms`
 - Scope: GitHub milestones 11–16; initial experiments address milestones 12 and 13
@@ -9,26 +9,25 @@
 ## Recommendation
 
 Keep the existing security and dependency boundaries, simplify the application-facing integration
-path, and compare two small native implementations before committing to another stable public
-package. A source module does not need to be a separately published package to enforce a boundary.
+path, and adopt shared JavaScript semantics behind a public, platform-neutral renderer-core package.
+Platform renderers own native views and lifecycle integration; renderer-core owns the trusted plan,
+reconciliation, and session state machine.
 
 The initial preference was native Swift and Kotlin for platform ownership and avoiding a second
-language runtime. The [initial iOS comparison](../experiments/ios-runtime-comparison/RESULTS.md)
+language runtime. The [initial iOS comparison](native-runtime-evaluation-ios.md)
 made shared JavaScript the leading next experiment: both paths pass the small corpus, while
-native semantics introduce concrete parity work. The [Android engine probe](../experiments/android-runtime-probe/RESULTS.md)
-now passes the same corpus with the exact shared bundle on one provider and demonstrates running-isolate
-termination. [RFC-0004](RFC-0004-native-session-contract.md) now proposes the common session contract
-for review, including state revisions, instance tickets, action authorization and cancellation.
-It is not an accepted runtime decision or measured performance result; broader Android provider support, iOS lifecycle design and
-physical-device evaluation remain open.
-Shared JavaScript has a substantial counterargument: it reuses the existing validation and semantic
-implementation and reduces the number of security-sensitive implementations to maintain. If native
-parity proves too expensive, or the JavaScript bridge is demonstrably small and reliable, choose the
-shared runtime instead. If neither experiment meets the acceptance criteria, keep shipping React
-Native while narrowing the native-platform commitment.
+native semantics introduce concrete parity work. The [Android engine probe](native-runtime-evaluation-android.md)
+now passes the same corpus with the exact shared bundle on one provider and demonstrates
+running-isolate termination. [RFC-0004](RFC-0004-native-session-contract.md) defines the implemented
+common session contract, including state revisions, instance tickets, action authorization and
+cancellation. Shared JavaScript reuses the existing validation and semantic implementation and
+reduces the number of security-sensitive implementations to maintain. Broader Android provider
+support, iOS lifecycle design, physical-device evaluation, and platform UI packages remain later
+milestones rather than Milestone 12 claims.
 
-The renderer-core extraction is an experiment supporting this comparison. Integrating it on the
-feature branch does not approve a new npm release or finalize its native-consumer contract.
+The renderer-core extraction is the selected shared boundary. Integrating it on the feature branch
+does not approve a new npm release; publication still requires coordinated versions and release
+review.
 
 ## Integration workflow
 
@@ -49,9 +48,9 @@ the decision is deferred. Preserve findings under `docs/` and the shared languag
 move a selected implementation into reviewed platform code only after its production acceptance
 criteria are met. Remove unused experiment dependencies and repair references as part of that PR.
 Milestone 12/13 maintainers own this review; git history retains discarded prototypes. See the
-[cleanup inventory](../experiments/ios-runtime-comparison/README.md#temporary-lifecycle).
+[preserved evaluation record](native-runtime-evaluation-ios.md).
 The Android probe consumes the iOS bundle builder, so both temporary implementations must be
-disposed of together; see its [cleanup inventory](../experiments/android-runtime-probe/README.md#temporary-lifecycle).
+disposed of together; see its [preserved evaluation record](native-runtime-evaluation-android.md).
 
 ## What the repository already proves
 
@@ -63,9 +62,9 @@ disposed of together; see its [cleanup inventory](../experiments/android-runtime
   schemas. Formatting uses JavaScript `Intl` APIs. npm ESM output alone is not an embedded-runtime
   distribution. The iOS experiment bundles it for JavaScriptCore and supplies a WHATWG URL polyfill
   required by Ajv; the selected form corpus passes in that engine.
-- React Native still owns local-state reconciliation, binding writes, several callback checks,
-  mount inspection, and application lifecycle integration. The extracted planner is not a complete
-  reusable interactive session runtime.
+- Renderer-core owns local-state reconciliation, typed binding writes, revisioned callback tickets,
+  authorization/delivery sequencing, strict lifetime IDs, and bounded session work. React Native
+  still owns React lifecycle integration, concrete components, and platform behavior.
 - The repository now has 21 language-neutral cases with explicit observations, executed by React
   Native, the two scoped iOS experiment paths and the Android engine probe. Published fixture
   factories remain unchanged; the Android probe has no Compose UI or independent Kotlin semantics.
@@ -160,34 +159,34 @@ separation. Reduce integration choices first; change physical packaging only whe
 | `@mcp-native/a2ui`          | Standalone parsing, validation, and protocol reuse justify an independently usable boundary.                                                                                              |
 | `@mcp-native/webview`       | HTML isolation and platform dependencies justify a distinct boundary; assess optional loading separately from the default native flow.                                                    |
 | `@mcp-native/react-native`  | A platform renderer is a natural distribution boundary.                                                                                                                                   |
-| `@mcp-native/renderer-core` | Provisional. Retain publicly only if a real independent JavaScript consumer needs it; otherwise keep the implementation internal when preparing a mainline release.                       |
+| `@mcp-native/renderer-core` | Retain as the public, platform-neutral semantic/session boundary used by React Native and future native renderers. It remains part of coordinated releases.                               |
 
 Aim for one primary integration product per platform, with advanced entry points for genuine
 composition needs. Do not create new published packages for each validator, state machine, fixture
 set, bridge, or capability. Share fixtures as repository data until external distribution is needed.
-The provisional renderer-core manifest is private; release preflight blocks public packages that
-depend on it until a reviewed packaging decision resolves that dependency. Local tarball testing does
-not authorize publication.
+The reviewed decision makes renderer-core public. Its source manifest and tarball checks establish
+the package boundary but do not authorize publication; a future coordinated release must align its
+version and internal dependency ranges with every other public package.
 No existing package or export is removed by this RFC. Any eventual removal needs a major-version
 migration; an additive facade must also preserve optional dependency behavior and class identity.
 New native-platform code and examples follow the [version-neutral naming rule](../CONTRIBUTING.md#naming),
-including the provisional renderer-core entry points. Existing versioned names are compatibility
+including the renderer-core entry points. Existing versioned names are compatibility
 aliases, while exact wire versions and schema pins remain explicit and unchanged.
 
 ## Experiments and milestone sequence
 
 The initial [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) implements
 the JSON fixture portion of step 1 with 21 cases executed by the current React Native renderer.
-The [iOS experiment](../experiments/ios-runtime-comparison/README.md) now runs those cases through
+The [preserved iOS evaluation](native-runtime-evaluation-ios.md) ran those cases through
 both native paths, plus SwiftUI interaction and host-lifecycle checks. Its narrower input profile,
 simulator-only evidence and unresolved cancellation/parity gaps do not complete the runtime decision.
 The Android probe now establishes shared-bundle feasibility and isolate termination on one emulator
 provider. Its provider feature gates and untested platform matrix remain decision inputs, not a
 supported Android SDK claim.
 
-The [session-contract proposal](RFC-0004-native-session-contract.md) records existing semantic evidence
-and the async host tests still required. Review it before extracting a reusable internal session;
-its acceptance alone does not select a runtime, freeze exports or satisfy a preview gate.
+The [accepted session contract](RFC-0004-native-session-contract.md) records the semantic evidence
+and the implemented async host tests. The shared session does not by itself claim that a SwiftUI or
+Compose adapter is complete or expand either platform's support matrix.
 
 Milestone 12 supplies a draft contract and corpus to a scoped milestone 13 prototype, then incorporates
 the prototype's findings. Its final exit gate must not block the experiment needed to satisfy it.
@@ -201,10 +200,9 @@ the prototype's findings. Its final exit gate must not block the experiment need
    policy. Validate one full tool-result-to-interaction round trip, teardown, accessibility, and
    cancellation. Unsupported components must be rejected, including when the agent ignores the
    advertised subset. Neither prototype claims full catalog or function parity.
-3. **Decision PR (12).** Compare the measurements and parity gaps. Accept or replace this RFC's
-   provisional recommendation; decide whether renderer-core is a public package. Document a scoped
-   iOS preview and the integration surface. A minimal Android probe must expose platform-specific
-   blockers before choosing a runtime for both platforms.
+3. **Decision PR (12).** Compare the measurements and parity gaps. Adopt shared JavaScript semantics
+   and a public renderer-core package, document the scoped platform integration surface, and retain
+   the platform-specific gaps for the iOS and Android preview milestones.
 4. **iOS preview, then Android preview (13, 14).** Ship the same bounded semantic profile with explicit
    platform matrices. Expand media, extensions, broader Apple platforms, and full catalog/function
    parity through separate reviewed PRs. Preview completion does not close the full-parity milestones.

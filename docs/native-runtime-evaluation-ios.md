@@ -1,8 +1,8 @@
 # Initial iOS comparison findings
 
 Date: 2026-09-12. Baseline: integration commit `d7e4ada`, A2UI v1.0 Candidate
-`8ff4651232ab0e02b0123730b502711170637a3a`. This is an experiment result, not an accepted runtime
-decision, supported iOS SDK, or milestone completion.
+`8ff4651232ab0e02b0123730b502711170637a3a`. This preserves experiment evidence used by the accepted
+shared-JavaScript renderer-core decision; it is not a supported iOS SDK or device-support claim.
 
 ## Evidence
 
@@ -40,9 +40,8 @@ The unmodified engine probe reports `Intl.DateTimeFormat`, `Intl.NumberFormat`, 
 Promise and Map; URL, TextEncoder and structuredClone are absent. The last two are not needed by
 this selected path. An engine probe is still required before expanding the runtime profile.
 
-The minified host bundle is approximately 335 KB, including the URL polyfill. Exact bytes are emitted
-by the run command. esbuild 0.28.2 and core-js-pure 3.50.0 are pinned root development dependencies;
-they do not become production npm dependencies. This byte count is an uncompressed JavaScript file,
+The minified experiment host bundle was approximately 335 KB, including the URL polyfill. The
+temporary esbuild and core-js-pure dependencies were removed with the prototype. This byte count is an uncompressed JavaScript file,
 not downloaded app size or resident memory. The comparison executable/app includes both engines,
 so its size must not be used as a native-versus-JavaScript binary comparison.
 
@@ -69,28 +68,21 @@ validation work is substantially larger than this prototype.
 
 ## Recommendation
 
-Keep shared JavaScript as the leading **next experiment** because it reuses the production semantic
-and validation implementation, and its Apple bridge now has concrete behavioral evidence. Do not
-select it for production until Android provider support, interruptibility/lifecycle design, device
-budgets and measurements, broader hostile cases, and platform accessibility checks are complete.
+Use shared JavaScript for the platform-neutral semantic session because it reuses the production
+validation implementation and has Apple and Android feasibility evidence. Renderer-specific support
+still requires interruptibility policy, device budgets, hostile cases, and accessibility checks.
 The native path remains viable; it needs an explicit parity budget and another upstream reuse review
 before growing into a second production validator.
 
-**Do not add or stabilize another public package yet.** This experiment consumes renderer-core's
-code outside React Native, which supports the internal boundary. It does not prove that the boundary
-must be a separately published npm package: a host bundle can consume an internal build entry point.
-Both approaches use the same SwiftUI adapter, and neither requires a collection of low-level Swift
-packages. Keep the experiment in one directory and preserve current published compatibility.
+The implementation promotes renderer-core as the shared package boundary while preserving all
+React Native export identities. Native adapters consume the same session and fixture contract; no
+second protocol validator or generic native invocation boundary is introduced.
 
-This directory is temporary decision evidence. The decision PR records its disposition, and cleanup
-is required before `feature/native-platforms` is promoted to `main`: preserve these findings and the
-shared fixtures, move any selected implementation into reviewed platform code, and remove the
-discarded prototype, temporary workflow and experiment-only dependencies. The README lists the full
-cleanup inventory. Git history preserves reproducibility after removal. Experiment CI is limited
-to relevant integration PRs; it is not a permanent check on every PR.
+The discarded prototype, temporary workflow, runner tests, and experiment-only dependencies were
+removed after preserving this record and the shared fixtures. Git history retains reproducibility.
 
-Follow-up: the [Android probe](../android-runtime-probe/RESULTS.md) now passes the exact bundle and
+Follow-up: the [Android probe](native-runtime-evaluation-android.md) passed the exact bundle and
 corpus on one emulator/provider, including termination of an already-running isolate. Next, review
 a single session contract covering revisions, input events, admission cancellation, teardown and
-host authorization, including the remaining iOS lifecycle and Android provider-policy gaps. Leave
-the package decision and milestone 12/13 completion open.
+host authorization. Remaining iOS lifecycle and Android provider-policy gaps belong to their
+renderer-specific milestones.

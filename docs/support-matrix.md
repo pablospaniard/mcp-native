@@ -11,6 +11,7 @@ compatibility boundaries.
 | TypeScript       | emitted declarations built with `7.0.2`                                             | monorepo build plus generated-host typecheck               |
 | React            | peer `>=18.1.0`; supplied by the host                                               | exact `18.1.0` peer-floor and `19.2.8` workspace consumers |
 | Native host      | host-supplied components and platform integration; no framework peer                | pinned generated host on iOS and Android                   |
+| Renderer core    | platform-neutral ESM; no React or platform UI dependency                            | shared corpus, session races, and packed consumer checks   |
 | Architecture     | selected and owned by the host                                                      | generated Codegen/Fabric integration fixture               |
 | MCP Apps WebView | host-supplied compatible `react-native-webview`                                     | safe-prop adapter, bridge, bundle, and native builds       |
 | Android          | platform requirements inherited from the host                                       | generated x86_64 debug application                         |
@@ -26,8 +27,9 @@ Later upstream revisions require an explicit reviewed pin update.
 
 The runnable example applications add end-to-end evidence for the primitives catalog and mixed
 surfaces. Their pinned application dependencies keep each fixture reproducible; they do not create
-package dependencies or framework version guarantees. Direct SwiftUI and Compose renderers begin
-after `1.0.0` and will receive their own integration requirements.
+package dependencies or framework version guarantees. Direct SwiftUI and Compose renderers follow
+the platform-neutral foundation and will receive their own integration requirements. The preserved
+runtime evaluations are feasibility evidence, not a claim that those platform renderers are shipped.
 
 `tests/support-matrix.test.mjs` makes the Node and TypeScript toolchain, React and MCP SDK peers,
 official schema package pin, and absence of Expo or React Native package dependencies part of the

@@ -4,6 +4,7 @@ export * from "./names.js";
 export * from "./component-shapes.js";
 export * from "./v1.js";
 export * from "./mount-types.js";
+export * from "./session.js";
 
 export type NativeComponentName = NativeCatalogComponentName | "HostExtension";
 

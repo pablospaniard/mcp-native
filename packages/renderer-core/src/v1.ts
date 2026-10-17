@@ -174,6 +174,117 @@ export interface A2uiV1NativeOpenUrlResolutionOptions {
   readonly locale?: string;
 }
 
+/** Stable identity for the server-owned model revision used to reconcile renderer-local edits. */
+export function createDataModelSourceKey(surface: A2uiV1SurfaceState): string {
+  return canonicalizeJson([
+    surface.surfaceId,
+    surface.dataModelRevision ?? null,
+    surface.dataModel,
+  ]);
+}
+
+/** Stable identity for component definitions used to qualify local render-rejection recovery. */
+export function createComponentSourceKey(surface: A2uiV1SurfaceState): string {
+  return canonicalizeJson(
+    [...surface.components.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([id, component]) => [id, component]),
+  );
+}
+
+/** Applies one typed renderer-local edit without mutating the source model. */
+export function updateDataModelBinding(
+  dataModel: JsonObject,
+  binding: string,
+  value: JsonValue,
+): JsonObject {
+  if (typeof binding !== "string" || !binding.startsWith("/") || binding.length === 1) {
+    throw new TypeError(
+      `Expected a non-root absolute JSON Pointer binding, received ${JSON.stringify(binding)}`,
+    );
+  }
+  const parsedValue = parseJsonValue(value, "renderer binding value");
+  const next = parseJsonObject(dataModel, "renderer data model");
+  const tokens = binding
+    .slice(1)
+    .split("/")
+    .map((token) => decodePointerToken(token, binding));
+  let cursor: JsonValue = next;
+  for (const [index, token] of tokens.entries()) {
+    const last = index === tokens.length - 1;
+    if (Array.isArray(cursor)) {
+      if (!/^(0|[1-9][0-9]*)$/.test(token)) {
+        throw new TypeError(`Invalid array binding index in ${JSON.stringify(binding)}`);
+      }
+      const arrayIndex = Number(token);
+      if (!Number.isSafeInteger(arrayIndex) || arrayIndex >= cursor.length) {
+        throw new TypeError(`Renderer binding ${JSON.stringify(binding)} is missing`);
+      }
+      if (last) {
+        cursor[arrayIndex] = validateBindingReplacement(cursor[arrayIndex]!, parsedValue, binding);
+        break;
+      }
+      cursor = cursor[arrayIndex]!;
+      continue;
+    }
+    if (cursor === null || typeof cursor !== "object" || !Object.hasOwn(cursor, token)) {
+      throw new TypeError(`Renderer binding ${JSON.stringify(binding)} is missing`);
+    }
+    if (last) {
+      defineJsonProperty(
+        cursor as Record<string, JsonValue>,
+        token,
+        validateBindingReplacement(
+          (cursor as Record<string, JsonValue>)[token]!,
+          parsedValue,
+          binding,
+        ),
+      );
+      break;
+    }
+    cursor = (cursor as Record<string, JsonValue>)[token]!;
+  }
+  return parseJsonObject(next, "renderer data model");
+}
+
+function validateBindingReplacement(
+  current: JsonValue,
+  next: JsonValue,
+  binding: string,
+): JsonValue {
+  if (
+    (typeof current === "string" && typeof next === "string") ||
+    (typeof current === "boolean" && typeof next === "boolean") ||
+    (typeof current === "number" && typeof next === "number")
+  ) {
+    return next;
+  }
+  if (
+    Array.isArray(current) &&
+    current.every((entry) => typeof entry === "string") &&
+    Array.isArray(next) &&
+    next.every((entry) => typeof entry === "string")
+  ) {
+    return Object.freeze([...next]);
+  }
+  throw new TypeError(
+    `Renderer binding ${JSON.stringify(binding)} must preserve its string, boolean, number, or string-array value type`,
+  );
+}
+
+function canonicalizeJson(value: JsonValue): string {
+  if (value === null) return "null";
+  if (typeof value === "string" || typeof value === "boolean" || typeof value === "number") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalizeJson).join(",")}]`;
+  const object = value as JsonObject;
+  return `{${Object.keys(object)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalizeJson(object[key]!)}`)
+    .join(",")}}`;
+}
+
 interface BindingScope {
   readonly value: JsonValue;
   readonly pointer: string;

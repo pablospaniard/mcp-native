@@ -89,7 +89,9 @@ separate-prop result view; both preserve the same rendering and error semantics.
 
 `@mcp-native/core` stays independent of MCP SDK, A2UI, React Native, and WebView implementations.
 `@mcp-native/mcp` owns the official SDK adapter. `@mcp-native/a2ui` owns protocol parsing, state,
-validation, and semantic planning. `@mcp-native/react-native` owns React and React Native mounting.
+validation, and semantic planning. `@mcp-native/renderer-core` owns the platform-neutral trusted
+render plan, local-state reconciliation, and native session contract without a platform UI
+dependency. `@mcp-native/react-native` owns React and React Native mounting.
 `@mcp-native/webview` owns generic HTML policy and the stable MCP Apps native adapter.
 `@mcp-native/host` is the top-level orchestration package and may depend on the official SDK adapter,
 runtime, protocol, renderer, and WebView layers to provide the connect-call-render workflow. The
@@ -110,6 +112,13 @@ MIT license in every tarball. The same gate runs every supported subpath in a mi
 consumer before and after an offline replacement of the latest coordinated published `0.9.x`
 packages with local release tarballs. Changes to the baseline require an intentional
 compatibility review and changelog/migration update.
+
+Milestone 12 adds public renderer-core, strict renderer-lifetime surface-ID registries, and native
+session helpers without changing existing A2UI store defaults or React Native rendering behavior.
+Consumers opt into strict lifetime identity by supplying `createSurfaceIdRegistry()` to a store, or
+by using `createNativeSession()`/React Native `createSession()`, which do so automatically. Because
+the current source versions are not coordinated, these additions are not a release until a later
+release change explicitly aligns versions and internal ranges.
 
 The [support matrix](support-matrix.md) records the supported dependency lanes. The
 [migration guide](migration-to-1.0.md) records the upgrade steps from pre-v1 packages. The

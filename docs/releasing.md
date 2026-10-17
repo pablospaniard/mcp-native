@@ -65,15 +65,15 @@ attempting to overwrite immutable npm versions. A maintainer can manually dispat
 workflow with the existing release tag to resume publication.
 
 Release version verification uses the same package inventory as the publisher. Recovery permits
-renderer-core to be absent in a historical release only when no package in that checkout requires it;
-missing or out-of-order local dependencies fail before publication. Work on `feature/native-platforms`
-does not authorize a release of the provisional renderer-core package. Renderer-core is explicitly
-private. Release preflight rejects any public package that depends on a private workspace before
-publishing anything; this integration branch therefore cannot release until its package decision lands.
+renderer-core to be absent in a historical release only when no package in that checkout requires
+it; missing or out-of-order local dependencies fail before publication. The Milestone 12 package
+decision makes renderer-core public, but does not authorize publishing the current uncoordinated
+source versions. The next release must align all public package versions and internal dependency
+ranges before release verification can pass.
 
 `scripts/workspace-packages.mjs` supplies the shared inventory for release, API verification, package
 smoke tests and native-host preparation. The historical 0.9 upgrade baseline intentionally contains
-seven packages; local packing includes all eight current workspaces, including the private experiment.
+seven packages; local packing includes all eight current public workspaces.
 
 The `npm-release` GitHub environment is a release trust boundary. Configure required reviewers and
 allow deployments only from `main` and reviewed `v*` release tags. The workflow resolves a

@@ -27,11 +27,11 @@
       }
     },
     "@mcp-native/a2ui": {
-      "declarationSha256": "417cdaf075b84af98b9dd106822f8637f7e747dc437f5f9245314f5b12a5982e",
+      "declarationSha256": "9b1a4d61989a2f5a6ac2ac8070afd644dfdd93910dda31dfb03f08d86ce9d4b4",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "c3433f2c7afbd99c7feee0e0647db18940fbabe13bacdd5a6071f036e4536687",
+          "runtimeSha256": "320486f4c1423b5b902db797e502fb9170455337579eb0c8dc1f44b2b97aa008",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {
@@ -42,11 +42,11 @@
       }
     },
     "@mcp-native/renderer-core": {
-      "declarationSha256": "d7345839b313d5bd1e8e92c05ab000357adade8c9441665982fd573f3f36cbf1",
+      "declarationSha256": "ae4bee0295c0f980a3fb436ab85e5507524ef647bdb95ece7f64598ca54ff1fb",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "6b0f420bde43aefc65e79ee4592497314110741c34a4a3221a7c50a2cbc131dc",
+          "runtimeSha256": "7b3298c22d133898cc39b4299b33f8a5e2d434364662314df9f65e2ca2e85835",
           "types": "./dist/index.d.ts"
         },
         "./testing": {
@@ -67,11 +67,11 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "a853c92f0d29f41ad69a2cf16e108c2e52de71732dbad56bd4e62c575fab2fe2",
+      "declarationSha256": "dea90ef71adc202f29b984a7b72c0b436dcb2188b6db0a71072745f1884cf59f",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "954f1ab73683bd5084370bfb318a89a08a7e1bf511972d4f8aa7d3202e72b1c7",
+          "runtimeSha256": "f6ba728ec5764bd59c3165f0bd8d3c5141b33c5b662b7725bd77a99e5ff2cdae",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {
@@ -121,7 +121,7 @@
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "0a9c4e9be154ef9ea399967caf6abe2b4df082f0bc59db3d9bab4f8304d6c080",
+          "runtimeSha256": "fc46b89156f3f0e7fd7d0eaf26baad29b3f38500089438be1b51b9f24711091d",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {

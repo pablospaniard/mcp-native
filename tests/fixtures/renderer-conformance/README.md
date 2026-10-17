@@ -5,13 +5,14 @@ experiments in [RFC-0003](../../../docs/RFC-0003-native-platforms.md). A Swift, 
 JavaScript runner can read the same data without executing a TypeScript fixture factory.
 
 `basic-form.json` is the corpus; `suite.schema.json` is its closed JSON Schema 2020-12 format.
-The data format is provisional test infrastructure, not a new MCP/A2UI wire protocol, public package,
-native bridge API, or declaration of full renderer conformance. Existing published React Native catalog fixtures remain unchanged; their implementation is available
-through the private `@mcp-native/renderer-core/testing` workspace entry point.
+The data format is repository test infrastructure, not a new MCP/A2UI wire protocol, native bridge
+API, or declaration of full renderer conformance. Existing React Native catalog fixtures remain
+compatible; their implementation is available through the public
+`@mcp-native/renderer-core/testing` entry point.
 
-The [proposed session contract](../../../docs/RFC-0004-native-session-contract.md) maps existing cases
-to the required future async scenarios. The current sequential corpus does not prove request identity,
-async authorization races, stale native callbacks or engine cleanup guarantees.
+The [implemented session contract](../../../docs/RFC-0004-native-session-contract.md) supplements
+these cases with async request-identity, authorization-race, stale-callback, and cleanup tests. The
+language-neutral sequential corpus alone does not prove those guarantees.
 
 ## Exact baseline and provenance
 
@@ -130,13 +131,13 @@ The 21 cases cover:
   makes that same source unreachable. This does not claim to test retained React callbacks,
   asynchronous native queues, events after session teardown, or generation-token enforcement.
 
-The existing React Native implementation and two [experimental iOS paths](../../../experiments/ios-runtime-comparison/README.md)
+The existing React Native implementation and two [preserved iOS evaluation paths](../../../docs/native-runtime-evaluation-ios.md)
 run this corpus. The experiment compares JavaScriptCore and independent Swift form semantics with
 the same SwiftUI controls; its additional limits and simulator evidence are documented separately.
 Passing the corpus does not establish supported SwiftUI/Compose SDKs, the full 18-component profile, every resource/formatting limit,
 MCP transport interoperability, device accessibility, cancellation, process-death recovery, or
 performance. The existing broader tests remain authoritative for their respective coverage.
-Those missing dimensions need separate experiments before RFC-0002's runtime decision.
+Those missing dimensions remain renderer-specific acceptance work after RFC-0003's runtime decision.
 
 ## Run and extend
 

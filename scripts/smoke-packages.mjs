@@ -28,6 +28,9 @@ const packages = workspaces.map(({ manifest }) => manifest.name);
 const workspacePackageNames = new Set(packages);
 const workspacePackageDirectories = workspaces.map(({ directory }) => directory);
 const expectedVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
+const expectedVersions = new Map(
+  workspaces.map(({ manifest }) => [manifest.name, manifest.version]),
+);
 const rootLicenseText = readFileSync("LICENSE", "utf8");
 const publishedUpgradeRange = "^0.9.0";
 
@@ -318,6 +321,7 @@ const loaded = new Map(await Promise.all(packageNames.map(async (specifier) => [
 const core = loaded.get("@mcp-native/core");
 const mcp = loaded.get("@mcp-native/mcp");
 const a2ui = loaded.get("@mcp-native/a2ui");
+const rendererCore = loaded.get("@mcp-native/renderer-core");
 const webview = loaded.get("@mcp-native/webview");
 const reactNative = loaded.get("@mcp-native/react-native");
 const umbrella = loaded.get("mcp-native");
@@ -384,6 +388,36 @@ if (contracts !== undefined) {
   }
 }
 if (localMode) {
+  const lifetimeIds = a2ui.createSurfaceIdRegistry();
+  const firstStore = new a2ui.SurfaceStore({ surfaceIdRegistry: lifetimeIds });
+  firstStore.apply({ version: "v1.0", createSurface: { surfaceId: "smoke" } });
+  firstStore.apply({ version: "v1.0", deleteSurface: { surfaceId: "smoke" } });
+  let rejectedReuse = false;
+  try {
+    new a2ui.SurfaceStore({ surfaceIdRegistry: lifetimeIds }).apply({ version: "v1.0", createSurface: { surfaceId: "smoke" } });
+  } catch {
+    rejectedReuse = true;
+  }
+  if (!rejectedReuse) throw new Error("Packed surface-ID registry permitted lifetime reuse");
+
+  const policy = a2ui.createBasicCatalogPolicy({ allowedComponentNames: ["Text"] });
+  const session = rendererCore.createNativeSession({ policy, authorize: () => true, deliver: () => {} });
+  const publication = session.apply({ version: "v1.0", createSurface: { surfaceId: "session", components: [{ id: "root", component: "Text", text: "Packed" }] } });
+  if (publication.kind !== "published" || publication.plan.component !== "Text") {
+    throw new Error("Packed renderer-core session did not publish a trusted plan");
+  }
+  session.close();
+
+  const component = () => null;
+  const nativeHost = reactNative.createHost({ components: { View: component, Text: component, Button: component, TextInput: component } });
+  const nativeStore = reactNative.createSurfaceStore(nativeHost, { surfaceIdRegistry: a2ui.createSurfaceIdRegistry() });
+  nativeStore.apply({ version: "v1.0", createSurface: { surfaceId: "native-store" } });
+  const nativeSession = reactNative.createSession(nativeHost, { authorize: () => false, deliver: () => {} });
+  if (nativeSession.apply({ version: "v1.0", createSurface: { surfaceId: "native-session", components: [{ id: "root", component: "Text", text: "Native" }] } }).kind !== "published") {
+    throw new Error("Packed React Native session adapter did not publish");
+  }
+  nativeSession.close();
+
   for (const [moduleName, module, names] of [
     ["@mcp-native/a2ui", a2ui, ["A2UI_VERSION", "parseA2uiSurface", "resolveA2uiResourceFromToolResult"]],
     ["@mcp-native/react-native", reactNative, ["McpNativeSurface", "createNativeRenderPlan", "useMcpNativeActionDispatcher", "useNativeRenderPlan"]],
@@ -403,7 +437,13 @@ for (const [name, value] of [
   ["createWebViewDocument", webview.createWebViewDocument],
   ["Surface", localMode ? reactNative.Surface : reactNative.A2uiV1NativeSurface],
   ...(localMode
-    ? [["createHost", reactNative.createHost]]
+    ? [
+        ["createHost", reactNative.createHost],
+        ["createSurfaceIdRegistry", a2ui.createSurfaceIdRegistry],
+        ["createNativeSession", rendererCore.createNativeSession],
+        ["createSurfaceStore", reactNative.createSurfaceStore],
+        ["createSession", reactNative.createSession],
+      ]
     : []),
   ["McpNativeMixedSurfaceCoordinator", umbrella.McpNativeMixedSurfaceCoordinator],
   ...(host === undefined
@@ -530,6 +570,7 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
   verifyLocalUpgradeInstallation({
     packageNames: packages,
     expectedVersion,
+    expectedVersions,
     localTarballs,
     consumerManifest: JSON.parse(readFileSync(join(consumerDirectory, "package.json"), "utf8")),
     readInstalledManifest,
@@ -539,7 +580,7 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
     const installedPackageDirectory = join(consumerDirectory, "node_modules", packageName);
     const packageJsonPath = join(installedPackageDirectory, "package.json");
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
-    if (packageJson.version !== expectedVersion) {
+    if (packageJson.version !== expectedVersions.get(packageName)) {
       throw new Error(`${packageName} has unexpected version ${packageJson.version}`);
     }
     if (readFileSync(join(installedPackageDirectory, "LICENSE"), "utf8") !== rootLicenseText) {
@@ -553,6 +594,9 @@ for (const specifier of ["@mcp-native/a2ui/legacy", "@mcp-native/react-native/le
   writeFileSync(
     contractTypeFixture,
     `import type { McpNativeHostResult } from "@mcp-native/host";
+import { createSurfaceIdRegistry, type SurfaceIdRegistry } from "@mcp-native/a2ui";
+import { createNativeSession, type NativeSessionOptions } from "@mcp-native/renderer-core";
+import { createSession, createSurfaceStore, type NativeHostSessionOptions, type NativeSurfaceStoreOptions } from "@mcp-native/react-native";
 import { createContractAdapter, createContractRegistry, createContractHostController, resolveContractResult, type ContractSchema, type ContractResult, type ContractHostControllerOptions, type ContractHostSnapshot, createA2uiStandardContract, type StandardContractProfile, createReviewedStandardAdapter, type ReviewedStandardAdapterOptions, type ReviewedStandardProfile } from "@mcp-native/host/contracts";
 import { createContractSchemaBundle, runContractAdapterFixtures, type ContractAdapterFixtureReport } from "@mcp-native/host/contracts/authoring";
 import { ContractHostProvider, useContractHost, ContractNativeResultView, createContractNativeRegistration, createContractNativeRegistry, type ContractNativeRendererProps, type ContractHostProviderProps, type ContractHostContextValue } from "@mcp-native/host/contracts/react-native";
@@ -565,6 +609,13 @@ export function existingConsumer(result: McpNativeHostResult): string {
     default: { const exhaustive: never = result; return exhaustive; }
   }
 }
+export const surfaceIds: SurfaceIdRegistry = createSurfaceIdRegistry();
+export const rendererSessionFactory: typeof createNativeSession = createNativeSession;
+export const reactNativeSessionFactory: typeof createSession = createSession;
+export const reactNativeStoreFactory: typeof createSurfaceStore = createSurfaceStore;
+export type SessionOptions = NativeSessionOptions;
+export type HostSessionOptions = NativeHostSessionOptions;
+export type HostStoreOptions = NativeSurfaceStoreOptions;
 const schema: ContractSchema = { type: "object", properties: {}, required: [], additionalProperties: false };
 const registry = createContractRegistry([createContractAdapter({ descriptor: { id: "com.example/typecheck", version: "1.0.0", schemaRevision: "sha256:" + "0".repeat(64), transport: "structured-content", mimeType: "application/vnd.example.typecheck+json" }, inputSchema: schema, modelSchema: schema, prepare: input => input })]);
 export const resolve = (client: Parameters<typeof resolveContractResult>[0]["client"]): Promise<ContractResult> => resolveContractResult({ registry, client, tool: {}, result: {} });

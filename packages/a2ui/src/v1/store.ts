@@ -9,6 +9,13 @@ import {
 import type { A2uiV1HostExtensionRegistry } from "./host-extensions.js";
 import { parseA2uiV1Envelope } from "./parse.js";
 import {
+  claimA2uiSurfaceId,
+  isA2uiSurfaceIdRegistry,
+  restoreA2uiSurfaceIdRegistry,
+  snapshotA2uiSurfaceIdRegistry,
+} from "./surface-id-registry.js";
+import type { A2uiSurfaceIdRegistry } from "./surface-id-registry.js";
+import {
   A2UI_V1_MAX_COMPONENTS,
   A2UI_V1_MAX_ENVELOPES,
   A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
@@ -42,6 +49,11 @@ interface JsonBudget {
 export interface A2uiSurfaceStoreOptions {
   /** Exact local/negotiated extension registry. Omission retains basic-catalog-only parsing. */
   readonly hostExtensions?: A2uiV1HostExtensionRegistry;
+  /**
+   * Opts into renderer-lifetime surface-ID uniqueness. Reuse one registry across replacement
+   * stores in the same host rendering context; omission preserves the published active-ID behavior.
+   */
+  readonly surfaceIdRegistry?: A2uiSurfaceIdRegistry;
 }
 
 /**
@@ -51,6 +63,7 @@ export interface A2uiSurfaceStoreOptions {
 export class A2uiSurfaceStore {
   readonly #surfaces = new Map<string, MutableSurface>();
   readonly #hostExtensions: A2uiV1HostExtensionRegistry | undefined;
+  readonly #surfaceIdRegistry: A2uiSurfaceIdRegistry | undefined;
   #retainedValues = 0;
   #retainedStringCodeUnits = 0;
 
@@ -66,7 +79,19 @@ export class A2uiSurfaceStore {
         "Expected an opaque host-extension registry in surface store options",
       );
     }
+    for (const key of Object.keys(options)) {
+      if (key !== "hostExtensions" && key !== "surfaceIdRegistry") {
+        throw new A2uiParseError(`Unexpected A2UI surface store option ${JSON.stringify(key)}`);
+      }
+    }
+    if (
+      options.surfaceIdRegistry !== undefined &&
+      !isA2uiSurfaceIdRegistry(options.surfaceIdRegistry)
+    ) {
+      throw new A2uiParseError("Expected an opaque surface-ID registry in surface store options");
+    }
     this.#hostExtensions = options.hostExtensions;
+    this.#surfaceIdRegistry = options.surfaceIdRegistry;
   }
 
   get size(): number {
@@ -138,6 +163,10 @@ export class A2uiSurfaceStore {
     const snapshot = cloneSurfaces(this.#surfaces);
     const retainedValues = this.#retainedValues;
     const retainedStringCodeUnits = this.#retainedStringCodeUnits;
+    const surfaceIdSnapshot =
+      this.#surfaceIdRegistry === undefined
+        ? undefined
+        : snapshotA2uiSurfaceIdRegistry(this.#surfaceIdRegistry);
     let batchBudget = EMPTY_BUDGET;
     try {
       for (const input of envelopes) {
@@ -155,6 +184,9 @@ export class A2uiSurfaceStore {
       }
       this.#retainedValues = retainedValues;
       this.#retainedStringCodeUnits = retainedStringCodeUnits;
+      if (this.#surfaceIdRegistry !== undefined && surfaceIdSnapshot !== undefined) {
+        restoreA2uiSurfaceIdRegistry(this.#surfaceIdRegistry, surfaceIdSnapshot);
+      }
       throw error;
     }
   }
@@ -209,6 +241,9 @@ export class A2uiSurfaceStore {
       metadataBudget,
     );
     this.#assertStoreBudget(retainedBudget);
+    if (this.#surfaceIdRegistry !== undefined) {
+      claimA2uiSurfaceId(this.#surfaceIdRegistry, message.surfaceId);
+    }
 
     const surface: MutableSurface = {
       surfaceId: message.surfaceId,

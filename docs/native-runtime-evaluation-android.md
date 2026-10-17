@@ -23,8 +23,8 @@ Gradle 8.14.3, AGP 8.13.2, compile/target SDK 36 and build-tools 36.0.0. The deb
 | Compose, independent Kotlin semantics, accessibility     | Not exercised                                                                                  |
 | Physical-device timing and memory                        | Deferred and unscored                                                                          |
 
-`npm run experiment:android -- emulator-5554` regenerates the ignored report. Expected observations
-are not placed in APK assets or passed to the engine. The comparator checks the invocation UUID and
+The removed experiment command regenerated an ignored report. Expected observations were not placed
+in APK assets or passed to the engine. The comparator checked the invocation UUID and
 bundle hash as well as exact cases and observations. The native host records authorized/denied
 deliveries. Malformed observation/action contracts close the host, and lexical rejection probes
 cover invalid escapes, raw controls and uppercase JSON literals. This probe has no network dispatch
@@ -46,9 +46,7 @@ message ports introduced in AndroidX 1.1.0. This environment is feasible; older 
 updates and unsupported devices need an explicit support/fallback policy. A bare minimum Android API
 level is insufficient. No silent WebView-rendering or alternate-engine fallback is implemented.
 
-Next, review a single session contract for server revisions, retained edits, input events, host action
-authorization, one-request admission, cancellation, teardown and bounded output. Use that contract
-to design a scoped native preview and resolve the remaining iOS lifecycle and Android provider-policy
-questions. Leave the final runtime decision, public renderer-core packaging, broad catalog parity,
-Compose work and device-performance acceptance open. The experiment's cleanup deadline remains
-before promotion to `main`; durable findings survive under `docs/`.
+The shared session now covers server revisions, retained edits, revision-bound input, host action
+authorization, cancellation, teardown, and bounded work. Android provider policy, Compose UI,
+catalog parity, accessibility, and device-performance acceptance remain under the Android renderer
+milestone. The temporary probe was removed; this durable record and Git history preserve its evidence.

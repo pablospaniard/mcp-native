@@ -33,7 +33,7 @@ advertising is limited to a host's complete implementation.
 
 | Direction         | Message                    | Support boundary                                                                     |
 | ----------------- | -------------------------- | ------------------------------------------------------------------------------------ |
-| Agent to renderer | `createSurface`            | Schema-validated; active-ID uniqueness only (lifetime gap below).                    |
+| Agent to renderer | `createSurface`            | Schema-validated; compatible active-ID default plus strict lifetime opt-in below.    |
 | Agent to renderer | `updateComponents`         | Schema-validated and applied atomically.                                             |
 | Agent to renderer | `updateDataModel`          | Schema-validated and applied as a bounded RFC 6901 update.                           |
 | Agent to renderer | `deleteSurface`            | Schema-validated and applied to ordered state.                                       |
@@ -44,14 +44,13 @@ advertising is limited to a host's complete implementation.
 | Renderer to agent | `rendererFunctionResponse` | Parsed as owned data against the pinned schema. No transport is selected.            |
 | Renderer to agent | `error`                    | Parsed as owned data against the pinned schema. It is not trusted as a host error.   |
 
-The published store rejects creation of an active ID but accepts the same ID after deletion.
-It does not enforce the pinned schema's renderer-lifetime uniqueness requirement. The
-[proposed native-session policy](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation)
-defines a host-owned lifetime, bounded ID tracking and an explicit migration path. That policy is
-not yet implemented; existing lifecycle tests and schema validation do not close this gap.
-The [shared-store opt-in follow-up](roadmap.md#shared-store-lifetime-uniqueness), owned by milestone
-12 / #92, separately tracks a compliant path for published store and React Native consumers while
-preserving their defaults. Neither the opt-in nor its conformance evidence is implemented yet.
+The published store's compatible default rejects creation of an active ID but permits recreation
+after deletion. Strict consumers create one bounded `SurfaceIdRegistry` for the host rendering
+context and pass it to replacement stores; accepted IDs then survive deletion and engine/store
+replacement. Per-ID, retained-count, and cumulative string limits fail before mutation. Atomic
+batch failure restores only new claims and charges. React Native exposes the same opt-in through its
+registered-host store helper. See the implemented
+[native-session policy](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation).
 
 Every accepted renderer-to-agent envelope has exactly `version: "v1.0"` and exactly one known
 message field. Strings and JSON graphs are bounded. Unknown versions, kinds, functions, fields on
@@ -136,30 +135,29 @@ the semantics most likely to vary across design systems; `@mcp-native/react-nati
 compatibility re-export of the same fixtures. Those fixtures and local layout contracts test host
 implementations; they are not additional wire-level components or conformance claims.
 
-The provisional [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) adds
-language-neutral, machine-checkable basic-form scenarios for milestone 12. The current React Native
+The [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) adds language-neutral,
+machine-checkable basic-form scenarios for milestone 12. The current React Native
 implementation executes them through its real callbacks and action-delivery boundary. This is
 additional project-level evidence for the existing exact pin, not upstream certification, full
 catalog coverage, or a supported native SDK claim. The corpus documents which lifecycle
 choices belong to its host harness and which checks exercise production protocol/renderer code.
 Render outcomes come from the mounted surface's effective model, including retained local edits;
 a focused `formatDate` case covers render rejection and recovery without expanding the wire profile.
-Two [experimental iOS runners](../experiments/ios-runtime-comparison/README.md) now execute the same
+Two [preserved iOS evaluation runners](native-runtime-evaluation-ios.md) executed the same
 cases through JavaScriptCore and independent Swift semantics. Their narrower input limits and
 simulator evidence do not expand this production conformance profile; no Compose runner exists yet.
 The shared corpus also covers project store semantics for array append at length, appended object
 parents, deletion, and rejection of gaps/noncanonical indices without mutation.
-The [Android engine probe](../experiments/android-runtime-probe/README.md) runs the identical bundle
+The [preserved Android engine evaluation](native-runtime-evaluation-android.md) ran the identical bundle
 and corpus with native admission/authorization checks on one emulator provider. Its feature-gated
 engine support and termination probes do not expand the production wire profile or claim Compose UI
 or native Kotlin semantic parity.
 
-The proposed [native session contract](RFC-0004-native-session-contract.md) preserves these semantic
-observations and identifies additional async host scenarios that are not yet implemented. It does
-not expand normative wire support or freeze a public session API. The
+The implemented [native session contract](RFC-0004-native-session-contract.md) preserves these semantic
+observations and adds deterministic async authorization, stale-ticket, close, replacement, and
+bounded-work scenarios. It does not expand normative wire support. The
 [surface-ID lifetime gap](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation)
-has a proposed context-lifetime and migration policy; enforcement and its acceptance scenarios
-remain required before native contract adoption.
+has a context-lifetime and migration policy enforced by the opt-in registry and shared session.
 
 ## Candidate interpretations
 
