@@ -37,7 +37,8 @@ or upstream revision. The conformance profile owns those exact claims.
 | A maintained extended component catalog      | Planned workstream in the roadmap              | Select named adapters, publish an iOS/Android matrix, and meet the acceptance criteria below.                                                              |
 | Broader native capabilities                  | Post-v1 Milestone 15                           | Add typed provider manifests, negotiation, a policy/permission broker, reference providers, and capability-specific tests.                                 |
 | Broader A2UI protocol coverage               | Post-v1 Milestone 16                           | Review additional features and exact revisions, implement their lifecycle and authorization semantics, and update conformance and migration documentation. |
-| Direct SwiftUI and Compose rendering         | Post-v1 Milestones 12–14                       | Establish the platform-neutral foundation and prove behavioral parity in each renderer.                                                                    |
+| Direct SwiftUI rendering                     | Swift Package shipped in source                | Install local resource/extension views and verify the documented Apple compatibility matrix.                                                               |
+| Direct Compose rendering                     | Post-v1 Milestone 14                           | Build on the platform-neutral foundation and prove behavioral parity.                                                                                      |
 
 There is no finite project promise to bundle “all React Native components”: applications and
 third-party packages can continually add implementations. The target is an extensible, tested

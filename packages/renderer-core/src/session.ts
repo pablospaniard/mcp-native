@@ -487,8 +487,10 @@ function createAbortController(): NativeSessionAbortController {
   return new AbortControllerConstructor();
 }
 
-function collectControls(plan: NativeElement): readonly Omit<NativeSessionControl, "ticket">[] {
-  const controls: Omit<NativeSessionControl, "ticket">[] = [];
+type CollectedControl = Omit<NativeSessionControl, "ticket"> & { readonly elementKey: string };
+
+function collectControls(plan: NativeElement): readonly CollectedControl[] {
+  const controls: CollectedControl[] = [];
   const pending = [plan];
   while (pending.length > 0) {
     const element = pending.pop()!;
@@ -496,6 +498,7 @@ function collectControls(plan: NativeElement): readonly Omit<NativeSessionContro
     const binding = typeof element.props.binding === "string" ? element.props.binding : undefined;
     if (event !== undefined || binding !== undefined) {
       controls.push({
+        elementKey: element.key,
         sourceComponentId: event?.sourceComponentId ?? sourceIdFromKey(element.key),
         ...(event?.instanceKey === undefined ? {} : { instanceKey: event.instanceKey }),
         ...(binding === undefined ? {} : { binding }),
