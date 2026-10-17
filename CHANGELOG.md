@@ -13,7 +13,9 @@ patch and minor releases remain compatible within their release line.
   JavaScriptCore bundle, preserves two-phase action authorization/delivery, and exposes closed
   host-owned resource, navigation, media, and schema-validated extension seams. SwiftPM tests,
   hostile bridge limits, generated-bundle drift checks, Apple simulator builds, and an exact
-  compatibility matrix define the support boundary.
+  compatibility matrix define the support boundary. A repository-root manifest makes the Git URL
+  directly consumable by SwiftPM while retaining the focused local package manifest. Automated
+  semantic parity checks, tests, and platform builds keep both entry points aligned.
 
 - Implement the shared native session contract (RFC-0004): server/local reconciliation, render and
   surface revisions, opaque instance-bound callback tickets, asynchronous native authorization,
