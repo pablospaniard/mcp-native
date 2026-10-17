@@ -1,8 +1,15 @@
 pluginManagement {
+  val androidGradlePluginVersion: String by settings
+  val kotlinVersion: String by settings
   repositories {
     google()
     mavenCentral()
     gradlePluginPortal()
+  }
+  plugins {
+    id("com.android.application") version androidGradlePluginVersion
+    id("org.jetbrains.kotlin.android") version kotlinVersion
+    id("org.jetbrains.kotlin.plugin.compose") version kotlinVersion
   }
 }
 

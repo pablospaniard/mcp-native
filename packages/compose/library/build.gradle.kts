@@ -63,53 +63,60 @@ dependencies {
   debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
 
+val documentationFile = layout.projectDirectory.file("../README.md")
 val javadocJar by tasks.registering(Jar::class) {
   archiveClassifier.set("javadoc")
-  from("../README.md")
-}
-
-publishing {
-  publications {
-    register<MavenPublication>("release") {
-      artifactId = "mcp-native-compose"
-      artifact(javadocJar)
-
-      pom {
-        name.set("MCP Native Compose")
-        description.set("Fail-closed Jetpack Compose renderer for MCP Native's pinned A2UI profile.")
-        url.set("https://github.com/pablospaniard/mcp-native")
-        licenses {
-          license {
-            name.set("MIT License")
-            url.set("https://opensource.org/license/mit")
-            distribution.set("repo")
-          }
-        }
-        developers {
-          developer {
-            id.set("pablospaniard")
-            name.set("Pavel Ivanov")
-            url.set("https://github.com/pablospaniard")
-          }
-        }
-        scm {
-          connection.set("scm:git:git://github.com/pablospaniard/mcp-native.git")
-          developerConnection.set("scm:git:ssh://git@github.com/pablospaniard/mcp-native.git")
-          url.set("https://github.com/pablospaniard/mcp-native")
-        }
-        issueManagement {
-          system.set("GitHub")
-          url.set("https://github.com/pablospaniard/mcp-native/issues")
-        }
-      }
-
-      afterEvaluate { from(components["release"]) }
+  from(documentationFile)
+  doFirst {
+    check(documentationFile.asFile.isFile) {
+      "Compose documentation is required for the Maven javadoc artifact"
     }
   }
-  repositories {
-    maven {
-      name = "releaseBundle"
-      url = layout.buildDirectory.dir("maven-repository").get().asFile.toURI()
+}
+
+afterEvaluate {
+  publishing {
+    publications {
+      register<MavenPublication>("release") {
+        from(components["release"])
+        artifactId = "mcp-native-compose"
+        artifact(javadocJar)
+
+        pom {
+          name.set("MCP Native Compose")
+          description.set("Fail-closed Jetpack Compose renderer for MCP Native's pinned A2UI profile.")
+          url.set("https://github.com/pablospaniard/mcp-native")
+          licenses {
+            license {
+              name.set("MIT License")
+              url.set("https://opensource.org/license/mit")
+              distribution.set("repo")
+            }
+          }
+          developers {
+            developer {
+              id.set("pablospaniard")
+              name.set("Pavel Ivanov")
+              url.set("https://github.com/pablospaniard")
+            }
+          }
+          scm {
+            connection.set("scm:git:git://github.com/pablospaniard/mcp-native.git")
+            developerConnection.set("scm:git:ssh://git@github.com/pablospaniard/mcp-native.git")
+            url.set("https://github.com/pablospaniard/mcp-native")
+          }
+          issueManagement {
+            system.set("GitHub")
+            url.set("https://github.com/pablospaniard/mcp-native/issues")
+          }
+        }
+      }
+    }
+    repositories {
+      maven {
+        name = "releaseBundle"
+        url = layout.buildDirectory.dir("maven-repository").get().asFile.toURI()
+      }
     }
   }
 }

@@ -67,16 +67,20 @@ The release workflow publishes npm packages in dependency order. Stable versions
 tag; every other prerelease uses `next`, so prereleases never replace `latest`. The workflow first
 checks whether each exact version already exists, so an interrupted release can be resumed without
 attempting to overwrite immutable npm versions. A maintainer can manually dispatch the same
-workflow with the existing release tag to resume publication.
+workflow with the existing release tag to resume npm publication. A Maven-only resume uses the
+deployment ID as described below and does not rerun npm publication or Android builds.
 
-After npm publication, the workflow builds `io.github.pablospaniard:mcp-native-compose` with the
-same release version. The release checkout's Gradle build receives no Maven credentials and
-generates only the release AAR, sources and documentation JARs, and required POM metadata. Trusted
-workflow automation creates detached PGP signatures, adds Maven Central's required checksums,
-uploads the Maven-layout bundle through the official Portal API with automatic publication, and
-waits for a terminal result. It skips a coordinate already visible on Maven Central. If a workflow
-stops after upload, copy its printed deployment ID into the manual `maven_deployment_id` workflow
-input to resume waiting without uploading the immutable coordinate again.
+In parallel with npm publication, a credential-free job builds
+`io.github.pablospaniard:mcp-native-compose` with the same release version, verifies its POM and
+artifacts, and transfers only that unsigned publication through GitHub's artifact service. It
+installs the pinned Android SDK explicitly. The separate protected job checks out trusted automation
+only; it rejects extra, empty, or non-regular build outputs before creating detached PGP signatures,
+checksums, and the Maven-layout bundle. It uploads through the official Portal API with automatic
+publication and waits for a documented terminal result. Status requests retry bounded transient
+failures. Because repository mirrors are not an authoritative deployment ledger, the automation
+does not guess publication state from a CDN lookup. If a workflow stops after upload, copy its
+printed deployment ID into the manual `maven_deployment_id` input to resume status polling without
+rebuilding, rerunning npm publication, or uploading the immutable coordinate again.
 
 Release version verification uses the same package inventory as the publisher. Recovery permits
 renderer-core to be absent in a historical release only when no package in that checkout requires
