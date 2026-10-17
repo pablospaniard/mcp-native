@@ -95,10 +95,9 @@ modes, slider partitions, tabs, modal lifecycle, accessibility, and every suppor
 the application's actual component library. Layout declarations are host-owned metadata: they may
 reject unsupported bounded, unbounded, or scrolling parents but cannot grant server capabilities.
 
-The implemented renderer is React Native. It covers the pinned A2UI basic catalog and supports
-locally compiled Fabric extensions. Direct SwiftUI and Jetpack Compose renderers and the broader
-typed native-capability provider program are tracked as post-`1.0.0` work without assigned release
-dates.
+React Native, SwiftUI, and Jetpack Compose renderers cover the pinned A2UI basic catalog through the
+shared semantic session. Each retains a closed, locally compiled extension boundary. The broader
+typed native-capability provider program remains later work without an assigned release date.
 
 ## Native and WebView content together
 
