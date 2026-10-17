@@ -5,9 +5,9 @@ It is a fully working todo list with local editing, filters, persistence, valida
 native controls. The walkthrough keeps the A2UI surface, host component catalog, action handling,
 and storage code separate so each package boundary is easy to follow.
 
-| All tasks                                         | Completed filter                                               | Empty state                                      |
-| ------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
-| ![All todo tasks](docs/screenshots/all-tasks.png) | ![Completed todo filter](docs/screenshots/completed-tasks.png) | ![Empty todo filter](docs/screenshots/empty.png) |
+| All tasks                                         | Completed filter                                               | Native summary                                       |
+| ------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
+| ![All todo tasks](docs/screenshots/all-tasks.png) | ![Completed todo filter](docs/screenshots/completed-tasks.png) | ![Native task summary](docs/screenshots/summary.png) |
 
 ## Run it locally
 
@@ -187,3 +187,28 @@ npm run bundle:android
 
 The tests cover the lifecycle schema, trusted render plan, add/edit/toggle/filter/delete/clear
 behavior, persistence parsing, forged renderer input, and application-level size limits.
+
+## Custom native summary
+
+Choose **View task summary** to open a static native count snapshot. This uses the opt-in host
+contract APIs: a compiled renderer is bound to a factory-issued adapter, its native registry is
+advertised by an in-process MCP fixture, and the controller owns discovery and modal lifetime.
+The example pins the exact input/model/event schema bundle digest in a regression test. It adds
+no remote transport or server-selected component names.
+
+**Acknowledge** constructs one closed `acknowledge` event. A local deny-by-default shared policy
+explicitly permits that event before the delivery callback runs; successful delivery updates the
+accessible status to **Summary acknowledged**. It grants no tool or device access. Closing the
+modal revokes the view's handlers and shuts down the controller; reopening creates a new snapshot.
+See `src/summary-contract.ts` for the fixture and `src/summary.tsx` for explicit native prop mapping,
+policy, fallback UI, and lifecycle integration.
+
+The summary descriptor now pins the v1 canonical schema bundle produced by
+`@mcp-native/host/contracts/authoring`. Its test runs public data/event fixtures, including inconsistent
+counts, out-of-range input, and rejected events. See the [authoring guide](../../docs/contract-authoring.md).
+
+`SummaryCard` creates a fresh `createRenderBudget()` inside each render invocation. Charges are local
+to that invocation, so Strict Mode, state rerenders, and discarded render attempts do not spend a
+shared lifetime allowance. Event validation keeps its own cumulative result budget. A timed-out
+handler retains the result's single-flight gate until it settles; timeout does not imply that an
+external side effect was undone. The example's acknowledgment has no external side effects.

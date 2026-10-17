@@ -4,7 +4,7 @@
 
 - Deliver milestone 11–16 work through pull requests targeting `feature/native-platforms`.
   Start follow-up task branches from that integration branch once their prerequisites land.
-  See `docs/RFC-0002-native-platforms.md` for the proposed runtime comparison and package strategy.
+  See `docs/RFC-0003-native-platforms.md` for the proposed runtime comparison and package strategy.
   Mainline synchronization and eventual promotion also require reviewed PRs; automation never merges.
 
 - Preserve package boundaries documented in `docs/RFC-0001-architecture.md`.

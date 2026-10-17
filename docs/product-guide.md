@@ -24,36 +24,43 @@ coverage and exclusions; upstream changes do not become compatible automatically
 
 ## Choose a surface
 
-| Requirement                                                   | Surface              | Use it when                                                                                     |
-| ------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
-| Forms, lists, cards, validation, or local input state         | Native A2UI          | The interaction fits the negotiated semantic catalog and should use app-owned native components |
-| One application-specific native widget inside A2UI            | Host extension       | The app can compile, register, advertise, and policy-gate an exact namespaced component         |
-| Rich HTML, an existing web UI, or a web-focused visualization | MCP App              | The app can supply an isolated WebView and enforce the complete Apps policy                     |
-| Useful text or structured data without an executable UI claim | Ordinary MCP content | A safe inert fallback is sufficient                                                             |
-| A new server-defined document or component protocol           | Not supported by v1  | Track it through the post-1.0 contract-adapter work; do not guess from MIME type or metadata    |
+| Requirement                                                   | Surface                 | Use it when                                                                                                       |
+| ------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Forms, lists, cards, validation, or local input state         | Native A2UI             | The interaction fits the negotiated semantic catalog and should use app-owned native components                   |
+| One application-specific native widget inside A2UI            | Host extension          | The app can compile, register, advertise, and policy-gate an exact namespaced component                           |
+| Rich HTML, an existing web UI, or a web-focused visualization | MCP App                 | The app can supply an isolated WebView and enforce the complete Apps policy                                       |
+| Useful text or structured data without an executable UI claim | Ordinary MCP content    | A safe inert fallback is sufficient                                                                               |
+| An application-defined inline JSON format                     | Contract adapter in 1.1 | The app installs exact schemas, a compiled renderer, and an explicit event policy; peers negotiate the descriptor |
+| An arbitrary new wire or component protocol                   | Unsupported             | Requires a separately reviewed interface; do not guess from MIME type or metadata                                 |
 
 Use `@mcp-native/host` when one owner should connect, discover, call, classify, and render. Compose
 the focused packages directly when the application needs separate control of those stages. The
 `/react-native` entry point provides the provider and result renderer for that controller.
+Inline contracts use the separate `/contracts` and `/contracts/react-native` entry points; follow
+the [contract guide](custom-contracts.md) and [1.1 migration guide](migration-to-1.1.md).
 
 ## The end-to-end flow
 
 1. The host connects to an MCP server and advertises only the protocol profiles, catalogs, and
    locally installed extensions it is prepared to handle.
-2. A tool result points to either declarative A2UI data or an HTML MCP App. Useful ordinary MCP
-   content remains the fallback when a richer surface is unavailable.
-3. The host reads and validates the resource. Unknown versions, components, actions, functions,
-   extensions, and malformed or oversized input are rejected.
+2. A tool result points to declarative A2UI data or an HTML MCP App, or carries an exactly negotiated
+   inline JSON contract when the app uses the contract host. Useful ordinary MCP content remains the
+   fallback when a richer surface is unavailable.
+3. The host reads and validates the resource, or validates inline contract data through its installed
+   adapter. Unknown versions, components, actions, functions, extensions, and malformed or oversized
+   input are rejected.
 4. For A2UI, the package produces trusted semantic props. The host's catalog maps them to React
    Native primitives, its design system, or an exactly registered local Fabric component.
 5. For an MCP App, the host creates an isolated WebView from the package's closed sandbox and bridge
    descriptor. The App does not become a native component and receives no native permission by
    implication.
-6. The application shell owns placement, navigation, focus, lifecycle, permissions, and error UI.
+6. For an inline contract, the installed adapter prepares immutable data and the native registry
+   selects the compiled renderer. Events require the adapter’s exact schema and host authorization.
+7. The application shell owns placement, navigation, focus, lifecycle, permissions, and error UI.
    Validated user actions return to a host callback, where application policy decides whether and
    how to deliver them.
 
-For React Native, `createHost` is the preferred catalog boundary. It freezes the local
+For native A2UI, `createHost` is the preferred catalog boundary. It freezes the local
 catalog and derives validation and advertised support from the same installed slots and resource
 policies. `inspectMount` checks the expanded surface and declared parent-layout support
 before React rendering; `HostSurface` performs structural/layout preflight without

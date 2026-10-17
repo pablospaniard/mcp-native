@@ -1,10 +1,10 @@
-# RFC-0003: Shared native session contract
+# RFC-0004: Shared native session contract
 
 - Status: Proposed; behavioral design for review, not an implemented or frozen API
 - Date: 2026-09-12
 - Baseline: integration commit `7535b4b917c33b35f6d0bacdb0012dd732a35105` (PR #133)
 - Tracking: [milestone 12 / #92](https://github.com/pablospaniard/mcp-native/issues/92)
-- Depends on: [architecture](RFC-0001-architecture.md), [runtime/package assessment](RFC-0002-native-platforms.md)
+- Depends on: [architecture](RFC-0001-architecture.md), [runtime/package assessment](RFC-0003-native-platforms.md)
 
 ## Decision proposed
 

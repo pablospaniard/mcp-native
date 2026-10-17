@@ -19,9 +19,11 @@ WebView APIs. It does not include the official MCP SDK adapter or the high-level
 workflow. Use this package when the application wants to compose the low-level layers itself.
 
 This package contains the validated low-level React Native feature set: a pinned, feature-scoped A2UI v1.0 Candidate profile and the
-stable MCP Apps `2026-01-26` host flow. Public standard-contract registration and
-application-defined custom input adapters remain post-1.0 work. Negotiated, locally compiled
-semantic host extensions are already supported.
+stable MCP Apps `2026-01-26` host flow. Negotiated, locally compiled semantic host extensions are
+supported here. Version `1.1.0` adds standard-contract selection and application-defined inline JSON
+adapters through the separate `@mcp-native/host/contracts` subpaths; install the host package directly
+for those APIs. See the [1.1 migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.1.md)
+and [publication status](https://github.com/pablospaniard/mcp-native/blob/main/docs/releasing.md#110-release-preparation).
 
 As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
 v1.0 as Candidate and v0.9.1 as the current production release. See the

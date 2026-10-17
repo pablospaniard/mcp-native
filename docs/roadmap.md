@@ -1,10 +1,13 @@
 # Roadmap
 
-MCP Native is ready for v1. Milestones 0–9 and the Milestone 10 implementation, validation,
-independent-review, documentation, and API-finalization gates are complete. The high-level host
+MCP Native shipped `1.0.0` on 2026-09-06, the documentation-only `1.0.1` patch on 2026-09-07,
+and the additive `1.1.0` inline contract release on 2026-09-15.
+Milestones 0–9 and the Milestone 10 implementation, validation, independent-review, documentation,
+API-finalization, and publication steps are complete. The high-level host
 provides the connect-call-render workflow above the independently usable protocol, runtime,
 React Native, and WebView packages. The `1.x` compatibility contract is adopted; coordinated
-`1.0.0` publication is the remaining release step.
+stable packages are published. The [readiness record](1.0-readiness.md) distinguishes successful
+release verification and publication from the remaining post-publication registry audit record.
 
 ## v1 product and release scope
 
@@ -376,8 +379,8 @@ integrate the package without reading its implementation.
 
 ## Milestone 10: stable release (`1.0.0`)
 
-Status: implementation, validation, review, documentation, and v1 API finalization complete;
-coordinated stable publication pending.
+Status: implementation, validation, review, documentation, v1 API finalization, and coordinated
+stable publication complete. Post-publication registry audit evidence remains to be recorded.
 
 GitHub tracking: [milestone](https://github.com/pablospaniard/mcp-native/milestone/1) ·
 [host-package issue #90](https://github.com/pablospaniard/mcp-native/issues/90)
@@ -442,8 +445,11 @@ authorization callbacks.
       compatibility policy, migration guide, API reference, examples, and changelog.
 - [x] Adopt the `1.x` compatibility promise: breaking public API, wire, schema pin, default policy,
       or behavior changes require an explicit major-version migration plan.
-- [ ] Publish all coordinated packages at `1.0.0` through the existing protected OIDC/provenance
-      workflow and verify registry contents, tags, signatures/provenance, and installability.
+- [x] Publish all coordinated packages at `1.0.0` through the existing protected OIDC/provenance
+      workflow; the [release run](https://github.com/pablospaniard/mcp-native/actions/runs/34060049939)
+      passed release verification and publication.
+- [ ] Record the post-publication registry contents, signatures/provenance, and clean-install audit;
+      publication itself is complete. See the [readiness record](1.0-readiness.md).
 
 The high-level device walkthrough is accepted by the maintainer as a readiness decision; see the
 [readiness record](1.0-readiness.md). Final release verification runs again on the publication commit.
@@ -456,15 +462,16 @@ stability policy is published, and every release-blocking review result is resol
 ## Committed post-`1.0.0` roadmap
 
 Milestone 11–16 implementation PRs target `feature/native-platforms`. The proposed
-[runtime comparison and package strategy](RFC-0002-native-platforms.md) breaks the renderer work
+[runtime comparison and package strategy](RFC-0003-native-platforms.md) breaks the renderer work
 into a shared corpus, two scoped iOS prototypes, an Android feasibility probe, and a decision PR.
 Milestone 12's contract remains provisional until those experiments validate it. The renderer-core
 workspace extraction on that branch is not approval to publish a new stable package.
 
 The stable React Native host is a foundation, not the end of the product. The following initiatives
 are deliberately excluded from the `1.0.0` exit criteria and tracked as separate GitHub milestones.
-Release numbers and dates will be assigned only after the stable host API and `1.x` compatibility
-policy ship. Work may overlap, but dependency order remains explicit.
+The stable host API and `1.x` compatibility policy have shipped. Milestone 11’s bounded inline
+implementation shipped in `1.1.0` on 2026-09-15. Later release numbers and dates
+remain unassigned. Work may overlap, but dependency order remains explicit.
 
 | Milestone                                                     | Initiative                                                                                                    | Depends on                                                               |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -480,7 +487,8 @@ policy ship. Work may overlap, but dependency order remains explicit.
 Status: planned post-v1 workstream; initial component selection, release number, and date are pending.
 This work builds on the shipped Milestone 8 host-extension boundary. Adapters that need broader
 device capabilities must coordinate with Milestone 15; ordinary semantic component adapters can
-use the existing extension contract without waiting for that provider framework or Milestone 11.
+use the existing extension contract independently of that provider framework or the `1.1.0` inline
+contract registry.
 
 The deliverable is a bounded, maintained catalog of additional semantic components with named
 adapters and an iOS/Android support matrix. It does not promise to bundle every React Native
@@ -504,21 +512,41 @@ Applications continue to advertise only their installed, policy-ready subset.
 
 ### Milestone 11: standard contract registry and custom input adapters
 
+Status: inline data, lifecycle, and static native rendering/events published in `1.1.0` on 2026-09-15. The
+[inline contract guide](custom-contracts.md) defines local registration, exact negotiation, strict
+schemas, cumulative limits, and immutable data resolution through `@mcp-native/host/contracts`.
+[RFC-0002](RFC-0002-contract-registry.md) retains the broader design. The [maintained standard inventory](standard-contracts.md) and [adapter-author tooling](contract-authoring.md)
+are implemented. [Separately packaged reviewed adapters](reviewed-standard-adapters.md) now support
+the closed inline-JSON interface with exact markers and negotiation. Custom resources, broader wire
+grammars, and live updates remain later work. Existing closed v1 result and action unions are unchanged.
+The bounded implementation was merged in [PR #137](https://github.com/pablospaniard/mcp-native/pull/137)
+and was published in the coordinated `1.1.0` release on 2026-09-15. Its [implementation acceptance review](milestone-11-acceptance.md)
+records the rejected initial review and corrections for timeout delivery, render replay, and provider cleanup.
+See [publication status](releasing.md#110-release-preparation); Milestone 12 work has not started.
+
+- [x] Add the separate headless registry/inline-resolution API and binding documentation,
+      hostile-input tests, built-in parity checks, and packed consumer coverage.
+- [x] Add opt-in controller/provider lifecycle with exact connection ownership, cancellation,
+      bounded pending work, reconnect discovery, result clearing, and disposal tests.
+- [x] Add static compiled native rendering, private current-result mount leases, pinned event schemas,
+      shared custom/A2UI/Apps authorization, cumulative surface budgets, and a maintained native example.
+
 The v1 host has a closed built-in set of standard result handlers. This milestone adds the public
 choice between maintained standard contracts and explicitly installed application-defined contracts.
 
-- [ ] Define a closed, versioned renderable-result adapter interface with separate recognition,
+- [x] Define a closed, versioned renderable-result adapter interface with separate recognition,
       parsing, validation, resource access, rendering, action, lifecycle, and fallback responsibilities.
-- [ ] Publish a standard-contract registry for supported MCP, A2UI, and MCP Apps profiles. Each entry
+      The implemented separately packaged profile is inline JSON; resource access is explicitly disabled.
+- [x] Publish a standard-contract registry for supported MCP, A2UI, and MCP Apps profiles. Each entry
       has an exact identifier, version or revision, negotiation requirements, MIME types, limits,
       compatibility status, and conformance status.
-- [ ] Allow applications to register namespaced custom input contracts with exact runtime schemas,
+- [x] Allow applications to register namespaced custom input contracts with exact runtime schemas,
       cumulative work/output limits, locally installed renderers, action policies, and deterministic
       failure behavior.
-- [ ] Keep standard and custom lanes disjoint. Failed standard validation never retries through a
+- [x] Keep standard and custom lanes disjoint. Failed standard validation never retries through a
       custom adapter, custom metadata cannot impersonate a reserved standard, and unrecognized input
       falls back only to inert ordinary MCP content.
-- [ ] Add adapter-author tooling, fixtures, negative tests, package-consumer tests, compatibility
+- [x] Add adapter-author tooling, fixtures, negative tests, package-consumer tests, compatibility
       guidance, and migration rules without allowing server-selected JavaScript, imports, components,
       native classes, WebView options, commands, raw props, or styles.
 
@@ -537,11 +565,11 @@ JavaScriptCore and independent Swift form semantics, with the same SwiftUI contr
 [Android engine probe](../experiments/android-runtime-probe/RESULTS.md) passes the same corpus using
 the exact JavaScript bundle on one emulator/provider and demonstrates running-isolate termination.
 Broader provider support, full native parity, device performance and the final shared contract remain
-outstanding. [RFC-0003](RFC-0003-native-session-contract.md) proposes the shared session boundary,
+outstanding. [RFC-0004](RFC-0004-native-session-contract.md) proposes the shared session boundary,
 including revision identity, state transitions, native authorization, cancellation and output bounds.
 Next, review the proposal, implement the internal session without changing published behavior, and
 add deterministic async host scenarios. Review and implement the proposed
-[surface-ID lifetime policy](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation),
+[surface-ID lifetime policy](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation),
 including bounded host-owned tracking, cross-generation routing and migration acceptance tests,
 before adopting the native contract. The contract is not yet implemented or frozen. The shared-store
 opt-in below is a separate milestone 12 exit gate; completing only the private session does not close it.

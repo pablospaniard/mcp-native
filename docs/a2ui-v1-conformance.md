@@ -46,7 +46,7 @@ advertising is limited to a host's complete implementation.
 
 The published store rejects creation of an active ID but accepts the same ID after deletion.
 It does not enforce the pinned schema's renderer-lifetime uniqueness requirement. The
-[proposed native-session policy](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
+[proposed native-session policy](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation)
 defines a host-owned lifetime, bounded ID tracking and an explicit migration path. That policy is
 not yet implemented; existing lifecycle tests and schema validation do not close this gap.
 The [shared-store opt-in follow-up](roadmap.md#shared-store-lifetime-uniqueness), owned by milestone
@@ -154,10 +154,10 @@ and corpus with native admission/authorization checks on one emulator provider. 
 engine support and termination probes do not expand the production wire profile or claim Compose UI
 or native Kotlin semantic parity.
 
-The proposed [native session contract](RFC-0003-native-session-contract.md) preserves these semantic
+The proposed [native session contract](RFC-0004-native-session-contract.md) preserves these semantic
 observations and identifies additional async host scenarios that are not yet implemented. It does
 not expand normative wire support or freeze a public session API. The
-[surface-ID lifetime gap](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
+[surface-ID lifetime gap](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation)
 has a proposed context-lifetime and migration policy; enforcement and its acceptance scenarios
 remain required before native contract adoption.
 

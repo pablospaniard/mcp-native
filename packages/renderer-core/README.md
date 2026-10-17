@@ -21,7 +21,7 @@ plan with its own concrete host components.
 
 This package is a provisional workspace on `feature/native-platforms`; it is not a released product
 or a finalized cross-platform contract. The
-[runtime and package assessment](../../docs/RFC-0002-native-platforms.md) will determine whether it
+[runtime and package assessment](../../docs/RFC-0003-native-platforms.md) will determine whether it
 becomes a separate public package. Its manifest is `private: true`, so npm cannot publish it.
 Local packing remains available for integration smoke tests. Release automation rejects public
 packages that depend on this private workspace until the packaging decision is implemented.

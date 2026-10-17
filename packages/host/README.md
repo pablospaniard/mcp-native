@@ -215,6 +215,18 @@ by trusted application code remain a separate boundary.
 
 ## Public API
 
+Version `1.1.0` adds the opt-in `@mcp-native/host/contracts` subpath for
+`createContractAdapter`, `createContractRegistry`, `parseContractDescriptor`,
+`resolveContractResult`, and `createContractHostController`. It validates exactly negotiated inline custom JSON into immutable
+`contract-data`, with a separate `ContractResult` union. Use `@mcp-native/host@1.1.0` or later for these subpaths; see the
+[1.1 migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.1.md).
+`ContractHostController` owns discovery, cancellation, reconnect, and result lifetime. The new
+`@mcp-native/host/contracts/react-native` subpath exports `ContractHostProvider`, `useContractHost`, native registration/registry factories, and
+`ContractNativeResultView`. Mounting requires the exact native registry; events require a closed
+local event schema, `createContractActionAuthorization`, and a host delivery callback. See the
+[custom contract guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/custom-contracts.md)
+for registration, schemas, budgets, connection ownership, and later integration scope.
+
 The package root exports the controller, result resolver, and shared action authorization:
 
 | Export                                                                    | Purpose                                                                  |
@@ -253,3 +265,23 @@ Use the [focused packages](https://github.com/pablospaniard/mcp-native/tree/main
 ## License
 
 [MIT](https://github.com/pablospaniard/mcp-native/blob/main/LICENSE)
+
+## Standard inventory and authoring in 1.1
+
+The `/contracts` entry point also exports `createMcpOrdinaryContract`, `createA2uiStandardContract`,
+and `createMcpAppsStandardContract`. Registry factories accept optional `{ standards: [...] }`;
+omission preserves defaults and ordinary fallback is always retained. Inspect `.standards` for
+pinned profile evidence and responsibilities. See the [inventory guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/standard-contracts.md).
+
+The separate `/contracts/authoring` entry point exports `createContractSchemaBundle` and
+`runContractAdapterFixtures` for build/test use. See the [authoring guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/contract-authoring.md)
+for canonical source bytes, bounds, fixture reports, and migration from hand-hashed descriptors.
+
+`createReviewedStandardAdapter` adds separately packaged inline-JSON profiles with exact extension
+settings, result metadata, and local review evidence. Install the returned adapter in the data or
+native registry; `.reviewedStandards` remains separate from custom descriptors and maintained profiles.
+Existing native authorization and lifecycle controls apply. See the [reviewed adapter guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/reviewed-standard-adapters.md).
+
+The `1.1.0` native contract renderer receives `createRenderBudget()`. Earlier source checkouts
+used a shared `consume` prop that was never published. Create a fresh budget per render invocation; event budgets remain cumulative per
+result. This corrects React replay behavior. See the [renderer migration](https://github.com/pablospaniard/mcp-native/blob/main/docs/custom-contracts.md#unreleased-renderer-migration-after-review).

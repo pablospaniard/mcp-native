@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -15,10 +16,12 @@ import { Surface } from "@mcp-native/react-native";
 import type { ActionEnvelope } from "@mcp-native/a2ui";
 import type { JsonObject } from "@mcp-native/core";
 
+import { TaskSummary } from "./src/summary";
 import { appStyles, todoCatalog } from "./src/catalog";
 import {
   applyTodoAction,
   createInitialTodoState,
+  getTodoCounts,
   reconcileRendererModel,
   startTodoReset,
   type TodoState,
@@ -32,6 +35,7 @@ import {
 
 export default function App() {
   const [state, setState] = useState<TodoState>(createInitialTodoState);
+  const [showSummary, setShowSummary] = useState(false);
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("Loading persisted tasks…");
   const idSequence = useRef(0);
@@ -118,6 +122,25 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView edges={["top", "right", "bottom", "left"]} style={appStyles.app}>
         <StatusBar style="dark" />
+        <Modal
+          visible={showSummary}
+          animationType="slide"
+          onRequestClose={() => setShowSummary(false)}
+        >
+          <SafeAreaProvider>
+            <SafeAreaView style={[appStyles.app, { padding: 24, gap: 24 }]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close task summary"
+                onPress={() => setShowSummary(false)}
+                style={appStyles.resetButton}
+              >
+                <Text style={appStyles.resetText}>Close</Text>
+              </Pressable>
+              {showSummary ? <TaskSummary counts={getTodoCounts(state.todos)} /> : null}
+            </SafeAreaView>
+          </SafeAreaProvider>
+        </Modal>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={appStyles.app}
@@ -153,6 +176,14 @@ export default function App() {
             <Text accessibilityLiveRegion="polite" allowFontScaling style={appStyles.status}>
               {status}
             </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View task summary"
+              onPress={() => setShowSummary(true)}
+              style={appStyles.resetButton}
+            >
+              <Text style={appStyles.resetText}>View task summary</Text>
+            </Pressable>
             {ready ? (
               <Surface
                 actionMetadata={actionMetadata}

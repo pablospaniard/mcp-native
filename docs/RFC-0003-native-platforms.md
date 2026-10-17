@@ -1,4 +1,4 @@
-# RFC-0002: Native platform runtime and package strategy
+# RFC-0003: Native platform runtime and package strategy
 
 - Status: Proposed; runtime choice and package consolidation are not accepted decisions
 - Date: 2026-09-12
@@ -17,7 +17,7 @@ language runtime. The [initial iOS comparison](../experiments/ios-runtime-compar
 made shared JavaScript the leading next experiment: both paths pass the small corpus, while
 native semantics introduce concrete parity work. The [Android engine probe](../experiments/android-runtime-probe/RESULTS.md)
 now passes the same corpus with the exact shared bundle on one provider and demonstrates running-isolate
-termination. [RFC-0003](RFC-0003-native-session-contract.md) now proposes the common session contract
+termination. [RFC-0004](RFC-0004-native-session-contract.md) now proposes the common session contract
 for review, including state revisions, instance tickets, action authorization and cancellation.
 It is not an accepted runtime decision or measured performance result; broader Android provider support, iOS lifecycle design and
 physical-device evaluation remain open.
@@ -185,7 +185,7 @@ The Android probe now establishes shared-bundle feasibility and isolate terminat
 provider. Its provider feature gates and untested platform matrix remain decision inputs, not a
 supported Android SDK claim.
 
-The [session-contract proposal](RFC-0003-native-session-contract.md) records existing semantic evidence
+The [session-contract proposal](RFC-0004-native-session-contract.md) records existing semantic evidence
 and the async host tests still required. Review it before extracting a reusable internal session;
 its acceptance alone does not select a runtime, freeze exports or satisfy a preview gate.
 

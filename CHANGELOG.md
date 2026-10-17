@@ -8,7 +8,7 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
-- Proposed shared native session contract (RFC-0003): state transitions and revision identities,
+- Proposed shared native session contract (RFC-0004): state transitions and revision identities,
   instance-bound callbacks, native action authorization, cancellation and bounded output, with
   existing experiment evidence separated from future implementation gates. Runtime selection,
   renderer-core publication and native SDK support remain undecided. The proposal defines host-wide
@@ -79,6 +79,80 @@ patch and minor releases remain compatible within their release line.
 
 - Release recovery supports historical checkouts without renderer-core while rejecting missing
   local dependencies. Version verification now shares the publisher's package inventory.
+
+## 1.1.0 - 2026-09-15
+
+Coordinated minor release of all seven packages with opt-in contract registration, native hosting,
+and adapter authoring. Existing v1 APIs, default policies, and MCP/A2UI/MCP Apps pins are preserved.
+See the [1.1 migration guide](docs/migration-to-1.1.md).
+
+### Added
+
+- Add `createReviewedStandardAdapter` for separately packaged inline JSON profiles with exact
+  connection negotiation, fixed result markers, pinned review evidence, and a separate registry
+  inventory. Reuse bounded schemas, native mounting, authorization, and lifecycle; reject cross-lane
+  claims and cumulative selection amplification. Verify a synthetic adapter installed as its own
+  tarball and document that local review attestations are not upstream certification.
+
+- Add maintained ordinary MCP, A2UI, and MCP Apps factories with immutable pinned profile manifests
+  and registry subset selection. Defaults remain unchanged; excluded client advertisements fail closed.
+- Add `@mcp-native/host/contracts/authoring` with versioned canonical schema bundles and bounded
+  data/event fixture reports, negative tests, and packed-consumer coverage. Migrate the maintained
+  summary fixture to the public helper and document coordinated digest migration.
+
+- Add the opt-in `@mcp-native/host/contracts` entry point with local adapter and registry factories,
+  a closed schema subset, and connection-bound inline JSON resolution. Existing host exports and
+  result/action/error unions retain their behavior; custom results carry inert data only.
+- Define the project-owned `io.github.pablospaniard/mcp-native-contracts` binding at `0.1` with exact
+  descriptor negotiation. Custom resources, live updates, and broader standard wire grammars remain later
+  work outside the bounded Milestone 11 scope. Existing MCP, A2UI, and MCP Apps pins are unchanged.
+
+- Add `ContractHostController`/`createContractHostController` with frozen registry settings, exact
+  discovered-tool ownership, cancellation, reconnect, bounded pending work, explicit result clearing,
+  and idempotent shutdown. Add `ContractHostProvider`/`useContractHost` through
+  `@mcp-native/host/contracts/react-native`, including Strict Mode and single-provider ownership.
+
+- Add explicit compiled native registration/registry factories and `ContractNativeResultView`,
+  private current-result mount leases, whole-surface error containment, optional pinned event schemas,
+  and a separate custom/A2UI/Apps authorization gate. Extend the todo example with a native summary.
+
+### Fixed
+
+- Retain each result's event gate after timeout or unmount until the underlying review/delivery
+  settles, preventing overlapping same-result delivery across retries and remounts.
+- Replace the unreleased renderer `consume` prop with `createRenderBudget()` for fresh per-render
+  cumulative accounting. React replay and discarded renders no longer spend event or other render
+  budgets. Migrate the example and document the API correction.
+- Gate provider cancellation and shutdown together so Strict Mode effect cleanup does not cancel
+  live work. Record the rejected initial acceptance review and corrective regression evidence.
+- Keep invalid preparation charges failed even when local callbacks catch the error. Revoke saved
+  render budgets on unmount and keep failed charges local to their render attempt.
+
+### Security
+
+- Reject forged/duplicate registrations, reserved claims, unknown schema features, malformed
+  negotiation, and mixed standard/custom claims before adapter or resource work. Bound aggregate
+  registry retention and per-call input, output, validation, and cooperative preparation work.
+- Preserve strict custom payload/descriptor checks before optional SDK field normalization can
+  omit unknown properties. Freeze owned input/output, contain callback failures, and never retry
+  failed selected validation through another executable path.
+
+- Guard shared host operations before SDK requests and late resource processing/preparation, and
+  release snapshots/listeners immediately on shutdown while sharing bounded cleanup completion.
+  Preserve existing controller declarations, root exports, and closed result/action/error unions.
+
+- Bound cumulative custom event work across remounts, per-render work, event attempts, unsettled callbacks,
+  and review/delivery deadlines. Revoke authority on replacement, unmount, render failure, and
+  shutdown; late approval cannot invoke delivery. Custom policies deny by default.
+
+### Documentation
+
+- Document the Milestone 11 standard contract registry and custom input adapter design, including
+  separate opt-in APIs, exact negotiation, disjoint routing, cumulative limits, and acceptance gates.
+  Document the implemented data/lifecycle APIs and the broader wire/resource interfaces separately.
+- Align product, package, architecture, component, and review documentation with the merged inline
+  contract implementation and `1.1.0` migration path. Record confirmed publication separately from
+  historical v1 review/audit evidence.
 
 ## 1.0.1 - 2026-09-07
 

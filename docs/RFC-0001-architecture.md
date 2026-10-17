@@ -1,10 +1,10 @@
 # RFC-0001: MCP Native architecture
 
-- Status: Accepted; architecture retained through Milestone 12
+- Status: Accepted; package boundaries retained through the Milestone 11 inline implementation and Milestone 12 work
 - Protocol profiles: [MCP](protocol-support.md), [A2UI v1.0 Candidate](a2ui-v1-conformance.md), and
   [MCP Apps](mcp-apps-compatibility.md)
 - Date: 2026-08-25
-- Last updated: 2026-09-12
+- Last updated: 2026-09-15
 
 ## Summary
 
@@ -31,9 +31,9 @@ trusted contract instead of on React Native. `@mcp-native/react-native`'s public
 every extracted name is re-exported under its existing name.
 
 This extraction is provisional on `feature/native-platforms`.
-[RFC-0002](RFC-0002-native-platforms.md) evaluates shared JavaScript and native implementations
+[RFC-0003](RFC-0003-native-platforms.md) evaluates shared JavaScript and native implementations
 before committing to a new public package or finalizing the cross-platform contract.
-[RFC-0003](RFC-0003-native-session-contract.md) proposes the interactive session boundary and its
+[RFC-0004](RFC-0004-native-session-contract.md) proposes the interactive session boundary and its
 remaining implementation gates; it preserves these accepted ownership and dependency boundaries.
 
 ## Non-negotiable security rule
@@ -147,7 +147,7 @@ Convenience package for the runtime and UI APIs. Transport adapters remain separ
 Owns the optional high-level connect-call-render workflow. It composes `@mcp-native/mcp`, core,
 A2UI, React Native, and WebView APIs; classifies supported negotiated results; supplies safe ordinary
 MCP fallback; and coordinates action policy, cancellation, reconnect, error state, and teardown. It
-does not reinterpret unknown formats, install custom server contracts, own application navigation,
+does not reinterpret unknown formats, install server-supplied code, own application navigation,
 or grant device capabilities. The low-level packages remain independently usable.
 
 The implemented headless controller accepts fresh app-owned connection units and composes the MCP
@@ -161,6 +161,14 @@ bridge session. The host action-authorization helper presents separately validat
 MCP Apps tool calls to one immutable application decision union, denies by default, and serializes
 reviews across both protocols. Protocol packages retain their own serialization, delivery, and
 lifecycle rules.
+
+Version `1.1.0` adds opt-in `/contracts`, `/contracts/react-native`, and `/contracts/authoring`
+entry points within this package. Applications install closed inline schemas and compiled renderers
+locally; exact connection negotiation selects an adapter that prepares bounded immutable data.
+The separate contract result and authorization unions preserve the original host API. Native mount
+leases, per-render work budgets, and schema-validated event policies stay in the host package; core
+gains no renderer or protocol implementation dependency. See [RFC-0002](RFC-0002-contract-registry.md)
+for the implemented interface and the broader resource/wire proposals.
 
 ## Capability model
 
@@ -179,7 +187,7 @@ all 18 basic-catalog component names within profile limits, compiled host extens
 native/WebView composition, and the high-level host workflow. Implementation and independent
 review are complete; the [1.x compatibility policy](compatibility-policy.md) governs these boundaries.
 
-The supported connect-call-render flow is:
+The original host entry points preserve this connect-call-render flow:
 
 1. The host connects a fresh official SDK client and discovers the complete bounded tool list.
 2. A call uses the tool definition and extension settings from that connection.
@@ -233,15 +241,18 @@ return { content: [{ type: "text", text: "Saved" }] };
 
 ## Next work
 
-- complete the independent security, accessibility, compatibility, protocol/schema, and native
-  WebView reviews that gate `1.0.0`;
+The independent v1 reviews are complete; see the [1.0 readiness record](1.0-readiness.md).
+The bounded contract registry and native inline JSON hosting are included in `1.1.0`; see
+[RFC-0002](RFC-0002-contract-registry.md) and [publication status](releasing.md#110-release-preparation).
+Remaining work includes:
+
 - extend A2UI with renderer-function execution and capability transport placement after the
   documented profile is updated;
 - extend MCP Apps with optional stable methods and browser-host double-iframe support as separate
   profiles;
-- add a post-1.0 registry for additional reviewed standard contracts and explicitly installed,
-  namespaced, versioned custom input adapters without fallback from failed standard validation;
-- extend the Expo Go example with useful host-owned catalog mappings when needed; and
+- design broader wire/resource interfaces beyond the `1.1.0` inline contract registry, preserving
+  exact negotiation and no fallback from failed selected validation;
+- extend the Expo Go example with useful host-owned catalog mappings when needed;
 - maintain canonical catalog conformance cases, local doctor diagnostics, and non-overwriting
   catalog/extension scaffolds as integration tooling; and
 - develop first-class SwiftUI, Jetpack Compose, and native capability-provider packages after

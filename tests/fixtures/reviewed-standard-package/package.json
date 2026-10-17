@@ -1,0 +1,10 @@
+{
+  "name": "@mcp-native-test/inline-standard",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./index.mjs",
+  "peerDependencies": {
+    "@mcp-native/host": "*"
+  }
+}

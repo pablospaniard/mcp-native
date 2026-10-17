@@ -60,7 +60,9 @@ are separate responsibilities; a map view, for example, does not itself authoriz
 
 Use the [media and host-extension guide](media-and-host-extensions.md) for the existing registration
 contract and the [host integration checklist](host-integration-checklist.md) for application wiring.
-Custom components using that contract do not require the future custom-input registry in Milestone 11.
+Custom components inside A2UI do not require the separate [inline contract registry](custom-contracts.md)
+added in `1.1.0`. Use that registry when the application needs its own input format and compiled
+renderer outside the A2UI component contract.
 Host-owned navigation, screens, safe areas, and system UI remain application responsibilities.
 
 ## Extended catalog acceptance criteria

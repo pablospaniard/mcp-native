@@ -41,11 +41,11 @@ sessions. This adds engine,
 JSON-bridge and termination evidence only; there is no Compose renderer or independent Kotlin
 conformance implementation.
 
-The [native session contract](RFC-0003-native-session-contract.md) is a proposed project design.
+The [native session contract](RFC-0004-native-session-contract.md) is a proposed project design.
 Its async identity, authorization and lifecycle requirements are implementation gates, not additional
 passing conformance cases or changes to the pinned wire profile. Native SDK and device-performance
 claims remain unchanged. The
-[surface-ID lifetime interpretation](RFC-0003-native-session-contract.md#surface-id-lifetime-interpretation)
+[surface-ID lifetime interpretation](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation)
 proposes bounded context-owned ID tracking and migration while preserving published defaults.
 The current lifetime-uniqueness gap remains until implementation and acceptance tests prove the
 strict native path; this decision does not expand passing conformance claims. The
@@ -53,6 +53,16 @@ strict native path; this decision does not expand passing conformance claims. Th
 exit gate, covering published store and React Native consumers with unchanged defaults.
 
 ## Official references
+
+The `1.1.0` [inline custom-contract binding](custom-contracts.md) adds the project-owned
+`io.github.pablospaniard/mcp-native-contracts` extension at exact binding version `0.1` through
+`@mcp-native/host/contracts`. It resolves installed, exactly negotiated JSON contracts into inert
+validated data; the opt-in controller/provider add lifecycle ownership and static compiled native mounting.
+Optional local event schemas participate in the same descriptor digest; custom events are delivered
+to an authorized host callback, with no new MCP wire event protocol.
+This is not an official MCP UI standard or expanded A2UI/MCP Apps conformance.
+Existing MCP `2026-07-28`, A2UI Candidate `8ff4651232ab0e02b0123730b502711170637a3a`, and
+MCP Apps `2026-01-26` pins are unchanged.
 
 ### Protocol and wire contracts
 
@@ -254,3 +264,16 @@ non-boolean check conditions.
 - State compatibility by exact revision, implemented feature profile, operation, and transport.
 - Base compatibility statements on passing pinned conformance tests and scoped integration results.
 - Update compatibility statements alongside the executable policy, tests, matrix, and release notes.
+
+## Contract inventory and authoring additions in 1.1
+
+The opt-in [maintained standard factories](standard-contracts.md) add immutable registry inventory and
+subset selection in `1.1.0`; defaults, existing v1 declarations, and protocol/schema pins stay
+unchanged. A client advertising an excluded standard fails with the new contract-only
+`invalid-standard-settings` code. The separate [authoring subpath](contract-authoring.md) generates v1
+canonical schema bundles and runs bounded fixtures. Existing hand-hashed adapters remain runtime-valid;
+adopting the fixture runner requires updating installed and peer-advertised digests together.
+[Separately packaged reviewed adapters](reviewed-standard-adapters.md) now support the closed inline
+JSON interface, with their own exact bindings, review evidence, and `.reviewedStandards` inventory.
+The new `invalid-standard-claim` code is confined to the opt-in API. Existing custom adapters are not
+promoted; broader wire/resource interfaces remain proposed in [RFC-0002](RFC-0002-contract-registry.md).

@@ -1,7 +1,7 @@
 # Shared renderer conformance corpus, format 1
 
 This repository-owned JSON corpus supplies executable expectations for the small native-renderer
-experiments in [RFC-0002](../../../docs/RFC-0002-native-platforms.md). A Swift, Kotlin, or embedded
+experiments in [RFC-0003](../../../docs/RFC-0003-native-platforms.md). A Swift, Kotlin, or embedded
 JavaScript runner can read the same data without executing a TypeScript fixture factory.
 
 `basic-form.json` is the corpus; `suite.schema.json` is its closed JSON Schema 2020-12 format.
@@ -9,7 +9,7 @@ The data format is provisional test infrastructure, not a new MCP/A2UI wire prot
 native bridge API, or declaration of full renderer conformance. Existing published React Native catalog fixtures remain unchanged; their implementation is available
 through the private `@mcp-native/renderer-core/testing` workspace entry point.
 
-The [proposed session contract](../../../docs/RFC-0003-native-session-contract.md) maps existing cases
+The [proposed session contract](../../../docs/RFC-0004-native-session-contract.md) maps existing cases
 to the required future async scenarios. The current sequential corpus does not prove request identity,
 async authorization races, stale native callbacks or engine cleanup guarantees.
 
