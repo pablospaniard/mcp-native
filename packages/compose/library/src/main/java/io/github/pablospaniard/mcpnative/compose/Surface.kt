@@ -161,6 +161,7 @@ private fun ActionButton(node: NativeNode, session: RendererSession, modifier: M
 private fun TextInput(node: NativeNode, session: RendererSession, modifier: Modifier) {
   val scope = rememberCoroutineScope()
   val external = node.props["value"]?.string.orEmpty()
+  val behavior = textInputBehavior(node.props["variant"]?.string) ?: return
   var value by rememberSaveable(node.id) { mutableStateOf(external) }
   LaunchedEffect(external) { if (external != value) value = external }
   OutlinedTextField(
@@ -173,10 +174,10 @@ private fun TextInput(node: NativeNode, session: RendererSession, modifier: Modi
     enabled = node.controlId != null && node.props["disabled"]?.boolean != true,
     label = node.props["accessibilityLabel"]?.string?.let { { Text(it) } },
     placeholder = { Text(node.props["placeholder"]?.string.orEmpty()) },
-    singleLine = node.props["multiline"]?.boolean != true,
+    singleLine = !behavior.multiline,
     isError = node.props["invalid"]?.boolean == true,
-    visualTransformation = if (node.props["secureTextEntry"]?.boolean == true) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-    keyboardOptions = KeyboardOptions(keyboardType = if (node.props["keyboardType"]?.string == "numeric") KeyboardType.Number else KeyboardType.Text),
+    visualTransformation = if (behavior.obscured) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+    keyboardOptions = KeyboardOptions(keyboardType = if (behavior.numeric) KeyboardType.Number else KeyboardType.Text),
   )
   ValidationMessages(node)
 }
@@ -229,16 +230,12 @@ private fun ChoicePicker(node: NativeNode, session: RendererSession, modifier: M
 
 @Composable
 private fun SliderNode(node: NativeNode, session: RendererSession, modifier: Modifier) {
-  val minimum = node.props["minimumValue"]?.number ?: 0.0
-  val maximum = node.props["maximumValue"]?.number ?: 1.0
-  val value = node.props["value"]?.number ?: minimum
-  val step = node.props["step"]?.number
-  if (!minimum.isFinite() || !maximum.isFinite() || !value.isFinite() || minimum >= maximum || value !in minimum..maximum || (step != null && (!step.isFinite() || step <= 0))) return
+  val values = sliderValues(node.props) ?: return
   val scope = rememberCoroutineScope()
-  val steps = if (step == null) 0 else (((maximum - minimum) / step).toInt() - 1).coerceIn(0, 10_000)
+  val steps = if (values.step == null) 0 else (((values.maximum - values.minimum) / values.step).toInt() - 1).coerceIn(0, 10_000)
   Column(modifier) {
     node.props["label"]?.string?.let { Text(it) }
-    Slider(value.toFloat(), { next -> node.controlId?.let { scope.launch { session.input(it, JsonValue.NumberValue(next.toDouble())) } } }, valueRange = minimum.toFloat()..maximum.toFloat(), steps = steps, enabled = node.controlId != null)
+    Slider(values.value.toFloat(), { next -> node.controlId?.let { scope.launch { session.input(it, JsonValue.NumberValue(next.toDouble())) } } }, valueRange = values.minimum.toFloat()..values.maximum.toFloat(), steps = steps, enabled = node.controlId != null)
     ValidationMessages(node)
   }
 }
@@ -338,10 +335,11 @@ private fun resourceGrant(value: JsonValue?): ResourceGrant? {
 }
 
 private fun Modifier.nativeAccessibility(props: Map<String, JsonValue>): Modifier = semantics {
+  val behavior = accessibilityBehavior(props)
   props["accessibilityLabel"]?.string?.let { contentDescription = it }
-  if (props["accessibilityElementsHidden"]?.boolean == true || props["importantForAccessibility"]?.string == "no-hide-descendants") hideFromAccessibility()
+  if (behavior.hidden) hideFromAccessibility()
   if (props["disabled"]?.boolean == true) disabled()
-  when (props["accessibilityLiveRegion"]?.string) {
+  when (behavior.live) {
     "assertive" -> liveRegion = LiveRegionMode.Assertive
     "polite" -> liveRegion = LiveRegionMode.Polite
   }
@@ -355,6 +353,48 @@ private fun Modifier.nativeAccessibility(props: Map<String, JsonValue>): Modifie
   }
   nativeRole?.let { role = it }
 }
+
+internal data class TextInputBehavior(
+  val multiline: Boolean = false,
+  val numeric: Boolean = false,
+  val obscured: Boolean = false,
+)
+
+internal fun textInputBehavior(variant: String?): TextInputBehavior? = when (variant) {
+  null, "shortText" -> TextInputBehavior()
+  "longText" -> TextInputBehavior(multiline = true)
+  "number" -> TextInputBehavior(numeric = true)
+  "obscured" -> TextInputBehavior(obscured = true)
+  else -> null
+}
+
+internal data class SliderValues(
+  val minimum: Double,
+  val maximum: Double,
+  val value: Double,
+  val step: Double?,
+)
+
+internal fun sliderValues(props: Map<String, JsonValue>): SliderValues? {
+  val minimum = props["minimum"]?.number ?: 0.0
+  val maximum = props["maximum"]?.number ?: return null
+  val value = props["value"]?.number ?: minimum
+  val step = props["step"]?.number
+  if (!minimum.isFinite() || !maximum.isFinite() || !value.isFinite()) return null
+  if (minimum >= maximum || value !in minimum..maximum) return null
+  if (step != null && (!step.isFinite() || step <= 0)) return null
+  if (!minimum.toFloat().isFinite() || !maximum.toFloat().isFinite() || !value.toFloat().isFinite()) return null
+  if (!(maximum - minimum).isFinite()) return null
+  return SliderValues(minimum, maximum, value, step)
+}
+
+internal data class AccessibilityBehavior(val hidden: Boolean, val live: String?)
+
+internal fun accessibilityBehavior(props: Map<String, JsonValue>): AccessibilityBehavior =
+  AccessibilityBehavior(
+    hidden = props["accessibilityHidden"]?.boolean == true,
+    live = props["accessibilityLive"]?.string,
+  )
 
 @Composable
 private fun ValidationMessages(node: NativeNode) {

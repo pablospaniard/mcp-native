@@ -68,6 +68,9 @@ patch and minor releases remain compatible within their release line.
 
 ### Fixed
 
+- Compose now rejects non-JSON wire syntax before normalization, preserves coroutine cancellation
+  while clearing pending actions, and consumes the renderer-core TextInput, Slider, and accessibility
+  fields without React Native-specific aliases.
 - SwiftUI renderer action cancellation no longer leaves presses busy; extension-event rejection is
   non-terminal, exact control and host-extension identities cross the bridge, navigation requires
   explicit HTTPS approval, date/choice/modal controls preserve native interaction semantics, and

@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import java.nio.charset.StandardCharsets
 import org.json.JSONArray
 import org.json.JSONObject
-import org.json.JSONTokener
 
 public sealed interface JsonValue {
   public data object Null : JsonValue
@@ -25,36 +24,7 @@ public object BoundedJson {
     require(source.size <= MAXIMUM_BYTES) { "JSON byte limit exceeded" }
     val text = source.toString(StandardCharsets.UTF_8)
     require(text.toByteArray(StandardCharsets.UTF_8).contentEquals(source)) { "Invalid UTF-8" }
-    val tokener = JSONTokener(text)
-    val raw = tokener.nextValue()
-    require(tokener.nextClean() == '\u0000') { "Trailing JSON data" }
-    var count = 0
-    fun visit(value: Any?, depth: Int): JsonValue {
-      require(depth <= MAXIMUM_DEPTH) { "JSON depth limit exceeded" }
-      count += 1
-      require(count <= MAXIMUM_VALUES) { "JSON value limit exceeded" }
-      return when (value) {
-        null, JSONObject.NULL -> JsonValue.Null
-        is Boolean -> JsonValue.BooleanValue(value)
-        is Number -> {
-          val number = value.toDouble()
-          require(number.isFinite()) { "Non-finite JSON number" }
-          JsonValue.NumberValue(number)
-        }
-        is String -> {
-          require(value.length <= MAXIMUM_STRING_CODE_UNITS) { "JSON string limit exceeded" }
-          JsonValue.StringValue(value)
-        }
-        is JSONArray -> JsonValue.ArrayValue((0 until value.length()).map { visit(value.get(it), depth + 1) })
-        is JSONObject -> {
-          val keys = value.keys().asSequence().toList()
-          require(keys.all { it.length <= MAXIMUM_STRING_CODE_UNITS }) { "JSON key limit exceeded" }
-          JsonValue.ObjectValue(keys.associateWith { visit(value.get(it), depth + 1) })
-        }
-        else -> error("Unsupported JSON value")
-      }
-    }
-    return visit(raw, 1)
+    return StrictJsonParser(text).parse()
   }
 
   public fun encode(value: JsonValue): String {
@@ -88,6 +58,148 @@ public object BoundedJson {
     }
     require(encoded.toByteArray(StandardCharsets.UTF_8).size <= MAXIMUM_BYTES) { "JSON byte limit exceeded" }
     return encoded
+  }
+}
+
+private class StrictJsonParser(private val source: String) {
+  private var index = 0
+  private var values = 0
+
+  fun parse(): JsonValue {
+    skipWhitespace()
+    val value = parseValue(1)
+    skipWhitespace()
+    require(index == source.length) { "Trailing JSON data" }
+    return value
+  }
+
+  private fun parseValue(depth: Int): JsonValue {
+    require(depth <= BoundedJson.MAXIMUM_DEPTH) { "JSON depth limit exceeded" }
+    values += 1
+    require(values <= BoundedJson.MAXIMUM_VALUES) { "JSON value limit exceeded" }
+    require(index < source.length) { "Unexpected end of JSON" }
+    return when (source[index]) {
+      '{' -> parseObject(depth)
+      '[' -> parseArray(depth)
+      '"' -> JsonValue.StringValue(parseString("JSON string"))
+      't' -> { literal("true"); JsonValue.BooleanValue(true) }
+      'f' -> { literal("false"); JsonValue.BooleanValue(false) }
+      'n' -> { literal("null"); JsonValue.Null }
+      '-', in '0'..'9' -> parseNumber()
+      else -> throw IllegalArgumentException("Invalid JSON value")
+    }
+  }
+
+  private fun parseObject(depth: Int): JsonValue.ObjectValue {
+    index += 1
+    skipWhitespace()
+    val result = linkedMapOf<String, JsonValue>()
+    if (consume('}')) return JsonValue.ObjectValue(result)
+    while (true) {
+      require(index < source.length && source[index] == '"') { "JSON object keys must be quoted" }
+      val key = parseString("JSON key")
+      skipWhitespace()
+      require(consume(':')) { "Missing JSON object colon" }
+      skipWhitespace()
+      result[key] = parseValue(depth + 1)
+      skipWhitespace()
+      if (consume('}')) return JsonValue.ObjectValue(result)
+      require(consume(',')) { "Missing JSON object comma" }
+      skipWhitespace()
+    }
+  }
+
+  private fun parseArray(depth: Int): JsonValue.ArrayValue {
+    index += 1
+    skipWhitespace()
+    val result = mutableListOf<JsonValue>()
+    if (consume(']')) return JsonValue.ArrayValue(result)
+    while (true) {
+      result += parseValue(depth + 1)
+      skipWhitespace()
+      if (consume(']')) return JsonValue.ArrayValue(result)
+      require(consume(',')) { "Missing JSON array comma" }
+      skipWhitespace()
+    }
+  }
+
+  private fun parseString(label: String): String {
+    require(consume('"')) { "Expected JSON string" }
+    val result = StringBuilder()
+    while (index < source.length) {
+      val character = source[index++]
+      when {
+        character == '"' -> return result.toString()
+        character == '\\' -> {
+          require(index < source.length) { "Incomplete JSON escape" }
+          when (val escaped = source[index++]) {
+            '"', '\\', '/' -> result.append(escaped)
+            'b' -> result.append('\b')
+            'f' -> result.append('\u000c')
+            'n' -> result.append('\n')
+            'r' -> result.append('\r')
+            't' -> result.append('\t')
+            'u' -> {
+              require(index + 4 <= source.length) { "Incomplete JSON Unicode escape" }
+              val codeUnit = source.substring(index, index + 4).toIntOrNull(16)
+                ?: throw IllegalArgumentException("Invalid JSON Unicode escape")
+              result.append(codeUnit.toChar())
+              index += 4
+            }
+            else -> throw IllegalArgumentException("Invalid JSON escape")
+          }
+        }
+        character.code < 0x20 -> throw IllegalArgumentException("Unescaped JSON control character")
+        else -> result.append(character)
+      }
+      require(result.length <= BoundedJson.MAXIMUM_STRING_CODE_UNITS) { "$label limit exceeded" }
+    }
+    throw IllegalArgumentException("Unterminated JSON string")
+  }
+
+  private fun parseNumber(): JsonValue.NumberValue {
+    val start = index
+    consume('-')
+    require(index < source.length) { "Incomplete JSON number" }
+    if (consume('0')) {
+      require(index >= source.length || source[index] !in '0'..'9') { "Invalid leading zero" }
+    } else {
+      require(source[index] in '1'..'9') { "Invalid JSON number" }
+      while (index < source.length && source[index] in '0'..'9') index += 1
+    }
+    if (consume('.')) {
+      require(index < source.length && source[index] in '0'..'9') { "Invalid JSON fraction" }
+      while (index < source.length && source[index] in '0'..'9') index += 1
+    }
+    if (index < source.length && (source[index] == 'e' || source[index] == 'E')) {
+      index += 1
+      if (index < source.length && (source[index] == '+' || source[index] == '-')) index += 1
+      require(index < source.length && source[index] in '0'..'9') { "Invalid JSON exponent" }
+      while (index < source.length && source[index] in '0'..'9') index += 1
+    }
+    val value = source.substring(start, index).toDouble()
+    require(value.isFinite()) { "Non-finite JSON number" }
+    return JsonValue.NumberValue(value)
+  }
+
+  private fun literal(expected: String) {
+    require(source.regionMatches(index, expected, 0, expected.length)) { "Invalid JSON literal" }
+    index += expected.length
+  }
+
+  private fun consume(expected: Char): Boolean {
+    if (index >= source.length || source[index] != expected) return false
+    index += 1
+    return true
+  }
+
+  private fun skipWhitespace() {
+    while (index < source.length) {
+      when (source[index]) {
+        ' ', '\t', '\r', '\n' -> index += 1
+        else -> return
+      }
+    }
   }
 }
 

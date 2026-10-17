@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.yield
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 public typealias ActionAuthorizer = suspend (ActionProposal) -> Boolean
 public typealias ActionDeliverer = suspend (ActionProposal) -> Unit
@@ -78,7 +81,13 @@ public class RendererSession private constructor(
           }
           "delivering" -> if (!deliveryHandled) {
             val proposal = decodeProposal(stateObject["proposal"] ?: error("Missing proposal"))
-            val succeeded = try { deliver(proposal); true } catch (_: Throwable) { false }
+            val succeeded = try {
+              deliver(proposal)
+              true
+            } catch (error: Throwable) {
+              if (error is CancellationException) throw error
+              false
+            }
             bridge.call("delivered", mapOf(
               "pressID" to JsonValue.StringValue(pressId),
               "succeeded" to JsonValue.BooleanValue(succeeded),
@@ -95,10 +104,13 @@ public class RendererSession private constructor(
       }
       error("Action did not settle within the bounded bridge budget")
     } catch (error: Throwable) {
+      if (error is CancellationException) throw error
       mutableDiagnostic.value = error.message?.take(256) ?: "Renderer action failed"
     } finally {
       if (!finished && pressId != null && !closed) {
-        runCatching { bridge.call("cancel", mapOf("pressID" to JsonValue.StringValue(pressId))) }
+        withContext(NonCancellable) {
+          runCatching { bridge.call("cancel", mapOf("pressID" to JsonValue.StringValue(pressId))) }
+        }
       }
     }
   }

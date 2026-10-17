@@ -9,6 +9,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -68,6 +72,68 @@ class RendererSessionTest {
     current.close()
     current.render()
     assertNull(current.publication.value)
+  }
+
+  @Test fun cancellationClearsPendingPressAndRemainsCancellation() = runBlocking {
+    val authorizationStarted = CompletableDeferred<Unit>()
+    var shouldSuspend = true
+    var deliveries = 0
+    val current = RendererSession.create(
+      compose.activity,
+      RendererPolicy(
+        allowedComponentNames = listOf("Column", "Text", "Button"),
+        allowedEventNames = listOf("submit"), locale = "en-US",
+      ),
+      authorize = {
+        if (shouldSuspend) {
+          authorizationStarted.complete(Unit)
+          awaitCancellation()
+        }
+        true
+      },
+      deliver = { deliveries += 1 },
+    )
+    session = current
+    current.apply(createEnvelope)
+    val controlId = requireNotNull(find(current.publication.value!!.root, "Button")?.controlId)
+    val activation = launch { current.activate(controlId) }
+    authorizationStarted.await()
+    activation.cancelAndJoin()
+
+    shouldSuspend = false
+    current.activate(requireNotNull(find(current.publication.value!!.root, "Button")?.controlId))
+    assertEquals(1, deliveries)
+  }
+
+  @Test fun deliveryCancellationClearsPendingPressAndRemainsCancellation() = runBlocking {
+    val deliveryStarted = CompletableDeferred<Unit>()
+    var shouldSuspend = true
+    var deliveries = 0
+    val current = RendererSession.create(
+      compose.activity,
+      RendererPolicy(
+        allowedComponentNames = listOf("Column", "Text", "Button"),
+        allowedEventNames = listOf("submit"), locale = "en-US",
+      ),
+      authorize = { true },
+      deliver = {
+        if (shouldSuspend) {
+          deliveryStarted.complete(Unit)
+          awaitCancellation()
+        }
+        deliveries += 1
+      },
+    )
+    session = current
+    current.apply(createEnvelope)
+    val controlId = requireNotNull(find(current.publication.value!!.root, "Button")?.controlId)
+    val activation = launch { current.activate(controlId) }
+    deliveryStarted.await()
+    activation.cancelAndJoin()
+
+    shouldSuspend = false
+    current.activate(requireNotNull(find(current.publication.value!!.root, "Button")?.controlId))
+    assertEquals(1, deliveries)
   }
 
   @Test fun navigationNeedsFreshHttpsApprovalAndRepeatedRenderingStaysBounded() = runBlocking {
