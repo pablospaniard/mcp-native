@@ -8,7 +8,7 @@ only its closed trusted render plan to Kotlin-owned UI.
 
 | Boundary             | Supported and tested value                                                              |
 | -------------------- | --------------------------------------------------------------------------------------- |
-| Android runtime      | API 33 minimum; API 36 Google APIs x86_64 CI image; Android 37.1 locally verified       |
+| Android runtime      | API 33 minimum; API 36 Google Play x86_64 CI image; Android 37.1 locally verified       |
 | Compile / target SDK | compile SDK 36; host chooses target SDK                                                 |
 | Build tools          | Android build tools 36.0.0, AGP 8.13.2, Gradle 8.14.3, JDK 17                           |
 | Kotlin / Compose     | Kotlin and Compose compiler 2.2.20; Compose BOM 2025.10.00                              |
