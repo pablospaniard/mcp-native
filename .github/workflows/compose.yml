@@ -133,6 +133,22 @@ jobs:
             tail -n 200 "${RUNNER_TEMP}/compose-emulator.log"
             exit 1
           fi
+          "${COMPOSE_ADB}" -s emulator-5554 shell wm dismiss-keyguard >/dev/null 2>&1 || true
+          COMPOSE_USER_READY=0
+          for _ in $(seq 1 180); do
+            COMPOSE_BOOT_ANIMATION="$("${COMPOSE_ADB}" -s emulator-5554 shell getprop init.svc.bootanim 2>/dev/null | tr -d '\r')"
+            COMPOSE_USER_UNLOCKED="$("${COMPOSE_ADB}" -s emulator-5554 shell cmd user is-user-unlocked 0 2>/dev/null | tr -d '\r')"
+            if [[ "${COMPOSE_BOOT_ANIMATION}" == "stopped" && "${COMPOSE_USER_UNLOCKED}" == "true" ]]; then
+              COMPOSE_USER_READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "${COMPOSE_USER_READY}" != "1" ]]; then
+            "${COMPOSE_ADB}" -s emulator-5554 logcat -d -t 500 || true
+            tail -n 200 "${RUNNER_TEMP}/compose-emulator.log" || true
+            exit 1
+          fi
           "${COMPOSE_ADB}" -s emulator-5554 shell settings put global window_animation_scale 0.0
           "${COMPOSE_ADB}" -s emulator-5554 shell settings put global transition_animation_scale 0.0
           "${COMPOSE_ADB}" -s emulator-5554 shell settings put global animator_duration_scale 0.0
