@@ -58,8 +58,9 @@ jobs:
       - name: Run API 37 renderer and accessibility tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: "37.0"
-          target: google_apis
+          api-level: 36
+          system-image-api-level: "37.1"
+          target: google_apis_playstore_ps16k
           arch: x86_64
           profile: pixel_6
           disk-size: 8G
