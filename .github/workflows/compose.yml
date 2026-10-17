@@ -53,7 +53,7 @@ jobs:
       - name: Run API 37 renderer and accessibility tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 37
+          api-level: "37.0"
           arch: x86_64
           profile: pixel_6
           disable-animations: true
