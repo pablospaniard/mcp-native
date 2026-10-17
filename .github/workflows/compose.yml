@@ -127,4 +127,8 @@ jobs:
           "${COMPOSE_ADB}" -s emulator-5554 shell settings put global window_animation_scale 0.0
           "${COMPOSE_ADB}" -s emulator-5554 shell settings put global transition_animation_scale 0.0
           "${COMPOSE_ADB}" -s emulator-5554 shell settings put global animator_duration_scale 0.0
-          ./gradlew connectedDebugAndroidTest --no-daemon
+          if ! ./gradlew connectedDebugAndroidTest --no-daemon; then
+            "${COMPOSE_ADB}" -s emulator-5554 logcat -d -t 500 || true
+            tail -n 200 "${RUNNER_TEMP}/compose-emulator.log" || true
+            exit 1
+          fi
