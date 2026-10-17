@@ -13,7 +13,7 @@ import type {
   A2uiV1HostExtensionRegistry,
   A2uiV1SurfaceState,
   A2uiV1SurfaceValidationPolicy,
-  A2uiSurfaceIdRegistry,
+  A2uiSurfaceStoreOptions,
 } from "@mcp-native/a2ui";
 import { parseJsonObject } from "@mcp-native/core";
 import type { JsonObject, JsonValue } from "@mcp-native/core";
@@ -270,13 +270,8 @@ export interface A2uiV1NativeHost {
   readonly hostExtensionLayoutContracts: Readonly<Record<string, NativeComponentLayoutContract>>;
 }
 
-export interface NativeSurfaceStoreOptions {
-  /**
-   * Opts into renderer-lifetime surface-ID uniqueness. Reuse the registry when replacing a store
-   * inside the same host rendering context; omit it to retain the compatible active-ID default.
-   */
-  readonly surfaceIdRegistry?: A2uiSurfaceIdRegistry;
-}
+/** Options accepted by the host-bound surface-store helper. */
+export type NativeSurfaceStoreOptions = Pick<A2uiSurfaceStoreOptions, "surfaceIdRegistry">;
 
 export type NativeHostSessionOptions = Omit<NativeSessionOptions, "policy" | "renderOptions"> & {
   readonly locale?: string;
@@ -290,7 +285,19 @@ export { A2uiV1NativeMountError };
 
 const nativeHosts = new WeakSet<A2uiV1NativeHost>();
 const nativeHostResetKeys = new WeakMap<A2uiV1NativeHost, number>();
+const nativeSurfaceResetKeys = new WeakMap<A2uiV1SurfaceState, number>();
 let nextNativeHostResetKey = 1;
+let nextNativeSurfaceResetKey = 1;
+
+function getNativeSurfaceResetKey(surface: A2uiV1SurfaceState): number {
+  if (surface === null || typeof surface !== "object") return 0;
+  const existing = nativeSurfaceResetKeys.get(surface);
+  if (existing !== undefined) return existing;
+  const key = nextNativeSurfaceResetKey;
+  nextNativeSurfaceResetKey += 1;
+  nativeSurfaceResetKeys.set(surface, key);
+  return key;
+}
 
 /**
  * Creates a frozen native host whose policy and advertised capabilities cannot drift from its
@@ -399,7 +406,7 @@ export function isA2uiV1NativeHost(value: unknown): value is A2uiV1NativeHost {
 }
 
 /** Creates a surface store bound to one registered host's exact extension registry. */
-export function createA2uiV1NativeSurfaceStore(
+export function createSurfaceStore(
   host: A2uiV1NativeHost,
   options: NativeSurfaceStoreOptions = {},
 ): A2uiSurfaceStore {
@@ -408,11 +415,6 @@ export function createA2uiV1NativeSurfaceStore(
   }
   if (options === null || typeof options !== "object" || Array.isArray(options)) {
     throw new TypeError("Expected A2UI native surface store options to be an object");
-  }
-  for (const key of Object.keys(options)) {
-    if (key !== "surfaceIdRegistry") {
-      throw new TypeError(`Unexpected A2UI native surface store option ${JSON.stringify(key)}`);
-    }
   }
   return new A2uiSurfaceStore({
     ...(host.policy.hostExtensions === undefined
@@ -425,7 +427,7 @@ export function createA2uiV1NativeSurfaceStore(
 }
 
 /** Creates the shared semantic session through one immutable React Native host registration. */
-export function createA2uiV1NativeSession(
+export function createSession(
   host: A2uiV1NativeHost,
   options: NativeHostSessionOptions,
 ): NativeSession {
@@ -1102,12 +1104,7 @@ export interface A2uiV1NativeHostSurfaceProps {
 export function A2uiV1NativeHostSurface(props: A2uiV1NativeHostSurfaceProps): ReactElement {
   const resetKey =
     props.resetKey ??
-    JSON.stringify([
-      nativeHostResetKeys.get(props.host) ?? 0,
-      props.parentLayout ?? "unbounded",
-      createDataModelSourceKey(props.surface),
-      createComponentSourceKey(props.surface),
-    ]);
+    `${nativeHostResetKeys.get(props.host) ?? 0}:${props.parentLayout ?? "unbounded"}:${getNativeSurfaceResetKey(props.surface)}`;
   return createElement(
     A2uiV1NativeSurfaceBoundary,
     {
@@ -2487,8 +2484,6 @@ export {
   A2uiV1NativeSurfaceBoundary as SurfaceBoundary,
   assertA2uiV1NativeMount as assertMount,
   createA2uiV1NativeHost as createHost,
-  createA2uiV1NativeSession as createSession,
-  createA2uiV1NativeSurfaceStore as createSurfaceStore,
   getA2uiV1NativeSupportedComponentNames as getSupportedComponentNames,
   getA2uiV1NativeSupportedHostExtensionCatalogIds as getSupportedHostExtensionCatalogIds,
   inspectA2uiV1NativeMount as inspectMount,

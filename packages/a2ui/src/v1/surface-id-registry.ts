@@ -3,9 +3,9 @@ import { JSON_MAX_STRING_LENGTH, JSON_MAX_TOTAL_STRING_CODE_UNITS } from "@mcp-n
 import { A2uiParseError } from "../errors.js";
 
 /** Maximum surface identities retained by one strict renderer-lifetime registry. */
-export const A2UI_V1_MAX_RETAINED_SURFACE_IDS = 4_096;
+export const MAX_RETAINED_SURFACE_IDS = 4_096;
 /** Maximum cumulative UTF-16 code units retained by one strict surface-ID registry. */
-export const A2UI_V1_MAX_RETAINED_SURFACE_ID_CODE_UNITS = JSON_MAX_TOTAL_STRING_CODE_UNITS;
+export const MAX_RETAINED_SURFACE_ID_CODE_UNITS = JSON_MAX_TOTAL_STRING_CODE_UNITS;
 
 export interface A2uiSurfaceIdRegistryOptions {
   readonly maximumRetainedIds?: number;
@@ -30,11 +30,6 @@ interface RegistryState {
   retainedCodeUnits: number;
 }
 
-export interface A2uiSurfaceIdRegistrySnapshot {
-  readonly ids: ReadonlySet<string>;
-  readonly retainedCodeUnits: number;
-}
-
 const states = new WeakMap<object, RegistryState>();
 
 export function createA2uiSurfaceIdRegistry(
@@ -50,8 +45,8 @@ export function createA2uiSurfaceIdRegistry(
   ]);
   const maximumRetainedIds = parseLimit(
     options.maximumRetainedIds,
-    A2UI_V1_MAX_RETAINED_SURFACE_IDS,
-    A2UI_V1_MAX_RETAINED_SURFACE_IDS,
+    MAX_RETAINED_SURFACE_IDS,
+    MAX_RETAINED_SURFACE_IDS,
     "maximumRetainedIds",
   );
   const maximumIdCodeUnits = parseLimit(
@@ -62,8 +57,8 @@ export function createA2uiSurfaceIdRegistry(
   );
   const maximumRetainedCodeUnits = parseLimit(
     options.maximumRetainedCodeUnits,
-    A2UI_V1_MAX_RETAINED_SURFACE_ID_CODE_UNITS,
-    A2UI_V1_MAX_RETAINED_SURFACE_ID_CODE_UNITS,
+    MAX_RETAINED_SURFACE_ID_CODE_UNITS,
+    MAX_RETAINED_SURFACE_ID_CODE_UNITS,
     "maximumRetainedCodeUnits",
   );
   const registry = {
@@ -114,21 +109,13 @@ export function claimA2uiSurfaceId(registry: A2uiSurfaceIdRegistry, surfaceId: s
   state.retainedCodeUnits += surfaceId.length;
 }
 
-export function snapshotA2uiSurfaceIdRegistry(
+/** Rolls back one claim made by the current synchronous store transaction. */
+export function releaseA2uiSurfaceIdClaim(
   registry: A2uiSurfaceIdRegistry,
-): A2uiSurfaceIdRegistrySnapshot {
-  const state = requireState(registry);
-  return { ids: new Set(state.ids), retainedCodeUnits: state.retainedCodeUnits };
-}
-
-export function restoreA2uiSurfaceIdRegistry(
-  registry: A2uiSurfaceIdRegistry,
-  snapshot: A2uiSurfaceIdRegistrySnapshot,
+  surfaceId: string,
 ): void {
   const state = requireState(registry);
-  state.ids.clear();
-  for (const id of snapshot.ids) state.ids.add(id);
-  state.retainedCodeUnits = snapshot.retainedCodeUnits;
+  if (state.ids.delete(surfaceId)) state.retainedCodeUnits -= surfaceId.length;
 }
 
 function requireState(registry: A2uiSurfaceIdRegistry): RegistryState {

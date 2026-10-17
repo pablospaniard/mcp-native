@@ -9,7 +9,7 @@ import {
   A2UI_MIME_TYPE,
   A2UI_V1_MAX_ENVELOPES,
   A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
-  A2UI_V1_MAX_RETAINED_SURFACE_IDS,
+  MAX_RETAINED_SURFACE_IDS,
   A2uiParseError,
   A2uiResourceError,
   A2uiSurfaceStore,
@@ -659,6 +659,23 @@ test("strict surface-ID registries retain accepted IDs after deletion and across
   assert.equal(independent.has("main"), true);
 });
 
+test("strict surface-ID registry exhaustion remains fail-closed after deleted surfaces", () => {
+  const registry = createA2uiSurfaceIdRegistry({ maximumRetainedIds: 2 });
+  const store = new A2uiSurfaceStore({ surfaceIdRegistry: registry });
+  for (const surfaceId of ["first", "second"]) {
+    store.apply({ version: "v1.0", createSurface: { surfaceId } });
+    store.apply({ version: "v1.0", deleteSurface: { surfaceId } });
+  }
+
+  assert.equal(store.size, 0);
+  assert.equal(registry.retainedCount, 2);
+  assert.throws(
+    () => store.apply({ version: "v1.0", createSurface: { surfaceId: "third" } }),
+    /maximum of 2 retained IDs/,
+  );
+  assert.equal(store.has("third"), false);
+});
+
 test("legacy stores preserve active-ID-only behavior", () => {
   const store = new A2uiSurfaceStore();
   store.apply({ version: "v1.0", createSurface: { surfaceId: "legacy" } });
@@ -715,11 +732,13 @@ test("strict surface-ID registries enforce per-ID and cumulative budgets before 
 });
 
 test("surface-ID registry and store options reject invalid or forged configuration", () => {
-  assert.equal(A2UI_V1_MAX_RETAINED_SURFACE_IDS, 4_096);
+  assert.equal(MAX_RETAINED_SURFACE_IDS, 4_096);
   assert.throws(() => createA2uiSurfaceIdRegistry({ maximumRetainedIds: 0 }), /integer/);
   assert.throws(() => createA2uiSurfaceIdRegistry({ unknown: true }), /Unexpected/);
   assert.throws(() => new A2uiSurfaceStore({ surfaceIdRegistry: {} }), /opaque/);
-  assert.throws(() => new A2uiSurfaceStore({ unknown: true }), /Unexpected/);
+  const compatibleOptions = new A2uiSurfaceStore({ unknown: true });
+  compatibleOptions.apply({ version: "v1.0", createSurface: { surfaceId: "extra-options" } });
+  assert.equal(compatibleOptions.has("extra-options"), true);
 });
 
 test("surface store validates its public input even when callers bypass the parser", () => {

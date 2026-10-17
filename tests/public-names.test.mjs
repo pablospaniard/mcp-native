@@ -6,6 +6,17 @@ import * as a2ui from "../packages/a2ui/dist/index.js";
 import * as native from "../packages/react-native/dist/index.js";
 import * as umbrella from "../packages/mcp-native/dist/index.js";
 
+test("new surface-lifetime APIs ship only version-neutral names", () => {
+  assert.equal(typeof a2ui.MAX_RETAINED_SURFACE_IDS, "number");
+  assert.equal(typeof a2ui.MAX_RETAINED_SURFACE_ID_CODE_UNITS, "number");
+  assert.equal("A2UI_V1_MAX_RETAINED_SURFACE_IDS" in a2ui, false);
+  assert.equal("A2UI_V1_MAX_RETAINED_SURFACE_ID_CODE_UNITS" in a2ui, false);
+  assert.equal(typeof native.createSurfaceStore, "function");
+  assert.equal(typeof native.createSession, "function");
+  assert.equal("createA2uiV1NativeSurfaceStore" in native, false);
+  assert.equal("createA2uiV1NativeSession" in native, false);
+});
+
 test("concise A2UI names preserve the prefixed runtime exports", () => {
   const exports = { ...a2ui };
   const prefixedNames = Object.keys(exports).filter(

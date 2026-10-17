@@ -89,8 +89,8 @@ export type { A2uiV1EnvelopeParseOptions } from "./parse.js";
 export { A2uiSurfaceStore } from "./store.js";
 export type { A2uiSurfaceStoreOptions } from "./store.js";
 export {
-  A2UI_V1_MAX_RETAINED_SURFACE_IDS,
-  A2UI_V1_MAX_RETAINED_SURFACE_ID_CODE_UNITS,
+  MAX_RETAINED_SURFACE_IDS,
+  MAX_RETAINED_SURFACE_ID_CODE_UNITS,
   createA2uiSurfaceIdRegistry,
   isA2uiSurfaceIdRegistry,
 } from "./surface-id-registry.js";

@@ -27,11 +27,11 @@
       }
     },
     "@mcp-native/a2ui": {
-      "declarationSha256": "9b1a4d61989a2f5a6ac2ac8070afd644dfdd93910dda31dfb03f08d86ce9d4b4",
+      "declarationSha256": "b81dbb7a2a31038253abada96084e504255bc215db89d145d3c6696b0a1d1d62",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "320486f4c1423b5b902db797e502fb9170455337579eb0c8dc1f44b2b97aa008",
+          "runtimeSha256": "ed3c52b83e324db57c1e2d1186c20c54617b452dd1dc3b6c4fa72d52539a1093",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {
@@ -67,11 +67,11 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "d164168f23df98c719ef694beb32e4d831e25ec786ccc0958e4e02058b32686c",
+      "declarationSha256": "d47297de295e91fb31325b94fd1c791dd04df7f8aaefb243f8144ee29cbc9220",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "f6ba728ec5764bd59c3165f0bd8d3c5141b33c5b662b7725bd77a99e5ff2cdae",
+          "runtimeSha256": "ed5e2ac0f9fc2a2fa1c7400c18b02ff1255adb6759ba1535a5599f0dbf9a55ce",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {
@@ -121,7 +121,7 @@
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "fc46b89156f3f0e7fd7d0eaf26baad29b3f38500089438be1b51b9f24711091d",
+          "runtimeSha256": "d731a9b2cf652d5c1ae2ee507d8976d2ff9cd4e4b3ea533589fee630ef0daa7f",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {

@@ -99,6 +99,99 @@ test("native session publishes revisioned controls and rejects stale callbacks",
   assert.equal(proposals[0].envelope.action.timestamp, "2026-09-16T00:00:00.000Z");
 });
 
+test("native session preserves arbitrary source component IDs for bound controls", () => {
+  const sourceComponentId = "field%2F/:%[arbitrary]";
+  const { session } = createHarness();
+  const result = session.apply({
+    version: "v1.0",
+    createSurface: {
+      surfaceId: "arbitrary-ids",
+      components: [
+        { id: "root", component: "Column", children: [sourceComponentId] },
+        {
+          id: sourceComponentId,
+          component: "TextField",
+          label: "Value",
+          value: { path: "/value" },
+        },
+      ],
+      dataModel: { value: "kept" },
+    },
+  });
+
+  assert.equal(result.kind, "published");
+  assert.equal(result.controls[0].sourceComponentId, sourceComponentId);
+});
+
+test("native session derives lifecycle state from one reconstructed envelope", () => {
+  const stable = createEnvelope("stable").createSurface;
+  let reads = 0;
+  const input = { version: "v1.0" };
+  Object.defineProperty(input, "createSurface", {
+    enumerable: true,
+    get() {
+      reads += 1;
+      return reads === 1 ? stable : { surfaceId: "changed" };
+    },
+  });
+  const { session } = createHarness();
+  const created = session.apply(input);
+
+  assert.equal(created.kind, "published");
+  assert.equal(reads, 1);
+  assert.equal(
+    session.apply({
+      version: "v1.0",
+      updateDataModel: { surfaceId: "stable", path: "/name", value: "Grace" },
+    }).kind,
+    "published",
+  );
+});
+
+test("native session rejects reentrant semantic operations from render policies", () => {
+  const imageCatalogPolicy = createBasicCatalogPolicy({
+    allowedComponentNames: ["Image"],
+  });
+  let session;
+  let nested;
+  session = createNativeSession({
+    policy: imageCatalogPolicy,
+    authorize: () => false,
+    deliver() {},
+    renderOptions: {
+      imagePolicy() {
+        nested = session.render();
+        return {
+          allowedRedirectOrigins: [],
+          cacheMode: "no-store",
+          maximumBytes: 1024,
+          maximumDecodedHeight: 32,
+          maximumDecodedPixels: 1024,
+          maximumDecodedWidth: 32,
+          maximumRedirects: 0,
+        };
+      },
+    },
+  });
+  const outer = session.apply({
+    version: "v1.0",
+    createSurface: {
+      surfaceId: "image",
+      components: [
+        {
+          id: "root",
+          component: "Image",
+          url: "https://images.example.com/image.png",
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(nested, { kind: "rejected", code: "busy" });
+  assert.equal(outer.kind, "published");
+  assert.equal(session.publication, outer);
+});
+
 test("component updates preserve local edits and model updates reset them even when equal", async () => {
   const { session, proposals } = createHarness();
   const created = session.apply(createEnvelope());

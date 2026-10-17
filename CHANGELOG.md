@@ -15,7 +15,9 @@ patch and minor releases remain compatible within their release line.
 
 - Add bounded renderer-lifetime surface-ID registries. Surface stores and React Native hosts opt in
   explicitly, reuse one registry across replacement stores, retain accepted IDs after deletion, and
-  atomically roll back failed-batch claims. Existing active-ID-only defaults remain unchanged.
+  atomically roll back only failed-batch claims without copying the retained registry. Exhaustion
+  remains fail-closed until explicit context teardown. Existing active-ID-only defaults remain
+  unchanged.
 
 - Preserve Android engine feasibility evidence: the exact iOS JavaScript bundle and 21-case corpus ran
   through AndroidX JavaScriptEngine with native JSON, authorization, lifecycle and limit checks.

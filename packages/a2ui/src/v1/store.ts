@@ -11,8 +11,7 @@ import { parseA2uiV1Envelope } from "./parse.js";
 import {
   claimA2uiSurfaceId,
   isA2uiSurfaceIdRegistry,
-  restoreA2uiSurfaceIdRegistry,
-  snapshotA2uiSurfaceIdRegistry,
+  releaseA2uiSurfaceIdClaim,
 } from "./surface-id-registry.js";
 import type { A2uiSurfaceIdRegistry } from "./surface-id-registry.js";
 import {
@@ -79,11 +78,6 @@ export class A2uiSurfaceStore {
         "Expected an opaque host-extension registry in surface store options",
       );
     }
-    for (const key of Object.keys(options)) {
-      if (key !== "hostExtensions" && key !== "surfaceIdRegistry") {
-        throw new A2uiParseError(`Unexpected A2UI surface store option ${JSON.stringify(key)}`);
-      }
-    }
     if (
       options.surfaceIdRegistry !== undefined &&
       !isA2uiSurfaceIdRegistry(options.surfaceIdRegistry)
@@ -128,22 +122,22 @@ export class A2uiSurfaceStore {
     );
   }
 
-  #applyValidated(envelope: A2uiV1Envelope): void {
+  #applyValidated(envelope: A2uiV1Envelope): string | undefined {
     if ("createSurface" in envelope) {
       this.#createSurface(envelope.createSurface);
-      return;
+      return this.#surfaceIdRegistry === undefined ? undefined : envelope.createSurface.surfaceId;
     }
     if ("updateComponents" in envelope) {
       this.#updateComponents(envelope.updateComponents);
-      return;
+      return undefined;
     }
     if ("updateDataModel" in envelope) {
       this.#updateDataModel(envelope.updateDataModel);
-      return;
+      return undefined;
     }
     if ("deleteSurface" in envelope) {
       this.#deleteSurface(envelope.deleteSurface.surfaceId);
-      return;
+      return undefined;
     }
     throw new A2uiParseError("Unsupported A2UI v1 envelope for the surface store");
   }
@@ -163,10 +157,7 @@ export class A2uiSurfaceStore {
     const snapshot = cloneSurfaces(this.#surfaces);
     const retainedValues = this.#retainedValues;
     const retainedStringCodeUnits = this.#retainedStringCodeUnits;
-    const surfaceIdSnapshot =
-      this.#surfaceIdRegistry === undefined
-        ? undefined
-        : snapshotA2uiSurfaceIdRegistry(this.#surfaceIdRegistry);
+    const claimedSurfaceIds: string[] = [];
     let batchBudget = EMPTY_BUDGET;
     try {
       for (const input of envelopes) {
@@ -175,7 +166,8 @@ export class A2uiSurfaceStore {
         });
         batchBudget = addBudgets(batchBudget, measureJson(envelope));
         assertBatchBudget(batchBudget);
-        this.#applyValidated(envelope);
+        const claimedSurfaceId = this.#applyValidated(envelope);
+        if (claimedSurfaceId !== undefined) claimedSurfaceIds.push(claimedSurfaceId);
       }
     } catch (error) {
       this.#surfaces.clear();
@@ -184,8 +176,10 @@ export class A2uiSurfaceStore {
       }
       this.#retainedValues = retainedValues;
       this.#retainedStringCodeUnits = retainedStringCodeUnits;
-      if (this.#surfaceIdRegistry !== undefined && surfaceIdSnapshot !== undefined) {
-        restoreA2uiSurfaceIdRegistry(this.#surfaceIdRegistry, surfaceIdSnapshot);
+      if (this.#surfaceIdRegistry !== undefined) {
+        for (let index = claimedSurfaceIds.length - 1; index >= 0; index -= 1) {
+          releaseA2uiSurfaceIdClaim(this.#surfaceIdRegistry, claimedSurfaceIds[index]!);
+        }
       }
       throw error;
     }

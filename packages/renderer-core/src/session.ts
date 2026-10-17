@@ -2,6 +2,7 @@ import {
   A2uiSurfaceStore,
   createA2uiV1ActionEnvelope,
   createA2uiSurfaceIdRegistry,
+  parseA2uiV1Envelope,
 } from "@mcp-native/a2ui";
 import type {
   A2uiSurfaceIdRegistry,
@@ -142,6 +143,7 @@ export class NativeSession {
   #hasLocalEdits = false;
   #publication: NativeSessionPublication | undefined;
   #pendingAction: { readonly id: object; readonly abort: NativeSessionAbortController } | undefined;
+  #activeSemanticOperation = false;
 
   constructor(options: NativeSessionOptions) {
     if (options === null || typeof options !== "object" || Array.isArray(options)) {
@@ -205,119 +207,132 @@ export class NativeSession {
   apply(envelope: unknown): NativeSessionOperationResult {
     const admitted = this.#admit();
     if (admitted !== undefined) return admitted;
-    const input = envelope as Partial<A2uiV1Envelope>;
-    const creates = input !== null && typeof input === "object" && "createSurface" in input;
-    if (creates && this.#surfaceId !== undefined) {
-      return Object.freeze({ kind: "rejected", code: "message-rejected" });
-    }
     try {
-      this.#store.apply(envelope);
-    } catch {
-      return Object.freeze({ kind: "rejected", code: "message-rejected" });
+      let input: A2uiV1Envelope;
+      try {
+        input = parseA2uiV1Envelope(envelope, {
+          ...(this.#policy.hostExtensions === undefined
+            ? {}
+            : { hostExtensions: this.#policy.hostExtensions }),
+        });
+        if ("createSurface" in input && this.#surfaceId !== undefined) {
+          return Object.freeze({ kind: "rejected", code: "message-rejected" });
+        }
+        this.#store.apply(input);
+      } catch {
+        return Object.freeze({ kind: "rejected", code: "message-rejected" });
+      }
+      if ("deleteSurface" in input) {
+        this.#surfaceId = undefined;
+        this.#localModel = undefined;
+        this.#hasLocalEdits = false;
+        this.#publication = undefined;
+        this.#surfaceIncarnation += 1;
+        this.#renderRevision += 1;
+        return Object.freeze({ kind: "unchanged" });
+      }
+      const surfaceId = getEnvelopeSurfaceId(input);
+      if ("createSurface" in input) {
+        this.#surfaceId = surfaceId;
+        this.#surfaceIncarnation += 1;
+        this.#localModel = undefined;
+        this.#hasLocalEdits = false;
+      }
+      if ("updateDataModel" in input) {
+        this.#serverModelRevision += 1;
+        this.#localModel = undefined;
+        this.#hasLocalEdits = false;
+      }
+      return this.#publish();
+    } finally {
+      this.#activeSemanticOperation = false;
     }
-    if ("deleteSurface" in (input as object)) {
-      this.#surfaceId = undefined;
-      this.#localModel = undefined;
-      this.#hasLocalEdits = false;
-      this.#publication = undefined;
-      this.#surfaceIncarnation += 1;
-      this.#renderRevision += 1;
-      return Object.freeze({ kind: "unchanged" });
-    }
-    const surfaceId = getEnvelopeSurfaceId(input);
-    if (surfaceId === undefined) {
-      return Object.freeze({ kind: "rejected", code: "message-rejected" });
-    }
-    if (creates) {
-      this.#surfaceId = surfaceId;
-      this.#surfaceIncarnation += 1;
-      this.#localModel = undefined;
-      this.#hasLocalEdits = false;
-    }
-    if ("updateDataModel" in (input as object)) {
-      this.#serverModelRevision += 1;
-      this.#localModel = undefined;
-      this.#hasLocalEdits = false;
-    }
-    return this.#publish();
   }
 
   render(): NativeSessionOperationResult {
     const admitted = this.#admit();
     if (admitted !== undefined) return admitted;
-    return this.#publish();
+    try {
+      return this.#publish();
+    } finally {
+      this.#activeSemanticOperation = false;
+    }
   }
 
   input(ticket: NativeSessionTicket, value: JsonValue): NativeSessionOperationResult {
     const admitted = this.#admit();
     if (admitted !== undefined) return admitted;
-    const state = this.#validateTicket(ticket);
-    if (state === undefined || state.binding === undefined) {
-      return Object.freeze({ kind: "rejected", code: "stale" });
-    }
-    const surface = this.#currentSurface();
-    if (surface === undefined) {
-      return Object.freeze({ kind: "rejected", code: "stale" });
-    }
-    const current = this.#localModel ?? surface.dataModel;
     try {
+      const state = this.#validateTicket(ticket);
+      if (state === undefined || state.binding === undefined) {
+        return Object.freeze({ kind: "rejected", code: "stale" });
+      }
+      const surface = this.#currentSurface();
+      if (surface === undefined) {
+        return Object.freeze({ kind: "rejected", code: "stale" });
+      }
+      const current = this.#localModel ?? surface.dataModel;
       this.#localModel = updateDataModelBinding(current, state.binding, value);
       this.#hasLocalEdits = true;
+      return this.#publish();
     } catch {
       return Object.freeze({ kind: "rejected", code: "input-rejected" });
+    } finally {
+      this.#activeSemanticOperation = false;
     }
-    return this.#publish();
   }
 
   async press(ticket: NativeSessionTicket): Promise<NativeSessionPressResult> {
-    if (this.#closed) return Object.freeze({ kind: "rejected", code: "closed" });
     if (this.#pendingAction !== undefined) {
       return Object.freeze({ kind: "rejected", code: "busy" });
     }
-    if (this.#operationCount >= this.#maximumOperations) {
-      return Object.freeze({ kind: "rejected", code: "operation-limit" });
-    }
-    this.#operationCount += 1;
-    const state = this.#validateTicket(ticket);
-    if (state === undefined || !state.canPress) {
-      return Object.freeze({ kind: "rejected", code: "stale" });
-    }
-    const surface = this.#currentSurface();
-    if (surface === undefined) {
-      return Object.freeze({ kind: "rejected", code: "stale" });
-    }
-    const model = this.#localModel ?? surface.dataModel;
-    let event: A2uiV1NativeEventDescriptor;
+    const admitted = this.#admit();
+    if (admitted !== undefined) return admitted;
+    let state!: TicketState;
+    let proposal!: NativeSessionActionProposal;
+    let pending!: { readonly id: object; readonly abort: NativeSessionAbortController };
     try {
-      event = resolveA2uiV1NativeEvent(
+      const candidate = this.#validateTicket(ticket);
+      if (candidate === undefined || !candidate.canPress) {
+        return Object.freeze({ kind: "rejected", code: "stale" });
+      }
+      state = candidate;
+      const surface = this.#currentSurface();
+      if (surface === undefined) {
+        return Object.freeze({ kind: "rejected", code: "stale" });
+      }
+      const model = this.#localModel ?? surface.dataModel;
+      const event: A2uiV1NativeEventDescriptor = resolveA2uiV1NativeEvent(
         surface,
         this.#policy,
         state.sourceComponentId,
         model,
         state.instanceKey === undefined ? {} : { instanceKey: state.instanceKey },
       );
+      const envelope = createA2uiV1ActionEnvelope({
+        name: event.name,
+        surfaceId: event.surfaceId,
+        sourceComponentId: event.sourceComponentId,
+        context: event.context,
+        ...(event.userMessage === undefined ? {} : { userMessage: event.userMessage }),
+        timestamp: this.#now(),
+      });
+      proposal = Object.freeze({
+        envelope,
+        ...(surface.sendDataModel
+          ? { dataModel: parseJsonObject(model, "native session data model") }
+          : {}),
+        generation: state.generation,
+        renderRevision: state.renderRevision,
+        surfaceIncarnation: state.surfaceIncarnation,
+      });
+      pending = { id: {}, abort: createAbortController() };
+      this.#pendingAction = pending;
     } catch {
       return Object.freeze({ kind: "rejected", code: "stale" });
+    } finally {
+      this.#activeSemanticOperation = false;
     }
-    const envelope = createA2uiV1ActionEnvelope({
-      name: event.name,
-      surfaceId: event.surfaceId,
-      sourceComponentId: event.sourceComponentId,
-      context: event.context,
-      ...(event.userMessage === undefined ? {} : { userMessage: event.userMessage }),
-      timestamp: this.#now(),
-    });
-    const proposal = Object.freeze({
-      envelope,
-      ...(surface.sendDataModel
-        ? { dataModel: parseJsonObject(model, "native session data model") }
-        : {}),
-      generation: state.generation,
-      renderRevision: state.renderRevision,
-      surfaceIncarnation: state.surfaceIncarnation,
-    });
-    const pending = { id: {}, abort: createAbortController() };
-    this.#pendingAction = pending;
     let allowed = false;
     try {
       allowed = (await this.#authorize(proposal, pending.abort.signal)) === true;
@@ -354,12 +369,16 @@ export class NativeSession {
     this.#pendingAction = undefined;
   }
 
-  #admit(): NativeSessionOperationResult | undefined {
+  #admit(): { readonly kind: "rejected"; readonly code: NativeSessionDiagnosticCode } | undefined {
     if (this.#closed) return Object.freeze({ kind: "rejected", code: "closed" });
+    if (this.#activeSemanticOperation) {
+      return Object.freeze({ kind: "rejected", code: "busy" });
+    }
     if (this.#operationCount >= this.#maximumOperations) {
       return Object.freeze({ kind: "rejected", code: "operation-limit" });
     }
     this.#operationCount += 1;
+    this.#activeSemanticOperation = true;
     return undefined;
   }
 
@@ -442,8 +461,8 @@ export function createNativeSession(options: NativeSessionOptions): NativeSessio
   return new NativeSession(options);
 }
 
-function getEnvelopeSurfaceId(envelope: Partial<A2uiV1Envelope>): string | undefined {
-  const source = envelope as Record<string, unknown>;
+function getEnvelopeSurfaceId(envelope: A2uiV1Envelope): string {
+  const source = envelope as unknown as Record<string, unknown>;
   for (const key of [
     "createSurface",
     "updateComponents",
@@ -453,7 +472,7 @@ function getEnvelopeSurfaceId(envelope: Partial<A2uiV1Envelope>): string | undef
     const message = source[key] as { readonly surfaceId?: unknown } | undefined;
     if (message !== undefined && typeof message.surfaceId === "string") return message.surfaceId;
   }
-  return undefined;
+  throw new TypeError("Validated A2UI envelope is missing its surface ID");
 }
 
 function createAbortController(): NativeSessionAbortController {
@@ -490,7 +509,8 @@ function collectControls(plan: NativeElement): readonly Omit<NativeSessionContro
 
 function sourceIdFromKey(key: string): string {
   const slash = key.lastIndexOf("/");
-  const source = slash === -1 ? key : key.slice(slash + 1);
-  const separator = source.search(/[[:]/u);
-  return separator === -1 ? source : source.slice(0, separator);
+  const segment = slash === -1 ? key : key.slice(slash + 1);
+  const separator = segment.lastIndexOf(":");
+  const encodedId = separator === -1 ? segment : segment.slice(0, separator);
+  return encodedId.replaceAll("%3A", ":").replaceAll("%2F", "/").replaceAll("%25", "%");
 }
