@@ -61,6 +61,7 @@ jobs:
           api-level: 36
           system-image-api-level: "37.1"
           target: google_apis_playstore_ps16k
+          emulator-build: 15917651
           arch: x86_64
           profile: pixel_6
           disk-size: 8G
