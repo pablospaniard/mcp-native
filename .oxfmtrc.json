@@ -3,6 +3,10 @@
   "printWidth": 100,
   "tabWidth": 2,
   "useTabs": false,
+  "ignorePatterns": [
+    "packages/swiftui/.build/**",
+    "packages/swiftui/Sources/MCPNativeSwiftUI/Resources/runtime.js"
+  ],
   "semi": true,
   "singleQuote": false,
   "trailingComma": "all"

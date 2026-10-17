@@ -16,6 +16,7 @@ compatibility boundaries.
 | MCP Apps WebView | host-supplied compatible `react-native-webview`                                     | safe-prop adapter, bridge, bundle, and native builds       |
 | Android          | platform requirements inherited from the host                                       | generated x86_64 debug application                         |
 | iOS              | platform requirements inherited from the host                                       | generated unsigned simulator application                   |
+| SwiftUI renderer | Swift 6; iOS 18, macOS 15, tvOS 18, visionOS 2; Xcode 16+                           | SwiftPM tests plus generic Apple simulator builds          |
 | MCP SDK          | `@modelcontextprotocol/client ^2.0.0`                                               | package integration and conformance tests                  |
 | A2UI             | feature-scoped v1.0 Candidate at `8ff4651232ab0e02b0123730b502711170637a3a`         | vendored schema checksums and declared profile tests       |
 | MCP Apps         | stable `2026-01-26`, official schema package `@modelcontextprotocol/ext-apps@1.7.5` | interoperability and hostile-message tests                 |
@@ -27,9 +28,10 @@ Later upstream revisions require an explicit reviewed pin update.
 
 The runnable example applications add end-to-end evidence for the primitives catalog and mixed
 surfaces. Their pinned application dependencies keep each fixture reproducible; they do not create
-package dependencies or framework version guarantees. Direct SwiftUI and Compose renderers follow
-the platform-neutral foundation and will receive their own integration requirements. The preserved
-runtime evaluations are feasibility evidence, not a claim that those platform renderers are shipped.
+package dependencies or framework version guarantees. The direct SwiftUI renderer has its own
+[Apple compatibility and integration contract](swiftui.md). Compose remains planned. The preserved
+runtime evaluations remain feasibility evidence for their scoped experiments rather than broader
+device-performance claims.
 
 `tests/support-matrix.test.mjs` makes the Node and TypeScript toolchain, React and MCP SDK peers,
 official schema package pin, and absence of Expo or React Native package dependencies part of the

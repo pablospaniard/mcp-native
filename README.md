@@ -204,6 +204,7 @@ application-owned responsibilities.
 | [`@mcp-native/a2ui`](packages/a2ui)                   | A2UI negotiation, parsing, surface state, validation, and action envelopes                |
 | [`@mcp-native/renderer-core`](packages/renderer-core) | Platform-neutral trusted render plans, reconciliation, sessions, and renderer fixtures    |
 | [`@mcp-native/react-native`](packages/react-native)   | Trusted A2UI render plans and host-owned native component adapters                        |
+| [`MCPNativeSwiftUI`](packages/swiftui)                | Direct SwiftUI renderer and closed Apple host integration                                 |
 | [`@mcp-native/webview`](packages/webview)             | MCP Apps validation, native WebView policy, sandbox, and bridge lifecycle                 |
 | [`mcp-native`](packages/mcp-native)                   | Convenience re-export of core, A2UI, React Native, WebView, and mixed-surface APIs        |
 
