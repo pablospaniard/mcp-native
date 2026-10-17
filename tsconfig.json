@@ -4,6 +4,7 @@
     { "path": "./packages/core" },
     { "path": "./packages/mcp" },
     { "path": "./packages/a2ui" },
+    { "path": "./packages/renderer-core" },
     { "path": "./packages/react-native" },
     { "path": "./packages/webview" },
     { "path": "./packages/host" },

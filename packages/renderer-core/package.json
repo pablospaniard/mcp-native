@@ -1,0 +1,50 @@
+{
+  "name": "@mcp-native/renderer-core",
+  "version": "1.0.1",
+  "description": "Platform-neutral renderer contract for MCP Native.",
+  "keywords": [
+    "a2ui",
+    "mcp",
+    "model-context-protocol",
+    "native-ui",
+    "typescript"
+  ],
+  "homepage": "https://github.com/pablospaniard/mcp-native#readme",
+  "bugs": {
+    "url": "https://github.com/pablospaniard/mcp-native/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pablospaniard/mcp-native.git",
+    "directory": "packages/renderer-core"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "default": "./dist/testing.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@mcp-native/a2ui": "^1.0.1",
+    "@mcp-native/core": "^1.0.1"
+  }
+}

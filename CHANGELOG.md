@@ -6,7 +6,78 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Implement the shared native session contract (RFC-0004): server/local reconciliation, render and
+  surface revisions, opaque instance-bound callback tickets, asynchronous native authorization,
+  stale/close rejection, cancellation, at-most-once local delivery, and bounded operation work.
+  React Native creates the same session through an immutable host registration.
+
+- Add bounded renderer-lifetime surface-ID registries. Surface stores and React Native hosts opt in
+  explicitly, reuse one registry across replacement stores, retain accepted IDs after deletion, and
+  atomically roll back only failed-batch claims without copying the retained registry. Exhaustion
+  remains fail-closed until explicit context teardown. Existing active-ID-only defaults remain
+  unchanged.
+
+- Preserve Android engine feasibility evidence: the exact iOS JavaScript bundle and 21-case corpus ran
+  through AndroidX JavaScriptEngine with native JSON, authorization, lifecycle and limit checks.
+  Provider capabilities, formatting and running-isolate termination are verified on one emulator.
+  Includes pinned debug build tooling and independent report comparison; no public package, Compose
+  renderer, native Kotlin semantics or device-performance claim. Temporary tooling is removed.
+
+- Preserve the scoped iOS runtime comparison: JavaScriptCore and independent Swift form semantics ran the shared
+  21-case corpus and the same SwiftUI interaction/lifecycle checks. Includes a pinned upstream reuse
+  assessment, bounded native host, reproducible simulator command and CI scoped to relevant
+  integration PRs. Temporary tooling is removed; full platform parity and physical-device performance
+  remain renderer-specific work.
+
+- Language-neutral renderer conformance corpus: 21 basic-form scenarios with a strict
+  JSON fixture format, explicit expected observations, and a React Native reference runner covering
+  local/server state, actions, host authorization, rejection, and bounded expansion. Included in
+  normal checks and available through `npm run test:renderer-conformance`; published APIs and exact
+  protocol/schema pins are unchanged.
+
+- Accept the shared-JavaScript native-runtime and public renderer-core package strategy after the
+  Apple and Android feasibility comparisons.
+
+- New package `@mcp-native/renderer-core`: the platform-neutral A2UI v1 renderer contract
+  (render-plan builders, closed component catalog, prop-shape types, mount-diagnostic types,
+  numeric limits, local-state reconciliation, semantic sessions, and shared catalog-conformance
+  fixtures under `@mcp-native/renderer-core/testing`)
+  extracted from `@mcp-native/react-native`. It has no React, React Native, SwiftUI, or Jetpack
+  Compose dependency, so future native renderers can depend on it directly. This is additive and
+  non-breaking: every export `@mcp-native/react-native` previously declared inline is re-exported
+  from its existing name unchanged, and `@mcp-native/core` is untouched.
+
+### Fixed
+
+- Android experiment rejects malformed JSON lexemes before normalization and closes hosts after
+  invalid observation/action responses. Native regression probes verify both failure paths.
+- Swift experiment supports store-compatible array append, nested append and removal, with a new
+  shared corpus case covering rejected indices and unchanged state after failure.
+- Renderer-core is a public package boundary; package tooling preserves the historical seven-package
+  upgrade baseline while validating its independent pre-release workspace version.
+- iOS simulator conformance runs once off the main actor; UI flows no longer repeat it at launch.
+  Native component-depth constants derive from one experiment configuration, and test renderers
+  reuse the shared host-component stub.
+
+- New native-platform experiments and conformance code use concise, version-neutral API names.
+  The provisional renderer-core entry point now supplies the same naming convention, retaining
+  existing alias identities. Repository instructions and current examples explicitly require generic
+  identifiers while preserving exact wire versions and the existing compatibility contract.
+
+- Temporary iOS comparison bridge preserves supported nested layouts with a bounded response-depth
+  budget and a common 64-component graph limit. Malformed non-object envelopes reject without losing
+  session state; cross-engine regression probes cover depth boundaries and retained local edits.
+  The simulator runner explicitly boots the selected device and disables test worker clones so
+  independent report collection also works on cold CI simulators.
+
+- Renderer conformance outcomes now observe the mounted surface and its retained local edits,
+  removing the duplicate server-model preflight. Regression coverage includes render rejection
+  and recovery; the root workspace declares its Ajv test dependency directly.
+
+- Release recovery supports historical checkouts without renderer-core while rejecting missing
+  local dependencies. Version verification now shares the publisher's package inventory.
 
 ## 1.1.0 - 2026-09-15
 

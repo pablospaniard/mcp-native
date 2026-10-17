@@ -26,14 +26,18 @@ export function verifyPublishedUpgradeBaseline({ packageNames, readInstalledMani
 export function verifyLocalUpgradeInstallation({
   packageNames,
   expectedVersion,
+  expectedVersions,
   localTarballs,
   consumerManifest,
   readInstalledManifest,
 }) {
   for (const packageName of packageNames) {
     const manifest = readInstalledManifest(packageName);
-    if (manifest.name !== packageName || manifest.version !== expectedVersion) {
-      throw new Error(`${packageName} did not upgrade to the local candidate ${expectedVersion}`);
+    const packageExpectedVersion = expectedVersions?.get(packageName) ?? expectedVersion;
+    if (manifest.name !== packageName || manifest.version !== packageExpectedVersion) {
+      throw new Error(
+        `${packageName} did not upgrade to the local candidate ${packageExpectedVersion}`,
+      );
     }
 
     const tarball = localTarballs.get(packageName);

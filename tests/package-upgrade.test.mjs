@@ -74,6 +74,34 @@ test("local candidate packages replace the published dependencies", () => {
   );
 });
 
+test("local candidates may use explicit per-package versions before a coordinated release", () => {
+  const manifests = createInstalledManifests("1.1.0");
+  manifests.set("mcp-native", { name: "mcp-native", version: "1.0.1" });
+  const localTarballs = new Map([
+    ["@mcp-native/core", "/tmp/mcp-native-core-1.1.0.tgz"],
+    ["mcp-native", "/tmp/mcp-native-1.0.1.tgz"],
+  ]);
+
+  assert.doesNotThrow(() =>
+    verifyLocalUpgradeInstallation({
+      packageNames,
+      expectedVersion: "1.1.0",
+      expectedVersions: new Map([
+        ["@mcp-native/core", "1.1.0"],
+        ["mcp-native", "1.0.1"],
+      ]),
+      localTarballs,
+      consumerManifest: {
+        dependencies: {
+          "@mcp-native/core": "file:../mcp-native-core-1.1.0.tgz",
+          "mcp-native": "file:../mcp-native-1.0.1.tgz",
+        },
+      },
+      readInstalledManifest: (name) => manifests.get(name),
+    }),
+  );
+});
+
 test("local candidate verification rejects a retained registry dependency", () => {
   const manifests = createInstalledManifests("1.0.0");
 

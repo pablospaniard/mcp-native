@@ -47,7 +47,8 @@ Before creating a release:
 installation. Package smoke verifies every declared export, runtime and declaration source map,
 README, and exact MIT license in the packed artifacts. It installs the latest coordinated published
 `0.9.x` packages into a clean consumer and runs the documented migration-ready imports. It then
-replaces all seven packages with local release tarballs through an offline install before running
+replaces the installed packages and adds any new workspace packages using local release tarballs
+through an offline install before running
 the consumer again. The maintained Expo Go todo app remains an optional application-level example;
 it is not a package release gate.
 
@@ -62,6 +63,17 @@ tag; every other prerelease uses `next`, so prereleases never replace `latest`. 
 checks whether each exact version already exists, so an interrupted release can be resumed without
 attempting to overwrite immutable npm versions. A maintainer can manually dispatch the same
 workflow with the existing release tag to resume publication.
+
+Release version verification uses the same package inventory as the publisher. Recovery permits
+renderer-core to be absent in a historical release only when no package in that checkout requires
+it; missing or out-of-order local dependencies fail before publication. The Milestone 12 package
+decision makes renderer-core public, but does not authorize publishing the current uncoordinated
+source versions. The next release must align all public package versions and internal dependency
+ranges before release verification can pass.
+
+`scripts/workspace-packages.mjs` supplies the shared inventory for release, API verification, package
+smoke tests and native-host preparation. The historical 0.9 upgrade baseline intentionally contains
+seven packages; local packing includes all eight current public workspaces.
 
 The `npm-release` GitHub environment is a release trust boundary. Configure required reviewers and
 allow deployments only from `main` and reviewed `v*` release tags. The workflow resolves a

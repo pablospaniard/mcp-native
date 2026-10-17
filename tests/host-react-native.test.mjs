@@ -1,3 +1,4 @@
+import { hostComponent } from "./helpers/host-component.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -25,12 +26,6 @@ import { StrictMode, act, createElement, useEffect } from "react";
 import { createRoot } from "test-renderer";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
-function hostComponent(type) {
-  return function HostComponent(props) {
-    return createElement(type, props, props.children);
-  };
-}
 
 const components = {
   View: hostComponent("View"),

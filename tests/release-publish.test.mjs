@@ -1,6 +1,21 @@
+import {
+  workspaceInventory,
+  loadWorkspacePackages,
+  workspaceDependencyClosure,
+} from "../scripts/workspace-packages.mjs";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 
 import { parse } from "yaml";
@@ -11,26 +26,141 @@ import {
   loadReleasePackages,
   publishMissingReleasePackages,
   publishWorkspace,
-  releasePackagePaths,
 } from "../scripts/publish-release.mjs";
 import { runReleaseVerification } from "../scripts/run-release-verification.mjs";
+
+const releasePackagePaths = workspaceInventory.map(({ directory }) => `${directory}/package.json`);
 
 const packageInfo = { name: "@mcp-native/example", version: "0.1.0" };
 const releaseVersion = JSON.parse(readFileSync("packages/core/package.json", "utf8")).version;
 
-test("the coordinated release includes the host after all of its package dependencies", () => {
+function createReleaseFixture(t, { omitRenderer = false, editManifest = () => {} } = {}) {
+  const root = mkdtempSync(join(tmpdir(), "mcp-native-release-test-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const manifestPath of releasePackagePaths) {
+    if (omitRenderer && manifestPath === "packages/renderer-core/package.json") continue;
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    delete manifest.private;
+    editManifest(manifest);
+    const destination = join(root, manifestPath);
+    mkdirSync(dirname(destination), { recursive: true });
+    writeFileSync(destination, JSON.stringify(manifest));
+  }
+  return root;
+}
+
+test("current automation recovers a seven-package release predating renderer-core", async (t) => {
+  const root = createReleaseFixture(t, {
+    omitRenderer: true,
+    editManifest(manifest) {
+      delete manifest.dependencies?.["@mcp-native/renderer-core"];
+    },
+  });
+  const packages = loadReleasePackages(root);
+  assert.equal(packages.length, 7);
+  assert.ok(packages.every(({ name }) => name !== "@mcp-native/renderer-core"));
+  const published = [];
+  await publishMissingReleasePackages({
+    packages,
+    fetchImpl: async () => new Response(null, { status: 404 }),
+    publish: (value) => published.push(value),
+  });
+  assert.deepEqual(published, packages);
+});
+
+test("recovery rejects a missing renderer-core required by the target release", (t) => {
+  const root = createReleaseFixture(t, { omitRenderer: true });
+  assert.throws(
+    () => loadReleasePackages(root),
+    /@mcp-native\/react-native requires earlier release package @mcp-native\/renderer-core/,
+  );
+});
+
+test("recovery rejects workspace dependencies appearing after their consumer", (t) => {
+  const root = createReleaseFixture(t, {
+    editManifest(manifest) {
+      if (manifest.name === "@mcp-native/renderer-core") {
+        manifest.dependencies["@mcp-native/react-native"] = `^${releaseVersion}`;
+      }
+    },
+  });
+  assert.throws(
+    () => loadReleasePackages(root),
+    /@mcp-native\/renderer-core requires earlier release package @mcp-native\/react-native/,
+  );
+});
+
+test("release version verification includes renderer-core", (t) => {
+  const root = createReleaseFixture(t, {
+    editManifest(manifest) {
+      manifest.version = manifest.name === "@mcp-native/renderer-core" ? "0.0.0" : releaseVersion;
+      for (const dependencyName of Object.keys(manifest.dependencies ?? {})) {
+        if (dependencyName.startsWith("@mcp-native/")) {
+          manifest.dependencies[dependencyName] = `^${releaseVersion}`;
+        }
+      }
+    },
+  });
+  const result = spawnSync(process.execPath, [resolve("scripts/verify-release-version.mjs")], {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, MCP_NATIVE_RELEASE_TAG: `v${releaseVersion}` },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /All public packages must share one release version/);
+});
+
+test("an approved public release includes the host after its package dependencies", (t) => {
+  const root = createReleaseFixture(t);
   assert.deepEqual(
-    loadReleasePackages().map(({ name }) => name),
+    loadReleasePackages(root).map(({ name }) => name),
     [
       "@mcp-native/core",
       "@mcp-native/mcp",
       "@mcp-native/a2ui",
+      "@mcp-native/renderer-core",
       "@mcp-native/webview",
       "@mcp-native/react-native",
       "@mcp-native/host",
       "mcp-native",
     ],
   );
+});
+
+test("renderer-core is included in the public source package inventory", () => {
+  const packages = loadReleasePackages();
+  assert.equal(packages.length, 8);
+  assert.ok(packages.some(({ name }) => name === "@mcp-native/renderer-core"));
+});
+
+test("private standalone workspaces are excluded from a release", (t) => {
+  const root = createReleaseFixture(t, {
+    editManifest(manifest) {
+      if (manifest.name === "@mcp-native/renderer-core") manifest.private = true;
+      delete manifest.dependencies?.["@mcp-native/renderer-core"];
+    },
+  });
+  assert.equal(loadReleasePackages(root).length, 7);
+});
+
+test("workspace inventory distinguishes historical upgrades and native dependencies", () => {
+  const entries = loadWorkspacePackages();
+  const actualDirectories = readdirSync("packages", { withFileTypes: true })
+    .filter(
+      (entry) => entry.isDirectory() && existsSync(join("packages", entry.name, "package.json")),
+    )
+    .map((entry) => `packages/${entry.name}`)
+    .sort();
+  assert.deepEqual(workspaceInventory.map(({ directory }) => directory).sort(), actualDirectories);
+  assert.equal(entries.filter(({ upgradeBaseline }) => upgradeBaseline).length, 7);
+  assert.equal(
+    entries.find(({ manifest }) => manifest.name === "@mcp-native/renderer-core").upgradeBaseline,
+    false,
+  );
+  const native = workspaceDependencyClosure("mcp-native");
+  assert.ok(native.some(({ manifest }) => manifest.name === "@mcp-native/renderer-core"));
+  assert.ok(!native.some(({ manifest }) => manifest.name === "@mcp-native/mcp"));
+  assert.throws(() => workspaceDependencyClosure("missing"), /Missing workspace dependency/);
 });
 
 test("release recovery skips an exact version that is already published", async () => {
@@ -139,7 +269,9 @@ test("prerelease installation commands select the matching npm dist-tag", () => 
   const distTag = getNpmReleaseDistTag(releaseVersion);
   if (distTag === "latest") return;
 
-  const releasePackageNames = loadReleasePackages().map(({ name }) => name);
+  const releasePackageNames = loadWorkspacePackages()
+    .filter(({ manifest }) => !manifest.private)
+    .map(({ manifest }) => manifest.name);
   const readmePaths = [
     "README.md",
     ...releasePackagePaths.map((manifestPath) => manifestPath.replace("package.json", "README.md")),
@@ -227,9 +359,19 @@ test("release recovery rejects an invalid tag before starting verification", () 
   );
 });
 
-test("release verification prefers the explicitly resolved tag", () => {
-  const result = spawnSync(process.execPath, ["scripts/verify-release-version.mjs"], {
-    cwd: process.cwd(),
+test("release verification prefers the explicitly resolved tag", (t) => {
+  const root = createReleaseFixture(t, {
+    editManifest(manifest) {
+      manifest.version = releaseVersion;
+      for (const dependencyName of Object.keys(manifest.dependencies ?? {})) {
+        if (dependencyName.startsWith("@mcp-native/")) {
+          manifest.dependencies[dependencyName] = `^${releaseVersion}`;
+        }
+      }
+    },
+  });
+  const result = spawnSync(process.execPath, [resolve("scripts/verify-release-version.mjs")], {
+    cwd: root,
     env: {
       ...process.env,
       GITHUB_REF_NAME: "main",

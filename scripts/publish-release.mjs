@@ -1,28 +1,41 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const releasePackagePaths = [
-  "packages/core/package.json",
-  "packages/mcp/package.json",
-  "packages/a2ui/package.json",
-  "packages/webview/package.json",
-  "packages/react-native/package.json",
-  "packages/host/package.json",
-  "packages/mcp-native/package.json",
-];
+import { loadWorkspacePackages } from "./workspace-packages.mjs";
 
 export function loadReleasePackages(root = process.cwd()) {
-  return releasePackagePaths.map((manifestPath) => {
-    const manifest = JSON.parse(readFileSync(resolve(root, manifestPath), "utf8"));
-
-    if (typeof manifest.name !== "string" || typeof manifest.version !== "string") {
-      throw new Error(`Invalid release package manifest: ${manifestPath}`);
+  const entries = loadWorkspacePackages(root);
+  const privateNames = new Set(
+    entries
+      .filter(({ manifest }) => manifest.private === true)
+      .map(({ manifest }) => manifest.name),
+  );
+  const manifests = entries
+    .map(({ manifest }) => manifest)
+    .filter((manifest) => manifest.private !== true);
+  for (const manifest of manifests) {
+    for (const dependency of Object.keys(manifest.dependencies ?? {})) {
+      if (privateNames.has(dependency)) {
+        throw new Error(
+          `${manifest.name} depends on private workspace ${dependency}; a packaging decision is required before release`,
+        );
+      }
     }
-
-    return { name: manifest.name, version: manifest.version };
-  });
+  }
+  const precedingPackages = new Set();
+  for (const manifest of manifests) {
+    for (const dependency of Object.keys(manifest.dependencies ?? {})) {
+      if (
+        (dependency.startsWith("@mcp-native/") || dependency === "mcp-native") &&
+        !precedingPackages.has(dependency)
+      ) {
+        throw new Error(`${manifest.name} requires earlier release package ${dependency}`);
+      }
+    }
+    precedingPackages.add(manifest.name);
+  }
+  return manifests.map(({ name, version }) => ({ name, version }));
 }
 
 export async function isPackageVersionPublished(

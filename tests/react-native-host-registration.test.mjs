@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   A2uiSurfaceStore,
+  createA2uiSurfaceIdRegistry,
   createA2uiV1HostExtensionCapabilitySettings,
   createA2uiV1HostExtensionRegistry,
   negotiateA2uiV1HostExtensions,
@@ -15,6 +16,8 @@ import {
   A2uiV1NativeRenderError,
   assertA2uiV1NativeMount,
   createA2uiV1NativeHost,
+  createSession,
+  createSurfaceStore,
   createNativeHostExtensionRegistration,
   inspectA2uiV1NativeMount,
   isA2uiV1NativeHost,
@@ -87,6 +90,55 @@ test("native host derives a frozen validation and capability source of truth", (
       }),
     /uninstalled or policy-unready component "Tabs"/,
   );
+});
+
+test("native host surface-store helper exposes the explicit lifetime-unique path", () => {
+  const host = createA2uiV1NativeHost({ components: baseComponents });
+  const registry = createA2uiSurfaceIdRegistry();
+  const first = createSurfaceStore(host, { surfaceIdRegistry: registry });
+  first.apply({ version: "v1.0", createSurface: { surfaceId: "native" } });
+  first.apply({ version: "v1.0", deleteSurface: { surfaceId: "native" } });
+
+  const replacement = createSurfaceStore(host, { surfaceIdRegistry: registry });
+  assert.throws(
+    () => replacement.apply({ version: "v1.0", createSurface: { surfaceId: "native" } }),
+    /already used in this renderer lifetime/,
+  );
+
+  const compatible = createSurfaceStore(host);
+  compatible.apply({ version: "v1.0", createSurface: { surfaceId: "native" } });
+  compatible.apply({ version: "v1.0", deleteSurface: { surfaceId: "native" } });
+  compatible.apply({ version: "v1.0", createSurface: { surfaceId: "native" } });
+  assert.equal(compatible.has("native"), true);
+
+  assert.throws(() => createSurfaceStore({}, {}), /created by/);
+  const compatibleOptions = createSurfaceStore(host, { unknown: true });
+  compatibleOptions.apply({ version: "v1.0", createSurface: { surfaceId: "extra-options" } });
+  assert.equal(compatibleOptions.has("extra-options"), true);
+});
+
+test("native host creates the shared semantic session with its fixed policy", () => {
+  const host = createA2uiV1NativeHost({
+    components: baseComponents,
+    allowedComponentNames: ["Button", "Column", "Text", "TextField"],
+    allowedEventNames: ["submit"],
+  });
+  const session = createSession(host, {
+    authorize: () => false,
+    deliver() {
+      throw new Error("denied actions must not deliver");
+    },
+  });
+  const result = session.apply({
+    version: "v1.0",
+    createSurface: {
+      surfaceId: "session",
+      components: [{ id: "root", component: "Text", text: "Shared" }],
+    },
+  });
+  assert.equal(result.kind, "published");
+  assert.equal(result.plan.component, "Text");
+  assert.throws(() => createSession({}, {}), /created by/);
 });
 
 test("native host definitions reject malformed catalogs and layout contracts", () => {

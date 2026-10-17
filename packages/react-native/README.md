@@ -250,6 +250,8 @@ Renderer functions other than `formatString`, `formatNumber`, `formatCurrency`, 
 | Export                                  | Purpose                                                                                                       |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `createHost`                            | Freezes catalog, policies, capabilities, extensions, and layout declarations into one owner.                  |
+| `createSurfaceStore`                    | Creates a host-bound store, with optional shared lifetime-ID registry enforcement.                            |
+| `createSession`                         | Creates the shared revisioned semantic session through the host's exact policy and resource grants.           |
 | `inspectMount`                          | Returns stable pre-React diagnostics and required native slots for one expanded surface.                      |
 | `assertMount`                           | Throws `MountError` when the explicit mount inspection is not accepted.                                       |
 | `HostSurface`                           | Preflights and mounts through a registered host with surface-wide render containment.                         |

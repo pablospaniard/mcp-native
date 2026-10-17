@@ -1,4 +1,5 @@
 import {
+  A2uiSurfaceStore,
   createA2uiV1BasicCatalogPolicy,
   createA2uiV1ActionEnvelope,
   getA2uiV1HostExtensionManifestFingerprint,
@@ -12,8 +13,9 @@ import type {
   A2uiV1HostExtensionRegistry,
   A2uiV1SurfaceState,
   A2uiV1SurfaceValidationPolicy,
+  A2uiSurfaceStoreOptions,
 } from "@mcp-native/a2ui";
-import { parseJsonObject, parseJsonValue } from "@mcp-native/core";
+import { parseJsonObject } from "@mcp-native/core";
 import type { JsonObject, JsonValue } from "@mcp-native/core";
 import {
   Component,
@@ -28,14 +30,20 @@ import {
   type ReactNode,
 } from "react";
 
+import type { NativeComponentCatalog, NativeViewComponentProps } from "./component-adapters.js";
+import {
+  isNativeHostExtensionRegistration,
+  renderNativeHostExtensionRegistration,
+} from "./component-adapters.js";
+
 import type {
   NativeAccessibilityProps,
   NativeButtonComponentProps,
   NativeChoicePickerComponentProps,
   NativeChoicePickerOption,
-  NativeComponentCatalog,
   NativeComponentLayoutContract,
   NativeComponentLayoutContracts,
+  NativeElement,
   NativeIconComponentProps,
   NativeImageComponentProps,
   NativeImageResourcePolicy,
@@ -45,35 +53,41 @@ import type {
   NativeMediaResourcePolicy,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
-  NativeViewComponentProps,
   NativeViewStyle,
   NativeViewVariant,
   NativeSurfaceParentLayout,
-} from "./component-adapters.js";
+  NativeComponentName,
+  A2uiV1NativeMountDiagnostic,
+  A2uiV1NativeMountDiagnosticCode,
+  A2uiV1NativeMountReport,
+  InspectA2uiV1NativeMountOptions,
+} from "@mcp-native/renderer-core";
 import {
   A2UI_V1_NATIVE_ICON_NAMES,
-  isNativeHostExtensionRegistration,
-  renderNativeHostExtensionRegistration,
-} from "./component-adapters.js";
-
-import {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
   createA2uiV1NativeRenderPlan,
   createA2uiV1NativeRenderPlanForLocalEdits,
   createA2uiV1NativeStructuralRenderPlan,
+  createComponentSourceKey,
+  createDataModelSourceKey,
+  createNativeSession,
   parseA2uiV1NativeOpenUrlDescriptor,
   resolveA2uiV1NativeEvent,
   resolveA2uiV1NativeOpenUrl,
   validateA2uiV1NativeDateTimeInputChange,
+  updateDataModelBinding,
+  A2uiV1NativeMountError,
   type A2uiV1NativeEventDescriptor,
   type A2uiV1NativeImagePolicy,
   type A2uiV1NativeHostExtensionPolicy,
   type A2uiV1NativeMediaPolicy,
   type A2uiV1NativeOpenUrlDescriptor,
-} from "./v1.js";
+  type NativeSession,
+  type NativeSessionOptions,
+} from "@mcp-native/renderer-core";
 
+export { A2UI_V1_NATIVE_ICON_NAMES };
 export {
-  A2UI_V1_NATIVE_ICON_NAMES,
   createNativeButtonAdapter,
   createNativeAudioPlayerAdapter,
   createNativeCheckBoxAdapter,
@@ -93,6 +107,14 @@ export {
 } from "./component-adapters.js";
 export type { NativeComponentPropMapper } from "./component-adapters.js";
 export type {
+  NativeComponentCatalog,
+  NativeComponentVariants,
+  NativeModalComponentProps,
+  NativeTabItem,
+  NativeTabsComponentProps,
+  NativeViewComponentProps,
+} from "./component-adapters.js";
+export type {
   NativeAccessibilityProps,
   NativeAccessibilityRole,
   NativeAccessibilityState,
@@ -104,11 +126,9 @@ export type {
   NativeChoicePickerDisplayStyle,
   NativeChoicePickerOption,
   NativeChoicePickerVariant,
-  NativeComponentCatalog,
   NativeCatalogComponentName,
   NativeComponentLayoutContract,
   NativeComponentLayoutContracts,
-  NativeComponentVariants,
   NativeDateTimeInputComponentProps,
   NativeDividerComponentProps,
   NativeIconComponentProps,
@@ -122,38 +142,18 @@ export type {
   NativeHostExtensionEventOptions,
   NativeHostExtensionRegistration,
   NativeMediaResourcePolicy,
-  NativeModalComponentProps,
   NativeSliderComponentProps,
-  NativeTabItem,
-  NativeTabsComponentProps,
   NativeTextComponentProps,
   NativeTextInputComponentProps,
   NativeTextInputVariant,
   NativeTextVariant,
-  NativeViewComponentProps,
   NativeViewStyle,
   NativeViewVariant,
   NativeVideoComponentProps,
   NativeSurfaceParentLayout,
-} from "./component-adapters.js";
+} from "@mcp-native/renderer-core";
 
-export type NativeComponentName =
-  | "AudioPlayer"
-  | "Button"
-  | "CheckBox"
-  | "ChoicePicker"
-  | "DateTimeInput"
-  | "Divider"
-  | "Icon"
-  | "Image"
-  | "HostExtension"
-  | "Modal"
-  | "Slider"
-  | "Tabs"
-  | "Text"
-  | "TextInput"
-  | "Video"
-  | "View";
+export type { NativeComponentName, NativeElement } from "@mcp-native/renderer-core";
 
 const A2UI_V1_NATIVE_BASE_COMPONENT_NAMES = Object.freeze([
   "Button",
@@ -270,56 +270,34 @@ export interface A2uiV1NativeHost {
   readonly hostExtensionLayoutContracts: Readonly<Record<string, NativeComponentLayoutContract>>;
 }
 
-export type A2uiV1NativeMountDiagnosticCode =
-  | "component-not-allowed"
-  | "layout-incompatible"
-  | "missing-component"
-  | "missing-extension-registration"
-  | "render-plan-rejected"
-  | "surface-invalid";
+/** Options accepted by the host-bound surface-store helper. */
+export type NativeSurfaceStoreOptions = Pick<A2uiSurfaceStoreOptions, "surfaceIdRegistry">;
 
-export interface A2uiV1NativeMountDiagnostic {
-  readonly code: A2uiV1NativeMountDiagnosticCode;
-  readonly message: string;
-  readonly componentName?: string;
-  readonly nativeElementKey?: string;
-  readonly parentLayout?: NativeSurfaceParentLayout;
-  readonly sourceComponentId?: string;
-}
+export type NativeHostSessionOptions = Omit<NativeSessionOptions, "policy" | "renderOptions"> & {
+  readonly locale?: string;
+};
 
-export interface A2uiV1NativeMountReport {
-  readonly ok: boolean;
-  readonly diagnostics: readonly A2uiV1NativeMountDiagnostic[];
-  readonly requiredNativeComponentNames: readonly NativeComponentName[];
-}
-
-export interface InspectA2uiV1NativeMountOptions {
-  /** External parent supplied by the application shell. Defaults to `unbounded`. */
-  readonly parentLayout?: NativeSurfaceParentLayout;
-}
-
-/** Stable mount failure with no raw server, transport, or adapter exception in its message. */
-export class A2uiV1NativeMountError extends Error {
-  readonly code: A2uiV1NativeMountDiagnosticCode;
-  readonly diagnostic: A2uiV1NativeMountDiagnostic;
-  readonly report: A2uiV1NativeMountReport;
-
-  constructor(report: A2uiV1NativeMountReport, options?: ErrorOptions) {
-    const diagnostic = report.diagnostics[0];
-    if (diagnostic === undefined) {
-      throw new TypeError("A native mount error requires at least one diagnostic");
-    }
-    super(diagnostic.message, options);
-    this.name = "A2uiV1NativeMountError";
-    this.code = diagnostic.code;
-    this.diagnostic = diagnostic;
-    this.report = report;
-  }
-}
+export type { A2uiV1NativeMountDiagnosticCode } from "@mcp-native/renderer-core";
+export type { A2uiV1NativeMountDiagnostic } from "@mcp-native/renderer-core";
+export type { A2uiV1NativeMountReport } from "@mcp-native/renderer-core";
+export type { InspectA2uiV1NativeMountOptions } from "@mcp-native/renderer-core";
+export { A2uiV1NativeMountError };
 
 const nativeHosts = new WeakSet<A2uiV1NativeHost>();
 const nativeHostResetKeys = new WeakMap<A2uiV1NativeHost, number>();
+const nativeSurfaceResetKeys = new WeakMap<A2uiV1SurfaceState, number>();
 let nextNativeHostResetKey = 1;
+let nextNativeSurfaceResetKey = 1;
+
+function getNativeSurfaceResetKey(surface: A2uiV1SurfaceState): number {
+  if (surface === null || typeof surface !== "object") return 0;
+  const existing = nativeSurfaceResetKeys.get(surface);
+  if (existing !== undefined) return existing;
+  const key = nextNativeSurfaceResetKey;
+  nextNativeSurfaceResetKey += 1;
+  nativeSurfaceResetKeys.set(surface, key);
+  return key;
+}
 
 /**
  * Creates a frozen native host whose policy and advertised capabilities cannot drift from its
@@ -425,6 +403,53 @@ export function createA2uiV1NativeHost(options: A2uiV1NativeHostOptions): A2uiV1
 /** Returns whether a value is a genuine immutable host created by this package. */
 export function isA2uiV1NativeHost(value: unknown): value is A2uiV1NativeHost {
   return value !== null && typeof value === "object" && nativeHosts.has(value as A2uiV1NativeHost);
+}
+
+/** Creates a surface store bound to one registered host's exact extension registry. */
+export function createSurfaceStore(
+  host: A2uiV1NativeHost,
+  options: NativeSurfaceStoreOptions = {},
+): A2uiSurfaceStore {
+  if (!isA2uiV1NativeHost(host)) {
+    throw new TypeError("Expected an A2UI native host created by createA2uiV1NativeHost");
+  }
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new TypeError("Expected A2UI native surface store options to be an object");
+  }
+  return new A2uiSurfaceStore({
+    ...(host.policy.hostExtensions === undefined
+      ? {}
+      : { hostExtensions: host.policy.hostExtensions }),
+    ...(options.surfaceIdRegistry === undefined
+      ? {}
+      : { surfaceIdRegistry: options.surfaceIdRegistry }),
+  });
+}
+
+/** Creates the shared semantic session through one immutable React Native host registration. */
+export function createSession(
+  host: A2uiV1NativeHost,
+  options: NativeHostSessionOptions,
+): NativeSession {
+  if (!isA2uiV1NativeHost(host)) {
+    throw new TypeError("Expected an A2UI native host created by createA2uiV1NativeHost");
+  }
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new TypeError("Expected A2UI native session options to be an object");
+  }
+  const { locale, ...sessionOptions } = options;
+  return createNativeSession({
+    ...sessionOptions,
+    policy: host.policy,
+    renderOptions: {
+      ...(locale === undefined ? {} : { locale }),
+      ...(host.imagePolicy === undefined ? {} : { imagePolicy: host.imagePolicy }),
+      ...(host.mediaPolicy === undefined ? {} : { mediaPolicy: host.mediaPolicy }),
+      ...(host.hostExtensionPolicy === undefined
+        ? {}
+        : { hostExtensionPolicy: host.hostExtensionPolicy }),
+    },
+  });
 }
 
 /** Inspects the exact expanded plan and local registrations without entering React rendering. */
@@ -790,17 +815,6 @@ function freezeMountReport(
   });
 }
 
-/**
- * A serializable render plan. A React Native host maps these trusted component
- * names to locally bundled components; the MCP server never supplies code.
- */
-export interface NativeElement {
-  readonly key: string;
-  readonly component: NativeComponentName;
-  readonly props: Readonly<Record<string, unknown>>;
-  readonly children?: readonly NativeElement[];
-}
-
 export type A2uiV1NativeActionHandler = (
   envelope: A2uiV1ActionEnvelope,
   dataModel?: JsonObject,
@@ -1090,14 +1104,7 @@ export interface A2uiV1NativeHostSurfaceProps {
 export function A2uiV1NativeHostSurface(props: A2uiV1NativeHostSurfaceProps): ReactElement {
   const resetKey =
     props.resetKey ??
-    canonicalizeJson([
-      nativeHostResetKeys.get(props.host) ?? 0,
-      props.parentLayout ?? "unbounded",
-      props.surface.surfaceId,
-      props.surface.dataModelRevision ?? null,
-      props.surface.dataModel,
-      createComponentSourceKey(props.surface),
-    ]);
+    `${nativeHostResetKeys.get(props.host) ?? 0}:${props.parentLayout ?? "unbounded"}:${getNativeSurfaceResetKey(props.surface)}`;
   return createElement(
     A2uiV1NativeSurfaceBoundary,
     {
@@ -1147,39 +1154,6 @@ function A2uiV1NativeHostSurfaceContent({
     ...(locale === undefined ? {} : { locale }),
     ...(now === undefined ? {} : { now }),
   });
-}
-
-function createDataModelSourceKey(surface: A2uiV1SurfaceState): string {
-  return canonicalizeJson([
-    surface.surfaceId,
-    surface.dataModelRevision ?? null,
-    surface.dataModel,
-  ]);
-}
-
-function createComponentSourceKey(surface: A2uiV1SurfaceState): string {
-  return canonicalizeJson(
-    [...surface.components.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([id, component]) => [id, component]),
-  );
-}
-
-function canonicalizeJson(value: JsonValue): string {
-  if (value === null) {
-    return "null";
-  }
-  if (typeof value === "string" || typeof value === "boolean" || typeof value === "number") {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map(canonicalizeJson).join(",")}]`;
-  }
-  const object = value as JsonObject;
-  return `{${Object.keys(object)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonicalizeJson(object[key]!)}`)
-    .join(",")}}`;
 }
 
 function currentTimestamp(): string {
@@ -2413,116 +2387,6 @@ function rejectObjectKeys(value: JsonObject, allowed: readonly string[], path: s
   }
 }
 
-function updateDataModelBinding(
-  dataModel: JsonObject,
-  binding: string,
-  value: JsonValue,
-): JsonObject {
-  if (typeof binding !== "string" || !binding.startsWith("/") || binding.length === 1) {
-    throw new TypeError(
-      `Expected a non-root absolute JSON Pointer binding, received ${JSON.stringify(binding)}`,
-    );
-  }
-  const parsedValue = parseJsonValue(value, "renderer binding value");
-  const next = parseJsonObject(dataModel, "renderer data model");
-  const tokens = binding
-    .slice(1)
-    .split("/")
-    .map((token) => decodePointerToken(token, binding));
-  let cursor: JsonValue = next;
-  for (const [index, token] of tokens.entries()) {
-    const last = index === tokens.length - 1;
-    if (Array.isArray(cursor)) {
-      if (!/^(0|[1-9][0-9]*)$/.test(token)) {
-        throw new TypeError(`Invalid array binding index in ${JSON.stringify(binding)}`);
-      }
-      const arrayIndex = Number(token);
-      if (!Number.isSafeInteger(arrayIndex) || arrayIndex >= cursor.length) {
-        throw new TypeError(`Renderer binding ${JSON.stringify(binding)} is missing`);
-      }
-      if (last) {
-        cursor[arrayIndex] = validateRendererBindingReplacement(
-          cursor[arrayIndex]!,
-          parsedValue,
-          binding,
-        );
-        break;
-      }
-      cursor = cursor[arrayIndex]!;
-      continue;
-    }
-    if (cursor === null || typeof cursor !== "object" || !Object.hasOwn(cursor, token)) {
-      throw new TypeError(`Renderer binding ${JSON.stringify(binding)} is missing`);
-    }
-    if (last) {
-      defineJsonProperty(
-        cursor as Record<string, JsonValue>,
-        token,
-        validateRendererBindingReplacement(
-          (cursor as Record<string, JsonValue>)[token]!,
-          parsedValue,
-          binding,
-        ),
-      );
-      break;
-    }
-    cursor = (cursor as Record<string, JsonValue>)[token]!;
-  }
-  return parseJsonObject(next, "renderer data model");
-}
-
-function validateRendererBindingReplacement(
-  current: JsonValue,
-  next: JsonValue,
-  binding: string,
-): JsonValue {
-  if (
-    (typeof current === "string" && typeof next === "string") ||
-    (typeof current === "boolean" && typeof next === "boolean") ||
-    (typeof current === "number" && typeof next === "number")
-  ) {
-    return next;
-  }
-  if (
-    Array.isArray(current) &&
-    current.every((value) => typeof value === "string") &&
-    Array.isArray(next) &&
-    next.every((value) => typeof value === "string")
-  ) {
-    return Object.freeze([...next]);
-  }
-  throw new TypeError(
-    `Renderer binding ${JSON.stringify(binding)} must preserve its string, boolean, number, or string-array value type`,
-  );
-}
-
-function decodePointerToken(token: string, pointer: string): string {
-  for (let index = 0; index < token.length; index += 1) {
-    if (token[index] !== "~") {
-      continue;
-    }
-    const escaped = token[index + 1];
-    if (escaped !== "0" && escaped !== "1") {
-      throw new TypeError(`Invalid JSON Pointer escape in ${JSON.stringify(pointer)}`);
-    }
-    index += 1;
-  }
-  return token.replaceAll("~1", "/").replaceAll("~0", "~");
-}
-
-function defineJsonProperty(
-  object: Record<string, JsonValue>,
-  key: string,
-  value: JsonValue,
-): void {
-  Object.defineProperty(object, key, {
-    configurable: true,
-    enumerable: true,
-    value,
-    writable: true,
-  });
-}
-
 export {
   A2UI_V1_NATIVE_COMPONENT_NAMES,
   A2UI_V1_NATIVE_MAX_CHOICE_OPTIONS,
@@ -2545,9 +2409,12 @@ export {
   A2UI_V1_NATIVE_MAX_TOTAL_IMAGE_PIXELS,
   A2UI_V1_NATIVE_MAX_TOTAL_MEDIA_BYTES,
   createA2uiV1NativeRenderPlan,
+  createComponentSourceKey,
+  createDataModelSourceKey,
   resolveA2uiV1NativeEvent,
   resolveA2uiV1NativeOpenUrl,
-} from "./v1.js";
+  updateDataModelBinding,
+} from "@mcp-native/renderer-core";
 export type {
   A2uiV1NativeEventDescriptor,
   A2uiV1NativeEventResolutionOptions,
@@ -2563,10 +2430,10 @@ export type {
   A2uiV1NativeOpenUrlDescriptor,
   A2uiV1NativeOpenUrlResolutionOptions,
   A2uiV1NativeRenderPlanOptions,
-} from "./v1.js";
+} from "@mcp-native/renderer-core";
 
 /** Concise public names for the current React Native A2UI renderer profile. */
-export { A2UI_V1_NATIVE_ICON_NAMES as ICON_NAMES } from "./component-adapters.js";
+export { A2UI_V1_NATIVE_ICON_NAMES as ICON_NAMES } from "@mcp-native/renderer-core";
 export {
   A2UI_V1_NATIVE_COMPONENT_NAMES as COMPONENT_NAMES,
   A2UI_V1_NATIVE_MAX_CHOICE_OPTIONS as MAX_CHOICE_OPTIONS,
@@ -2591,7 +2458,7 @@ export {
   createA2uiV1NativeRenderPlan as createRenderPlan,
   resolveA2uiV1NativeEvent as resolveEvent,
   resolveA2uiV1NativeOpenUrl as resolveOpenUrl,
-} from "./v1.js";
+} from "@mcp-native/renderer-core";
 export type {
   A2uiV1NativeEventDescriptor as EventDescriptor,
   A2uiV1NativeEventResolutionOptions as EventResolutionOptions,
@@ -2607,7 +2474,7 @@ export type {
   A2uiV1NativeOpenUrlDescriptor as OpenUrlDescriptor,
   A2uiV1NativeOpenUrlResolutionOptions as OpenUrlResolutionOptions,
   A2uiV1NativeRenderPlanOptions as RenderPlanOptions,
-} from "./v1.js";
+} from "@mcp-native/renderer-core";
 
 export {
   A2uiV1NativeHostSurface as HostSurface,

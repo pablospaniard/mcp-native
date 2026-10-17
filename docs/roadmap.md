@@ -461,6 +461,12 @@ stability policy is published, and every release-blocking review result is resol
 
 ## Committed post-`1.0.0` roadmap
 
+Milestone 11–16 implementation PRs target `feature/native-platforms`. The accepted
+[runtime comparison and package strategy](RFC-0003-native-platforms.md) used a shared corpus,
+scoped iOS implementations, and an Android feasibility probe to select shared JavaScript semantics
+and a public renderer-core boundary. Milestone 12 is implemented on the integration branch; a
+coordinated release remains separate work and no package version is changed by that decision.
+
 The stable React Native host is a foundation, not the end of the product. The following initiatives
 are deliberately excluded from the `1.0.0` exit criteria and tracked as separate GitHub milestones.
 The stable host API and `1.x` compatibility policy have shipped. Milestone 11’s bounded inline
@@ -549,18 +555,82 @@ profiles without modifying the host package or weakening its built-in validation
 
 ### Milestone 12: platform-neutral renderer foundation
 
-- [ ] Extract and freeze platform-neutral renderer inputs, state transitions, actions, errors,
+Status: complete on the integration branch; release assignment remains separate.
+
+The [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) now provides 21
+language-neutral basic-form cases and a React Native reference runner, including local/server state,
+action authorization, invalid input, unreachable event sources, and bounded list expansion.
+Render-rejection cases exercise the mounted local state and recovery through the surface boundary.
+`npm run test:renderer-conformance` runs it independently; the normal check suite also includes it.
+The [iOS comparison](native-runtime-evaluation-ios.md) also ran all 21 cases through
+JavaScriptCore and independent Swift form semantics, with the same SwiftUI controls. The
+[Android engine probe](native-runtime-evaluation-android.md) passed the same corpus using
+the exact JavaScript bundle on one emulator/provider and demonstrates running-isolate termination.
+Broader provider support, full platform parity, and device performance remain renderer-specific work.
+[RFC-0004](RFC-0004-native-session-contract.md) now records the implemented shared session boundary:
+revision identity, state transitions, stale callback rejection, native authorization, cancellation,
+bounded work, and exact surface-ID lifetime ownership. Deterministic tests cover update/delete/close
+during authorization, duplicate admission, delivery failure, replacement sessions, render rejection,
+and operation exhaustion.
+
+- [x] Extract and freeze platform-neutral renderer inputs, state transitions, actions, errors,
       lifecycle, limits, and conformance fixtures without moving SwiftUI, Compose, React Native,
-      A2UI, or WebView implementations into `@mcp-native/core`.
-- [ ] Define package and dependency boundaries for platform renderers, shared semantic fixtures, and
+      A2UI, or WebView implementations into `@mcp-native/core`. Render-plan building, the component
+      catalog, action/event/`openUrl` resolution, limits, and conformance fixtures are extracted
+      into `@mcp-native/renderer-core`, which has no React, React Native, SwiftUI, or Jetpack
+      Compose dependency. State reconciliation identities, typed data-model binding updates, the
+      strict semantic session, revision-bound tickets, and authorization handoff are shared there.
+- [x] Define package and dependency boundaries for platform renderers, shared semantic fixtures, and
       host-shell integration while keeping navigation and platform view ownership in each application.
-- [ ] Prove that React Native continues to pass the shared fixtures before another renderer claims
-      compatibility.
+      `@mcp-native/renderer-core` sits between `@mcp-native/a2ui` and `@mcp-native/react-native`;
+      every extracted name is re-exported from `@mcp-native/react-native` under its existing name.
+- [x] Prove that React Native continues to pass the shared fixtures before another renderer claims
+      compatibility. `@mcp-native/react-native`'s existing test suite and the mechanical public-API
+      compatibility check pass unchanged against the extracted package.
+
+Renderer-core is the reviewed public package boundary. React Native creates sessions from its frozen
+host registration and retains existing export identities. The preserved SwiftUI and Android engine
+evaluations establish that platform adapters can run the shared JavaScript semantics without moving
+protocol or renderer dependencies into `@mcp-native/core`; first-class UI parity remains in milestones
+13 and 14 rather than reopening this foundation.
+
+#### Shared-store lifetime uniqueness
+
+Owner/tracking: [milestone 12 / #92](https://github.com/pablospaniard/mcp-native/issues/92).
+This is complete and remains explicitly opt-in for `1.x` compatibility.
+
+- [x] Add opt-in lifetime uniqueness to the published surface store, preserving current `1.x`
+      defaults. Specify the relationship between the store lifetime and the rendering context;
+      replacing an engine/store must not silently reset a continuing context's used IDs.
+- [x] Record the shared-registry design decision before implementing the opt-in or native-session
+      enforcement: reuse common retention/equality/budget logic in the existing A2UI layer for
+      in-process consumers; specify and test the trusted boundary where isolated engines or native
+      languages require separate representations. Keep context routing, pre-dispatch admission,
+      uncertain outcomes and teardown host-owned.
+- [x] Enforce retained-ID count, per-ID size and cumulative string budgets; retain accepted IDs
+      after deletion without eviction. Preserve recoverable rejection and atomic `applyAll` rollback
+      of both retained IDs and budget charges, preserving history from before the batch. Test failed
+      creations/batches and exhaustion as well as accepted create/delete/recreate sequences.
+- [x] Expose and test a React Native opt-in path and the published package-consumer API. Prove old
+      callers retain their behavior and strict callers enforce the documented lifetime. Document
+      migration, context boundaries and exhaustion handling, and update conformance evidence.
+
+`createSurfaceIdRegistry()` owns exact retained identity and budgets across replacement stores.
+`SurfaceStore({ surfaceIdRegistry })` and React Native's host-bound `createSurfaceStore()` opt in;
+omission preserves active-ID-only behavior. Failed batches roll back only their new identities and
+charges while accepted IDs survive deletion without eviction.
 
 Exit criterion: multiple native renderers can consume the same trusted semantic contract and shared
-behavioral fixtures without introducing platform dependencies into protocol-independent core.
+behavioral fixtures without introducing platform dependencies into protocol-independent core, and
+the published store/React Native opt-in above provides a tested lifetime-uniqueness path.
 
 ### Milestone 13: first-class SwiftUI renderer
+
+The [preserved scoped evaluation](native-runtime-evaluation-ios.md) proves the small shared form
+profile on an iOS 26.5 simulator, including a local tool-result-to-action flow, host admission
+cancellation, bounded nested layouts, and session recovery after malformed envelopes.
+It is not a shipped SDK or completion of the broader exit criteria below. Native date,
+field, Unicode-key and schema coverage remains narrower than the production React Native profile.
 
 - [ ] Build a SwiftUI renderer and Apple-platform host integration with native view lifecycle,
       bindings, focus, navigation handoff, accessibility, Dynamic Type, reduced motion, localization,
@@ -578,6 +648,10 @@ Exit criterion: SwiftUI is a first-class renderer for the documented semantic pr
 fail-closed boundary and published platform-specific compatibility limits as React Native.
 
 ### Milestone 14: first-class Jetpack Compose renderer
+
+The [preserved Android engine evaluation](native-runtime-evaluation-android.md) establishes shared-runtime
+feasibility on one Android 37 emulator with provider feature gates. It does not implement Compose
+views, native Kotlin semantics, accessibility or a supported Android SDK; the exit criteria stay open.
 
 - [ ] Build a Jetpack Compose renderer and Android host integration with native lifecycle, state,
       focus, back handling, accessibility, font scaling, reduced motion, localization, RTL, resources,

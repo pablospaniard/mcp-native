@@ -88,6 +88,13 @@ export { parseA2uiV1Envelope, parseA2uiV1Jsonl } from "./parse.js";
 export type { A2uiV1EnvelopeParseOptions } from "./parse.js";
 export { A2uiSurfaceStore } from "./store.js";
 export type { A2uiSurfaceStoreOptions } from "./store.js";
+export {
+  MAX_RETAINED_SURFACE_IDS,
+  MAX_RETAINED_SURFACE_ID_CODE_UNITS,
+  createA2uiSurfaceIdRegistry,
+  isA2uiSurfaceIdRegistry,
+} from "./surface-id-registry.js";
+export type { A2uiSurfaceIdRegistry, A2uiSurfaceIdRegistryOptions } from "./surface-id-registry.js";
 export { resolveA2uiV1JsonlFromToolResult } from "./resolve.js";
 export type { ResolvedA2uiV1JsonlResource } from "./resolve.js";
 export {

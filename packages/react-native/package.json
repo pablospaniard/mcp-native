@@ -50,7 +50,8 @@
   },
   "dependencies": {
     "@mcp-native/a2ui": "^1.1.0",
-    "@mcp-native/core": "^1.1.0"
+    "@mcp-native/core": "^1.1.0",
+    "@mcp-native/renderer-core": "^1.0.1"
   },
   "devDependencies": {
     "@types/react": "19.1.17",

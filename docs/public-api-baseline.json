@@ -27,17 +27,32 @@
       }
     },
     "@mcp-native/a2ui": {
-      "declarationSha256": "417cdaf075b84af98b9dd106822f8637f7e747dc437f5f9245314f5b12a5982e",
+      "declarationSha256": "b81dbb7a2a31038253abada96084e504255bc215db89d145d3c6696b0a1d1d62",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "c3433f2c7afbd99c7feee0e0647db18940fbabe13bacdd5a6071f036e4536687",
+          "runtimeSha256": "ed3c52b83e324db57c1e2d1186c20c54617b452dd1dc3b6c4fa72d52539a1093",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {
           "import": "./dist/legacy.js",
           "runtimeSha256": "150e3aa6bf8907d186c0708bd185b3d76a6c0a441637fe74824c69668c284a7b",
           "types": "./dist/legacy.d.ts"
+        }
+      }
+    },
+    "@mcp-native/renderer-core": {
+      "declarationSha256": "ae4bee0295c0f980a3fb436ab85e5507524ef647bdb95ece7f64598ca54ff1fb",
+      "exports": {
+        ".": {
+          "import": "./dist/index.js",
+          "runtimeSha256": "7b3298c22d133898cc39b4299b33f8a5e2d434364662314df9f65e2ca2e85835",
+          "types": "./dist/index.d.ts"
+        },
+        "./testing": {
+          "import": "./dist/testing.js",
+          "runtimeSha256": "73bd9f4bf0345d701538b0d828257768713e3383a7b1c0d3f1d242f3126aa1cc",
+          "types": "./dist/testing.d.ts"
         }
       }
     },
@@ -52,11 +67,11 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "2b7023c6d77e788be01964ecef85b1589781dd9b0c0ba19fe02b3bec423d4fb8",
+      "declarationSha256": "d47297de295e91fb31325b94fd1c791dd04df7f8aaefb243f8144ee29cbc9220",
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "954f1ab73683bd5084370bfb318a89a08a7e1bf511972d4f8aa7d3202e72b1c7",
+          "runtimeSha256": "ed5e2ac0f9fc2a2fa1c7400c18b02ff1255adb6759ba1535a5599f0dbf9a55ce",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {
@@ -106,7 +121,7 @@
       "exports": {
         ".": {
           "import": "./dist/index.js",
-          "runtimeSha256": "0a9c4e9be154ef9ea399967caf6abe2b4df082f0bc59db3d9bab4f8304d6c080",
+          "runtimeSha256": "d731a9b2cf652d5c1ae2ee507d8976d2ff9cd4e4b3ea533589fee630ef0daa7f",
           "types": "./dist/index.d.ts"
         },
         "./legacy": {

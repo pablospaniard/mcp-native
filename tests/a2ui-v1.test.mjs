@@ -9,12 +9,14 @@ import {
   A2UI_MIME_TYPE,
   A2UI_V1_MAX_ENVELOPES,
   A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
+  MAX_RETAINED_SURFACE_IDS,
   A2uiParseError,
   A2uiResourceError,
   A2uiSurfaceStore,
   createA2uiV1ActionDeliveryHandler,
   createA2uiV1ActionEnvelope,
   createA2uiV1RendererCapabilities,
+  createA2uiSurfaceIdRegistry,
   isA2uiMcpBindingGrant,
   negotiateA2uiMcpBinding,
   negotiateA2uiV1Capabilities,
@@ -627,6 +629,116 @@ test("applyAll rolls back the store when a later envelope fails", () => {
 
   assert.equal(store.has("keep"), true);
   assert.equal(store.has("temp"), false);
+});
+
+test("strict surface-ID registries retain accepted IDs after deletion and across replacement stores", () => {
+  const registry = createA2uiSurfaceIdRegistry();
+  const first = new A2uiSurfaceStore({ surfaceIdRegistry: registry });
+  first.apply({ version: "v1.0", createSurface: { surfaceId: "main" } });
+  first.apply({ version: "v1.0", deleteSurface: { surfaceId: "main" } });
+
+  assert.equal(registry.retainedCount, 1);
+  assert.equal(registry.retainedCodeUnits, 4);
+  assert.throws(
+    () => first.apply({ version: "v1.0", createSurface: { surfaceId: "main" } }),
+    /already used in this renderer lifetime/,
+  );
+  assert.throws(
+    () =>
+      new A2uiSurfaceStore({ surfaceIdRegistry: registry }).apply({
+        version: "v1.0",
+        createSurface: { surfaceId: "main" },
+      }),
+    /already used in this renderer lifetime/,
+  );
+
+  const independent = new A2uiSurfaceStore({
+    surfaceIdRegistry: createA2uiSurfaceIdRegistry(),
+  });
+  independent.apply({ version: "v1.0", createSurface: { surfaceId: "main" } });
+  assert.equal(independent.has("main"), true);
+});
+
+test("strict surface-ID registry exhaustion remains fail-closed after deleted surfaces", () => {
+  const registry = createA2uiSurfaceIdRegistry({ maximumRetainedIds: 2 });
+  const store = new A2uiSurfaceStore({ surfaceIdRegistry: registry });
+  for (const surfaceId of ["first", "second"]) {
+    store.apply({ version: "v1.0", createSurface: { surfaceId } });
+    store.apply({ version: "v1.0", deleteSurface: { surfaceId } });
+  }
+
+  assert.equal(store.size, 0);
+  assert.equal(registry.retainedCount, 2);
+  assert.throws(
+    () => store.apply({ version: "v1.0", createSurface: { surfaceId: "third" } }),
+    /maximum of 2 retained IDs/,
+  );
+  assert.equal(store.has("third"), false);
+});
+
+test("legacy stores preserve active-ID-only behavior", () => {
+  const store = new A2uiSurfaceStore();
+  store.apply({ version: "v1.0", createSurface: { surfaceId: "legacy" } });
+  store.apply({ version: "v1.0", deleteSurface: { surfaceId: "legacy" } });
+  store.apply({ version: "v1.0", createSurface: { surfaceId: "legacy" } });
+  assert.equal(store.has("legacy"), true);
+});
+
+test("strict surface-ID registry claims roll back atomically with failed batches", () => {
+  const registry = createA2uiSurfaceIdRegistry({ maximumRetainedIds: 2 });
+  const store = new A2uiSurfaceStore({ surfaceIdRegistry: registry });
+  store.apply({ version: "v1.0", createSurface: { surfaceId: "before" } });
+
+  assert.throws(
+    () =>
+      store.applyAll([
+        { version: "v1.0", createSurface: { surfaceId: "rolled-back" } },
+        { version: "v1.0", updateDataModel: { surfaceId: "missing", value: {} } },
+      ]),
+    /does not exist/,
+  );
+  assert.equal(registry.retainedCount, 1);
+  store.apply({ version: "v1.0", createSurface: { surfaceId: "after" } });
+  assert.equal(registry.retainedCount, 2);
+  assert.throws(
+    () => store.apply({ version: "v1.0", createSurface: { surfaceId: "overflow" } }),
+    /maximum of 2 retained IDs/,
+  );
+  assert.equal(store.has("overflow"), false);
+});
+
+test("strict surface-ID registries enforce per-ID and cumulative budgets before mutation", () => {
+  const registry = createA2uiSurfaceIdRegistry({
+    maximumRetainedIds: 3,
+    maximumIdCodeUnits: 4,
+    maximumRetainedCodeUnits: 6,
+  });
+  const store = new A2uiSurfaceStore({ surfaceIdRegistry: registry });
+  store.apply({ version: "v1.0", createSurface: { surfaceId: "abcd" } });
+  store.apply({ version: "v1.0", deleteSurface: { surfaceId: "abcd" } });
+  assert.throws(
+    () => store.apply({ version: "v1.0", createSurface: { surfaceId: "abcde" } }),
+    /maximum of 4 UTF-16 code units/,
+  );
+  store.apply({ version: "v1.0", createSurface: { surfaceId: "ef" } });
+  assert.throws(
+    () => store.apply({ version: "v1.0", createSurface: { surfaceId: "g" } }),
+    /maximum of 6 retained UTF-16 code units/,
+  );
+  assert.deepEqual(
+    [...store.list()].map(({ surfaceId }) => surfaceId),
+    ["ef"],
+  );
+});
+
+test("surface-ID registry and store options reject invalid or forged configuration", () => {
+  assert.equal(MAX_RETAINED_SURFACE_IDS, 4_096);
+  assert.throws(() => createA2uiSurfaceIdRegistry({ maximumRetainedIds: 0 }), /integer/);
+  assert.throws(() => createA2uiSurfaceIdRegistry({ unknown: true }), /Unexpected/);
+  assert.throws(() => new A2uiSurfaceStore({ surfaceIdRegistry: {} }), /opaque/);
+  const compatibleOptions = new A2uiSurfaceStore({ unknown: true });
+  compatibleOptions.apply({ version: "v1.0", createSurface: { surfaceId: "extra-options" } });
+  assert.equal(compatibleOptions.has("extra-options"), true);
 });
 
 test("surface store validates its public input even when callers bypass the parser", () => {

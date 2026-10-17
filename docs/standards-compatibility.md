@@ -25,6 +25,30 @@ supports only the [pinned, feature-scoped v1.0 Candidate profile](a2ui-v1-confor
 Its stable package API does not make the upstream specification stable, establish v0.9.1
 compatibility, or imply automatic compatibility with later Candidate revisions.
 
+Milestone 12's [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md)
+records exact JSON inputs and expected state, view, action, and rejection observations for a small
+form profile at the existing A2UI pin, including retained-edit render rejection and recovery.
+It ran on React Native and two [scoped iOS evaluation paths](native-runtime-evaluation-ios.md):
+JavaScriptCore semantics and independent Swift form semantics, using the same SwiftUI views.
+Experiment boundary probes also cover nested layouts through their common 64-component path limit
+and malformed envelopes that preserve session state.
+The latter have narrower declared inputs and simulator evidence only; supported SDK, full native
+profile, physical-device and Compose compatibility claims are unchanged.
+The [preserved Android engine evaluation](native-runtime-evaluation-android.md) also executed the exact
+shared JavaScript bundle and corpus on one Android 37 emulator/WebView provider. The corpus includes
+array-update parity; Android boundary probes reject malformed JSON lexemes and close invalid-response
+sessions. This adds engine,
+JSON-bridge and termination evidence only; there is no Compose renderer or independent Kotlin
+conformance implementation.
+
+The [native session contract](RFC-0004-native-session-contract.md) is implemented in renderer-core.
+Its async identity, authorization, lifecycle, and bounded-work tests are project evidence rather than
+changes to the pinned wire profile. Native SDK and device-performance claims remain unchanged. The
+[surface-ID lifetime interpretation](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation)
+defines bounded context-owned ID tracking and migration while preserving published defaults.
+The [shared-store opt-in](roadmap.md#shared-store-lifetime-uniqueness) supplies the strict path for
+published store and React Native consumers without silently changing existing callers.
+
 ## Official references
 
 The `1.1.0` [inline custom-contract binding](custom-contracts.md) adds the project-owned

@@ -33,7 +33,7 @@ advertising is limited to a host's complete implementation.
 
 | Direction         | Message                    | Support boundary                                                                     |
 | ----------------- | -------------------------- | ------------------------------------------------------------------------------------ |
-| Agent to renderer | `createSurface`            | Schema-validated and applied to bounded ordered state.                               |
+| Agent to renderer | `createSurface`            | Schema-validated; compatible active-ID default plus strict lifetime opt-in below.    |
 | Agent to renderer | `updateComponents`         | Schema-validated and applied atomically.                                             |
 | Agent to renderer | `updateDataModel`          | Schema-validated and applied as a bounded RFC 6901 update.                           |
 | Agent to renderer | `deleteSurface`            | Schema-validated and applied to ordered state.                                       |
@@ -43,6 +43,14 @@ advertising is limited to a host's complete implementation.
 | Renderer to agent | `callAgentFunction`        | Parsed as owned data against the pinned schema. No execution or delivery is implied. |
 | Renderer to agent | `rendererFunctionResponse` | Parsed as owned data against the pinned schema. No transport is selected.            |
 | Renderer to agent | `error`                    | Parsed as owned data against the pinned schema. It is not trusted as a host error.   |
+
+The published store's compatible default rejects creation of an active ID but permits recreation
+after deletion. Strict consumers create one bounded `SurfaceIdRegistry` for the host rendering
+context and pass it to replacement stores; accepted IDs then survive deletion and engine/store
+replacement. Per-ID, retained-count, and cumulative string limits fail before mutation. Atomic
+batch failure restores only new claims and charges. React Native exposes the same opt-in through its
+registered-host store helper. See the implemented
+[native-session policy](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation).
 
 Every accepted renderer-to-agent envelope has exactly `version: "v1.0"` and exactly one known
 message field. Strings and JSON graphs are bounded. Unknown versions, kinds, functions, fields on
@@ -122,9 +130,34 @@ generated-input behavior. The runnable [Expo Go todo app](../examples/expo-go-to
 adds complementary application-level evidence; the package gates above verify the declared
 protocol profile.
 
-The `@mcp-native/react-native/testing` entry point supplies fresh canonical adapter surfaces for
-the semantics most likely to vary across design systems. Those fixtures and local layout contracts
-test host implementations; they are not additional wire-level components or conformance claims.
+The `@mcp-native/renderer-core/testing` entry point supplies fresh canonical adapter surfaces for
+the semantics most likely to vary across design systems; `@mcp-native/react-native/testing` is a
+compatibility re-export of the same fixtures. Those fixtures and local layout contracts test host
+implementations; they are not additional wire-level components or conformance claims.
+
+The [shared renderer corpus](../tests/fixtures/renderer-conformance/README.md) adds language-neutral,
+machine-checkable basic-form scenarios for milestone 12. The current React Native
+implementation executes them through its real callbacks and action-delivery boundary. This is
+additional project-level evidence for the existing exact pin, not upstream certification, full
+catalog coverage, or a supported native SDK claim. The corpus documents which lifecycle
+choices belong to its host harness and which checks exercise production protocol/renderer code.
+Render outcomes come from the mounted surface's effective model, including retained local edits;
+a focused `formatDate` case covers render rejection and recovery without expanding the wire profile.
+Two [preserved iOS evaluation runners](native-runtime-evaluation-ios.md) executed the same
+cases through JavaScriptCore and independent Swift semantics. Their narrower input limits and
+simulator evidence do not expand this production conformance profile; no Compose runner exists yet.
+The shared corpus also covers project store semantics for array append at length, appended object
+parents, deletion, and rejection of gaps/noncanonical indices without mutation.
+The [preserved Android engine evaluation](native-runtime-evaluation-android.md) ran the identical bundle
+and corpus with native admission/authorization checks on one emulator provider. Its feature-gated
+engine support and termination probes do not expand the production wire profile or claim Compose UI
+or native Kotlin semantic parity.
+
+The implemented [native session contract](RFC-0004-native-session-contract.md) preserves these semantic
+observations and adds deterministic async authorization, stale-ticket, close, replacement, and
+bounded-work scenarios. It does not expand normative wire support. The
+[surface-ID lifetime gap](RFC-0004-native-session-contract.md#surface-id-lifetime-interpretation)
+has a context-lifetime and migration policy enforced by the opt-in registry and shared session.
 
 ## Candidate interpretations
 

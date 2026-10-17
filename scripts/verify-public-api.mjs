@@ -4,15 +4,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const packageDirectories = [
-  "packages/core",
-  "packages/mcp",
-  "packages/a2ui",
-  "packages/webview",
-  "packages/react-native",
-  "packages/host",
-  "packages/mcp-native",
-];
+import { loadWorkspacePackages } from "./workspace-packages.mjs";
+
+const packageDirectories = loadWorkspacePackages().map(({ directory }) => directory);
 
 const actual = { formatVersion: 1, packages: {} };
 for (const packageDirectory of packageDirectories) {
@@ -20,6 +14,22 @@ for (const packageDirectory of packageDirectories) {
   const declarationFiles = listFiles(join(packageDirectory, "dist"))
     .filter((filename) => filename.endsWith(".d.ts"))
     .sort();
+  const sourceDirectory = join(packageDirectory, "src");
+  const expectedDeclarationFiles = listFiles(sourceDirectory)
+    .filter((filename) => filename.endsWith(".ts"))
+    .map((filename) =>
+      join(
+        packageDirectory,
+        "dist",
+        relative(sourceDirectory, filename).replace(/\.ts$/u, ".d.ts"),
+      ),
+    )
+    .sort();
+  assert.deepEqual(
+    declarationFiles,
+    expectedDeclarationFiles,
+    `${manifest.name} dist contains missing or stale declaration files; clean the build output`,
+  );
   const declarationHash = createHash("sha256");
   for (const filename of declarationFiles) {
     declarationHash.update(relative(packageDirectory, filename));

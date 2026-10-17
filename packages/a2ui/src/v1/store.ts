@@ -9,6 +9,12 @@ import {
 import type { A2uiV1HostExtensionRegistry } from "./host-extensions.js";
 import { parseA2uiV1Envelope } from "./parse.js";
 import {
+  claimA2uiSurfaceId,
+  isA2uiSurfaceIdRegistry,
+  releaseA2uiSurfaceIdClaim,
+} from "./surface-id-registry.js";
+import type { A2uiSurfaceIdRegistry } from "./surface-id-registry.js";
+import {
   A2UI_V1_MAX_COMPONENTS,
   A2UI_V1_MAX_ENVELOPES,
   A2UI_V1_MAX_STORE_STRING_CODE_UNITS,
@@ -42,6 +48,11 @@ interface JsonBudget {
 export interface A2uiSurfaceStoreOptions {
   /** Exact local/negotiated extension registry. Omission retains basic-catalog-only parsing. */
   readonly hostExtensions?: A2uiV1HostExtensionRegistry;
+  /**
+   * Opts into renderer-lifetime surface-ID uniqueness. Reuse one registry across replacement
+   * stores in the same host rendering context; omission preserves the published active-ID behavior.
+   */
+  readonly surfaceIdRegistry?: A2uiSurfaceIdRegistry;
 }
 
 /**
@@ -51,6 +62,7 @@ export interface A2uiSurfaceStoreOptions {
 export class A2uiSurfaceStore {
   readonly #surfaces = new Map<string, MutableSurface>();
   readonly #hostExtensions: A2uiV1HostExtensionRegistry | undefined;
+  readonly #surfaceIdRegistry: A2uiSurfaceIdRegistry | undefined;
   #retainedValues = 0;
   #retainedStringCodeUnits = 0;
 
@@ -66,7 +78,14 @@ export class A2uiSurfaceStore {
         "Expected an opaque host-extension registry in surface store options",
       );
     }
+    if (
+      options.surfaceIdRegistry !== undefined &&
+      !isA2uiSurfaceIdRegistry(options.surfaceIdRegistry)
+    ) {
+      throw new A2uiParseError("Expected an opaque surface-ID registry in surface store options");
+    }
     this.#hostExtensions = options.hostExtensions;
+    this.#surfaceIdRegistry = options.surfaceIdRegistry;
   }
 
   get size(): number {
@@ -103,22 +122,22 @@ export class A2uiSurfaceStore {
     );
   }
 
-  #applyValidated(envelope: A2uiV1Envelope): void {
+  #applyValidated(envelope: A2uiV1Envelope): string | undefined {
     if ("createSurface" in envelope) {
       this.#createSurface(envelope.createSurface);
-      return;
+      return this.#surfaceIdRegistry === undefined ? undefined : envelope.createSurface.surfaceId;
     }
     if ("updateComponents" in envelope) {
       this.#updateComponents(envelope.updateComponents);
-      return;
+      return undefined;
     }
     if ("updateDataModel" in envelope) {
       this.#updateDataModel(envelope.updateDataModel);
-      return;
+      return undefined;
     }
     if ("deleteSurface" in envelope) {
       this.#deleteSurface(envelope.deleteSurface.surfaceId);
-      return;
+      return undefined;
     }
     throw new A2uiParseError("Unsupported A2UI v1 envelope for the surface store");
   }
@@ -138,6 +157,7 @@ export class A2uiSurfaceStore {
     const snapshot = cloneSurfaces(this.#surfaces);
     const retainedValues = this.#retainedValues;
     const retainedStringCodeUnits = this.#retainedStringCodeUnits;
+    const claimedSurfaceIds: string[] = [];
     let batchBudget = EMPTY_BUDGET;
     try {
       for (const input of envelopes) {
@@ -146,7 +166,8 @@ export class A2uiSurfaceStore {
         });
         batchBudget = addBudgets(batchBudget, measureJson(envelope));
         assertBatchBudget(batchBudget);
-        this.#applyValidated(envelope);
+        const claimedSurfaceId = this.#applyValidated(envelope);
+        if (claimedSurfaceId !== undefined) claimedSurfaceIds.push(claimedSurfaceId);
       }
     } catch (error) {
       this.#surfaces.clear();
@@ -155,6 +176,11 @@ export class A2uiSurfaceStore {
       }
       this.#retainedValues = retainedValues;
       this.#retainedStringCodeUnits = retainedStringCodeUnits;
+      if (this.#surfaceIdRegistry !== undefined) {
+        for (let index = claimedSurfaceIds.length - 1; index >= 0; index -= 1) {
+          releaseA2uiSurfaceIdClaim(this.#surfaceIdRegistry, claimedSurfaceIds[index]!);
+        }
+      }
       throw error;
     }
   }
@@ -209,6 +235,9 @@ export class A2uiSurfaceStore {
       metadataBudget,
     );
     this.#assertStoreBudget(retainedBudget);
+    if (this.#surfaceIdRegistry !== undefined) {
+      claimA2uiSurfaceId(this.#surfaceIdRegistry, message.surfaceId);
+    }
 
     const surface: MutableSurface = {
       surfaceId: message.surfaceId,
