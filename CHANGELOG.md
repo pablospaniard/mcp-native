@@ -11,17 +11,19 @@ patch and minor releases remain compatible within their release line.
 - Add the first-class `MCPNativeCompose` Android library for API 33 and later. It maps the complete
   trusted catalog to Jetpack Compose, runs the shared renderer-core session in a fixed bounded
   AndroidX JavaScriptEngine isolate, preserves two-phase action delivery, and exposes closed
-  host-owned navigation, resource, media, Compose, and Android View extension seams. Pinned JVM and
-  API 37 emulator checks cover hostile JSON, engine lifecycle, interaction, and accessibility.
+  host-owned navigation, resource, media, Compose, and Android View extension seams. Pinned JVM
+  checks cover hostile JSON; local API 37 emulator verification covers engine lifecycle,
+  interaction, and accessibility without making hosted device execution a required CI gate.
 
 - Add the first-class `MCPNativeSwiftUI` Swift Package for iOS, macOS, tvOS, and visionOS. It maps
   all 18 pinned catalog components, runs the shared revisioned session in a fixed local
   JavaScriptCore bundle, preserves two-phase action authorization/delivery, and exposes closed
   host-owned resource, navigation, media, and schema-validated extension seams. SwiftPM tests,
-  hostile bridge limits, generated-bundle drift checks, Apple simulator builds, and an exact
+  hostile bridge limits, generated-bundle drift checks, local Apple platform builds, and an exact
   compatibility matrix define the support boundary. A repository-root manifest makes the Git URL
   directly consumable by SwiftPM while retaining the focused local package manifest. Automated
-  semantic parity checks, tests, and platform builds keep both entry points aligned.
+  semantic parity checks and tests keep both entry points aligned; simulator builds remain a local
+  release-verification step rather than a required CI gate.
 
 - Implement the shared native session contract (RFC-0004): server/local reconciliation, render and
   surface revisions, opaque instance-bound callback tickets, asynchronous native authorization,

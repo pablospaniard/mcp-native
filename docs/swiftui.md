@@ -8,9 +8,10 @@ Native objects and functions never cross into JavaScriptCore.
 Consumers add `https://github.com/pablospaniard/mcp-native.git` as a SwiftPM dependency and select
 the `MCPNativeSwiftUI` library product. The repository-root `Package.swift` is the supported remote
 entry point; `packages/swiftui/Package.swift` remains available for focused local development. CI
-verifies that both manifests expose identical package semantics, tests both, and compiles each for
-every supported Apple platform. Do not add the remote and local packages to the same dependency
-graph because they intentionally expose the same product and module. Remote SwiftPM consumption
+verifies that both manifests expose identical package semantics and runs their SwiftPM tests.
+Local release verification compiles each manifest for every supported Apple platform. Do not
+combine the remote and local packages in one dependency graph because they intentionally expose
+the same product and module. Remote SwiftPM consumption
 checks out the monorepo, but the root manifest limits compilation and resource processing to the
 SwiftUI package paths.
 
@@ -20,10 +21,10 @@ SwiftUI package paths.
 | ------------ | --------------- | ------------------------------------------------------- |
 | Swift        | 6 language mode | Swift Package build and tests                           |
 | Xcode        | 16.0 or newer   | exact Xcode 16.4 CI lane; Xcode 27.1 local verification |
-| iOS / iPadOS | 18.0            | generic iOS Simulator build                             |
+| iOS / iPadOS | 18.0            | local generic iOS Simulator build                       |
 | macOS        | 15.0            | native Swift Package tests                              |
-| tvOS         | 18.0            | generic tvOS Simulator build                            |
-| visionOS     | 2.0             | generic visionOS Simulator build                        |
+| tvOS         | 18.0            | local generic tvOS Simulator build                      |
+| visionOS     | 2.0             | local generic visionOS Simulator build                  |
 
 watchOS is excluded because JavaScriptCore is not an available application framework there. UIKit,
 AppKit, and SwiftUI views can be wrapped behind the same local `AnyView` catalog seam; their own OS

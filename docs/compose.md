@@ -54,8 +54,9 @@ graphs, and stale control tickets reject without dispatch.
 ## Evidence and exclusions
 
 `npm run android:runtime:build` regenerates the checked-in asset. The Compose workflow checks bundle
-drift, builds and lints the library, runs bounded JSON JVM tests, then runs engine, hostile-input,
-lifecycle, action, Compose interaction, and accessibility-semantic tests on an API 37 emulator.
+drift, builds and lints the library, runs bounded JSON JVM tests, and compiles the instrumentation
+test APK. Local release verification runs the engine, hostile-input, lifecycle, action, Compose
+interaction, and accessibility-semantic tests on the pinned API 37 emulator.
 
 The support claim does not cover physical-device performance, OEM WebView providers, app-provided
 resource decoders/players, background playback, external routes, or extension implementations. Hosts
