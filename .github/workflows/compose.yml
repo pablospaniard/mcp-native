@@ -9,6 +9,10 @@ on:
       - packages/renderer-core/**
       - packages/a2ui/**
       - packages/core/**
+      - scripts/compose-maven-publication.mjs
+      - scripts/smoke-compose-publication.mjs
+      - tests/compose-maven-publication.test.mjs
+      - tests/fixtures/compose-consumer/**
       - package.json
       - package-lock.json
   push:
@@ -19,6 +23,10 @@ on:
       - packages/renderer-core/**
       - packages/a2ui/**
       - packages/core/**
+      - scripts/compose-maven-publication.mjs
+      - scripts/smoke-compose-publication.mjs
+      - tests/compose-maven-publication.test.mjs
+      - tests/fixtures/compose-consumer/**
       - package.json
       - package-lock.json
 
@@ -51,3 +59,5 @@ jobs:
       - name: Compile, lint, and run JVM tests
         working-directory: packages/compose
         run: ./gradlew testDebugUnitTest lintDebug assembleDebugAndroidTest --no-daemon
+      - name: Verify Maven publication and clean consumer
+        run: npm run android:package:smoke

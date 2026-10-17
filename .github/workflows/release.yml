@@ -9,6 +9,10 @@ on:
         description: Existing GitHub release tag to resume
         required: true
         type: string
+      maven_deployment_id:
+        description: Existing Maven Central deployment ID to resume
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -81,6 +85,10 @@ jobs:
           node-version: 22.14.0
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
       - run: npm install --global npm@11.17.0
       - run: npm ci
         working-directory: release
@@ -88,6 +96,18 @@ jobs:
         working-directory: release
         env:
           MCP_NATIVE_RELEASE_TAG: ${{ steps.release.outputs.tag }}
+      - run: npm run android:package:smoke
+        working-directory: release
       - name: Publish missing package versions
         working-directory: release
         run: node ../automation/scripts/publish-release.mjs
+      - name: Publish Compose to Maven Central
+        working-directory: release
+        run: node ../automation/scripts/compose-maven-publication.mjs
+        env:
+          MCP_NATIVE_RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          MAVEN_CENTRAL_DEPLOYMENT_ID: ${{ inputs.maven_deployment_id }}
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          MAVEN_SIGNING_KEY: ${{ secrets.MAVEN_SIGNING_KEY }}
+          MAVEN_SIGNING_PASSWORD: ${{ secrets.MAVEN_SIGNING_PASSWORD }}

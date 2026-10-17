@@ -4,6 +4,19 @@
 the platform-neutral `@mcp-native/renderer-core` session in a fixed local JavaScript bundle and maps
 only its closed trusted render plan to Kotlin-owned UI.
 
+## Installation
+
+Tagged releases use the coordinated repository version and are available from Maven Central:
+
+```kotlin
+dependencies {
+  implementation("io.github.pablospaniard:mcp-native-compose:<version>")
+}
+```
+
+Development checkouts may instead include `packages/compose` as a local Gradle build. Production
+applications should use an immutable Maven Central version rather than a moving Git branch.
+
 ## Supported boundary
 
 | Boundary             | Supported and tested value                                                              |
@@ -54,9 +67,11 @@ graphs, and stale control tickets reject without dispatch.
 ## Evidence and exclusions
 
 `npm run android:runtime:build` regenerates the checked-in asset. The Compose workflow checks bundle
-drift, builds and lints the library, runs bounded JSON JVM tests, and compiles the instrumentation
-test APK. Local release verification runs the engine, hostile-input, lifecycle, action, Compose
-interaction, and accessibility-semantic tests on the pinned API 37 emulator.
+drift, builds and lints the library, runs bounded JSON JVM tests, compiles the instrumentation test
+APK, publishes the release variant to an isolated Maven repository, and compiles a clean consumer
+against only that repository and ordinary upstream dependencies. Local release verification runs
+the engine, hostile-input, lifecycle, action, Compose interaction, and accessibility-semantic tests
+on the pinned API 37 emulator.
 
 The support claim does not cover physical-device performance, OEM WebView providers, app-provided
 resource decoders/players, background playback, external routes, or extension implementations. Hosts

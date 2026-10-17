@@ -8,6 +8,11 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Publish the first-class Compose renderer as
+  `io.github.pablospaniard:mcp-native-compose` on Maven Central from the protected coordinated
+  release workflow. The signed AAR includes sources, documentation, complete POM metadata, checksum
+  validation, resumable Portal status polling, and a clean-consumer publication smoke test.
+
 - Add the first-class `MCPNativeCompose` Android library for API 33 and later. It maps the complete
   trusted catalog to Jetpack Compose, runs the shared renderer-core session in a fixed bounded
   AndroidX JavaScriptEngine isolate, preserves two-phase action delivery, and exposes closed

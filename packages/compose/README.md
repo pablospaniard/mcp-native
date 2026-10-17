@@ -5,10 +5,16 @@ same generated renderer-core session used by the SwiftUI package and maps its tr
 Jetpack Compose. Server input cannot select Kotlin classes, composable functions, activities,
 fragments, intents, modules, or commands.
 
-The package is source-consumable from `packages/compose` during the unreleased development cycle.
-Add it as an included Gradle build or copy the `:library` project into an Android workspace. A
-coordinated release will publish Maven coordinates; do not depend on a moving Git branch in a
-production application.
+During development, the package is source-consumable from `packages/compose` as an included Gradle
+build. Tagged releases are published to Maven Central:
+
+```kotlin
+dependencies {
+  implementation("io.github.pablospaniard:mcp-native-compose:<version>")
+}
+```
+
+Use the same coordinated version as the repository's npm packages and GitHub release.
 
 ```kotlin
 val session = RendererSession.create(
