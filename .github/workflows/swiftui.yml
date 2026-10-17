@@ -49,13 +49,15 @@ jobs:
           xcode-version: "16.4"
       - run: npm ci
       - run: npm run build
-      - run: npm run apple:runtime:build
+      - run: npm run apple:test
       - run: git diff --exit-code -- packages/swiftui/Sources/MCPNativeSwiftUI/Resources/runtime.js
-      - name: Test remote SwiftPM entry point
-        run: swift test
-      - name: Test focused local Swift package
-        run: swift test --package-path packages/swiftui
-      - name: Compile Apple platform surfaces
+      - name: Compile remote SwiftPM entry point
+        run: |
+          xcodebuild build -scheme MCPNativeSwiftUI -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+          xcodebuild build -scheme MCPNativeSwiftUI -destination 'generic/platform=tvOS Simulator' CODE_SIGNING_ALLOWED=NO
+          xcodebuild build -scheme MCPNativeSwiftUI -destination 'generic/platform=visionOS Simulator' CODE_SIGNING_ALLOWED=NO
+      - name: Compile focused local Swift package
+        working-directory: packages/swiftui
         run: |
           xcodebuild build -scheme MCPNativeSwiftUI -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
           xcodebuild build -scheme MCPNativeSwiftUI -destination 'generic/platform=tvOS Simulator' CODE_SIGNING_ALLOWED=NO

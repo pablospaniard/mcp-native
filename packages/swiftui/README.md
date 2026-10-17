@@ -4,7 +4,10 @@
 Swift Package containing SwiftUI views and a fixed, app-bundled JavaScriptCore semantic runtime. It
 never downloads or evaluates server JavaScript and never resolves a server-selected native type.
 
-Add the repository URL as a Swift Package dependency in Xcode, or declare it in `Package.swift`:
+## Pre-release installation for evaluation
+
+No tagged release contains the repository-root manifest yet. For evaluation only, add the
+repository URL on the moving `main` branch in Xcode or declare it in `Package.swift`:
 
 ```swift
 dependencies: [
@@ -20,10 +23,11 @@ targets: [
 ]
 ```
 
-The repository-root manifest is the supported remote entry point. The manifest in this directory
-provides the same product for focused local development. Until the first release containing the
-root manifest is tagged, use the `main` branch or pin an exact commit; released applications should
-move to that release's version requirement once available.
+For reproducible evaluation, pin an exact commit instead of `main`. Released applications should
+use a version requirement after the first release containing the root manifest is tagged. The
+repository-root manifest is the supported remote entry point; the manifest in this directory
+provides the same product for focused local development. Do not add both forms to one dependency
+graph: they intentionally expose the same `MCPNativeSwiftUI` product and module.
 
 ```swift
 import MCPNativeSwiftUI
