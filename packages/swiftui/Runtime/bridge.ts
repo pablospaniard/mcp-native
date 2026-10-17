@@ -13,6 +13,7 @@ import { createNativeSession } from "@mcp-native/renderer-core";
 import type {
   NativeSession,
   NativeSessionActionProposal,
+  NativeSessionControl,
   NativeSessionOperationResult,
   NativeSessionPressResult,
   NativeSessionTicket,
@@ -95,6 +96,46 @@ let nextPressId = 1;
 let activePressId: string | undefined;
 let extensionRegistry: HostExtensionRegistry | undefined;
 let actionTimestamp = "";
+
+function utf8Length(value: string): number {
+  let bytes = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x7f) bytes += 1;
+    else if (code <= 0x7ff) bytes += 2;
+    else if (code >= 0xd800 && code <= 0xdbff && index + 1 < value.length) {
+      const next = value.charCodeAt(index + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        bytes += 4;
+        index += 1;
+      } else bytes += 3;
+    } else bytes += 3;
+    if (bytes > MAX_RESPONSE_CODE_UNITS) return bytes;
+  }
+  return bytes;
+}
+
+function abandonPendingPress(): void {
+  pending?.resolveAuthorization?.(false);
+  pending?.resolveDelivery?.(new Error("press cancelled"));
+  pending = undefined;
+  activePressId = undefined;
+}
+
+function resetBridgeState(): void {
+  try {
+    session?.close();
+  } catch {
+    // Reset must remain terminal even if a session implementation throws while closing.
+  }
+  session = undefined;
+  token = undefined;
+  sequence = 0;
+  tickets.clear();
+  abandonPendingPress();
+  extensionRegistry = undefined;
+  actionTimestamp = "";
+}
 
 function requireObject(value: unknown, name: string): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -199,41 +240,24 @@ function open(configurationInput: unknown, timestamp: unknown): void {
   });
 }
 
-function sourceIdFromKey(key: string): string {
-  const slash = key.lastIndexOf("/");
-  const segment = slash === -1 ? key : key.slice(slash + 1);
-  const separator = segment.lastIndexOf(":");
-  const encoded = separator === -1 ? segment : segment.slice(0, separator);
-  return encoded.replaceAll("%3A", ":").replaceAll("%2F", "/").replaceAll("%25", "%");
-}
-
 function serializeResult(result: NativeSessionOperationResult): unknown {
   if (result.kind !== "published") return result;
   tickets = new Map();
-  const unused = result.controls.map((control, index) => ({
-    control,
-    id: `c${index}`,
-    used: false,
-  }));
-  for (const entry of unused) tickets.set(entry.id, entry.control.ticket);
+  const controls = result.controls as readonly (NativeSessionControl & {
+    readonly elementKey: string;
+  })[];
+  const controlsByElementKey = new Map(
+    controls.map((control, index) => [
+      control.elementKey,
+      {
+        control,
+        id: `c${index}`,
+      },
+    ]),
+  );
+  for (const entry of controlsByElementKey.values()) tickets.set(entry.id, entry.control.ticket);
   const visit = (node: typeof result.plan): unknown => {
-    const event = node.props.event as
-      | { readonly sourceComponentId?: unknown; readonly instanceKey?: unknown }
-      | undefined;
-    const binding = typeof node.props.binding === "string" ? node.props.binding : undefined;
-    const sourceComponentId =
-      typeof event?.sourceComponentId === "string"
-        ? event.sourceComponentId
-        : sourceIdFromKey(node.key);
-    const instanceKey = typeof event?.instanceKey === "string" ? event.instanceKey : undefined;
-    const match = unused.find(
-      (entry) =>
-        !entry.used &&
-        entry.control.sourceComponentId === sourceComponentId &&
-        entry.control.instanceKey === instanceKey &&
-        entry.control.binding === binding,
-    );
-    if (match !== undefined) match.used = true;
+    const match = controlsByElementKey.get(node.key);
     return {
       id: node.key,
       component: node.component,
@@ -266,12 +290,20 @@ function operate(request: Record<string, unknown>): unknown {
       const id = `p${nextPressId++}`;
       pending = { phase: "authorizing" };
       activePressId = id;
-      void session.press(ticket).then((result) => {
-        if (pending !== undefined && activePressId === id) {
-          pending.phase = "complete";
-          pending.result = result;
-        }
-      });
+      void session.press(ticket).then(
+        (result) => {
+          if (pending !== undefined && activePressId === id) {
+            pending.phase = "complete";
+            pending.result = result;
+          }
+        },
+        () => {
+          if (pending !== undefined && activePressId === id) {
+            pending.phase = "complete";
+            pending.result = { kind: "rejected", code: "delivery-failed" };
+          }
+        },
+      );
       return { kind: "pending", pressID: id };
     }
     case "poll":
@@ -305,6 +337,12 @@ function operate(request: Record<string, unknown>): unknown {
       activePressId = undefined;
       return result;
     }
+    case "cancel":
+      if (request.pressID !== activePressId || pending === undefined) {
+        return { kind: "rejected", code: "stale" };
+      }
+      abandonPendingPress();
+      return { kind: "unchanged" };
     case "extensionEvent": {
       if (extensionRegistry === undefined) return { kind: "rejected", code: "stale" };
       const manifest = getHostExtensionManifest(
@@ -313,12 +351,17 @@ function operate(request: Record<string, unknown>): unknown {
         request.componentName,
       );
       if (manifest === undefined) return { kind: "rejected", code: "stale" };
-      const payload = validateHostExtensionEvent(
-        manifest,
-        request.name,
-        request.payload,
-        request.userActivated === true,
-      );
+      let payload: Record<string, unknown>;
+      try {
+        payload = validateHostExtensionEvent(
+          manifest,
+          request.name,
+          request.payload,
+          request.userActivated === true,
+        );
+      } catch {
+        return { kind: "rejected", code: "extension-event-rejected" };
+      }
       return {
         kind: "extension-event",
         event: {
@@ -335,12 +378,7 @@ function operate(request: Record<string, unknown>): unknown {
       };
     }
     case "close":
-      session.close();
-      session = undefined;
-      tickets.clear();
-      pending = undefined;
-      activePressId = undefined;
-      extensionRegistry = undefined;
+      resetBridgeState();
       return null;
     default:
       throw new TypeError("Unknown bridge operation");
@@ -372,14 +410,10 @@ export function exchange(source: unknown): string {
       value = operate(request);
     }
     const response = JSON.stringify({ ok: true, value });
-    if (response.length > MAX_RESPONSE_CODE_UNITS) throw new TypeError("Response limit");
+    if (utf8Length(response) > MAX_RESPONSE_CODE_UNITS) throw new TypeError("Response limit");
     return response;
   } catch (error) {
-    session?.close();
-    session = undefined;
-    tickets.clear();
-    pending = undefined;
-    extensionRegistry = undefined;
+    resetBridgeState();
     const response = JSON.stringify({
       ok: false,
       error: "apple-renderer-session-failed",

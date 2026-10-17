@@ -102,6 +102,31 @@ enum BoundedJSON {
   }
 
   static func encode(_ value: JSONValue) throws -> Data {
+    var stack: [(value: JSONValue, depth: Int)] = [(value, 1)]
+    var count = 0
+    var strings = 0
+    while let entry = stack.popLast() {
+      count += 1
+      guard count <= maximumValues, entry.depth <= maximumDepth else {
+        throw RendererError.bridgeLimit
+      }
+      switch entry.value {
+      case .object(let object):
+        for (key, child) in object {
+          strings += key.utf16.count
+          guard strings <= maximumStringCodeUnits else { throw RendererError.bridgeLimit }
+          stack.append((child, entry.depth + 1))
+        }
+      case .array(let array):
+        for child in array { stack.append((child, entry.depth + 1)) }
+      case .string(let string):
+        strings += string.utf16.count
+        guard strings <= maximumStringCodeUnits else { throw RendererError.bridgeLimit }
+      case .number(let number):
+        guard number.isFinite else { throw RendererError.bridgeLimit }
+      case .bool, .null: break
+      }
+    }
     let data = try JSONEncoder().encode(value)
     guard data.count <= maximumBytes else { throw RendererError.bridgeLimit }
     return data

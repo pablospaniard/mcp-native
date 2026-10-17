@@ -34,14 +34,15 @@ surface/revision identity.
   action budgets. A malformed bridge response closes the session.
 - Action authorization and delivery are separate asynchronous phases. Updates, deletion, or close
   invalidate pending work before delivery.
-- HTTP(S) navigation is handed to the application. The server cannot select a route, controller,
-  class, selector, module, command, Swift type, or arbitrary property.
+- Navigation is restricted to HTTPS, denied by default, and handed to the application only after
+  its `authorizeOpenURL` callback approves the exact canonical URL. The server cannot select a
+  route, controller, class, selector, module, command, Swift type, or arbitrary property.
 - Images and media are inert unless the application installs a local renderer for them and grants
   the exact canonical URL. The local renderer receives the complete transfer/redirect/decoded-image
   policy and is responsible for enforcing it.
-- Host extensions require an exact locally supplied manifest and negotiation match. Props and events
-  are schema-validated, capability grants are closed subsets, and the server never supplies a view
-  implementation.
+- Host extensions require an exact locally supplied manifest and negotiation match. The local view
+  registration must match the plan's manifest fingerprint. Props and events are schema-validated,
+  capability grants are closed subsets, and the server never supplies a view implementation.
 
 Regenerate the checked-in runtime with `npm run apple:runtime:build`; test it with
 `npm run apple:test`. Runtime bundle changes must be reviewed together with their TypeScript source.

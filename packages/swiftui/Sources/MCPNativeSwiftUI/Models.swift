@@ -122,14 +122,24 @@ public struct HostCatalog {
   public typealias ExtensionEmitter = @MainActor @Sendable (String, JSONValue, Bool) -> Void
   public typealias ExtensionView = @MainActor @Sendable (NativeNode, @escaping ExtensionEmitter) -> AnyView
 
+  public struct ExtensionRegistration {
+    public let manifestFingerprint: String
+    public let view: ExtensionView
+
+    public init(manifestFingerprint: String, view: @escaping ExtensionView) {
+      self.manifestFingerprint = manifestFingerprint
+      self.view = view
+    }
+  }
+
   public var image: ResourceView?
   public var video: ResourceView?
   public var audio: ResourceView?
-  public var extensions: [String: ExtensionView]
+  public var extensions: [String: ExtensionRegistration]
 
   public init(
     image: ResourceView? = nil, video: ResourceView? = nil, audio: ResourceView? = nil,
-    extensions: [String: ExtensionView] = [:]
+    extensions: [String: ExtensionRegistration] = [:]
   ) {
     self.image = image
     self.video = video

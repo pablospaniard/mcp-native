@@ -46,6 +46,7 @@ jobs:
         with:
           xcode-version: "16.4"
       - run: npm ci
+      - run: npm run build
       - run: npm run apple:runtime:build
       - run: git diff --exit-code -- packages/swiftui/Sources/MCPNativeSwiftUI/Resources/runtime.js
       - run: swift test --package-path packages/swiftui

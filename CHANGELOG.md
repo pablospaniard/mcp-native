@@ -58,6 +58,10 @@ patch and minor releases remain compatible within their release line.
 
 ### Fixed
 
+- SwiftUI renderer action cancellation no longer leaves presses busy; extension-event rejection is
+  non-terminal, exact control and host-extension identities cross the bridge, navigation requires
+  explicit HTTPS approval, date/choice/modal controls preserve native interaction semantics, and
+  bridge values are bounded before encoding with consistent UTF-8 response accounting.
 - Android experiment rejects malformed JSON lexemes before normalization and closes hosts after
   invalid observation/action responses. Native regression probes verify both failure paths.
 - Swift experiment supports store-compatible array append, nested append and removal, with a new

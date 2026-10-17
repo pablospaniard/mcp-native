@@ -3,6 +3,7 @@ import Foundation
 
 public typealias ActionAuthorizer = @MainActor @Sendable (ActionProposal) async -> Bool
 public typealias ActionDeliverer = @MainActor @Sendable (ActionProposal) async throws -> Void
+public typealias OpenURLAuthorizer = @MainActor @Sendable (URL) async -> Bool
 public typealias OpenURLHandler = @MainActor @Sendable (URL) async -> Void
 public typealias HostExtensionEventHandler = @MainActor @Sendable (HostExtensionEvent) -> Void
 
@@ -15,6 +16,7 @@ public final class RendererSession: ObservableObject {
   public var catalog: HostCatalog
   private let authorize: ActionAuthorizer
   private let deliver: ActionDeliverer
+  private let authorizeOpenURL: OpenURLAuthorizer
   private let openURLHandler: OpenURLHandler
   private let extensionEventHandler: HostExtensionEventHandler
   private var bridge: JavaScriptBridge?
@@ -23,6 +25,7 @@ public final class RendererSession: ObservableObject {
     policy: RendererPolicy, catalog: HostCatalog = HostCatalog(),
     authorize: @escaping ActionAuthorizer,
     deliver: @escaping ActionDeliverer,
+    authorizeOpenURL: @escaping OpenURLAuthorizer = { _ in false },
     openURL: @escaping OpenURLHandler = { _ in },
     onHostExtensionEvent: @escaping HostExtensionEventHandler = { _ in }
   ) throws {
@@ -30,6 +33,7 @@ public final class RendererSession: ObservableObject {
     self.catalog = catalog
     self.authorize = authorize
     self.deliver = deliver
+    self.authorizeOpenURL = authorizeOpenURL
     self.openURLHandler = openURL
     self.extensionEventHandler = onHostExtensionEvent
     bridge = try JavaScriptBridge(policy: policy)
@@ -63,6 +67,12 @@ public final class RendererSession: ObservableObject {
         consumeOperation(started)
         return
       }
+      var finished = false
+      defer {
+        if !finished {
+          _ = try? bridge.call(operation: "cancel", fields: ["pressID": .string(pressID)])
+        }
+      }
       var authorizationHandled = false
       var deliveryHandled = false
       for _ in 0..<32 {
@@ -90,6 +100,7 @@ public final class RendererSession: ObservableObject {
           deliveryHandled = true
         } else if kind == "complete" {
           let result = try bridge.call(operation: "finish", fields: ["pressID": .string(pressID)])
+          finished = true
           consumeOperation(result)
           return
         }
@@ -102,12 +113,13 @@ public final class RendererSession: ObservableObject {
 
   public func open(_ urlString: String) async {
     guard let url = URL(string: urlString), let scheme = url.scheme?.lowercased(),
-      scheme == "https" || scheme == "http"
+      scheme == "https", await authorizeOpenURL(url)
     else {
       lastDiagnostic = "rejected open URL"
       return
     }
     await openURLHandler(url)
+    lastDiagnostic = nil
   }
 
   public func emitHostExtensionEvent(
@@ -125,6 +137,10 @@ public final class RendererSession: ObservableObject {
           "name": .string(name), "payload": payload, "userActivated": .bool(userActivated),
         ]
       )
+      if result.object?["kind"]?.string == "rejected" {
+        lastDiagnostic = result.object?["code"]?.string ?? "extension-event-rejected"
+        return
+      }
       guard let event = result.object?["event"]?.object else { throw RendererError.invalidResponse }
       extensionEventHandler(HostExtensionEvent(
         extensionID: event["extensionId"]?.string ?? "",

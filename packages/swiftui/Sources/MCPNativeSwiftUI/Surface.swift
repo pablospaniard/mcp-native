@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 public struct Surface: View {
@@ -122,99 +123,55 @@ private struct NodeView: View {
   }
 
   @ViewBuilder private var choicePicker: some View {
-    let options = node.props["options"]?.array ?? []
-    let selected = node.props["value"]?.array?.compactMap(\.string) ?? []
-    if node.props["variant"]?.string == "multipleSelection" {
-      VStack(alignment: .leading) {
-        if let label = node.props["label"]?.string { Text(label).font(.caption) }
-        ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-          let object = option.object ?? [:]
-          let value = object["value"]?.string ?? ""
-          Toggle(
-            object["label"]?.string ?? value,
-            isOn: Binding(
-              get: { selected.contains(value) },
-              set: { enabled in
-                var next = selected.filter { $0 != value }
-                if enabled { next.append(value) }
-                if let controlID = node.controlID {
-                  session.input(controlID: controlID, value: .array(next.map(JSONValue.string)))
-                }
-              }
-            )
-          )
-        }
-      }
-    } else {
-      Picker(
-        node.props["label"]?.string ?? "",
-        selection: Binding(
-          get: { selected.first ?? "" },
-          set: { value in
-            if let controlID = node.controlID {
-              session.input(controlID: controlID, value: .array([.string(value)]))
-            }
-          }
-        )
-      ) {
-        ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-          let object = option.object ?? [:]
-          Text(object["label"]?.string ?? "").tag(object["value"]?.string ?? "")
-        }
-      }
-    }
+    ChoicePickerNode(node: node, session: session)
   }
 
   private var slider: some View {
     let minimum = node.props["minimum"]?.number ?? 0
     let maximum = node.props["maximum"]?.number ?? 1
     let step = node.props["step"]?.number ?? (maximum - minimum) / 100
+    let value = node.props["value"]?.number ?? minimum
+    guard minimum.isFinite, maximum.isFinite, step.isFinite, value.isFinite,
+      minimum < maximum, step > 0, value >= minimum, value <= maximum
+    else { return AnyView(EmptyView()) }
     #if os(tvOS)
-      return HStack {
+      return AnyView(HStack {
         if let label = node.props["label"]?.string { Text(label) }
         Button("−") {
           if let controlID = node.controlID {
             session.input(
               controlID: controlID,
-              value: .number(max(minimum, (node.props["value"]?.number ?? minimum) - step))
+              value: .number(max(minimum, value - step))
             )
           }
         }
-        Text(String(node.props["value"]?.number ?? minimum))
+        Text(String(value))
         Button("+") {
           if let controlID = node.controlID {
             session.input(
               controlID: controlID,
-              value: .number(min(maximum, (node.props["value"]?.number ?? minimum) + step))
+              value: .number(min(maximum, value + step))
             )
           }
         }
-      }
+      })
     #else
-      return VStack(alignment: .leading) {
+      return AnyView(VStack(alignment: .leading) {
       if let label = node.props["label"]?.string { Text(label) }
       Slider(
         value: Binding(
-          get: { node.props["value"]?.number ?? minimum },
+          get: { value },
           set: { value in
             if let controlID = node.controlID { session.input(controlID: controlID, value: .number(value)) }
           }
         ), in: minimum...maximum, step: step
       )
-      }
+      })
     #endif
   }
 
   private var dateTimeInput: some View {
-    TextField(
-      node.props["label"]?.string ?? "",
-      text: Binding(
-        get: { node.props["value"]?.string ?? "" },
-        set: { value in
-          if let controlID = node.controlID { session.input(controlID: controlID, value: .string(value)) }
-        }
-      )
-    )
+    DateTimeInputNode(node: node, session: session)
   }
 
   @ViewBuilder private var divider: some View {
@@ -232,8 +189,10 @@ private struct NodeView: View {
 
   @ViewBuilder private var extensionView: some View {
     let key = "\(node.props["catalogId"]?.string ?? "")#\(node.props["componentName"]?.string ?? "")"
-    if let factory = session.catalog.extensions[key] {
-      factory(node) { name, payload, userActivated in
+    if let registration = session.catalog.extensions[key],
+      registration.manifestFingerprint == node.props["manifestFingerprint"]?.string
+    {
+      registration.view(node) { name, payload, userActivated in
         session.emitHostExtensionEvent(
           from: node, name: name, payload: payload, userActivated: userActivated
         )
@@ -243,9 +202,219 @@ private struct NodeView: View {
   }
 }
 
+private struct ChoicePickerNode: View {
+  let node: NativeNode
+  @ObservedObject var session: RendererSession
+  @State private var selected: [String]
+
+  init(node: NativeNode, session: RendererSession) {
+    self.node = node
+    self.session = session
+    _selected = State(initialValue: node.props["value"]?.array?.compactMap(\.string) ?? [])
+  }
+
+  var body: some View {
+    let options = node.props["options"]?.array ?? []
+    Group {
+      if node.props["variant"]?.string == "multipleSelection" {
+        VStack(alignment: .leading) {
+          if let label = node.props["label"]?.string { Text(label).font(.caption) }
+          ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+            if let object = option.object, let value = object["value"]?.string {
+              Toggle(
+                object["label"]?.string ?? value,
+                isOn: Binding(
+                  get: { selected.contains(value) },
+                  set: { enabled in update(value, enabled: enabled) }
+                )
+              )
+            }
+          }
+        }
+      } else {
+        Picker(
+          node.props["label"]?.string ?? "",
+          selection: Binding(
+            get: { selected.first ?? "" },
+            set: { value in updateSingle(value) }
+          )
+        ) {
+          if selected.isEmpty { Text("Select").tag("") }
+          ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+            if let object = option.object, let value = object["value"]?.string {
+              Text(object["label"]?.string ?? value).tag(value)
+            }
+          }
+        }
+      }
+    }
+    .onChange(of: node.props["value"]?.array?.compactMap(\.string) ?? []) { _, value in
+      selected = value
+    }
+  }
+
+  private func update(_ value: String, enabled: Bool) {
+    var next = selected.filter { $0 != value }
+    if enabled { next.append(value) }
+    selected = next
+    publish(next)
+  }
+
+  private func updateSingle(_ value: String) {
+    let next = value.isEmpty ? [] : [value]
+    selected = next
+    publish(next)
+  }
+
+  private func publish(_ value: [String]) {
+    guard let controlID = node.controlID else { return }
+    session.input(controlID: controlID, value: .array(value.map(JSONValue.string)))
+  }
+}
+
+private struct DateTimeInputNode: View {
+  let node: NativeNode
+  @ObservedObject var session: RendererSession
+  @State private var selection: Date
+  @State private var draft: String
+
+  init(node: NativeNode, session: RendererSession) {
+    self.node = node
+    self.session = session
+    let value = node.props["value"]?.string ?? ""
+    _selection = State(initialValue: parseDateTime(value, props: node.props) ?? Date())
+    _draft = State(initialValue: value)
+  }
+
+  @ViewBuilder
+  var body: some View {
+    #if os(tvOS)
+      TextField(
+        node.props["label"]?.string ?? "",
+        text: Binding(get: { draft }, set: { draft = $0 })
+      )
+      .onSubmit { publish(draft) }
+      .disabled(node.props["disabled"]?.bool == true || node.controlID == nil)
+      .onChange(of: node.props["value"]?.string ?? "") { _, value in draft = value }
+    #else
+    DatePicker(
+      node.props["label"]?.string ?? "",
+      selection: Binding(
+        get: { selection },
+        set: { next in
+          selection = next
+          publish(next)
+        }
+      ),
+      displayedComponents: displayedComponents
+    )
+    .environment(\.timeZone, TimeZone(secondsFromGMT: 0)!)
+    .disabled(node.props["disabled"]?.bool == true || node.controlID == nil)
+    .onChange(of: node.props["value"]?.string) { _, value in
+      if let next = parseDateTime(value, props: node.props) { selection = next }
+    }
+    #endif
+  }
+
+  #if !os(tvOS)
+  private var displayedComponents: DatePickerComponents {
+    var components: DatePickerComponents = []
+    if node.props["enableDate"]?.bool == true { components.insert(.date) }
+    if node.props["enableTime"]?.bool == true { components.insert(.hourAndMinute) }
+    return components
+  }
+  #endif
+
+  private func publish(_ date: Date) {
+    guard let controlID = node.controlID,
+      isWithinBounds(date, props: node.props),
+      let value = formatDateTime(date, props: node.props)
+    else { return }
+    session.input(controlID: controlID, value: .string(value))
+  }
+
+  private func publish(_ value: String) {
+    guard let controlID = node.controlID else { return }
+    if value.isEmpty {
+      session.input(controlID: controlID, value: .string(value))
+      return
+    }
+    guard let date = parseDateTime(value, props: node.props), isWithinBounds(date, props: node.props)
+    else { return }
+    session.input(controlID: controlID, value: .string(value))
+  }
+}
+
+private func parseDateTime(_ value: String?, props: [String: JSONValue]) -> Date? {
+  guard let value, !value.isEmpty else { return nil }
+  let enableDate = props["enableDate"]?.bool == true
+  let enableTime = props["enableTime"]?.bool == true
+  if enableDate && enableTime {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let date = formatter.date(from: value) { return date }
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter.date(from: value)
+  }
+  if enableDate {
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar(identifier: .gregorian)
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.dateFormat = "yyyy-MM-dd"
+    formatter.isLenient = false
+    return formatter.date(from: value)
+  }
+  for format in [
+    "HH:mm:ss.SSSSSSSSSXXXXX", "HH:mm:ssXXXXX", "HH:mmXXXXX",
+    "HH:mm:ss.SSSSSSSSS", "HH:mm:ss", "HH:mm",
+  ] {
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar(identifier: .gregorian)
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.defaultDate = Date(timeIntervalSince1970: 0)
+    formatter.dateFormat = format
+    formatter.isLenient = false
+    if let date = formatter.date(from: value) { return date }
+  }
+  return nil
+}
+
+private func formatDateTime(_ date: Date, props: [String: JSONValue]) -> String? {
+  let enableDate = props["enableDate"]?.bool == true
+  let enableTime = props["enableTime"]?.bool == true
+  if enableDate && enableTime {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter.string(from: date)
+  }
+  if enableDate {
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar(identifier: .gregorian)
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.string(from: date)
+  }
+  guard enableTime else { return nil }
+  let components = Calendar(identifier: .gregorian).dateComponents(
+    in: TimeZone(secondsFromGMT: 0)!, from: date)
+  guard let hour = components.hour, let minute = components.minute, let second = components.second else {
+    return nil
+  }
+  return String(format: "%02d:%02d:%02d", hour, minute, second)
+}
+
+private func isWithinBounds(_ date: Date, props: [String: JSONValue]) -> Bool {
+  if let minimum = parseDateTime(props["minimum"]?.string, props: props), date < minimum { return false }
+  if let maximum = parseDateTime(props["maximum"]?.string, props: props), date > maximum { return false }
+  return true
+}
+
 private extension View {
   @ViewBuilder func nativeAccessibility(_ props: [String: JSONValue]) -> some View {
-    let hidden = props["accessibilityElementsHidden"]?.bool == true
+    let hidden = props["accessibilityHidden"]?.bool == true
     let label = props["accessibilityLabel"]?.string
     let hint = props["accessibilityHint"]?.string
     if hidden { accessibilityHidden(true) }
@@ -281,28 +450,66 @@ private struct ModalNode: View {
   @ObservedObject var session: RendererSession
   @State private var presented = false
 
+  @ViewBuilder
   var body: some View {
-    Button(node.children.first?.props["title"]?.string ?? "Open") { presented = true }
-      .sheet(isPresented: $presented) {
-        if node.children.count == 2 { NodeView(node: node.children[1], session: session).padding() }
+    if let trigger = node.children.first {
+      let triggerButton = Button(
+        trigger.props["title"]?.string ?? trigger.props["accessibilityLabel"]?.string ?? "Open"
+      ) {
+        presented = true
+        if let controlID = trigger.controlID {
+          Task { await session.activate(controlID: controlID) }
+        } else if let url = trigger.props["openUrl"]?.object?["url"]?.string {
+          Task { await session.open(url) }
+        }
       }
+      .disabled(trigger.props["disabled"]?.bool == true)
+      if trigger.props["variant"]?.string == "borderless" {
+        triggerButton.buttonStyle(.plain).sheet(isPresented: $presented) { content }
+      } else {
+        triggerButton.sheet(isPresented: $presented) { content }
+      }
+    }
+  }
+
+  @ViewBuilder private var content: some View {
+    if node.children.count == 2 {
+      NodeView(node: node.children[1], session: session).padding()
+    }
   }
 }
 
 private func resourceGrant(_ value: JSONValue?) -> ResourceGrant? {
-  guard let object = value?.object, let maximumBytes = object["maximumBytes"]?.number else { return nil }
+  guard let object = value?.object,
+    let maximumBytes = exactNonNegativeInteger(object["maximumBytes"]), maximumBytes > 0,
+    let maximumRedirects = exactNonNegativeInteger(object["maximumRedirects"] ?? .number(0)),
+    let maximumDecodedWidth = exactOptionalPositiveInteger(object["maximumDecodedWidth"]),
+    let maximumDecodedHeight = exactOptionalPositiveInteger(object["maximumDecodedHeight"]),
+    let maximumDecodedPixels = exactOptionalPositiveInteger(object["maximumDecodedPixels"])
+  else { return nil }
   return ResourceGrant(
     allowedOrigins: object["allowedRedirectOrigins"]?.array?.compactMap(\.string) ?? [],
     allowedMIMETypes: object["allowedMimeTypes"]?.array?.compactMap(\.string) ?? [],
-    maximumBytes: Int(maximumBytes), maximumRedirects: Int(object["maximumRedirects"]?.number ?? 0),
-    maximumDecodedWidth: object["maximumDecodedWidth"]?.number.map(Int.init),
-    maximumDecodedHeight: object["maximumDecodedHeight"]?.number.map(Int.init),
-    maximumDecodedPixels: object["maximumDecodedPixels"]?.number.map(Int.init),
+    maximumBytes: maximumBytes, maximumRedirects: maximumRedirects,
+    maximumDecodedWidth: maximumDecodedWidth,
+    maximumDecodedHeight: maximumDecodedHeight,
+    maximumDecodedPixels: maximumDecodedPixels,
     allowsAutoplay: object["allowsAutoplay"]?.bool ?? false,
     allowsBackgroundPlayback: object["allowsBackgroundPlayback"]?.bool ?? false,
     allowsExternalRoutes: object["allowsExternalRoutes"]?.bool ?? false,
     requiresUserActivation: object["requiresUserActivation"]?.bool ?? true
   )
+}
+
+private func exactNonNegativeInteger(_ value: JSONValue?) -> Int? {
+  guard let number = value?.number, number >= 0, number.rounded() == number else { return nil }
+  return Int(exactly: number)
+}
+
+private func exactOptionalPositiveInteger(_ value: JSONValue?) -> Int?? {
+  guard let value else { return .some(nil) }
+  guard let result = exactNonNegativeInteger(value), result > 0 else { return nil }
+  return .some(.some(result))
 }
 
 private func horizontalAlignment(_ value: String?) -> HorizontalAlignment {

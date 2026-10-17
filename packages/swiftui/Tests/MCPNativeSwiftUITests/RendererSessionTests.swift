@@ -3,6 +3,11 @@ import XCTest
 
 @MainActor
 final class RendererSessionTests: XCTestCase {
+  private final class URLState {
+    var allowed = false
+    var opened: [URL] = []
+  }
+
   private let policy = RendererPolicy(
     allowedComponentNames: ["Column", "Text", "TextField", "CheckBox", "Button"],
     allowedEventNames: ["submit"], allowedFunctionNames: ["required"], locale: "en-US"
@@ -39,6 +44,24 @@ final class RendererSessionTests: XCTestCase {
     XCTAssertEqual(session.lastDiagnostic, "denied")
   }
 
+  func testDeliveryFailureDoesNotLeaveLaterPressesBusy() async throws {
+    var authorizationCount = 0
+    let session = try RendererSession(
+      policy: policy,
+      authorize: { _ in authorizationCount += 1; return true },
+      deliver: { _ in throw RendererError.rejected("delivery failed") }
+    )
+    session.apply(createEnvelope)
+    var button = try XCTUnwrap(find(try XCTUnwrap(session.publication).root, component: "Button"))
+    await session.activate(controlID: try XCTUnwrap(button.controlID))
+    XCTAssertEqual(session.lastDiagnostic, "delivery-failed")
+
+    button = try XCTUnwrap(find(try XCTUnwrap(session.publication).root, component: "Button"))
+    await session.activate(controlID: try XCTUnwrap(button.controlID))
+    XCTAssertEqual(authorizationCount, 2)
+    XCTAssertEqual(session.lastDiagnostic, "delivery-failed")
+  }
+
   func testRejectsUnknownComponentAndOversizedInput() throws {
     let session = try RendererSession(policy: policy, authorize: { _ in true }, deliver: { _ in })
     session.apply(.object([
@@ -55,6 +78,61 @@ final class RendererSessionTests: XCTestCase {
     XCTAssertEqual(session.lastDiagnostic, "message-rejected")
 
     XCTAssertThrowsError(try session.apply(data: Data(repeating: 32, count: BoundedJSON.maximumBytes + 1)))
+  }
+
+  func testRejectsOversizedAndDeepValuesBeforeEncoding() throws {
+    XCTAssertThrowsError(
+      try BoundedJSON.encode(.string(String(repeating: "x", count: BoundedJSON.maximumBytes + 1)))
+    )
+    var deep: JSONValue = .null
+    for _ in 0...BoundedJSON.maximumDepth { deep = .array([deep]) }
+    XCTAssertThrowsError(try BoundedJSON.encode(deep))
+    XCTAssertThrowsError(try BoundedJSON.encode(.number(.infinity)))
+  }
+
+  func testOpenURLRequiresExplicitApprovalAndHTTPS() async throws {
+    let state = URLState()
+    let session = try RendererSession(
+      policy: policy, authorize: { _ in true }, deliver: { _ in },
+      authorizeOpenURL: { _ in state.allowed }, openURL: { state.opened.append($0) }
+    )
+    await session.open("https://example.com/approved")
+    XCTAssertTrue(state.opened.isEmpty)
+    XCTAssertEqual(session.lastDiagnostic, "rejected open URL")
+
+    state.allowed = true
+    await session.open("http://example.com/cleartext")
+    XCTAssertTrue(state.opened.isEmpty)
+    await session.open("https://example.com/approved")
+    XCTAssertEqual(state.opened.map(\.absoluteString), ["https://example.com/approved"])
+    XCTAssertNil(session.lastDiagnostic)
+  }
+
+  func testControlMappingDoesNotDecodeElementKeys() throws {
+    let session = try RendererSession(policy: policy, authorize: { _ in true }, deliver: { _ in })
+    session.apply(.object([
+      "version": .string("v1.0"),
+      "createSurface": .object([
+        "surfaceId": .string("encoded-ids"),
+        "components": .array([
+          .object([
+            "id": .string("root"), "component": .string("Column"),
+            "children": .array([.string("field/with:%3Aescapes")]),
+          ]),
+          .object([
+            "id": .string("field/with:%3Aescapes"), "component": .string("TextField"),
+            "label": .string("Value"), "value": .object(["path": .string("/value")]),
+          ])
+        ]),
+        "dataModel": .object(["value": .string("before")]),
+      ]),
+    ]))
+    let field = try XCTUnwrap(find(try XCTUnwrap(session.publication).root, component: "TextInput"))
+    session.input(controlID: try XCTUnwrap(field.controlID), value: .string("after"))
+    XCTAssertEqual(
+      find(try XCTUnwrap(session.publication).root, component: "TextInput")?.props["value"],
+      .string("after")
+    )
   }
 
   func testCloseIsTerminal() throws {
@@ -98,7 +176,9 @@ final class RendererSessionTests: XCTestCase {
     session.emitHostExtensionEvent(
       from: extensionNode, name: "undeclared:event", payload: .object([:]), userActivated: true
     )
-    XCTAssertNotNil(session.lastDiagnostic)
+    XCTAssertEqual(session.lastDiagnostic, "extension-event-rejected")
+    session.render()
+    XCTAssertNotNil(session.publication)
   }
 
   private var createEnvelope: JSONValue {
