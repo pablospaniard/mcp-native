@@ -55,17 +55,15 @@ jobs:
       - name: Compile, lint, and run JVM tests
         working-directory: packages/compose
         run: ./gradlew testDebugUnitTest lintDebug assembleDebugAndroidTest --no-daemon
-      - name: Run API 37 renderer and accessibility tests
+      - name: Run API 36 renderer and accessibility tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
-          system-image-api-level: "37.1"
-          target: google_apis_ps16k
-          emulator-build: 15917651
+          target: google_apis
           arch: x86_64
           profile: pixel_6
           disk-size: 8G
-          emulator-options: -no-window -gpu swangle_indirect -no-snapshot -noaudio
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           working-directory: packages/compose
           script: ./gradlew connectedDebugAndroidTest --no-daemon

@@ -39,7 +39,7 @@ shared JavaScript bundle and corpus on one Android 37 emulator/WebView provider.
 array-update parity; Android boundary probes reject malformed JSON lexemes and close invalid-response
 sessions. This adds engine,
 JSON-bridge and termination evidence only. The later [Compose renderer](compose.md) adds the supported
-Kotlin host boundary and API 37 UI/conformance evidence.
+Kotlin host boundary and API 36 CI UI/conformance evidence.
 
 The [native session contract](RFC-0004-native-session-contract.md) is implemented in renderer-core.
 Its async identity, authorization, lifecycle, and bounded-work tests are project evidence rather than

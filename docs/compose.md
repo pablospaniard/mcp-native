@@ -8,7 +8,7 @@ only its closed trusted render plan to Kotlin-owned UI.
 
 | Boundary             | Supported and tested value                                                              |
 | -------------------- | --------------------------------------------------------------------------------------- |
-| Android runtime      | API 33 minimum; Android 37.1 Google APIs 16 KiB x86_64 image on emulator 37.1.11        |
+| Android runtime      | API 33 minimum; API 36 Google APIs x86_64 CI image; Android 37.1 locally verified       |
 | Compile / target SDK | compile SDK 36; host chooses target SDK                                                 |
 | Build tools          | Android build tools 36.0.0, AGP 8.13.2, Gradle 8.14.3, JDK 17                           |
 | Kotlin / Compose     | Kotlin and Compose compiler 2.2.20; Compose BOM 2025.10.00                              |
@@ -55,7 +55,7 @@ graphs, and stale control tickets reject without dispatch.
 
 `npm run android:runtime:build` regenerates the checked-in asset. The Compose workflow checks bundle
 drift, builds and lints the library, runs bounded JSON JVM tests, then runs engine, hostile-input,
-lifecycle, action, Compose interaction, and accessibility-semantic tests on an API 37 emulator.
+lifecycle, action, Compose interaction, and accessibility-semantic tests on an API 36 emulator.
 
 The support claim does not cover physical-device performance, OEM WebView providers, app-provided
 resource decoders/players, background playback, external routes, or extension implementations. Hosts
