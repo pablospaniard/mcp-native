@@ -138,7 +138,7 @@ as a separate namespaced semantic action or future capability profile with close
 policy, limits, and user activation where required. Do not add a generic command name or payload to
 an extension component.
 
-The generated native host provides a real Codegen specification plus UIKit `UILabel` and Android
-`TextView` implementations through Fabric. This proves the local compilation path; it is not a
-first-class SwiftUI or Jetpack Compose renderer. Those renderers and the wider universal native
-capability provider model remain committed post-`1.0.0` roadmap work.
+The generated React Native host provides a real Codegen specification plus UIKit `UILabel` and
+Android `TextView` implementations through Fabric. The direct SwiftUI and Compose packages provide
+their own closed host-extension seams. The wider universal native-capability provider model remains
+committed roadmap work.

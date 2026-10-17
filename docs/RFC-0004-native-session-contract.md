@@ -392,7 +392,7 @@ Physical-device performance remains deferred and unscored.
 | Response integrity                  | Android strict JSON, malformed response and pending-close probes                                                                  | Both adapters reject wrong sequence/generation, duplicate replies and malformed observation/action shapes; old completions cannot affect replacement sessions                               |
 | Cancellation                        | Android running-loop termination; Apple admission cancellation                                                                    | Close during evaluation without blocking UI/admission; late result discarded; host-wide capacity exhaustion, repeated timeouts and late/duplicate cleanup acknowledgments on both platforms |
 | Result retention                    | Current bounded experiment logs                                                                                                   | Long sequence of valid operations emits deltas; retained host/session output stays within configured bounds and resets on close                                                             |
-| Native controls                     | Two SwiftUI UI flows; Android engine only                                                                                         | Adapter input/focus/accessibility/lifecycle acceptance tests; Compose controls remain unimplemented                                                                                         |
+| Native controls                     | SwiftUI flows plus Compose API 37 interaction, accessibility, lifecycle, hostile-input and corpus tests                           | Maintain adapter input/focus/accessibility/lifecycle acceptance tests on each supported platform                                                                                            |
 
 These are required test scenarios, not additional passing fixtures. Implement them with deterministic
 barriers around evaluation, authorization and dispatch rather than timing-dependent sleeps. No new
@@ -411,12 +411,13 @@ CI workflow, package or production behavior is introduced by this document.
    Resolve Apple interruption/retirement policy and the Android provider support/failure policy.
 4. RFC-0003 adopts shared JavaScript semantics and a public renderer-core package boundary; maintain
    one primary integration surface per platform.
-5. Build the scoped SwiftUI preview, then the equivalent Compose preview, with explicit tested
-   platform matrices. Agree physical-device budgets before scoring performance or claiming a winner.
+5. Maintain the SwiftUI and Compose packages with explicit tested platform matrices. Agree
+   physical-device budgets before expanding their performance claims.
 
-Implemented here: the published-store lifetime opt-in, common bounded registry, atomic rollback,
-renderer-core reconciliation/session contract, React Native host integration, closed results and
-diagnostics, deterministic authorization races, and experiment cleanup.
+Implemented here and in the follow-on native renderer milestones: the published-store lifetime
+opt-in, common bounded registry, atomic rollback, renderer-core reconciliation/session contract,
+React Native host integration, closed results and diagnostics, deterministic authorization races,
+SwiftUI and Compose adapters, and experiment cleanup.
 
 Still open under platform renderer milestones: engine-specific cleanup acknowledgment, supported
 provider/OS ranges, production device budgets, app background/foreground policy, and

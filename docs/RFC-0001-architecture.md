@@ -255,5 +255,5 @@ Remaining work includes:
 - extend the Expo Go example with useful host-owned catalog mappings when needed;
 - maintain canonical catalog conformance cases, local doctor diagnostics, and non-overwriting
   catalog/extension scaffolds as integration tooling; and
-- develop first-class SwiftUI, Jetpack Compose, and native capability-provider packages after
+- develop first-class SwiftUI and Jetpack Compose packages, then native capability-provider packages after
   `1.0.0`.

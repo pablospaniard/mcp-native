@@ -19,6 +19,8 @@ import type {
   NativeSessionTicket,
 } from "@mcp-native/renderer-core";
 
+declare const MCP_NATIVE_PLATFORM: "android" | "ios";
+
 globalThis.URL ??= URL as unknown as typeof globalThis.URL;
 if (globalThis.AbortController === undefined) {
   class AppleAbortSignal {
@@ -183,7 +185,7 @@ function open(configurationInput: unknown, timestamp: unknown): void {
   ) as unknown as Configuration;
   if (typeof timestamp !== "string") throw new TypeError("Expected a fixed timestamp");
   const manifests = configuration.hostExtensions.map((entry) => entry.manifest);
-  const settings = createHostExtensionCapabilitySettings(manifests, "ios");
+  const settings = createHostExtensionCapabilitySettings(manifests, MCP_NATIVE_PLATFORM);
   const negotiation =
     manifests.length === 0 ? undefined : negotiateHostExtensions(settings, settings);
   const hostExtensions =
@@ -416,7 +418,7 @@ export function exchange(source: unknown): string {
     resetBridgeState();
     const response = JSON.stringify({
       ok: false,
-      error: "apple-renderer-session-failed",
+      error: "native-renderer-session-failed",
       diagnostic: String(error).slice(0, 256),
     });
     return response;

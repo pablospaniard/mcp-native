@@ -145,13 +145,14 @@ Render outcomes come from the mounted surface's effective model, including retai
 a focused `formatDate` case covers render rejection and recovery without expanding the wire profile.
 Two [preserved iOS evaluation runners](native-runtime-evaluation-ios.md) executed the same
 cases through JavaScriptCore and independent Swift semantics. Their narrower input limits and
-simulator evidence do not expand this production conformance profile; no Compose runner exists yet.
+simulator evidence do not expand this production conformance profile. The supported Compose runner
+now consumes all 21 cases through its bounded Android engine boundary; see [Compose](compose.md).
 The shared corpus also covers project store semantics for array append at length, appended object
 parents, deletion, and rejection of gaps/noncanonical indices without mutation.
 The [preserved Android engine evaluation](native-runtime-evaluation-android.md) ran the identical bundle
 and corpus with native admission/authorization checks on one emulator provider. Its feature-gated
-engine support and termination probes do not expand the production wire profile or claim Compose UI
-or native Kotlin semantic parity.
+engine support and termination probes did not expand the production wire profile. The later direct
+Compose package adds separate UI, lifecycle, accessibility, and Kotlin boundary evidence.
 
 The implemented [native session contract](RFC-0004-native-session-contract.md) preserves these semantic
 observations and adds deterministic async authorization, stale-ticket, close, replacement, and

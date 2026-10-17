@@ -12,6 +12,8 @@
     "apple:manifests:verify": "node scripts/verify-swift-package-manifests.mjs",
     "apple:runtime:build": "node packages/swiftui/build-runtime.mjs",
     "apple:test": "npm run apple:runtime:build && npm run apple:manifests:verify && swift test && swift test --package-path packages/swiftui",
+    "android:runtime:build": "node packages/compose/build-runtime.mjs",
+    "android:test": "npm run android:runtime:build && cd packages/compose && ./gradlew testDebugUnitTest --no-daemon",
     "check": "npm run format:check && npm run lint && npm run typecheck && node scripts/verify-public-api.mjs && npm run schemas:verify && npm run test:coverage && npm run test:performance && npm run test:conformance",
     "clean": "tsc -b --clean",
     "format": "oxfmt .",

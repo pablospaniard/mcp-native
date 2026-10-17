@@ -6,12 +6,13 @@ const directory = fileURLToPath(new URL("./", import.meta.url));
 const outputDirectory = `${directory}Sources/MCPNativeSwiftUI/Resources`;
 await mkdir(outputDirectory, { recursive: true });
 const result = await build({
-  entryPoints: [`${directory}Runtime/bridge.ts`],
+  entryPoints: [`${directory}../renderer-core/runtime/native-bridge.ts`],
   outfile: `${outputDirectory}/runtime.js`,
   bundle: true,
   platform: "browser",
   format: "iife",
   globalName: "MCPNativeApple",
+  define: { MCP_NATIVE_PLATFORM: '"ios"' },
   target: "es2022",
   minify: true,
   legalComments: "eof",
