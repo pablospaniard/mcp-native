@@ -75,13 +75,21 @@ jobs:
           COMPOSE_AVDMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/avdmanager"
           COMPOSE_EMULATOR="${ANDROID_HOME}/emulator/emulator"
           mkdir -p "${ANDROID_AVD_HOME}"
-          echo no | "${COMPOSE_AVDMANAGER}" create avd --force --name compose-api-37 --package "system-images;android-37.1;google_apis_ps16k;x86_64" --device pixel_6
+          echo no | "${COMPOSE_AVDMANAGER}" create avd --force --name compose-api-37 --package "system-images;android-37.1;google_apis_ps16k;x86_64" --device pixel_2
           printf 'hw.cpu.ncore=2\ndisk.dataPartition.size=8G\n' >> "${ANDROID_AVD_HOME}/compose-api-37.avd/config.ini"
 
-          "${COMPOSE_EMULATOR}" -port 5554 -avd compose-api-37 -no-window -gpu swangle_indirect -no-snapshot -noaudio > "${RUNNER_TEMP}/compose-emulator.log" 2>&1 &
+          "${COMPOSE_EMULATOR}" -port 5554 -avd compose-api-37 -no-window -gpu swiftshader_indirect -no-snapshot -noaudio > "${RUNNER_TEMP}/compose-emulator.log" 2>&1 &
           COMPOSE_EMULATOR_PID=$!
           cleanup() {
             "${COMPOSE_ADB}" -s emulator-5554 emu kill >/dev/null 2>&1 || true
+            for _ in $(seq 1 30); do
+              if ! kill -0 "${COMPOSE_EMULATOR_PID}" 2>/dev/null; then
+                wait "${COMPOSE_EMULATOR_PID}" 2>/dev/null || true
+                return
+              fi
+              sleep 1
+            done
+            kill "${COMPOSE_EMULATOR_PID}" 2>/dev/null || true
             wait "${COMPOSE_EMULATOR_PID}" 2>/dev/null || true
           }
           trap cleanup EXIT
