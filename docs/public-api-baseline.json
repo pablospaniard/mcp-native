@@ -67,7 +67,7 @@
       }
     },
     "@mcp-native/react-native": {
-      "declarationSha256": "dea90ef71adc202f29b984a7b72c0b436dcb2188b6db0a71072745f1884cf59f",
+      "declarationSha256": "d164168f23df98c719ef694beb32e4d831e25ec786ccc0958e4e02058b32686c",
       "exports": {
         ".": {
           "import": "./dist/index.js",

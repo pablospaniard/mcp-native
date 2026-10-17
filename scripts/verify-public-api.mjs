@@ -14,6 +14,22 @@ for (const packageDirectory of packageDirectories) {
   const declarationFiles = listFiles(join(packageDirectory, "dist"))
     .filter((filename) => filename.endsWith(".d.ts"))
     .sort();
+  const sourceDirectory = join(packageDirectory, "src");
+  const expectedDeclarationFiles = listFiles(sourceDirectory)
+    .filter((filename) => filename.endsWith(".ts"))
+    .map((filename) =>
+      join(
+        packageDirectory,
+        "dist",
+        relative(sourceDirectory, filename).replace(/\.ts$/u, ".d.ts"),
+      ),
+    )
+    .sort();
+  assert.deepEqual(
+    declarationFiles,
+    expectedDeclarationFiles,
+    `${manifest.name} dist contains missing or stale declaration files; clean the build output`,
+  );
   const declarationHash = createHash("sha256");
   for (const filename of declarationFiles) {
     declarationHash.update(relative(packageDirectory, filename));
