@@ -39,6 +39,8 @@ number, and a stable local error category. They never contain the server request
 result, native exception, permission response, or sensitive values. A provider result arriving after
 abort, timeout, or broker close is suppressed. Malformed calls that cannot be associated with a
 negotiated descriptor use the fixed `unresolved` audit identity rather than copying server input.
+The broker awaits synchronous or promise-returning audit persistence at lifecycle boundaries and
+fails closed before provider execution if the audit cannot be recorded.
 Cancelled provider work retains its concurrency slot until its invocation promise settles, even
 after logical cleanup, so a provider that ignores its abort signal cannot create overlapping work.
 

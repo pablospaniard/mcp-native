@@ -634,8 +634,11 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         );
       } catch {
         operationId = String(++operationSequence);
-        emitUnresolvedAudit(options.audit, operationId, "invalid-request");
-        return rejected("invalid-request");
+        return rejected(
+          (await emitUnresolvedAudit(options.audit, operationId, "invalid-request"))
+            ? "invalid-request"
+            : "audit-failed",
+        );
       }
       grantState = grants.get(input.grant as CapabilityGrant);
       if (!grantState || grantState.registry !== options.registry) return rejected("invalid-grant");
@@ -645,8 +648,11 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         descriptor = parseDescriptor(input.capability, true);
       } catch {
         operationId = String(++operationSequence);
-        emitUnresolvedAudit(options.audit, operationId, "invalid-request");
-        return rejected("invalid-request");
+        return rejected(
+          (await emitUnresolvedAudit(options.audit, operationId, "invalid-request"))
+            ? "invalid-request"
+            : "audit-failed",
+        );
       }
       state = grantState.providers.get(identity(descriptor));
       if (!state || !sameDescriptor(state.manifest.descriptor, descriptor))
@@ -660,27 +666,42 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
       if (providerUsage.calls >= state.manifest.limits.maxCallsPerSession)
         return rejected("limit-exceeded");
       operationId = String(++operationSequence);
-      auditOk = emitAudit(options.audit, "requested", operationId, descriptor);
+      auditOk = await emitAudit(options.audit, "requested", operationId, descriptor);
       if (!auditOk) return rejected("audit-failed");
       if (typeof input.userActivated !== "boolean" || typeof input.foreground !== "boolean") {
-        emitAudit(options.audit, "failed", operationId, descriptor, "invalid-request");
-        return rejected("invalid-request");
+        return rejected(
+          (await emitAudit(options.audit, "failed", operationId, descriptor, "invalid-request"))
+            ? "invalid-request"
+            : "audit-failed",
+        );
       }
       if (input.onEvent !== undefined && typeof input.onEvent !== "function") {
-        emitAudit(options.audit, "failed", operationId, descriptor, "invalid-request");
-        return rejected("invalid-request");
+        return rejected(
+          (await emitAudit(options.audit, "failed", operationId, descriptor, "invalid-request"))
+            ? "invalid-request"
+            : "audit-failed",
+        );
       }
       if (input.signal !== undefined && !isAbortSignal(input.signal)) {
-        emitAudit(options.audit, "failed", operationId, descriptor, "invalid-request");
-        return rejected("invalid-request");
+        return rejected(
+          (await emitAudit(options.audit, "failed", operationId, descriptor, "invalid-request"))
+            ? "invalid-request"
+            : "audit-failed",
+        );
       }
       if (state.manifest.activation === "user" && !input.userActivated) {
-        emitAudit(options.audit, "denied", operationId, descriptor, "activation-required");
-        return rejected("activation-required");
+        return rejected(
+          (await emitAudit(options.audit, "denied", operationId, descriptor, "activation-required"))
+            ? "activation-required"
+            : "audit-failed",
+        );
       }
       if (state.manifest.execution === "foreground" && !input.foreground) {
-        emitAudit(options.audit, "denied", operationId, descriptor, "background-denied");
-        return rejected("background-denied");
+        return rejected(
+          (await emitAudit(options.audit, "denied", operationId, descriptor, "background-denied"))
+            ? "background-denied"
+            : "audit-failed",
+        );
       }
       if (providerUsage.active >= state.manifest.limits.maxConcurrentCalls)
         return rejected("limit-exceeded");
@@ -728,8 +749,11 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         authorized = false;
       }
       if (!authorized) {
-        emitAudit(options.audit, "denied", operationId, descriptor, "policy-denied");
-        return rejected("policy-denied");
+        return rejected(
+          (await emitAudit(options.audit, "denied", operationId, descriptor, "policy-denied"))
+            ? "policy-denied"
+            : "audit-failed",
+        );
       }
       if (closed) return rejected("closed");
       const permissionRequest = Object.freeze({
@@ -750,8 +774,11 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         permitted = false;
       }
       if (!permitted) {
-        emitAudit(options.audit, "denied", operationId, descriptor, "permission-denied");
-        return rejected("permission-denied");
+        return rejected(
+          (await emitAudit(options.audit, "denied", operationId, descriptor, "permission-denied"))
+            ? "permission-denied"
+            : "audit-failed",
+        );
       }
       if (closed) return rejected("closed");
       if (controller.signal.aborted) {
@@ -759,12 +786,13 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         return rejected("cancelled");
       }
       started = true;
-      if (!emitAudit(options.audit, "started", operationId, descriptor)) {
+      if (!(await emitAudit(options.audit, "started", operationId, descriptor))) {
         controller.abort();
         return rejected("audit-failed");
       }
       let eventCount = 0;
       let finalized = false;
+      let eventAudits = Promise.resolve(true);
       const context = Object.freeze({
         requestId,
         request,
@@ -786,10 +814,15 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
               controller!.abort();
               return;
             }
-            if (!emitAudit(options.audit, "event", operationId, descriptor)) {
-              failureOverride = "audit-failed";
-              controller!.abort();
-            }
+            eventAudits = eventAudits.then(async (ok) => {
+              if (!ok) return false;
+              const audited = await emitAudit(options.audit, "event", operationId, descriptor);
+              if (!audited) {
+                failureOverride = "audit-failed";
+                controller!.abort();
+              }
+              return audited;
+            });
           } catch (error) {
             failureOverride = mapValidation(error, "invalid-event");
             controller!.abort();
@@ -817,6 +850,7 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
       } finally {
         finalized = true;
       }
+      if (!(await eventAudits)) return rejected("audit-failed");
       if (failureOverride) return rejected(failureOverride);
       if (controller.signal.aborted) {
         cleanupReason = closed ? "closed" : callerSignal?.aborted ? "cancelled" : "timed-out";
@@ -838,7 +872,7 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         } catch (error) {
           return rejected(mapValidation(error, "invalid-result"));
         }
-        if (!emitAudit(options.audit, "succeeded", operationId, descriptor))
+        if (!(await emitAudit(options.audit, "succeeded", operationId, descriptor)))
           return rejected("audit-failed");
         return Object.freeze({ kind: "result", value: owned });
       }
@@ -855,7 +889,7 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         } catch (error) {
           return rejected(mapValidation(error, "invalid-provider-error"));
         }
-        if (!emitAudit(options.audit, "provider-error", operationId, descriptor))
+        if (!(await emitAudit(options.audit, "provider-error", operationId, descriptor)))
           return rejected("audit-failed");
         return Object.freeze({ kind: "provider-error", error: owned });
       }
@@ -867,21 +901,24 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
       else if (code === "cancelled" || code === "timed-out") cleanupReason = code;
       else if (cleanupReason !== "completed" && cleanupReason !== "provider-error")
         cleanupReason = "failed";
-      if (state)
-        emitAudit(
+      if (
+        state &&
+        !(await emitAudit(
           options.audit,
           code === "cancelled" ? "cancelled" : "failed",
           operationId,
           state.manifest.descriptor,
           code,
-        );
+        ))
+      )
+        return rejected("audit-failed");
       return rejected(code);
     } finally {
       detach();
       if (controller) controllers.delete(controller);
       if (started && state && controller) {
         const cleaned = await cleanup(state, requestId, cleanupReason);
-        emitAudit(
+        await emitAudit(
           options.audit,
           "cleanup",
           operationId,
@@ -1257,15 +1294,15 @@ function isAbortSignal(value: unknown): value is CapabilityAbortSignal {
   );
 }
 
-function emitAudit(
+async function emitAudit(
   callback: CapabilityBrokerOptions["audit"],
   phase: CapabilityAuditEvent["phase"],
   operationId: string,
   descriptor: CapabilityDescriptor,
   code?: CapabilityErrorCode,
-): boolean {
+): Promise<boolean> {
   try {
-    callback(
+    await callback(
       Object.freeze({
         phase,
         operationId,
@@ -1280,13 +1317,13 @@ function emitAudit(
   }
 }
 
-function emitUnresolvedAudit(
+async function emitUnresolvedAudit(
   callback: CapabilityBrokerOptions["audit"],
   operationId: string,
   code: CapabilityErrorCode,
-): boolean {
+): Promise<boolean> {
   try {
-    callback(
+    await callback(
       Object.freeze({
         phase: "failed",
         operationId,

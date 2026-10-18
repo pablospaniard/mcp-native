@@ -28,7 +28,8 @@ preserving the existing `1.x` APIs and exact wire-version checks. See the
   negotiation, opaque grants, schema-validated requests/results/events/errors, host policy and
   permission gates, cumulative budgets, cancellation, cleanup, redacted auditing, risk profiles for
   every native-capability family, and an app-bound haptics reference provider. No
-  protocol-independent core API changes.
+  protocol-independent core API changes. Audit persistence is awaited even when a host supplies an
+  asynchronous callback, and a rejected audit fails closed before provider execution.
 
 - Add protected coordinated publication of the first-class Compose renderer as
   `io.github.pablospaniard:mcp-native-compose` on Maven Central. The release workflow signs the AAR

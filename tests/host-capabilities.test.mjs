@@ -128,7 +128,7 @@ function setup(options = {}) {
     },
     audit(event) {
       audit.push(event);
-      options.audit?.(event);
+      return options.audit?.(event);
     },
   });
   const invoke = (overrides = {}) =>
@@ -298,6 +298,22 @@ test("broker validates, authorizes, checks permissions, invokes, validates outpu
     assert.equal("event" in event, false);
   }
   assert.deepEqual(context.permissions[0].permissions, ["device.message"]);
+});
+
+test("broker awaits asynchronous audit persistence before provider execution", async () => {
+  const context = setup({
+    audit: async (event) => {
+      await Promise.resolve();
+      if (event.phase === "requested") throw new Error("storage unavailable");
+    },
+  });
+
+  assert.deepEqual(await context.invoke(), {
+    kind: "capability-error",
+    code: "audit-failed",
+  });
+  assert.equal(context.calls.invoke, 0);
+  assert.equal(context.reviews.length, 0);
 });
 
 test("activation, foreground, policy and permission boundaries fail before provider invocation", async () => {
