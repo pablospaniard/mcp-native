@@ -9,8 +9,8 @@ forms and structured interactions, or isolate HTML MCP Apps behind an explicit W
 
 [![CI](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml/badge.svg)](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/mcp-native?label=mcp-native)](https://www.npmjs.com/package/mcp-native)
-[![npm downloads](https://img.shields.io/npm/dm/mcp-native?label=downloads)](https://www.npmjs.com/package/mcp-native)
-[![License: MIT](https://img.shields.io/github/license/pablospaniard/mcp-native)](LICENSE)
+[![npm downloads](https://img.shields.io/npm/dm/mcp-native?label=downloads&cacheSeconds=86400)](https://www.npmjs.com/package/mcp-native)
+[![License: MIT](https://img.shields.io/npm/l/mcp-native)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 </div>
