@@ -160,8 +160,11 @@ test("capability manifests are closed, namespaced, versioned and bounded", () =>
     { descriptor: { ...manifest().descriptor, schemaRevision: "latest" } },
     { platforms: [{ platform: "web", minimumOsVersion: "1", provider: "bad" }] },
     { permissions: ["same", "same"] },
+    { activation: "none" },
     { activation: "server" },
+    { consent: "none" },
     { consent: "session" },
+    { execution: "foreground-or-background" },
     { execution: "background" },
     { sensitivity: ["unknown"] },
     { cancellation: "ignore" },
@@ -169,6 +172,9 @@ test("capability manifests are closed, namespaced, versioned and bounded", () =>
     { fallback: "native-command" },
     { limits: { ...manifest().limits, maxConcurrentCalls: 17 } },
     { limits: { ...manifest().limits, maxSessionValues: 1 } },
+    { threatModel: "../../etc/passwd" },
+    { threatModel: "/docs/threat-models/example.md" },
+    { threatModel: "https://example.com/threat-model.md" },
     { extra: true },
   ]) {
     assert.throws(
@@ -220,6 +226,36 @@ test("registry snapshots only providers available on the exact platform range", 
       createCapabilityRegistry([registration, registration], { platform: "ios", osVersion: "18" }),
     setupCode("invalid-registry"),
   );
+
+  const unsupportedA = provider({
+    manifest: {
+      platforms: [{ platform: "android", minimumOsVersion: "34", provider: "android-a" }],
+    },
+  }).registration;
+  const unsupportedB = provider({
+    manifest: {
+      platforms: [{ platform: "android", minimumOsVersion: "34", provider: "android-b" }],
+    },
+  }).registration;
+  assert.throws(
+    () =>
+      createCapabilityRegistry([unsupportedA, unsupportedB], {
+        platform: "ios",
+        osVersion: "18",
+      }),
+    setupCode("invalid-registry"),
+  );
+
+  const alternateRevision = provider({
+    manifest: {
+      descriptor: { ...manifest().descriptor, schemaRevision: `sha256:${"b".repeat(64)}` },
+    },
+  }).registration;
+  const revisionRegistry = createCapabilityRegistry([registration, alternateRevision], {
+    platform: "ios",
+    osVersion: "18",
+  });
+  assert.equal(revisionRegistry.capabilities.length, 2);
 });
 
 test("negotiation requires an exact installed, advertised descriptor and returns an opaque grant", () => {
@@ -311,6 +347,39 @@ test("hostile requests and provider output never cross unchecked", async () => {
   );
   assert.equal(invalidRequest.calls.invoke, 0);
 
+  assert.deepEqual(await invalidRequest.broker.invoke(null), {
+    kind: "capability-error",
+    code: "invalid-request",
+  });
+  assert.deepEqual(invalidRequest.audit.at(-1), {
+    phase: "failed",
+    operationId: "2",
+    capabilityId: "unresolved",
+    capabilityVersion: "unresolved",
+    code: "invalid-request",
+  });
+  assert.deepEqual(
+    await invalidRequest.invoke({
+      requestId: "bad-shape",
+      foreground: "yes",
+    }),
+    { kind: "capability-error", code: "invalid-request" },
+  );
+  assert.deepEqual(
+    invalidRequest.audit.slice(-2).map(({ phase, code }) => [phase, code]),
+    [
+      ["requested", undefined],
+      ["failed", "invalid-request"],
+    ],
+  );
+  assert.deepEqual(
+    await invalidRequest.invoke({
+      requestId: "bad-descriptor",
+      capability: { ...invalidRequest.registry.capabilities[0], version: 1 },
+    }),
+    { kind: "capability-error", code: "invalid-request" },
+  );
+
   const invalidResult = setup({
     provider: {
       invoke: async () => ({ kind: "result", value: { accepted: true, raw: "native" } }),
@@ -352,6 +421,17 @@ test("event count, event schema and cumulative work are bounded", async () => {
     },
   });
   assert.deepEqual(await malformed.invoke(), { kind: "capability-error", code: "invalid-event" });
+
+  const handlerFailure = setup();
+  assert.deepEqual(
+    await handlerFailure.invoke({
+      onEvent() {
+        throw new Error("host callback failed");
+      },
+    }),
+    { kind: "capability-error", code: "event-handler-failed" },
+  );
+  assert.deepEqual(handlerFailure.calls.cleanup, [["request-1", "failed"]]);
 
   const work = setup({
     provider: {
@@ -404,6 +484,100 @@ test("session totals and concurrent provider work cannot amplify valid individua
   assert.equal((await first).kind, "result");
 });
 
+test("session quotas, replay IDs and concurrency are scoped to each provider", async () => {
+  const first = provider({
+    manifest: { limits: { ...manifest().limits, maxCallsPerSession: 1 } },
+  });
+  const second = provider({
+    manifest: {
+      descriptor: { ...manifest().descriptor, id: "com.example/second-message" },
+      limits: { ...manifest().limits, maxCallsPerSession: 1 },
+    },
+  });
+  const registry = createCapabilityRegistry([first.registration, second.registration], {
+    platform: "ios",
+    osVersion: "18",
+  });
+  const grant = negotiateCapabilities(registry, registry.extensionSettings);
+  const broker = createCapabilityBroker({
+    registry,
+    authorize: () => true,
+    ensurePermissions: () => true,
+    audit() {},
+  });
+  const invoke = (registration, requestId) =>
+    broker.invoke({
+      grant,
+      requestId,
+      capability: registration.manifest.descriptor,
+      request: { message: "hello" },
+      userActivated: true,
+      foreground: true,
+    });
+
+  assert.equal((await invoke(first.registration, "same-id")).kind, "result");
+  assert.equal((await invoke(second.registration, "same-id")).kind, "result");
+  assert.deepEqual(await invoke(first.registration, "over-limit"), {
+    kind: "capability-error",
+    code: "limit-exceeded",
+  });
+  assert.deepEqual(await invoke(first.registration, "over-limit"), {
+    kind: "capability-error",
+    code: "limit-exceeded",
+  });
+});
+
+test("policy and permission waits do not consume provider execution time", async () => {
+  const wait = () => new Promise((resolve) => setTimeout(() => resolve(true), 15));
+  const context = setup({
+    authorize: wait,
+    ensurePermissions: wait,
+    provider: { manifest: { limits: { ...manifest().limits, maxDurationMs: 5 } } },
+  });
+  assert.deepEqual(await context.invoke(), {
+    kind: "result",
+    value: { accepted: true },
+  });
+});
+
+test("provider contexts reject events and work after finalization", async () => {
+  let retained;
+  const events = [];
+  const context = setup({
+    provider: {
+      invoke: async (providerContext) => {
+        retained = providerContext;
+        return { kind: "result", value: { accepted: true } };
+      },
+    },
+  });
+  assert.equal((await context.invoke({ onEvent: (event) => events.push(event) })).kind, "result");
+  const auditLength = context.audit.length;
+  retained.emit({ progress: 50 });
+  retained.consume(1_000_000);
+  assert.deepEqual(events, []);
+  assert.equal(context.audit.length, auditLength);
+});
+
+test("deadline timers preserve their runtime receiver", async () => {
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalClearTimeout = globalThis.clearTimeout;
+  globalThis.setTimeout = function (...args) {
+    assert.equal(this, globalThis);
+    return Reflect.apply(originalSetTimeout, globalThis, args);
+  };
+  globalThis.clearTimeout = function (...args) {
+    assert.equal(this, globalThis);
+    return Reflect.apply(originalClearTimeout, globalThis, args);
+  };
+  try {
+    assert.equal((await setup().invoke()).kind, "result");
+  } finally {
+    globalThis.setTimeout = originalSetTimeout;
+    globalThis.clearTimeout = originalClearTimeout;
+  }
+});
+
 test("provider deadlines suppress late results and record timeout cleanup", async () => {
   const context = setup({
     provider: {
@@ -453,7 +627,7 @@ test("closing the broker revokes future and active calls", async () => {
   await entered;
   await context.broker.close();
   assert.deepEqual(await pending, { kind: "capability-error", code: "cancelled" });
-  assert.deepEqual(context.calls.cleanup, [["request-1", "cancelled"]]);
+  assert.deepEqual(context.calls.cleanup, [["request-1", "closed"]]);
   assert.deepEqual(await context.invoke({ requestId: "request-2" }), {
     kind: "capability-error",
     code: "closed",

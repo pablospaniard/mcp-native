@@ -36,7 +36,8 @@ For each invocation the broker:
 Audit records contain only phase, local capability identity/version, a broker-generated operation
 number, and a stable local error category. They never contain the server request ID, request, event,
 result, native exception, permission response, or sensitive values. A provider result arriving after
-abort, timeout, or broker close is suppressed.
+abort, timeout, or broker close is suppressed. Malformed calls that cannot be associated with a
+negotiated descriptor use the fixed `unresolved` audit identity rather than copying server input.
 
 Policy and permission callbacks are both mandatory. A server declaration cannot satisfy either one.
 The broker does not retain consent between calls. App-defined providers use the same closed manifest,
@@ -49,7 +50,9 @@ standards namespaces cannot be claimed by application providers.
 media, files/sharing, location/maps, proximity/sensors, biometrics/secrets, contacts/calendar,
 communication, payments/wallets, and background work. These profiles advertise no device API. Each
 concrete provider still needs an exact manifest, threat model, platform implementation, and matrix
-entry.
+entry. Registration enforces the shared floor: sensitive capabilities require current user
+activation, per-request consent, and foreground-only execution; any background-capable provider
+also requires current user activation and per-request consent.
 
 The first reference provider is `createHapticsProvider`. It binds a host-supplied `impact` callback
 to the fixed `HAPTICS_CAPABILITY_MANIFEST`; the callback receives only the closed effect enum and an
