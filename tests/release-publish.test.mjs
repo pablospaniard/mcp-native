@@ -341,6 +341,17 @@ test("Maven credentials are isolated from release-controlled build code and resu
     build.steps.some(({ name }) => name === "Install pinned Android SDK"),
     "credential-free build installs its Android SDK explicitly",
   );
+  const workspaceBuildIndex = build.steps.findIndex(
+    ({ name, run }) => name === "Build workspace packages" && run === "npm run build",
+  );
+  const publicationSmokeIndex = build.steps.findIndex(
+    ({ name }) => name === "Verify Maven publication and clean consumer",
+  );
+  assert.ok(workspaceBuildIndex >= 0, "Compose release builds workspace package outputs");
+  assert.ok(
+    workspaceBuildIndex < publicationSmokeIndex,
+    "workspace outputs exist before the Compose publication smoke test",
+  );
   assert.ok(publish.steps.some(({ name }) => name === "Check out trusted release automation only"));
   assert.ok(
     publish.steps.every(({ name }) => name !== "Check out immutable release commit"),

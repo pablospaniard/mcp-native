@@ -141,6 +141,9 @@ jobs:
           "build-tools;36.0.0"
       - run: npm ci
         working-directory: release
+      - name: Build workspace packages
+        run: npm run build
+        working-directory: release
       - name: Verify Maven publication and clean consumer
         run: npm run android:package:smoke
         working-directory: release
