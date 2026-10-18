@@ -255,12 +255,12 @@ Remaining work includes:
 
 - extend A2UI with renderer-function execution and capability transport placement after the
   documented profile is updated;
-- extend MCP Apps with optional stable methods and browser-host double-iframe support as separate
-  profiles;
+- maintain the optional stable MCP Apps methods and browser-host double-iframe profile adopted for
+  `1.2.0`, reviewing later revisions separately;
 - design broader wire/resource interfaces beyond the `1.1.0` inline contract registry, preserving
   exact negotiation and no fallback from failed selected validation;
 - extend the Expo Go example with useful host-owned catalog mappings when needed;
 - maintain canonical catalog conformance cases, local doctor diagnostics, and non-overwriting
   catalog/extension scaffolds as integration tooling; and
 - extend the native capability matrix with separately audited providers and direct SwiftUI/Compose
-  host integration after `1.0.0`.
+  host integration after the `1.2.0` framework release.

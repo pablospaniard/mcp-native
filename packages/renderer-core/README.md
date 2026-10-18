@@ -20,16 +20,16 @@ Compose — a platform renderer package (such as `@mcp-native/react-native`) com
 plan with its own concrete host components.
 
 This package is the reviewed shared boundary selected by the
-[runtime and package assessment](../../docs/RFC-0003-native-platforms.md). Publication still occurs
-only through a coordinated release; the source manifest version is not a publication claim.
-Existing React Native imports retain their compatibility contract.
+[runtime and package assessment](../../docs/RFC-0003-native-platforms.md). `1.2.0` is its first
+coordinated npm release; the source manifest version is not a publication claim until the release
+workflow succeeds. Existing React Native imports retain their compatibility contract.
 
 ## Install
 
 Install it when authoring another native renderer:
 
 ```bash
-npm install @mcp-native/renderer-core @mcp-native/a2ui @mcp-native/core
+npm install @mcp-native/renderer-core@1.2.0 @mcp-native/a2ui@1.2.0 @mcp-native/core@1.2.0
 ```
 
 The package is ESM-only and includes TypeScript declarations.

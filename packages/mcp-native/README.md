@@ -25,6 +25,11 @@ adapters through the separate `@mcp-native/host/contracts` subpaths; install the
 for those APIs. See the [1.1 migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.1.md)
 and [publication status](https://github.com/pablospaniard/mcp-native/blob/main/docs/releasing.md#110-release-preparation).
 
+The coordinated `1.2.0` release updates this convenience package alongside renderer-core, the
+SwiftUI and Compose distributions, native capabilities, and the reviewed protocol profiles. SwiftUI
+and Compose remain separate native distributions rather than exports of this JavaScript package.
+See the [1.2 migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.2.md).
+
 As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
 v1.0 as Candidate and v0.9.1 as the current production release. See the
 [implemented A2UI profile](https://github.com/pablospaniard/mcp-native/blob/main/docs/a2ui-v1-conformance.md)

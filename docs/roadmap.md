@@ -1,7 +1,8 @@
 # Roadmap
 
 MCP Native shipped `1.0.0` on 2026-09-06, the documentation-only `1.0.1` patch on 2026-09-07,
-and the additive `1.1.0` inline contract release on 2026-09-15.
+and the additive `1.1.0` inline contract release on 2026-09-15. The coordinated `1.2.0` release
+candidate contains the completed Milestones 12–16; publication is still pending.
 Milestones 0–9 and the Milestone 10 implementation, validation, independent-review, documentation,
 API-finalization, and publication steps are complete. The high-level host
 provides the connect-call-render workflow above the independently usable protocol, runtime,
@@ -74,14 +75,14 @@ The release sequence records the shipped foundations, finalized v1 scope, and po
   `1.0.0`; v1 never guesses or silently converts an unknown server format.
 - Compatibility is reported against exact pinned MCP, A2UI, and MCP Apps profiles plus the React
   peer requirement and automated native-host, iOS, and Android integration fixtures.
-- First-class SwiftUI and Jetpack Compose renderers begin after the stable React Native release.
+- First-class SwiftUI and Jetpack Compose renderers are complete in the `1.2.0` release candidate.
 
 UIKit, Android View, SwiftUI, and Compose implementations may still be used when the application
 deliberately exposes them to React Native through a locally compiled Fabric component and maps that
 component through the host-extension boundary. That is host integration, not server-selected native
-resolution. First-class SwiftUI and Jetpack Compose renderers are a committed post-`1.0.0` track;
-they must reuse the protocol-independent core and trusted semantic boundary rather than introducing
-React Native dependencies into `@mcp-native/core`.
+resolution. The direct SwiftUI and Jetpack Compose renderers reuse the protocol-independent core
+and trusted semantic boundary without introducing React Native dependencies into
+`@mcp-native/core`.
 
 ## Architecture retained through the roadmap
 

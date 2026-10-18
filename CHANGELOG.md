@@ -6,6 +6,16 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+No changes yet.
+
+## 1.2.0 - pending publication
+
+Coordinated minor release of all eight npm packages plus the SwiftUI package and Compose Maven
+artifact. This release adds the shared renderer session, first-class Apple and Android renderers,
+the native-capability provider boundary, and reviewed MCP/A2UI/MCP Apps profile evolution while
+preserving the existing `1.x` APIs and exact wire-version checks. See the
+[1.2 migration guide](docs/migration-to-1.2.md).
+
 ### Added
 
 - Add a machine-verified MCP, A2UI, and MCP Apps evolution audit; adopt the wire-compatible official
@@ -17,12 +27,12 @@ patch and minor releases remain compatible within their release line.
 - Add the `@mcp-native/host/capabilities` provider framework with closed namespaced manifests, exact
   negotiation, opaque grants, schema-validated requests/results/events/errors, host policy and
   permission gates, cumulative budgets, cancellation, cleanup, redacted auditing, risk profiles for
-  every native-capability family, and an app-bound haptics reference provider. No package version or
+  every native-capability family, and an app-bound haptics reference provider. No
   protocol-independent core API changes.
 
-- Publish the first-class Compose renderer as
-  `io.github.pablospaniard:mcp-native-compose` on Maven Central from the protected coordinated
-  release workflow. The signed AAR includes sources, documentation, complete POM metadata, checksum
+- Add protected coordinated publication of the first-class Compose renderer as
+  `io.github.pablospaniard:mcp-native-compose` on Maven Central. The release workflow signs the AAR
+  and includes sources, documentation, complete POM metadata, checksum
   validation, resumable Portal status polling, and a clean-consumer publication smoke test. The
   credential-free Android build and protected signing/upload jobs are isolated, transient status
   failures retry with bounds, and Maven-only recovery does not rerun npm or Android work.

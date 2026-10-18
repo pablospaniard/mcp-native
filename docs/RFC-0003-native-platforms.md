@@ -165,8 +165,8 @@ Aim for one primary integration product per platform, with advanced entry points
 composition needs. Do not create new published packages for each validator, state machine, fixture
 set, bridge, or capability. Share fixtures as repository data until external distribution is needed.
 The reviewed decision makes renderer-core public. Its source manifest and tarball checks establish
-the package boundary but do not authorize publication; a future coordinated release must align its
-version and internal dependency ranges with every other public package.
+the package boundary but do not themselves publish it; the coordinated `1.2.0` release candidate
+aligns its version and internal dependency ranges with every other public npm package.
 No existing package or export is removed by this RFC. Any eventual removal needs a major-version
 migration; an additive facade must also preserve optional dependency behavior and class identity.
 New native-platform code and examples follow the [version-neutral naming rule](../CONTRIBUTING.md#naming),

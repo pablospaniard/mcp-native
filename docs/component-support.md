@@ -30,15 +30,15 @@ or upstream revision. The conformance profile owns those exact claims.
 
 ## What “full support” means
 
-| Scope                                        | Current boundary                               | Work needed                                                                                                                                                |
-| -------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| All 18 pinned basic-catalog names            | Implemented within profile limits              | An app installs and verifies the adapters and required policies for the catalog it advertises.                                                             |
-| Additional React Native or custom components | Locally compiled host extensions are available | Define and register a versioned semantic contract, map inputs/events, and validate platform behavior.                                                      |
-| A maintained extended component catalog      | Planned workstream in the roadmap              | Select named adapters, publish an iOS/Android matrix, and meet the acceptance criteria below.                                                              |
-| Broader native capabilities                  | Post-v1 Milestone 15 framework complete        | Add audited providers through exact manifests, negotiation, policy/permission brokering, threat models, and the published matrix.                          |
-| Broader A2UI protocol coverage               | Post-v1 Milestone 16                           | Review additional features and exact revisions, implement their lifecycle and authorization semantics, and update conformance and migration documentation. |
-| Direct SwiftUI rendering                     | Swift Package shipped in source                | Install local resource/extension views and verify the documented Apple compatibility matrix.                                                               |
-| Direct Compose rendering                     | `MCPNativeCompose`                             | Shared semantic session with a closed Kotlin-owned Compose, Android View, resource, and extension boundary.                                                |
+| Scope                                        | Current boundary                                | Work needed                                                                                                                       |
+| -------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| All 18 pinned basic-catalog names            | Implemented within profile limits               | An app installs and verifies the adapters and required policies for the catalog it advertises.                                    |
+| Additional React Native or custom components | Locally compiled host extensions are available  | Define and register a versioned semantic contract, map inputs/events, and validate platform behavior.                             |
+| A maintained extended component catalog      | Planned workstream in the roadmap               | Select named adapters, publish an iOS/Android matrix, and meet the acceptance criteria below.                                     |
+| Broader native capabilities                  | Milestone 15 framework in the `1.2.0` candidate | Add audited providers through exact manifests, negotiation, policy/permission brokering, threat models, and the published matrix. |
+| Broader A2UI protocol coverage               | Milestone 16 profile review complete            | Adopt later exact revisions only after lifecycle, authorization, conformance, and migration review.                               |
+| Direct SwiftUI rendering                     | `MCPNativeSwiftUI` in the `1.2.0` candidate     | Install local resource/extension views and verify the documented Apple compatibility matrix.                                      |
+| Direct Compose rendering                     | `MCPNativeCompose` in the `1.2.0` candidate     | Install local resource/extension views and verify the documented Android compatibility matrix.                                    |
 
 There is no finite project promise to bundle “all React Native components”: applications and
 third-party packages can continually add implementations. The target is an extensible, tested
@@ -86,6 +86,7 @@ platforms explicitly. A successful render alone does not establish behavioral or
 The existing [support matrix](support-matrix.md) continues to describe package requirements and
 integration evidence; it does not certify unlisted third-party adapters.
 
-The extension mechanism is available now. The maintained extended catalog and the broader native
-provider and protocol work remain undated post-v1 work. None changes the pinned basic catalog or
-automatically expands what an installed app advertises.
+The extension and capability-provider frameworks are available in the `1.2.0` release candidate.
+The maintained extended catalog, additional audited native providers, and later protocol-profile
+adoptions remain future work. None changes the pinned basic catalog or automatically expands what
+an installed app advertises.

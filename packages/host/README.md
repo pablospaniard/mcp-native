@@ -230,7 +230,8 @@ for registration, schemas, budgets, connection ownership, and later integration 
 The additive `@mcp-native/host/capabilities` subpath installs audited, namespaced native capability
 providers behind exact negotiation, schema validation, host policy, platform permissions,
 cumulative budgets, cancellation, cleanup, and redacted audit events. It includes an app-bound
-haptics reference profile but no generic native invocation. See the
+haptics reference profile but no generic native invocation. This subpath is included in `1.2.0`;
+see the [1.2 migration guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/migration-to-1.2.md) and the
 [native capability guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-capabilities.md).
 
 The package root exports the controller, result resolver, and shared action authorization:
