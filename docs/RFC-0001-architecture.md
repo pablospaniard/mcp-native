@@ -178,6 +178,13 @@ The host owns the effective component and action allowlists. A server can reques
 
 Future capabilities that touch sensitive device APIs must be brokered by the host and may require user approval. Server declarations alone never grant device access.
 
+The optional `@mcp-native/host/capabilities` entry point implements that broker without changing
+core: locally installed exact manifests, opaque negotiation grants, request/result/event/error
+validation, fresh host policy and permission decisions, cumulative session limits, cancellation,
+cleanup, and payload-free audit events. It prohibits generic native dispatch and keeps direct
+SwiftUI/Compose integration outside the current support claim. See
+[Native capability providers](native-capabilities.md).
+
 MCP extension support is determined only from validated, explicit client and server capability maps. `_meta`, MIME types, and tool-result content are preserved as data but never grant an extension. The generic substrate reports negotiation or a typed fallback reason; each extension must separately validate its settings and implement its own semantics. The [project-owned A2UI binding](a2ui-mcp-binding.md) requires an exact settings match and defines ordinary MCP text/data as its graceful fallback.
 
 ## Finalized v1 implementation
@@ -255,5 +262,5 @@ Remaining work includes:
 - extend the Expo Go example with useful host-owned catalog mappings when needed;
 - maintain canonical catalog conformance cases, local doctor diagnostics, and non-overwriting
   catalog/extension scaffolds as integration tooling; and
-- develop first-class SwiftUI and Jetpack Compose packages, then native capability-provider packages after
-  `1.0.0`.
+- extend the native capability matrix with separately audited providers and direct SwiftUI/Compose
+  host integration after `1.0.0`.

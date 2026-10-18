@@ -227,6 +227,12 @@ local event schema, `createContractActionAuthorization`, and a host delivery cal
 [custom contract guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/custom-contracts.md)
 for registration, schemas, budgets, connection ownership, and later integration scope.
 
+The additive `@mcp-native/host/capabilities` subpath installs audited, namespaced native capability
+providers behind exact negotiation, schema validation, host policy, platform permissions,
+cumulative budgets, cancellation, cleanup, and redacted audit events. It includes an app-bound
+haptics reference profile but no generic native invocation. See the
+[native capability guide](https://github.com/pablospaniard/mcp-native/blob/main/docs/native-capabilities.md).
+
 The package root exports the controller, result resolver, and shared action authorization:
 
 | Export                                                                    | Purpose                                                                  |

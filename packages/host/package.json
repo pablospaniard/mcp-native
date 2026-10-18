@@ -54,6 +54,11 @@
       "types": "./dist/contracts-authoring.d.ts",
       "import": "./dist/contracts-authoring.js",
       "default": "./dist/contracts-authoring.js"
+    },
+    "./capabilities": {
+      "types": "./dist/capabilities.d.ts",
+      "import": "./dist/capabilities.js",
+      "default": "./dist/capabilities.js"
     }
   },
   "publishConfig": {

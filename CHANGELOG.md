@@ -8,6 +8,12 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Add the `@mcp-native/host/capabilities` provider framework with closed namespaced manifests, exact
+  negotiation, opaque grants, schema-validated requests/results/events/errors, host policy and
+  permission gates, cumulative budgets, cancellation, cleanup, redacted auditing, risk profiles for
+  every native-capability family, and an app-bound haptics reference provider. No package version or
+  protocol-independent core API changes.
+
 - Publish the first-class Compose renderer as
   `io.github.pablospaniard:mcp-native-compose` on Maven Central from the protected coordinated
   release workflow. The signed AAR includes sources, documentation, complete POM metadata, checksum

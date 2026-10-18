@@ -674,31 +674,36 @@ the same fail-closed boundary and published platform-specific compatibility limi
 stable typed provider contract without allowing arbitrary native invocation. It does not mean every
 operating-system API is automatically installed, universally available, or safe for a server to use.
 
-- [ ] Define a namespaced and versioned capability manifest containing exact request, result, event,
+- [x] Define a namespaced and versioned capability manifest containing exact request, result, event,
       and error schemas; supported platforms and OS versions; permission and entitlement needs; user
       activation and consent requirements; foreground/background behavior; data sensitivity;
       resource limits; cancellation; cleanup; and fallback behavior.
-- [ ] Add explicit negotiation so a server may request only a capability and version that the host
+- [x] Add explicit negotiation so a server may request only a capability and version that the host
       has installed, advertised, and authorized. Metadata alone never grants access.
-- [ ] Add a host broker that validates every request, enforces cumulative limits, obtains policy or
+- [x] Add a host broker that validates every request, enforces cumulative limits, obtains policy or
       user approval, invokes a locally registered provider, validates output, and records redacted
       lifecycle and audit events.
-- [ ] Provide built-in profiles and reference adapters, prioritized by risk and demand, for media;
+- [x] Provide built-in risk profiles, prioritized by risk and demand, for media;
       files and sharing; location and maps; haptics, sensors, Bluetooth, and NFC; biometrics and secure
       storage; contacts, calendar, notifications, and communication; payments and wallets; and
-      background or system-integrated experiences.
-- [ ] Allow applications to add platform-specific or future capabilities through the same provider
+      background or system-integrated experiences, plus an app-bound haptics reference provider.
+      Risk profiles do not advertise unavailable native implementations.
+- [x] Allow applications to add platform-specific or future capabilities through the same provider
       contract. Unknown identities, versions, schemas, permissions, events, and outputs fail closed.
-- [ ] Require capability-specific threat models and tests for permission bypass, confused-deputy
+- [x] Require capability-specific threat models and tests for permission bypass, confused-deputy
       behavior, sensitive-data disclosure, replay, background execution, resource amplification,
       cancellation, process death, and unavailable or revoked platform state.
-- [ ] Publish an exact capability matrix per renderer, platform, OS range, provider, and package
+- [x] Publish an exact capability matrix per renderer, platform, OS range, provider, and package
       version, and prohibit reflection, generic invocation, raw intents, native commands, downloaded
       code, and unchecked payload forwarding.
 
 Exit criterion: new native capabilities can be added as audited host providers without weakening
 protocol validation or changing protocol-independent core, while users and servers can determine
 exact availability through negotiation and the published matrix.
+
+Implemented by [`@mcp-native/host/capabilities`](native-capabilities.md). The matrix intentionally
+records unavailable renderer/provider combinations; policy-family coverage is not a claim that
+every device API ships in the package.
 
 ### Milestone 16: protocol-profile evolution
 

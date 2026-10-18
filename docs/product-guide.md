@@ -96,8 +96,10 @@ the application's actual component library. Layout declarations are host-owned m
 reject unsupported bounded, unbounded, or scrolling parents but cannot grant server capabilities.
 
 React Native, SwiftUI, and Jetpack Compose renderers cover the pinned A2UI basic catalog through the
-shared semantic session. Each retains a closed, locally compiled extension boundary. The broader
-typed native-capability provider program remains later work without an assigned release date.
+shared semantic session. Each retains a closed, locally compiled extension boundary. The optional
+[`@mcp-native/host/capabilities`](native-capabilities.md) entry point now supplies the typed provider
+framework for host-integrated applications; direct SwiftUI and Compose capability integration is
+not yet claimed.
 
 ## Native and WebView content together
 
@@ -119,8 +121,9 @@ an explicit policy callback. Unknown or unnegotiated extensions fail closed.
 
 Camera, location, files, payments, biometrics, and similar capabilities are not ordinary component
 props. They require a typed installed provider, application policy, and any necessary platform and
-user approval. The post-`1.0.0` native-capability program expands this model without creating a
-generic server-to-device command channel.
+user approval. The post-`1.0.0` native-capability framework provides that closed seam without
+creating a generic server-to-device command channel; its exact matrix lists only the app-bound
+haptics reference provider today.
 
 ## Clear ownership boundaries
 
