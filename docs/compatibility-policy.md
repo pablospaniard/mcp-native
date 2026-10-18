@@ -22,6 +22,10 @@ do not imply a stable upstream A2UI v1.0 specification or support for A2UI v0.9.
 revisions require review, explicit pin updates, and profile verification; compatibility never
 follows a moving branch automatically.
 
+The machine-readable [protocol profile audit](protocol-profile-audit.json) records each reviewed
+upstream revision and adoption or deferral decision. `npm run profiles:verify` ties adopted values to
+runtime source and exact dependencies. A deferred revision never changes accepted wire input.
+
 ## Stable compatibility surfaces
 
 For `1.x`, the following are compatibility surfaces:

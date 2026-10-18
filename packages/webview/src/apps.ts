@@ -11,6 +11,8 @@ import type {
 export const MCP_APPS_EXTENSION_ID = "io.modelcontextprotocol/ui" as const;
 /** Stable MCP Apps protocol revision implemented by this package. */
 export const MCP_APPS_PROTOCOL_VERSION = "2026-01-26" as const;
+/** Official source revision for the exact interoperability dependency pin. */
+export const MCP_APPS_SOURCE_REVISION = "82221c0c8ce7661efa6771c9d461511b1650495f" as const;
 /** The only resource media type in the stable MCP Apps profile. */
 export const MCP_APPS_MIME_TYPE = "text/html;profile=mcp-app" as const;
 /** Maximum decoded HTML accepted from one Apps resource. */

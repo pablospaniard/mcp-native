@@ -21,7 +21,7 @@ compatibility boundaries.
 | Capability broker | `@mcp-native/host/capabilities`; app-owned provider integration                     | exact negotiation, hostile input, policy, lifecycle tests  |
 | MCP SDK           | `@modelcontextprotocol/client ^2.0.0`                                               | package integration and conformance tests                  |
 | A2UI              | feature-scoped v1.0 Candidate at `8ff4651232ab0e02b0123730b502711170637a3a`         | vendored schema checksums and declared profile tests       |
-| MCP Apps          | stable `2026-01-26`, official schema package `@modelcontextprotocol/ext-apps@1.7.5` | interoperability and hostile-message tests                 |
+| MCP Apps          | stable `2026-01-26`, official schema package `@modelcontextprotocol/ext-apps@2.0.3` | interoperability and hostile-message tests                 |
 
 The A2UI row covers only the [implemented profile](a2ui-v1-conformance.md), including its
 exclusions. As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify

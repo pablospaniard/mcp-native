@@ -610,6 +610,8 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
     let cleanupReason: CapabilityCleanupReason = "failed";
     let started = false;
     let reserved = false;
+    let providerTask: Promise<CapabilityProviderOutcome> | undefined;
+    let providerSettled = false;
     let auditOk = true;
     let failureOverride: CapabilityErrorCode | undefined;
     try {
@@ -657,8 +659,6 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
       if (providerUsage.seen.has(requestId)) return rejected("replayed-request");
       if (providerUsage.calls >= state.manifest.limits.maxCallsPerSession)
         return rejected("limit-exceeded");
-      providerUsage.calls++;
-      providerUsage.seen.add(requestId);
       operationId = String(++operationSequence);
       auditOk = emitAudit(options.audit, "requested", operationId, descriptor);
       if (!auditOk) return rejected("audit-failed");
@@ -684,6 +684,8 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
       }
       if (providerUsage.active >= state.manifest.limits.maxConcurrentCalls)
         return rejected("limit-exceeded");
+      providerUsage.calls++;
+      providerUsage.seen.add(requestId);
       providerUsage.active++;
       reserved = true;
       const effective = state.manifest.limits;
@@ -802,11 +804,16 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
       });
       let outcome: CapabilityProviderOutcome;
       try {
-        outcome = await withDeadline(
-          Promise.resolve().then(() => state!.invoke(context)),
-          effective.maxDurationMs,
-          controller,
+        providerTask = Promise.resolve().then(() => state!.invoke(context));
+        void providerTask.then(
+          () => {
+            providerSettled = true;
+          },
+          () => {
+            providerSettled = true;
+          },
         );
+        outcome = await withDeadline(providerTask, effective.maxDurationMs, controller);
       } finally {
         finalized = true;
       }
@@ -815,6 +822,7 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         cleanupReason = closed ? "closed" : callerSignal?.aborted ? "cancelled" : "timed-out";
         return rejected(cleanupReason === "timed-out" ? "timed-out" : "cancelled");
       }
+      cleanupReason = "provider-error";
       const result = object(outcome, "adapter-failed");
       keys(result, ["kind", "value", "error"], "adapter-failed");
       if (
@@ -822,6 +830,7 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         Object.hasOwn(result, "value") &&
         !Object.hasOwn(result, "error")
       ) {
+        cleanupReason = "completed";
         let owned: JsonObject;
         try {
           owned = copyObject(result.value, callBudget, "invalid-contract-model");
@@ -829,7 +838,6 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         } catch (error) {
           return rejected(mapValidation(error, "invalid-result"));
         }
-        cleanupReason = "completed";
         if (!emitAudit(options.audit, "succeeded", operationId, descriptor))
           return rejected("audit-failed");
         return Object.freeze({ kind: "result", value: owned });
@@ -839,6 +847,7 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         Object.hasOwn(result, "error") &&
         !Object.hasOwn(result, "value")
       ) {
+        cleanupReason = "provider-error";
         let owned: JsonObject;
         try {
           owned = copyObject(result.error, callBudget, "invalid-contract-model");
@@ -846,17 +855,18 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
         } catch (error) {
           return rejected(mapValidation(error, "invalid-provider-error"));
         }
-        cleanupReason = "provider-error";
         if (!emitAudit(options.audit, "provider-error", operationId, descriptor))
           return rejected("audit-failed");
         return Object.freeze({ kind: "provider-error", error: owned });
       }
+      cleanupReason = "provider-error";
       return rejected("provider-failed");
     } catch (error) {
       const code = failureOverride ?? mapRuntime(error);
       if (closed && code === "cancelled") cleanupReason = "closed";
       else if (code === "cancelled" || code === "timed-out") cleanupReason = code;
-      else cleanupReason = "failed";
+      else if (cleanupReason !== "completed" && cleanupReason !== "provider-error")
+        cleanupReason = "failed";
       if (state)
         emitAudit(
           options.audit,
@@ -879,7 +889,17 @@ export function createCapabilityBroker(options: CapabilityBrokerOptions): Capabi
           cleaned ? undefined : "cleanup-failed",
         );
       }
-      if (reserved && providerUsage) providerUsage.active--;
+      if (reserved && providerUsage) {
+        reserved = false;
+        if (started && providerTask && !providerSettled) {
+          void providerTask.then(
+            () => providerUsage!.active--,
+            () => providerUsage!.active--,
+          );
+        } else {
+          providerUsage.active--;
+        }
+      }
     }
   };
 
@@ -1008,7 +1028,11 @@ function parseManifest(input: unknown, allowReserved: boolean): CapabilityManife
   if (!(["none", "per-request"] as unknown[]).includes(value.consent)) throw new Error();
   if (!(["foreground", "foreground-or-background"] as unknown[]).includes(value.execution))
     throw new Error();
-  const riskFloorApplies = sensitivity.length > 0 || value.execution === "foreground-or-background";
+  const riskFloorApplies =
+    sensitivity.length > 0 ||
+    permissions.length > 0 ||
+    entitlements.length > 0 ||
+    value.execution === "foreground-or-background";
   if (riskFloorApplies && (value.activation !== "user" || value.consent !== "per-request"))
     throw new Error();
   if (sensitivity.length > 0 && value.execution !== "foreground") throw new Error();

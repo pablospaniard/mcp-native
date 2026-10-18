@@ -202,7 +202,7 @@ the primitives workflow at application level.
 ## Milestone 5: stable MCP Apps compatibility
 
 Status: complete for the documented native host-adapter profile pinned to MCP Apps `2026-01-26` and
-official SDK `1.7.5` schemas.
+official SDK `2.0.3` schemas.
 
 - [x] Implement `io.modelcontextprotocol/ui` capability negotiation.
 - [x] Preserve `_meta.ui.resourceUri`, visibility, CSP, permissions, and related UI metadata.
@@ -707,15 +707,19 @@ every device API ships in the package.
 
 ### Milestone 16: protocol-profile evolution
 
-- [ ] Track upstream MCP, A2UI, and MCP Apps revisions without silently following moving branches;
+- [x] Track upstream MCP, A2UI, and MCP Apps revisions without silently following moving branches;
       adopt each revision through an exact pin, compatibility review, migration plan, and conformance
       update.
-- [ ] Add A2UI renderer-function execution and standardized capability transport placement only when
+- [x] Add A2UI renderer-function execution and standardized capability transport placement only when
       the selected upstream profile defines the required authorization and lifecycle behavior.
-- [ ] Add optional stable MCP Apps methods and browser-host double-iframe isolation as separate,
+      The 2026-10-18 review records why the current Candidate still does not meet that gate, so the
+      existing rejection and host-owned transport remain in force.
+- [x] Add optional stable MCP Apps methods and browser-host double-iframe isolation as separate,
       explicitly negotiated profiles with native/browser differences documented and tested.
-- [ ] Retire project-owned bindings only through an explicit interoperable migration path with useful
+- [x] Retire project-owned bindings only through an explicit interoperable migration path with useful
       ordinary MCP fallback throughout the transition.
+      No upstream replacement currently provides that path, so this review retains the bindings and
+      their ordinary MCP fallback instead of reinterpreting or removing them.
 
 Exit criterion: supported protocol profiles can evolve with upstream standards without ambiguous
 version acceptance, silent wire reinterpretation, or regressions in fallback and security behavior.

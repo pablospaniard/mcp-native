@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "reviewedOn": "2026-10-18",
+  "profiles": {
+    "mcp": {
+      "selectedProtocol": "2026-07-28",
+      "conformanceSource": "c321dd32035556e6769d3724a8ee97d87c3faaac",
+      "decision": "retain",
+      "reason": "The selected protocol remains the latest stable MCP revision and its pinned conformance scenarios remain current."
+    },
+    "a2ui": {
+      "selectedProtocol": "v1.0-candidate",
+      "selectedSource": "8ff4651232ab0e02b0123730b502711170637a3a",
+      "reviewedSource": "cbaa5ee62c737b50d0695c1e5794d0f648b61dca",
+      "decision": "defer",
+      "reason": "Current Candidate schemas contain breaking binding-key changes, and upstream still does not define an exact MCP capability placement with the authorization and lifecycle contract required for agent-initiated renderer functions."
+    },
+    "mcpApps": {
+      "selectedProtocol": "2026-01-26",
+      "selectedPackage": "2.0.3",
+      "selectedSource": "82221c0c8ce7661efa6771c9d461511b1650495f",
+      "decision": "adopt",
+      "reason": "The 2.x SDK migration changes package integration but preserves the stable wire protocol; the stable specification is unchanged from the previously reviewed source."
+    }
+  }
+}

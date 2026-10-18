@@ -24,6 +24,7 @@ import {
   MCP_APPS_EXTENSION_ID,
   MCP_APPS_MIME_TYPE,
   MCP_APPS_MAX_HTML_LENGTH,
+  MCP_APPS_SOURCE_REVISION,
 } from "../packages/webview/dist/index.js";
 import {
   tool,
@@ -50,7 +51,7 @@ test("maintained inventory pins profiles, limits, responsibilities, and qualifie
   assert.equal(registry.standards[0].protocolVersion, "2026-07-28");
   assert.equal(registry.standards[1].schemaRevision, MCP_SCHEMA_REVISION);
   assert.equal(registry.standards[1].limits.maxSourceCodeUnits, MAX_SOURCE_LENGTH);
-  assert.equal(registry.standards[2].schemaRevision, "92f46a574568a3ddac7600343b7d3c4c4ed7b588");
+  assert.equal(registry.standards[2].schemaRevision, MCP_APPS_SOURCE_REVISION);
   assert.equal(registry.standards[2].limits.maxHtmlCodeUnits, MCP_APPS_MAX_HTML_LENGTH);
   for (const entry of registry.standards) {
     assert.ok(Object.isFrozen(entry));

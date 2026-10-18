@@ -29,6 +29,16 @@ Updating the Candidate revision, schemas, or catalog is a reviewed protocol chan
 advertise the complete basic catalog merely because MCP Native can validate it: catalog capability
 advertising is limited to a host's complete implementation.
 
+The 2026-10-18 evolution review compared this pin with upstream revision
+`cbaa5ee62c737b50d0695c1e5794d0f648b61dca`. That revision changes binding keys such as `path` and
+`call` to `@path` and `@call`, so adopting it would be a coordinated breaking wire migration rather
+than a compatible schema refresh. Although both revisions contain function-call envelopes, the
+selected basic catalog defaults its functions to renderer-only callers, and upstream still does not
+define an exact MCP capability placement with the required authorization, cancellation, and
+lifecycle behavior for agent-initiated renderer execution. The pin, rejection behavior, and
+host-owned capability transport therefore remain unchanged. See the
+[profile audit](protocol-profile-audit.json).
+
 ## Envelope and lifecycle profile
 
 | Direction         | Message                    | Support boundary                                                                     |

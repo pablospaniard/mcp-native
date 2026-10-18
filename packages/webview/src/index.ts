@@ -1,6 +1,7 @@
 import type { McpTextResourceContents } from "@mcp-native/core";
 
 export * from "./apps.js";
+export * from "./browser-sandbox.js";
 export * from "./bridge.js";
 export * from "./sandbox.js";
 
