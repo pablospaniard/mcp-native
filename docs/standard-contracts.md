@@ -22,11 +22,11 @@ included. Factories return frozen registrations; duplicates, forged objects, unk
 lists longer than three fail with `invalid-registry`. Inventory order is deterministic: ordinary,
 A2UI, Apps. Changing selection requires a new registry and connection.
 
-| Factory                         | Profile identity                   | Exact baseline                                                                                                           | Qualified conformance                                   |
-| ------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `createMcpOrdinaryContract`     | `io.modelcontextprotocol/ordinary` | MCP `2026-07-28`                                                                                                         | Selected scenarios at the bounded client boundary       |
-| `createA2uiStandardContract`    | `org.a2ui/native`                  | v1.0 Candidate, schema `8ff4651232ab0e02b0123730b502711170637a3a`, binding `0.1`                                         | Pinned schema fixtures                                  |
-| `createMcpAppsStandardContract` | `io.modelcontextprotocol/apps`     | `2026-01-26`, official package `@modelcontextprotocol/ext-apps@1.7.5`, source `92f46a574568a3ddac7600343b7d3c4c4ed7b588` | Official schema interoperability for the native profile |
+| Factory                         | Profile identity                   | Exact baseline                                                                                                           | Qualified conformance                                            |
+| ------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `createMcpOrdinaryContract`     | `io.modelcontextprotocol/ordinary` | MCP `2026-07-28`                                                                                                         | Selected scenarios at the bounded client boundary                |
+| `createA2uiStandardContract`    | `org.a2ui/native`                  | v1.0 Candidate, schema `8ff4651232ab0e02b0123730b502711170637a3a`, binding `0.1`                                         | Pinned schema fixtures                                           |
+| `createMcpAppsStandardContract` | `io.modelcontextprotocol/apps`     | `2026-01-26`, official package `@modelcontextprotocol/ext-apps@2.0.3`, source `82221c0c8ce7661efa6771c9d461511b1650495f` | Official schema interoperability for native and browser profiles |
 
 Each immutable `StandardContractProfile` records manifest version `"1"`, exact profile and schema
 revisions, MIME types, extension settings, selected entry-point limits, compatibility/conformance

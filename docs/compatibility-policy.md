@@ -22,6 +22,10 @@ do not imply a stable upstream A2UI v1.0 specification or support for A2UI v0.9.
 revisions require review, explicit pin updates, and profile verification; compatibility never
 follows a moving branch automatically.
 
+The machine-readable [protocol profile audit](protocol-profile-audit.json) records each reviewed
+upstream revision and adoption or deferral decision. `npm run profiles:verify` ties adopted values to
+runtime source and exact dependencies. A deferred revision never changes accepted wire input.
+
 ## Stable compatibility surfaces
 
 For `1.x`, the following are compatibility surfaces:
@@ -44,8 +48,8 @@ release notes must identify the affected boundary and safe replacement.
 
 Additive exports, optional fields, components, negotiated features, and platform adapters may ship
 in minor releases when old callers retain their behavior. Patch releases contain compatible fixes
-within a minor line. Post-`1.0.0` SwiftUI, Compose, and capability-provider packages will use their
-own documented profiles and will not silently expand the React Native server contract.
+within a minor line. Post-`1.0.0` SwiftUI, Compose, and capability-provider entry points use their
+own documented profiles and do not silently expand the React Native server contract.
 
 The host result surface is a closed union: `a2ui`, `mcp-app`, `ordinary`, or `invalid`.
 The two executable UI outcomes require exact mutual extension negotiation. A result claimed by both
@@ -116,9 +120,9 @@ compatibility review and changelog/migration update.
 Milestone 12 adds public renderer-core, strict renderer-lifetime surface-ID registries, and native
 session helpers without changing existing A2UI store defaults or React Native rendering behavior.
 Consumers opt into strict lifetime identity by supplying `createSurfaceIdRegistry()` to a store, or
-by using `createNativeSession()`/React Native `createSession()`, which do so automatically. Because
-the current source versions are not coordinated, these additions are not a release until a later
-release change explicitly aligns versions and internal ranges.
+by using `createNativeSession()`/React Native `createSession()`, which do so automatically. These
+additions are aligned with all public npm packages in the coordinated `1.2.0` release candidate;
+the source version remains distinct from confirmed publication.
 
 The [support matrix](support-matrix.md) records the supported dependency lanes. The
 [migration guide](migration-to-1.0.md) records the upgrade steps from pre-v1 packages. The

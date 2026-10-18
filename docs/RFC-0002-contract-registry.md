@@ -107,11 +107,11 @@ standard status. This is an API trust boundary, not a sandbox for malicious appl
 
 The initial standard inventory wraps the existing implementations:
 
-| Entry                | Exact baseline                                                                                          | Existing authority                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| MCP ordinary content | MCP `2026-07-28` client boundary; no executable renderer                                                | [MCP profile](protocol-support.md) and current bounded inert fallback                     |
-| A2UI native UI       | `v1.0` Candidate at `8ff4651232ab0e02b0123730b502711170637a3a`; binding `0.1`, `application/a2ui+json`  | [A2UI binding](a2ui-mcp-binding.md), profile validators, host catalog and action policy   |
-| MCP Apps             | `2026-01-26`; `@modelcontextprotocol/ext-apps@1.7.5`, source `92f46a574568a3ddac7600343b7d3c4c4ed7b588` | [Apps profile](mcp-apps-compatibility.md), existing resource, sandbox and bridge policies |
+| Entry                | Exact baseline                                                                                          | Existing authority                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| MCP ordinary content | MCP `2026-07-28` client boundary; no executable renderer                                                | [MCP profile](protocol-support.md) and current bounded inert fallback                           |
+| A2UI native UI       | `v1.0` Candidate at `8ff4651232ab0e02b0123730b502711170637a3a`; binding `0.1`, `application/a2ui+json`  | [A2UI binding](a2ui-mcp-binding.md), profile validators, host catalog and action policy         |
+| MCP Apps             | `2026-01-26`; `@modelcontextprotocol/ext-apps@2.0.3`, source `82221c0c8ce7661efa6771c9d461511b1650495f` | [Apps profile](mcp-apps-compatibility.md), resource, native/browser sandbox and bridge policies |
 
 Each maintained entry records its existing negotiation requirements, MIME types, limits, supported
 features, exclusions, and conformance status by reference to those profiles. The inventory does not

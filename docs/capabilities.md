@@ -85,9 +85,12 @@ or unchecked-prop channel.
 
 React Native, SwiftUI, and Jetpack Compose are first-class renderers for the pinned semantic profile.
 Each renderer accepts only locally compiled host extensions through its typed, policy-gated seam.
-The roadmap separately tracks typed, advertised, policy-gated providers for the wider native
-platform capability space. “All native capabilities” means an extensible host-provider model, not
-exposing arbitrary platform APIs or commands to a server.
+The wider native platform capability space uses the optional
+[`@mcp-native/host/capabilities`](native-capabilities.md) framework: exact local manifests and
+negotiation, an enforcing policy/permission broker, family-wide risk profiles, and an app-bound
+haptics reference provider. “All native capabilities” means an extensible host-provider model, not
+exposing arbitrary platform APIs or commands to a server; the exact matrix distinguishes policy
+profiles from installed providers.
 
 ## WebViews and mixed screens
 

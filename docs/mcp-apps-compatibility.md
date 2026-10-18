@@ -9,13 +9,15 @@ platform integration contract documented here.
 - Protocol: MCP Apps `2026-01-26`, status Stable
 - Extension identifier: `io.modelcontextprotocol/ui`
 - Resource MIME type: `text/html;profile=mcp-app`
-- Official interoperability dependency: `@modelcontextprotocol/ext-apps` `1.7.5`
-- Official package source commit: `92f46a574568a3ddac7600343b7d3c4c4ed7b588`
+- Official interoperability dependency: `@modelcontextprotocol/ext-apps` `2.0.3`
+- Official package source commit: `82221c0c8ce7661efa6771c9d461511b1650495f`
 - Core MCP boundary: MCP `2026-07-28` through the official TypeScript SDK v2 adapter
 
-The official package source commit above is verified by hand against the published
-`@modelcontextprotocol/ext-apps` release, not by an automated check — the npm package does not embed
-its source commit hash. Re-verify it manually whenever the pinned `ext-apps` version changes.
+The official `v2.0.3` tag resolves to the source commit above. Its stable `2026-01-26`
+specification has the same Git blob as the previously reviewed `1.7.5` source. The 2.x release
+changes SDK package integration, not the Apps wire protocol. The machine-readable
+[profile audit](protocol-profile-audit.json) binds the dependency and source pins; re-review the tag
+and stable specification whenever either changes.
 
 The official package is an exact development dependency. Tests compare the local revision, MIME
 type, initialization result, visibility values, and host-to-View lifecycle notifications with its
@@ -37,14 +39,41 @@ document plus the changelog to change in the same pull request.
 | Resources          | One exact predeclared `ui://` resource fetched through `resources/read`; text and canonical base64 UTF-8 bodies; exact stable MIME type                                                                                                                                                    |
 | Resource metadata  | Closed `csp`, `permissions`, `domain`, and `prefersBorder` parsing with cumulative domain and HTML limits                                                                                                                                                                                  |
 | View lifecycle     | `ui/initialize`, `ui/notifications/initialized`, host tool-input partial/complete/result/cancelled notifications, host-context changes, and graceful `ui/resource-teardown`                                                                                                                |
-| View requests      | `ping`, `tools/call`, `resources/read`, `ui/open-link`, `ui/download-file`, `ui/message`, `ui/update-model-context`, and `ui/request-display-mode`                                                                                                                                         |
+| View requests      | Base profile: `ping`, `tools/call`, `resources/read`, `ui/open-link`, `ui/download-file`, `ui/message`, `ui/update-model-context`, and `ui/request-display-mode`; optional list profile: `tools/list` and `resources/list`                                                                 |
 | View notifications | `notifications/message`, `ui/notifications/size-changed`, and `ui/notifications/request-teardown`                                                                                                                                                                                          |
 | Host policy        | Capabilities are advertised only when a corresponding host callback exists; external links require an explicit positive callback result; tool calls are limited to the same supplied tool snapshot and stable app visibility; one tool authorization and delivery may be pending at a time |
 | Bounds             | One MiB serialized bridge messages, at most 128 concurrent inbound method handlers, core JSON graph limits, 1,024 bridge tools, 2 MiB decoded HTML, 64 cumulative CSP domains, bounded content and download blocks, and one pending teardown request                                       |
 
-The bridge implements the method set listed above. Sampling, prompts, resource/tool listing,
-app-owned tools, methods outside the stable profile, and sandbox-proxy-reserved messages can be
-added through a future reviewed profile with their official schemas, authority model, and bounds.
+The list profile is disabled unless the host passes an opaque `createMcpAppsServerMethods()` result.
+It lists only the bounded tool snapshot already supplied to the bridge, filters model-only tools,
+and exposes only the exact bound UI resource. Both methods accept the standard `cursor` and `_meta`
+request shape; because each immutable snapshot is a single page, a cursor returns an empty terminal
+page. The bridge does not advertise `listChanged` or emit list-change notifications because it has
+no mutable discovery source. Sampling, prompts, resource templates, app-owned tools, and other
+methods remain unsupported. Tool descriptors preserve bounded unknown JSON fields for forward
+compatibility while requiring object-root input and output schemas for the fields the host uses.
+
+## Browser double-iframe contract
+
+`createMcpAppsBrowserSandbox()` implements the stable browser-host profile separately from the
+native descriptor. It requires a host-controlled HTTPS (or loopback HTTP) proxy URL on an origin
+different from the host, emits fixed outer `allow-scripts allow-same-origin` and inner
+`allow-scripts allow-forms` sandbox policies, and intersects requested browser permissions with an
+explicit host grant. The same Permissions Policy `allow` value is applied to both frames so an
+approved feature can traverse the proxy without granting anything extra. The inner View never
+receives `allow-same-origin` or top-navigation authority.
+
+`createMcpAppsBrowserMessageRouter()` accepts traffic only from the exact proxy window object and
+origin. The first message must be the exact `sandbox-proxy-ready` notification, after which the
+adapter sends one bounded `sandbox-resource-ready` notification containing owned HTML, CSP,
+permission grants, and the fixed inner policy. Later `ui/notifications/sandbox-*` traffic is
+rejected in both directions so the untrusted View cannot impersonate the proxy handshake. All
+ordinary forwarded values pass the same JSON graph and one-MiB serialized-size bounds as the native
+bridge. The resource-ready envelope instead retains the separately validated two-MiB HTML allowance
+without applying the core 64-KiB per-string limit a second time. A failed resource post leaves the
+router retryable and does not report readiness.
+The package provides descriptors and routing rather than downloading or evaluating proxy code; the
+host owns and audits the proxy document it installs.
 
 ## Native sandbox contract
 
@@ -124,10 +153,12 @@ the descriptor.
 
 ## Verification coverage
 
-`tests/mcp-apps.test.mjs` covers official-schema interoperability for initialization and host
+`tests/mcp-apps.test.mjs` covers official-schema interoperability for initialization, sandbox
+handshake, and host
 notifications, exact discovery and visibility behavior, text/blob resources, CSP and permission
 metadata, native prop selection, data-only bridge delivery, lifecycle ordering, tool visibility,
-link policy, display modes, bounded and concurrently amplified input, contained callback failures,
+link policy, optional lists and notifications, browser source/origin spoofing, reserved-message
+smuggling, display modes, bounded and concurrently amplified input, contained callback failures,
 async lifecycle races, unknown methods and fields, malformed JSON, premature messages, and graceful
 teardown. `npm run check` runs this file through the coverage gate, and
 `npm run package:smoke` verifies the public declarations and installable package output.

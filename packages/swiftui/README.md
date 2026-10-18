@@ -4,14 +4,14 @@
 Swift Package containing SwiftUI views and a fixed, app-bundled JavaScriptCore semantic runtime. It
 never downloads or evaluates server JavaScript and never resolves a server-selected native type.
 
-## Pre-release installation for evaluation
+## Installation
 
-No tagged release contains the repository-root manifest yet. For evaluation only, add the
-repository URL on the moving `main` branch in Xcode or declare it in `Package.swift`:
+The coordinated `v1.2.0` tag is the first release containing the repository-root Swift package
+manifest. After publication, add the repository URL in Xcode or declare it in `Package.swift`:
 
 ```swift
 dependencies: [
-  .package(url: "https://github.com/pablospaniard/mcp-native.git", branch: "main")
+  .package(url: "https://github.com/pablospaniard/mcp-native.git", from: "1.2.0")
 ],
 targets: [
   .target(
@@ -23,8 +23,7 @@ targets: [
 ]
 ```
 
-For reproducible evaluation, pin an exact commit instead of `main`. Released applications should
-use a version requirement after the first release containing the root manifest is tagged. The
+Before `v1.2.0` is published, pin an exact reviewed commit instead of a moving branch. The
 repository-root manifest is the supported remote entry point; the manifest in this directory
 provides the same product for focused local development. Do not add both forms to one dependency
 graph: they intentionally expose the same `MCPNativeSwiftUI` product and module.

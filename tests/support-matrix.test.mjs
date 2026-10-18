@@ -24,10 +24,10 @@ test("the repository toolchain matches the documented support matrix", () => {
   assert.equal(setupNodeStep?.with?.["node-version"], "22.12.0");
   assert.equal(rootManifest.devDependencies?.typescript, "^7.0.2");
   assert.equal(lockfile.packages?.["node_modules/typescript"]?.version, "7.0.2");
-  assert.equal(rootManifest.devDependencies?.["@modelcontextprotocol/ext-apps"], "1.7.5");
+  assert.equal(rootManifest.devDependencies?.["@modelcontextprotocol/ext-apps"], "2.0.3");
   assert.equal(
     lockfile.packages?.["node_modules/@modelcontextprotocol/ext-apps"]?.version,
-    "1.7.5",
+    "2.0.3",
   );
   assert.equal(rootManifest.devDependencies?.["react-18-1"], "npm:react@18.1.0");
   assert.equal(

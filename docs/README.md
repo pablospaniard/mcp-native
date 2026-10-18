@@ -5,12 +5,12 @@ diagrams. This page routes implementation and review work to the document that o
 
 ## Choose the package path
 
-| Goal                                                                 | Start here                                                                                     |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Own connection, discovery, calls, and result routing through one API | [`@mcp-native/host`](../packages/host/README.md), including React Native lifecycle integration |
-| Compose the protocol and rendering stages yourself                   | [Host integration checklist](host-integration-checklist.md), then the focused package guides   |
-| Import the low-level runtime and UI layers from one module           | [`mcp-native`](../packages/mcp-native/README.md)                                               |
-| Upgrade an existing integration to v1                                | [Migration to 1.0](migration-to-1.0.md)                                                        |
+| Goal                                                                 | Start here                                                                                                                |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Own connection, discovery, calls, and result routing through one API | [`@mcp-native/host`](../packages/host/README.md), including React Native lifecycle integration                            |
+| Compose the protocol and rendering stages yourself                   | [Host integration checklist](host-integration-checklist.md), then the focused package guides                              |
+| Import the low-level runtime and UI layers from one module           | [`mcp-native`](../packages/mcp-native/README.md)                                                                          |
+| Upgrade an existing integration                                      | [Migration to 1.2](migration-to-1.2.md), with historical [1.0](migration-to-1.0.md) and [1.1](migration-to-1.1.md) guides |
 
 Focused package guides: [core](../packages/core/README.md), [MCP SDK adapter](../packages/mcp/README.md),
 [A2UI](../packages/a2ui/README.md), [renderer core](../packages/renderer-core/README.md),
@@ -76,17 +76,18 @@ Runnable examples:
 - [Compatibility policy](compatibility-policy.md) — finalized `1.x` API and behavior surface.
 - [1.0 readiness](1.0-readiness.md) — completed implementation, validation, and review gates, plus
   publication actions.
-- [Roadmap](roadmap.md) — shipped v1 scope, release audit tracking, and undated post-1.0 work.
+- [Roadmap](roadmap.md) — shipped v1 scope, completed native-platform milestones, and remaining work.
 - [Release process](releasing.md) — coordinated packages, trusted publishing, and provenance.
 - [Security policy](../SECURITY.md) — supported releases and private vulnerability reporting.
 
 ## Current status
 
 MCP Native `1.1.0` was published on 2026-09-15 across the seven packages that existed in that
-release. The integration branch now contains an eighth public workspace, renderer-core, whose first
-publication requires a later coordinated release.
-See [release status](releasing.md#110-release-preparation). The public API is finalized across the high-level host, its React
-Native provider, and the independently usable low-level packages. The
+release. The `1.2.0` release candidate coordinates all eight npm workspaces with the SwiftUI package
+and Compose Maven artifact, including renderer-core's first npm publication.
+See [release status](releasing.md#120-release-preparation) and the
+[1.2 migration guide](migration-to-1.2.md). The public API is finalized across the high-level host,
+the three native renderer paths, and the independently usable low-level packages. The
 [compatibility policy](compatibility-policy.md) defines the adopted `1.x` contract. The
 [v1 release checklist](1.0-readiness.md) retains the historical `1.0.0` audit status; the [changelog](../CHANGELOG.md) records release changes. Milestone 11 adds the `1.1.0`
 [inline-data, lifecycle, and native implementation](custom-contracts.md) under the broader
@@ -99,3 +100,13 @@ Native provider, and the independently usable low-level packages. The
 - [Contract adapter authoring](contract-authoring.md) — canonical bundles, fixtures, and digest migration.
 - [Reviewed standard adapters](reviewed-standard-adapters.md) — separately packaged inline profiles and their review boundary.
 - [Milestone 11 acceptance review](milestone-11-acceptance.md) — scope, evidence, fixed findings, and corrective validation.
+
+## Native platforms and profiles in 1.2
+
+- [Renderer-core](../packages/renderer-core/README.md) and the
+  [native session contract](RFC-0004-native-session-contract.md) — shared semantics and lifecycle.
+- [SwiftUI](swiftui.md) and [Compose](compose.md) — direct native renderer integration and matrices.
+- [Native capabilities](native-capabilities.md) — exact provider manifests, policy, permissions,
+  budgets, cancellation, and the installed-provider matrix.
+- [MCP Apps compatibility](mcp-apps-compatibility.md) and
+  [protocol profile audit](protocol-profile-audit.json) — reviewed pins and browser/native profiles.

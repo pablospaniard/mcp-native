@@ -140,5 +140,6 @@ an extension component.
 
 The generated React Native host provides a real Codegen specification plus UIKit `UILabel` and
 Android `TextView` implementations through Fabric. The direct SwiftUI and Compose packages provide
-their own closed host-extension seams. The wider universal native-capability provider model remains
-committed roadmap work.
+their own closed host-extension seams. The wider universal native-capability provider model is
+implemented as the separate, host-owned [`@mcp-native/host/capabilities`](native-capabilities.md)
+boundary; component extensions do not inherit its device authority.

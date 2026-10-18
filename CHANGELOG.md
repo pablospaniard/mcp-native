@@ -6,11 +6,34 @@ patch and minor releases remain compatible within their release line.
 
 ## Unreleased
 
+No changes yet.
+
+## 1.2.0 - pending publication
+
+Coordinated minor release of all eight npm packages plus the SwiftUI package and Compose Maven
+artifact. This release adds the shared renderer session, first-class Apple and Android renderers,
+the native-capability provider boundary, and reviewed MCP/A2UI/MCP Apps profile evolution while
+preserving the existing `1.x` APIs and exact wire-version checks. See the
+[1.2 migration guide](docs/migration-to-1.2.md).
+
 ### Added
 
-- Publish the first-class Compose renderer as
-  `io.github.pablospaniard:mcp-native-compose` on Maven Central from the protected coordinated
-  release workflow. The signed AAR includes sources, documentation, complete POM metadata, checksum
+- Add a machine-verified MCP, A2UI, and MCP Apps evolution audit; adopt the wire-compatible official
+  MCP Apps `2.0.3` schema package; add explicit bounded server-list methods with standard pagination
+  request shapes; and add a cross-origin browser double-iframe descriptor/router with strict
+  source/origin checks and reserved-message isolation. The A2UI Candidate pin and project bindings
+  remain unchanged after the reviewed upstream compatibility gaps were recorded.
+
+- Add the `@mcp-native/host/capabilities` provider framework with closed namespaced manifests, exact
+  negotiation, opaque grants, schema-validated requests/results/events/errors, host policy and
+  permission gates, cumulative budgets, cancellation, cleanup, redacted auditing, risk profiles for
+  every native-capability family, and an app-bound haptics reference provider. No
+  protocol-independent core API changes. Audit persistence is awaited even when a host supplies an
+  asynchronous callback, and a rejected audit fails closed before provider execution.
+
+- Add protected coordinated publication of the first-class Compose renderer as
+  `io.github.pablospaniard:mcp-native-compose` on Maven Central. The release workflow signs the AAR
+  and includes sources, documentation, complete POM metadata, checksum
   validation, resumable Portal status polling, and a clean-consumer publication smoke test. The
   credential-free Android build and protected signing/upload jobs are isolated, transient status
   failures retry with bounds, and Maven-only recovery does not rerun npm or Android work.
@@ -74,6 +97,14 @@ patch and minor releases remain compatible within their release line.
   from its existing name unchanged, and `@mcp-native/core` is untouched.
 
 ### Fixed
+
+- Harden the protocol-profile evolution work after review: browser resource handshakes retain the
+  two-MiB HTML allowance, retry failed delivery, and delegate permissions through both frames; MCP
+  Apps immutable list snapshots no longer advertise change notifications; tool snapshots are
+  cumulatively bounded and preserve future descriptor fields while enforcing object-root schemas;
+  native capability admission, risk floors, lingering cancellation slots, and cleanup
+  classifications are enforced; and protocol-profile verification compares built runtime constants
+  rather than source text.
 
 - Compose now rejects non-JSON wire syntax before normalization, preserves coroutine cancellation
   while clearing pending actions, and consumes the renderer-core TextInput, Slider, and accessibility

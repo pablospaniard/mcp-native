@@ -1,6 +1,6 @@
 {
   "name": "@mcp-native/host",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "High-level MCP host orchestration for MCP Native.",
   "keywords": [
     "a2ui",
@@ -54,17 +54,22 @@
       "types": "./dist/contracts-authoring.d.ts",
       "import": "./dist/contracts-authoring.js",
       "default": "./dist/contracts-authoring.js"
+    },
+    "./capabilities": {
+      "types": "./dist/capabilities.d.ts",
+      "import": "./dist/capabilities.js",
+      "default": "./dist/capabilities.js"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@mcp-native/a2ui": "^1.1.0",
-    "@mcp-native/core": "^1.1.0",
-    "@mcp-native/mcp": "^1.1.0",
-    "@mcp-native/react-native": "^1.1.0",
-    "@mcp-native/webview": "^1.1.0"
+    "@mcp-native/a2ui": "^1.2.0",
+    "@mcp-native/core": "^1.2.0",
+    "@mcp-native/mcp": "^1.2.0",
+    "@mcp-native/react-native": "^1.2.0",
+    "@mcp-native/webview": "^1.2.0"
   },
   "devDependencies": {
     "@types/react": "19.1.17",

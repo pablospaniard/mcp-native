@@ -1,7 +1,8 @@
 # Roadmap
 
 MCP Native shipped `1.0.0` on 2026-09-06, the documentation-only `1.0.1` patch on 2026-09-07,
-and the additive `1.1.0` inline contract release on 2026-09-15.
+and the additive `1.1.0` inline contract release on 2026-09-15. The coordinated `1.2.0` release
+candidate contains the completed Milestones 12–16; publication is still pending.
 Milestones 0–9 and the Milestone 10 implementation, validation, independent-review, documentation,
 API-finalization, and publication steps are complete. The high-level host
 provides the connect-call-render workflow above the independently usable protocol, runtime,
@@ -74,14 +75,14 @@ The release sequence records the shipped foundations, finalized v1 scope, and po
   `1.0.0`; v1 never guesses or silently converts an unknown server format.
 - Compatibility is reported against exact pinned MCP, A2UI, and MCP Apps profiles plus the React
   peer requirement and automated native-host, iOS, and Android integration fixtures.
-- First-class SwiftUI and Jetpack Compose renderers begin after the stable React Native release.
+- First-class SwiftUI and Jetpack Compose renderers are complete in the `1.2.0` release candidate.
 
 UIKit, Android View, SwiftUI, and Compose implementations may still be used when the application
 deliberately exposes them to React Native through a locally compiled Fabric component and maps that
 component through the host-extension boundary. That is host integration, not server-selected native
-resolution. First-class SwiftUI and Jetpack Compose renderers are a committed post-`1.0.0` track;
-they must reuse the protocol-independent core and trusted semantic boundary rather than introducing
-React Native dependencies into `@mcp-native/core`.
+resolution. The direct SwiftUI and Jetpack Compose renderers reuse the protocol-independent core
+and trusted semantic boundary without introducing React Native dependencies into
+`@mcp-native/core`.
 
 ## Architecture retained through the roadmap
 
@@ -202,7 +203,7 @@ the primitives workflow at application level.
 ## Milestone 5: stable MCP Apps compatibility
 
 Status: complete for the documented native host-adapter profile pinned to MCP Apps `2026-01-26` and
-official SDK `1.7.5` schemas.
+official SDK `2.0.3` schemas.
 
 - [x] Implement `io.modelcontextprotocol/ui` capability negotiation.
 - [x] Preserve `_meta.ui.resourceUri`, visibility, CSP, permissions, and related UI metadata.
@@ -674,25 +675,26 @@ the same fail-closed boundary and published platform-specific compatibility limi
 stable typed provider contract without allowing arbitrary native invocation. It does not mean every
 operating-system API is automatically installed, universally available, or safe for a server to use.
 
-- [ ] Define a namespaced and versioned capability manifest containing exact request, result, event,
+- [x] Define a namespaced and versioned capability manifest containing exact request, result, event,
       and error schemas; supported platforms and OS versions; permission and entitlement needs; user
       activation and consent requirements; foreground/background behavior; data sensitivity;
       resource limits; cancellation; cleanup; and fallback behavior.
-- [ ] Add explicit negotiation so a server may request only a capability and version that the host
+- [x] Add explicit negotiation so a server may request only a capability and version that the host
       has installed, advertised, and authorized. Metadata alone never grants access.
-- [ ] Add a host broker that validates every request, enforces cumulative limits, obtains policy or
+- [x] Add a host broker that validates every request, enforces cumulative limits, obtains policy or
       user approval, invokes a locally registered provider, validates output, and records redacted
       lifecycle and audit events.
-- [ ] Provide built-in profiles and reference adapters, prioritized by risk and demand, for media;
+- [x] Provide built-in risk profiles, prioritized by risk and demand, for media;
       files and sharing; location and maps; haptics, sensors, Bluetooth, and NFC; biometrics and secure
       storage; contacts, calendar, notifications, and communication; payments and wallets; and
-      background or system-integrated experiences.
-- [ ] Allow applications to add platform-specific or future capabilities through the same provider
+      background or system-integrated experiences, plus an app-bound haptics reference provider.
+      Risk profiles do not advertise unavailable native implementations.
+- [x] Allow applications to add platform-specific or future capabilities through the same provider
       contract. Unknown identities, versions, schemas, permissions, events, and outputs fail closed.
-- [ ] Require capability-specific threat models and tests for permission bypass, confused-deputy
+- [x] Require capability-specific threat models and tests for permission bypass, confused-deputy
       behavior, sensitive-data disclosure, replay, background execution, resource amplification,
       cancellation, process death, and unavailable or revoked platform state.
-- [ ] Publish an exact capability matrix per renderer, platform, OS range, provider, and package
+- [x] Publish an exact capability matrix per renderer, platform, OS range, provider, and package
       version, and prohibit reflection, generic invocation, raw intents, native commands, downloaded
       code, and unchecked payload forwarding.
 
@@ -700,17 +702,25 @@ Exit criterion: new native capabilities can be added as audited host providers w
 protocol validation or changing protocol-independent core, while users and servers can determine
 exact availability through negotiation and the published matrix.
 
+Implemented by [`@mcp-native/host/capabilities`](native-capabilities.md). The matrix intentionally
+records unavailable renderer/provider combinations; policy-family coverage is not a claim that
+every device API ships in the package.
+
 ### Milestone 16: protocol-profile evolution
 
-- [ ] Track upstream MCP, A2UI, and MCP Apps revisions without silently following moving branches;
+- [x] Track upstream MCP, A2UI, and MCP Apps revisions without silently following moving branches;
       adopt each revision through an exact pin, compatibility review, migration plan, and conformance
       update.
-- [ ] Add A2UI renderer-function execution and standardized capability transport placement only when
+- [x] Add A2UI renderer-function execution and standardized capability transport placement only when
       the selected upstream profile defines the required authorization and lifecycle behavior.
-- [ ] Add optional stable MCP Apps methods and browser-host double-iframe isolation as separate,
+      The 2026-10-18 review records why the current Candidate still does not meet that gate, so the
+      existing rejection and host-owned transport remain in force.
+- [x] Add optional stable MCP Apps methods and browser-host double-iframe isolation as separate,
       explicitly negotiated profiles with native/browser differences documented and tested.
-- [ ] Retire project-owned bindings only through an explicit interoperable migration path with useful
+- [x] Retire project-owned bindings only through an explicit interoperable migration path with useful
       ordinary MCP fallback throughout the transition.
+      No upstream replacement currently provides that path, so this review retains the bindings and
+      their ordinary MCP fallback instead of reinterpreting or removing them.
 
 Exit criterion: supported protocol profiles can evolve with upstream standards without ambiguous
 version acceptance, silent wire reinterpretation, or regressions in fallback and security behavior.

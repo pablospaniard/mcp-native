@@ -10,11 +10,13 @@ build. Tagged releases are published to Maven Central:
 
 ```kotlin
 dependencies {
-  implementation("io.github.pablospaniard:mcp-native-compose:<version>")
+  implementation("io.github.pablospaniard:mcp-native-compose:1.2.0")
 }
 ```
 
-Use the same coordinated version as the repository's npm packages and GitHub release.
+`1.2.0` is the first coordinated Maven Central release and becomes available only after the
+matching GitHub Release workflow succeeds. Use the same version as the repository's npm packages
+and GitHub release.
 
 ```kotlin
 val session = RendererSession.create(

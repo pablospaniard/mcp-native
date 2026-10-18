@@ -34,9 +34,9 @@ host-owned.
 
 Build the catalog and policy boundary once, then tools can compose forms, cards, lists, and approval
 flows from that approved vocabulary—without a bespoke screen for every result, downloaded
-JavaScript, or server-selected components. The maintained renderer today is React Native; the core
-runtime and protocol boundaries are UI-framework independent. First-class SwiftUI and Jetpack
-Compose renderers reuse that platform-neutral semantic session behind native host integrations.
+JavaScript, or server-selected components. React Native, SwiftUI, and Jetpack Compose are maintained
+first-class renderers over the same platform-neutral semantic session and fail-closed protocol
+boundaries.
 
 ### What this changes in practice
 
@@ -140,8 +140,13 @@ npm install @mcp-native/core@1 @mcp-native/a2ui@1 @mcp-native/react-native@1
 npm install @mcp-native/webview@1
 ```
 
-Renderer authors can install `@mcp-native/renderer-core` after its first coordinated release; its
-source package defines the shared render-plan, reconciliation, and interactive-session boundary.
+Renderer authors can install `@mcp-native/renderer-core@1.2.0` after the coordinated `1.2.0`
+publication; its package defines the shared render-plan, reconciliation, interactive-session, and
+conformance boundary.
+
+The same `v1.2.0` tag supplies `MCPNativeSwiftUI` through Swift Package Manager and
+`io.github.pablospaniard:mcp-native-compose:1.2.0` through Maven Central. Until that release is
+published, use an exact reviewed source commit rather than a moving branch.
 
 All packages are ESM-only and include TypeScript declarations. React `>=18.1.0` is the only UI peer
 dependency. The app supplies React Native, Expo if used, WebView, native components, and other
@@ -212,6 +217,11 @@ application-owned responsibilities.
 The split is a security and dependency boundary. In particular, `@mcp-native/core` has no MCP SDK,
 A2UI, React, React Native, or WebView dependency.
 
+Audited device behavior can be installed through the optional
+[`@mcp-native/host/capabilities`](docs/native-capabilities.md) entry point. Exact manifests, opaque
+negotiation grants, policy and permission checks, cumulative limits, cancellation, cleanup, and
+redacted audit events preserve host ownership without adding generic native invocation to core.
+
 ## API names and protocol versions
 
 Package names provide the implementation context, so current APIs use concise identifiers:
@@ -256,7 +266,7 @@ npm start
 | ---------------------- | --------------------------------------------------------------------------------------------------- |
 | MCP                    | `2026-07-28`, with a tested `2025-11-25` compatibility lane                                         |
 | A2UI                   | Feature-scoped v1.0 Candidate profile pinned to commit `8ff4651232ab0e02b0123730b502711170637a3a`   |
-| MCP Apps               | Stable `2026-01-26` native host-adapter profile with `@modelcontextprotocol/ext-apps@1.7.5` schemas |
+| MCP Apps               | Stable `2026-01-26` native/browser host profile with `@modelcontextprotocol/ext-apps@2.0.3` schemas |
 | React                  | Peer dependency `>=18.1.0`                                                                          |
 | Direct native renderer | React Native, SwiftUI, and Jetpack Compose within their documented platform matrices                |
 
@@ -267,8 +277,10 @@ compatibility, or automatic compatibility with later upstream revisions. See the
 [implemented profile](docs/a2ui-v1-conformance.md) for supported features and exclusions.
 
 Read the [support matrix](docs/support-matrix.md) and [standards inventory](docs/standards-compatibility.md)
-for the exact tested boundaries and exclusions. Native capability providers and later protocol
-profiles remain future work without assigned release dates.
+for the exact tested boundaries and exclusions. The
+[native-capability provider matrix](docs/native-capabilities.md#exact-provider-matrix) separately
+records installed and unavailable device providers. Later upstream revisions require another exact,
+reviewed profile update.
 
 The `1.1.0` release includes Milestone 11: [custom inline contracts](docs/custom-contracts.md),
 [maintained standard selection](docs/standard-contracts.md), [separately packaged reviewed inline
@@ -276,6 +288,12 @@ adapters](docs/reviewed-standard-adapters.md), and [authoring tools](docs/contra
 opt-in host subpaths add native rendering and event policy without changing the published v1 API.
 The [review record](docs/milestone-11-acceptance.md) documents the review corrections.
 See the [1.1 migration guide](docs/migration-to-1.1.md) and [publication status](docs/releasing.md#110-release-preparation).
+
+The coordinated `1.2.0` release candidate adds the public renderer-core package, shared native
+session, first-class SwiftUI and Compose distribution, the native-capability provider framework,
+and reviewed MCP Apps/browser profile additions. Existing `1.1.x` integrations remain compatible;
+see the [1.2 migration guide](docs/migration-to-1.2.md) and
+[release status](docs/releasing.md#120-release-preparation).
 
 ## Documentation
 
@@ -287,6 +305,8 @@ See the [1.1 migration guide](docs/migration-to-1.1.md) and [publication status]
 - [A2UI profile](docs/a2ui-v1-conformance.md) and
   [MCP Apps profile](docs/mcp-apps-compatibility.md) — exact protocol scope.
 - [Protocol support](docs/protocol-support.md) — MCP revisions and operations.
+- [Migration to 1.2](docs/migration-to-1.2.md) — coordinated npm, SwiftPM, Maven, capability, and
+  protocol-profile adoption.
 - [1.0 readiness](docs/1.0-readiness.md) and [roadmap](docs/roadmap.md) — completed gates and
   publication steps and post-v1 work.
 - [Security policy](SECURITY.md) — trust assumptions and vulnerability reporting.

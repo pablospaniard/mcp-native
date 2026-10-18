@@ -6,6 +6,31 @@ artifacts. The Compose AAR is signed and published to Maven Central from the sam
 commit. Maven Central currently requires a Portal user token and PGP signing key; both are confined
 to the protected `npm-release` GitHub environment.
 
+<a id="120-release-preparation"></a>
+
+## 1.2.0 release preparation
+
+All eight npm package manifests and internal dependency ranges target `1.2.0`. The same tag will
+version the `MCPNativeSwiftUI` Swift Package and the
+`io.github.pablospaniard:mcp-native-compose` Maven artifact. This compatible minor release promotes
+Milestones 12–16 from the `feature/native-platforms` integration branch: renderer-core, the shared
+native session, first-class SwiftUI and Compose renderers, audited capability providers, and the
+reviewed protocol-profile update. See the [release notes](../CHANGELOG.md) and
+[1.2 migration guide](migration-to-1.2.md).
+
+Publication is pending. `1.1.0` remains the latest confirmed npm release, renderer-core has not yet
+been published to npm, and Maven Central currently has no
+`io.github.pablospaniard:mcp-native-compose` coordinate. Before publishing the GitHub Release, a
+maintainer must complete renderer-core's one-time npm bootstrap and trusted-publisher setup described
+below. Merge the release PR to `main`, confirm the release gates, then publish the exact `v1.2.0`
+GitHub Release; merging code or documentation alone does not publish npm, SwiftPM, or Maven
+artifacts.
+
+The release candidate must pass `npm run release:verify`, `npm run android:package:smoke`,
+`npm run apple:test`, and
+`GITHUB_REF_NAME=v1.2.0 node scripts/verify-release-version.mjs`. The GitHub Release workflow reruns
+the trusted package and Maven checks from the immutable release commit.
+
 <a id="110-release-preparation"></a>
 
 ## 1.1.0 publication
@@ -40,11 +65,13 @@ Before creating a release:
 1. Confirm every public package has the same version and that internal dependency ranges target
    that version.
 2. Confirm every package has `pablospaniard/mcp-native` and `release.yml` configured as its npm
-   trusted publisher, with the `npm-release` environment and `npm publish` allowed.
+   trusted publisher, with the `npm-release` environment and `npm publish` allowed. For a package
+   that does not exist on npm yet, complete the one-time bootstrap below before creating the release.
 3. Confirm the `io.github.pablospaniard` Maven Central namespace and the four protected environment
    secrets `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `MAVEN_SIGNING_KEY`, and
    `MAVEN_SIGNING_PASSWORD`. Publish the signing key's public half to a supported key server.
-4. Run `npm run release:verify`, `npm run android:package:smoke`, and verify the stable or prerelease tag with
+4. Run `npm run release:verify`, `npm run android:package:smoke`, `npm run apple:test`, and verify
+   the stable or prerelease tag with
    `GITHUB_REF_NAME=v<version> node scripts/verify-release-version.mjs`.
 5. Merge the release pull request and publish the matching GitHub Release.
 
@@ -84,10 +111,10 @@ rebuilding, rerunning npm publication, or uploading the immutable coordinate aga
 
 Release version verification uses the same package inventory as the publisher. Recovery permits
 renderer-core to be absent in a historical release only when no package in that checkout requires
-it; missing or out-of-order local dependencies fail before publication. The Milestone 12 package
-decision makes renderer-core public, but does not authorize publishing the current uncoordinated
-source versions. The next release must align all public package versions and internal dependency
-ranges before release verification can pass.
+it; missing or out-of-order local dependencies fail before publication. The `1.2.0` release
+candidate aligns renderer-core and every other public npm workspace at one version with matching
+internal dependency ranges. That source alignment is a release prerequisite, not a claim that the
+artifacts have already been published.
 
 `scripts/workspace-packages.mjs` supplies the shared inventory for release, API verification, package
 smoke tests and native-host preparation. The historical 0.9 upgrade baseline intentionally contains
