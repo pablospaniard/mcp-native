@@ -9,8 +9,8 @@ forms and structured interactions, or isolate HTML MCP Apps behind an explicit W
 
 [![CI](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml/badge.svg)](https://github.com/pablospaniard/mcp-native/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/mcp-native?label=mcp-native)](https://www.npmjs.com/package/mcp-native)
-[![npm downloads](https://img.shields.io/npm/dm/mcp-native?label=downloads)](https://www.npmjs.com/package/mcp-native)
-[![License: MIT](https://img.shields.io/github/license/pablospaniard/mcp-native)](LICENSE)
+[![npm downloads](https://img.shields.io/npm/dm/mcp-native?label=downloads&cacheSeconds=86400)](https://www.npmjs.com/package/mcp-native)
+[![License: MIT](https://img.shields.io/npm/l/mcp-native)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 </div>
@@ -140,13 +140,11 @@ npm install @mcp-native/core@1 @mcp-native/a2ui@1 @mcp-native/react-native@1
 npm install @mcp-native/webview@1
 ```
 
-Renderer authors can install `@mcp-native/renderer-core@1.2.0` after the coordinated `1.2.0`
-publication; its package defines the shared render-plan, reconciliation, interactive-session, and
-conformance boundary.
+Renderer authors can install `@mcp-native/renderer-core@1.2.0`; its package defines the shared
+render-plan, reconciliation, interactive-session, and conformance boundary.
 
-The same `v1.2.0` tag supplies `MCPNativeSwiftUI` through Swift Package Manager and
-`io.github.pablospaniard:mcp-native-compose:1.2.0` through Maven Central. Until that release is
-published, use an exact reviewed source commit rather than a moving branch.
+The same published `v1.2.0` tag supplies `MCPNativeSwiftUI` through Swift Package Manager and
+`io.github.pablospaniard:mcp-native-compose:1.2.0` through Maven Central.
 
 All packages are ESM-only and include TypeScript declarations. React `>=18.1.0` is the only UI peer
 dependency. The app supplies React Native, Expo if used, WebView, native components, and other
@@ -289,7 +287,7 @@ opt-in host subpaths add native rendering and event policy without changing the 
 The [review record](docs/milestone-11-acceptance.md) documents the review corrections.
 See the [1.1 migration guide](docs/migration-to-1.1.md) and [publication status](docs/releasing.md#110-release-preparation).
 
-The coordinated `1.2.0` release candidate adds the public renderer-core package, shared native
+The coordinated `1.2.0` release adds the public renderer-core package, shared native
 session, first-class SwiftUI and Compose distribution, the native-capability provider framework,
 and reviewed MCP Apps/browser profile additions. Existing `1.1.x` integrations remain compatible;
 see the [1.2 migration guide](docs/migration-to-1.2.md) and

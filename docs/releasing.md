@@ -8,26 +8,23 @@ to the protected `npm-release` GitHub environment.
 
 <a id="120-release-preparation"></a>
 
-## 1.2.0 release preparation
+## 1.2.0 publication
 
-All eight npm package manifests and internal dependency ranges target `1.2.0`. The same tag will
-version the `MCPNativeSwiftUI` Swift Package and the
+All eight npm packages were published at `1.2.0` on 2026-10-18. The same tag versions the
+`MCPNativeSwiftUI` Swift Package and the
 `io.github.pablospaniard:mcp-native-compose` Maven artifact. This compatible minor release promotes
 Milestones 12–16 from the `feature/native-platforms` integration branch: renderer-core, the shared
 native session, first-class SwiftUI and Compose renderers, audited capability providers, and the
 reviewed protocol-profile update. See the [release notes](../CHANGELOG.md) and
 [1.2 migration guide](migration-to-1.2.md).
 
-Publication is pending. `1.1.0` remains the latest confirmed npm release, renderer-core has not yet
-been published to npm, and Maven Central currently has no
-`io.github.pablospaniard:mcp-native-compose` coordinate. Before publishing the GitHub Release, a
-maintainer must complete renderer-core's one-time npm bootstrap and trusted-publisher setup described
-below. Merge the release PR to `main`, confirm the release gates, then publish the exact `v1.2.0`
-GitHub Release; merging code or documentation alone does not publish npm, SwiftPM, or Maven
-artifacts.
+The [GitHub Release](https://github.com/pablospaniard/mcp-native/releases/tag/v1.2.0) and
+[successful publication workflow](https://github.com/pablospaniard/mcp-native/actions/runs/39146144229)
+resolve to the immutable release tag. The workflow published all npm packages with provenance and
+the signed `io.github.pablospaniard:mcp-native-compose:1.2.0` artifact to Maven Central;
+renderer-core's first npm publication is complete.
 
-The release candidate must pass `npm run release:verify`, `npm run android:package:smoke`,
-`npm run apple:test`, and
+The release passed `npm run release:verify`, `npm run android:package:smoke`, `npm run apple:test`, and
 `GITHUB_REF_NAME=v1.2.0 node scripts/verify-release-version.mjs`. The GitHub Release workflow reruns
 the trusted package and Maven checks from the immutable release commit.
 

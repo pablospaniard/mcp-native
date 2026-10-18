@@ -107,9 +107,8 @@ if (grant.kind === "negotiated") {
 
 ## Exact provider matrix
 
-This additive API is included in the coordinated `1.2.0` release candidate; publication remains
-pending. “Adapter contract” means the app supplies and audits the native call; the package contains
-no generic native module lookup.
+This additive API is included in the coordinated `1.2.0` release. “Adapter contract” means the app
+supplies and audits the native call; the package contains no generic native module lookup.
 
 | Renderer / host path                                    | Platform range                                                                                                                                                                 | Provider                                         | Status in current source                | Evidence                                                        |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | --------------------------------------- | --------------------------------------------------------------- |

@@ -121,8 +121,7 @@ Milestone 12 adds public renderer-core, strict renderer-lifetime surface-ID regi
 session helpers without changing existing A2UI store defaults or React Native rendering behavior.
 Consumers opt into strict lifetime identity by supplying `createSurfaceIdRegistry()` to a store, or
 by using `createNativeSession()`/React Native `createSession()`, which do so automatically. These
-additions are aligned with all public npm packages in the coordinated `1.2.0` release candidate;
-the source version remains distinct from confirmed publication.
+additions are aligned with all public npm packages in the coordinated `1.2.0` release.
 
 The [support matrix](support-matrix.md) records the supported dependency lanes. The
 [migration guide](migration-to-1.0.md) records the upgrade steps from pre-v1 packages. The
