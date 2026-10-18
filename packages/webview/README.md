@@ -13,9 +13,10 @@
 </div>
 
 `@mcp-native/webview` hosts HTML MCP Apps inside a native WebView without mixing them into the native
-A2UI renderer. It implements the stable MCP Apps `2026-01-26` native host-adapter profile, including
-discovery, `ui://` resources, CSP and permission metadata, a native sandbox descriptor, and the Apps
-JSON-RPC lifecycle.
+A2UI renderer. It implements the stable MCP Apps `2026-01-26` native host-adapter profile, a separate
+browser double-iframe descriptor/router, and opt-in bounded `tools/list` and `resources/list`
+profiles. Discovery, `ui://` resources, CSP and permission metadata, and the Apps JSON-RPC lifecycle
+remain shared and exact.
 
 Older generic HTML helpers remain available for compatibility. They require an explicit host policy
 before loading either inline or remote documents.

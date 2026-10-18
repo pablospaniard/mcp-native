@@ -8,6 +8,12 @@ patch and minor releases remain compatible within their release line.
 
 ### Added
 
+- Add a machine-verified MCP, A2UI, and MCP Apps evolution audit; adopt the wire-compatible official
+  MCP Apps `2.0.3` schema package; add explicit bounded server-list methods and list-change
+  notifications; and add a cross-origin browser double-iframe descriptor/router with strict
+  source/origin checks and reserved-message isolation. The A2UI Candidate pin and project bindings
+  remain unchanged after the reviewed upstream compatibility gaps were recorded.
+
 - Add the `@mcp-native/host/capabilities` provider framework with closed namespaced manifests, exact
   negotiation, opaque grants, schema-validated requests/results/events/errors, host policy and
   permission gates, cumulative budgets, cancellation, cleanup, redacted auditing, risk profiles for

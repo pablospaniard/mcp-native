@@ -74,6 +74,8 @@ export interface McpAppsBridgeOptions {
   };
   readonly hostContext?: unknown;
   readonly tools?: readonly McpTool[];
+  /** Optional standard MCP list methods, installed independently of call/read handlers. */
+  readonly serverMethods?: McpAppsServerMethods;
   readonly resource: McpAppsResource;
   readonly sandbox: McpAppsNativeSandboxConfiguration;
   readonly handlers?: McpAppsBridgeHandlers;
@@ -81,6 +83,20 @@ export interface McpAppsBridgeOptions {
   readonly updateModelContextModalities?: readonly McpAppsContentModality[];
   readonly onProtocolError?: (error: McpAppsBridgeError) => void;
   readonly onTeardownComplete?: (result: "error" | "success") => void;
+}
+
+export interface McpAppsServerMethodsOptions {
+  readonly tools?: boolean;
+  readonly resources?: boolean;
+  readonly toolsListChanged?: boolean;
+  readonly resourcesListChanged?: boolean;
+}
+
+export interface McpAppsServerMethods {
+  readonly tools: boolean;
+  readonly resources: boolean;
+  readonly toolsListChanged: boolean;
+  readonly resourcesListChanged: boolean;
 }
 
 export class McpAppsBridgeError extends McpAppsError {
@@ -104,6 +120,40 @@ type ParsedRpc = {
 
 const bridgeResources = new WeakMap<object, McpAppsResource>();
 const bridgeSandboxes = new WeakMap<object, McpAppsNativeSandboxConfiguration>();
+const serverMethodsProfiles = new WeakSet<object>();
+
+/** Creates an explicit, closed opt-in for stable MCP list methods exposed to a View. */
+export function createMcpAppsServerMethods(
+  options: McpAppsServerMethodsOptions = {},
+): McpAppsServerMethods {
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new McpAppsBridgeError("Expected MCP Apps server-method options to be an object");
+  }
+  expectOnlyKeys(
+    parseBoundedObject(options, "server method options"),
+    ["tools", "resources", "toolsListChanged", "resourcesListChanged"],
+    "server method options",
+  );
+  for (const [name, value] of Object.entries(options)) {
+    if (typeof value !== "boolean") {
+      throw new McpAppsBridgeError(`Expected a boolean at server method options.${name}`);
+    }
+  }
+  const profile: McpAppsServerMethods = Object.freeze({
+    tools: options.tools === true,
+    resources: options.resources === true,
+    toolsListChanged: options.toolsListChanged === true,
+    resourcesListChanged: options.resourcesListChanged === true,
+  });
+  if (profile.toolsListChanged && !profile.tools) {
+    throw new McpAppsBridgeError("Tool list changes require tools/list support");
+  }
+  if (profile.resourcesListChanged && !profile.resources) {
+    throw new McpAppsBridgeError("Resource list changes require resources/list support");
+  }
+  serverMethodsProfiles.add(profile);
+  return profile;
+}
 
 /**
  * Stable MCP Apps host lifecycle for a single native WebView. Incoming data is
@@ -115,6 +165,7 @@ export class McpAppsBridge {
   readonly #hostContext: JsonObject;
   readonly #hostCapabilities: JsonObject;
   readonly #tools: ReadonlyMap<string, McpTool>;
+  readonly #serverMethods: McpAppsServerMethods;
   readonly #handlers: McpAppsBridgeHandlers;
   readonly #onProtocolError: McpAppsBridgeOptions["onProtocolError"];
   readonly #onTeardownComplete: McpAppsBridgeOptions["onTeardownComplete"];
@@ -148,6 +199,11 @@ export class McpAppsBridge {
     if (typeof options.postMessage !== "function") {
       throw new McpAppsBridgeError("Expected postMessage to be a function");
     }
+    if (options.serverMethods !== undefined && !serverMethodsProfiles.has(options.serverMethods)) {
+      throw new McpAppsBridgeError(
+        "MCP Apps optional methods require an opaque createMcpAppsServerMethods result",
+      );
+    }
     this.#postMessage = options.postMessage;
     this.#hostInfo = parseImplementation(options.hostInfo, "hostInfo");
     this.#hostContext =
@@ -163,7 +219,8 @@ export class McpAppsBridge {
         "MCP Apps tool proxying requires both authorizeToolCall and callTool handlers",
       );
     }
-    this.#hostCapabilities = createHostCapabilities(options);
+    this.#serverMethods = options.serverMethods ?? createMcpAppsServerMethods();
+    this.#hostCapabilities = createHostCapabilities(options, this.#serverMethods);
     this.#tools = createToolMap(options.tools ?? []);
     this.#onProtocolError = options.onProtocolError;
     this.#onTeardownComplete = options.onTeardownComplete;
@@ -306,6 +363,22 @@ export class McpAppsBridge {
     );
   }
 
+  async sendToolsListChanged(): Promise<void> {
+    this.#assertReady("notifications/tools/list_changed");
+    if (!this.#serverMethods.toolsListChanged) {
+      throw new McpAppsBridgeError("Tool list-change notifications are not enabled", -32601);
+    }
+    await this.#sendNotification("notifications/tools/list_changed", {});
+  }
+
+  async sendResourcesListChanged(): Promise<void> {
+    this.#assertReady("notifications/resources/list_changed");
+    if (!this.#serverMethods.resourcesListChanged) {
+      throw new McpAppsBridgeError("Resource list-change notifications are not enabled", -32601);
+    }
+    await this.#sendNotification("notifications/resources/list_changed", {});
+  }
+
   /** Begins graceful teardown. The View's matching response closes the bridge. */
   async requestResourceTeardown(): Promise<RequestId> {
     this.#assertReady("ui/resource-teardown");
@@ -337,6 +410,10 @@ export class McpAppsBridge {
         return {};
       case "tools/call":
         return this.#callTool(params);
+      case "tools/list":
+        return this.#listTools(params);
+      case "resources/list":
+        return this.#listResources(params);
       case "resources/read":
         return this.#readResource(params);
       case "ui/open-link":
@@ -473,6 +550,38 @@ export class McpAppsBridge {
     } finally {
       this.#toolCallRunning = false;
     }
+  }
+
+  #listTools(params: JsonValue | undefined): JsonObject {
+    if (!this.#serverMethods.tools) {
+      throw new McpAppsBridgeError("Server tool listing is not enabled", -32601);
+    }
+    expectEmptyParams(params, "tools/list");
+    return parseBoundedObject(
+      { tools: [...this.#tools.values()].filter(isMcpAppsToolCallableByApp) },
+      "tools/list result",
+    );
+  }
+
+  #listResources(params: JsonValue | undefined): JsonObject {
+    if (!this.#serverMethods.resources) {
+      throw new McpAppsBridgeError("Server resource listing is not enabled", -32601);
+    }
+    expectEmptyParams(params, "resources/list");
+    const resource = bridgeResources.get(this)!;
+    return parseBoundedObject(
+      {
+        resources: [
+          {
+            uri: resource.uri,
+            name: resource.uri,
+            mimeType: resource.mimeType,
+            ...(resource.meta === undefined ? {} : { _meta: { ui: resource.meta } }),
+          },
+        ],
+      },
+      "resources/list result",
+    );
   }
 
   async #readResource(params: JsonValue | undefined): Promise<JsonObject> {
@@ -648,7 +757,10 @@ export function isMcpAppsBridgeBinding(
   );
 }
 
-function createHostCapabilities(options: McpAppsBridgeOptions): JsonObject {
+function createHostCapabilities(
+  options: McpAppsBridgeOptions,
+  serverMethods: McpAppsServerMethods,
+): JsonObject {
   const handlers = options.handlers ?? {};
   const permissions: Record<string, JsonObject> = {};
   for (const permission of options.sandbox.grantedPermissions) {
@@ -668,10 +780,16 @@ function createHostCapabilities(options: McpAppsBridgeOptions): JsonObject {
   return {
     ...(handlers.openLink === undefined ? {} : { openLinks: {} }),
     ...(handlers.downloadFile === undefined ? {} : { downloadFile: {} }),
-    ...(handlers.callTool === undefined || handlers.authorizeToolCall === undefined
-      ? {}
-      : { serverTools: {} }),
-    ...(handlers.readResource === undefined ? {} : { serverResources: {} }),
+    ...(handlers.callTool !== undefined || serverMethods.tools
+      ? {
+          serverTools: serverMethods.toolsListChanged ? { listChanged: true } : {},
+        }
+      : {}),
+    ...(handlers.readResource !== undefined || serverMethods.resources
+      ? {
+          serverResources: serverMethods.resourcesListChanged ? { listChanged: true } : {},
+        }
+      : {}),
     ...(handlers.log === undefined ? {} : { logging: {} }),
     sandbox,
     ...(handlers.sendMessage === undefined
@@ -719,14 +837,64 @@ function createToolMap(tools: readonly McpTool[]): ReadonlyMap<string, McpTool> 
     throw new McpAppsBridgeError(`Tool list exceeds maximum length of ${MCP_APPS_MAX_TOOLS}`);
   }
   const result = new Map<string, McpTool>();
-  for (const tool of tools) {
-    parseMcpAppsToolMeta(tool);
-    if (result.has(tool.name)) {
-      throw new McpAppsBridgeError(`Duplicate bridge tool name: ${tool.name}`);
+  for (const [index, tool] of tools.entries()) {
+    const snapshot = parseBridgeTool(tool, `tools[${index}]`);
+    parseMcpAppsToolMeta(snapshot);
+    if (result.has(snapshot.name)) {
+      throw new McpAppsBridgeError(`Duplicate bridge tool name: ${snapshot.name}`);
     }
-    result.set(tool.name, tool);
+    result.set(snapshot.name, snapshot);
   }
   return result;
+}
+
+function parseBridgeTool(value: unknown, path: string): McpTool {
+  const tool = parseBoundedObject(value, path);
+  expectOnlyKeys(
+    tool,
+    [
+      "name",
+      "title",
+      "description",
+      "inputSchema",
+      "outputSchema",
+      "annotations",
+      "icons",
+      "_meta",
+    ],
+    path,
+  );
+  expectBoundedString(tool.name, `${path}.name`);
+  for (const field of ["title", "description"] as const) {
+    if (tool[field] !== undefined) expectBoundedString(tool[field], `${path}.${field}`);
+  }
+  parseBoundedObject(tool.inputSchema, `${path}.inputSchema`);
+  if (tool.outputSchema !== undefined)
+    parseBoundedObject(tool.outputSchema, `${path}.outputSchema`);
+  validateOptionalIcons(tool.icons, `${path}.icons`);
+  validateOptionalMeta(tool["_meta"], `${path}._meta`);
+  if (tool.annotations !== undefined) {
+    const annotations = parseBoundedObject(tool.annotations, `${path}.annotations`);
+    expectOnlyKeys(
+      annotations,
+      ["title", "readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"],
+      `${path}.annotations`,
+    );
+    if (annotations.title !== undefined) {
+      expectBoundedString(annotations.title, `${path}.annotations.title`);
+    }
+    for (const field of [
+      "readOnlyHint",
+      "destructiveHint",
+      "idempotentHint",
+      "openWorldHint",
+    ] as const) {
+      if (annotations[field] !== undefined && typeof annotations[field] !== "boolean") {
+        throw new McpAppsBridgeError(`Expected a boolean at ${path}.annotations.${field}`);
+      }
+    }
+  }
+  return tool as unknown as McpTool;
 }
 
 function parseRpcMessage(value: unknown): ParsedRpc {

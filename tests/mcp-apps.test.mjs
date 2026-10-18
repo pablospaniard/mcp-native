@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   LATEST_PROTOCOL_VERSION,
   McpUiInitializeResultSchema,
+  McpUiSandboxProxyReadyNotificationSchema,
+  McpUiSandboxResourceReadyNotificationSchema,
   McpUiToolInputNotificationSchema,
   McpUiToolInputPartialNotificationSchema,
   McpUiToolResultNotificationSchema,
@@ -17,17 +19,24 @@ import {
   MCP_APPS_MAX_PENDING_REQUESTS,
   MCP_APPS_MIME_TYPE,
   MCP_APPS_PROTOCOL_VERSION,
+  MCP_APPS_SOURCE_REVISION,
+  MCP_APPS_SANDBOX_PROXY_READY_METHOD,
+  MCP_APPS_SANDBOX_RESOURCE_READY_METHOD,
   McpAppsBridge,
   McpAppsBridgeError,
   McpAppsError,
   createMcpAppsContentSecurityPolicy,
+  createMcpAppsBrowserMessageRouter,
+  createMcpAppsBrowserSandbox,
   createMcpAppsNativeDeliveryScript,
   createMcpAppsNativeSandbox,
   createMcpAppsReactNativeWebViewProps,
+  createMcpAppsServerMethods,
   describeMcpAppsNativeSandbox,
   filterMcpAppsModelTools,
   getMcpAppsPermissionPolicy,
   isMcpAppsBridgeBinding,
+  isMcpAppsBrowserSandboxConfiguration,
   isMcpAppsGrant,
   isMcpAppsNativeSandboxConfiguration,
   isMcpAppsNativeSandboxForResource,
@@ -97,6 +106,7 @@ function createResolvedResource(overrides = {}) {
 test("stable constants and extension negotiation match the pinned official Apps profile", () => {
   assert.equal(MCP_APPS_EXTENSION_ID, "io.modelcontextprotocol/ui");
   assert.equal(MCP_APPS_PROTOCOL_VERSION, "2026-01-26");
+  assert.equal(MCP_APPS_SOURCE_REVISION, "82221c0c8ce7661efa6771c9d461511b1650495f");
   assert.equal(MCP_APPS_MIME_TYPE, "text/html;profile=mcp-app");
   assert.equal(MCP_APPS_PROTOCOL_VERSION, LATEST_PROTOCOL_VERSION);
   assert.equal(MCP_APPS_MIME_TYPE, RESOURCE_MIME_TYPE);
@@ -688,6 +698,110 @@ test("native WebView adapter contains synchronous and asynchronous callback fail
   await new Promise((resolve) => setImmediate(resolve));
 });
 
+test("browser sandbox uses a cross-origin proxy and rejects message smuggling", async () => {
+  const resource = createResolvedResource();
+  const sandbox = createMcpAppsBrowserSandbox(resource, {
+    hostOrigin: "https://host.example",
+    proxyUrl: "https://sandbox.example/proxy.html",
+    grantedPermissions: ["camera", "microphone", "clipboardWrite"],
+  });
+  assert.equal(isMcpAppsBrowserSandboxConfiguration(sandbox), true);
+  assert.equal(isMcpAppsBrowserSandboxConfiguration({ ...sandbox }), false);
+  assert.deepEqual(sandbox.grantedPermissions, ["camera", "clipboardWrite"]);
+  assert.equal(sandbox.proxyFrame.sandbox, "allow-scripts allow-same-origin");
+  assert.equal(sandbox.viewFrame.sandbox, "allow-scripts allow-forms");
+  assert.equal(sandbox.viewFrame.allow, "camera; clipboard-write");
+  assert.equal(Object.isFrozen(sandbox.resourceReady), true);
+  assert.equal(Object.isFrozen(sandbox.resourceReady.params), true);
+  assert.equal(
+    McpUiSandboxResourceReadyNotificationSchema.safeParse(sandbox.resourceReady).success,
+    true,
+  );
+  assert.equal(sandbox.resourceReady.method, MCP_APPS_SANDBOX_RESOURCE_READY_METHOD);
+  assert.equal(sandbox.resourceReady.params.sandbox.includes("allow-same-origin"), false);
+
+  const proxySource = {};
+  const posted = [];
+  const received = [];
+  const router = createMcpAppsBrowserMessageRouter(sandbox, {
+    proxySource,
+    postToProxy(message, origin) {
+      posted.push([message, origin]);
+    },
+    receiveFromView(message) {
+      received.push(message);
+    },
+  });
+  const ready = {
+    jsonrpc: "2.0",
+    method: MCP_APPS_SANDBOX_PROXY_READY_METHOD,
+    params: {},
+  };
+  assert.equal(McpUiSandboxProxyReadyNotificationSchema.safeParse(ready).success, true);
+  await assert.rejects(
+    () => router.receive({ origin: "https://evil.example", source: proxySource, data: ready }),
+    /unexpected source or origin/,
+  );
+  await assert.rejects(() => router.receive(null), /unexpected source or origin/);
+  await assert.rejects(
+    () =>
+      router.receive({
+        origin: sandbox.proxyFrame.origin,
+        source: {},
+        data: ready,
+      }),
+    /unexpected source or origin/,
+  );
+  await router.receive({ origin: sandbox.proxyFrame.origin, source: proxySource, data: ready });
+  assert.equal(router.ready, true);
+  assert.deepEqual(posted, [[sandbox.resourceReady, sandbox.proxyFrame.origin]]);
+
+  const ping = { jsonrpc: "2.0", id: 1, method: "ping", params: {} };
+  await router.receive({ origin: sandbox.proxyFrame.origin, source: proxySource, data: ping });
+  assert.deepEqual(received, [ping]);
+  await assert.rejects(
+    () =>
+      router.receive({
+        origin: sandbox.proxyFrame.origin,
+        source: proxySource,
+        data: ready,
+      }),
+    /Reserved sandbox messages/,
+  );
+  await assert.rejects(() => router.send(sandbox.resourceReady), /Reserved sandbox messages/);
+  await router.send(ping);
+  assert.deepEqual(posted.at(-1), [ping, sandbox.proxyFrame.origin]);
+
+  assert.throws(
+    () =>
+      createMcpAppsBrowserSandbox(resource, {
+        hostOrigin: "https://host.example",
+        proxyUrl: "https://host.example/proxy.html",
+      }),
+    /different origin/,
+  );
+  assert.throws(
+    () =>
+      createMcpAppsBrowserSandbox(resource, {
+        hostOrigin: "https://host.example",
+        proxyUrl: "http://sandbox.example/proxy.html",
+      }),
+    /secure or loopback/,
+  );
+  assert.throws(
+    () =>
+      createMcpAppsBrowserMessageRouter(
+        { ...sandbox },
+        {
+          proxySource,
+          postToProxy() {},
+          receiveFromView() {},
+        },
+      ),
+    /opaque/,
+  );
+});
+
 function createBridgeFixture(overrides = {}) {
   const sent = [];
   const calls = [];
@@ -805,6 +919,77 @@ test("bridge implements the official initialization and tool-data lifecycle", as
   });
   assert.equal(McpUiToolResultNotificationSchema.safeParse(fixture.sent.at(-1)).success, true);
   await assert.rejects(() => fixture.bridge.sendToolResult({ content: [] }), /exactly once/);
+});
+
+test("bridge exposes optional MCP lists only through an explicit profile", async () => {
+  const profile = createMcpAppsServerMethods({
+    tools: true,
+    resources: true,
+    toolsListChanged: true,
+    resourcesListChanged: true,
+  });
+  const fixture = createBridgeFixture({ options: { serverMethods: profile } });
+  await initializeBridge(fixture);
+  assert.deepEqual(fixture.bridge.hostCapabilities.serverTools, { listChanged: true });
+  assert.deepEqual(fixture.bridge.hostCapabilities.serverResources, { listChanged: true });
+
+  await fixture.bridge.receive({ jsonrpc: "2.0", id: 20, method: "tools/list", params: {} });
+  assert.deepEqual(
+    fixture.sent.at(-1).result.tools.map((tool) => tool.name),
+    ["refresh", "weather"],
+  );
+  await fixture.bridge.receive({ jsonrpc: "2.0", id: 21, method: "resources/list", params: {} });
+  assert.deepEqual(fixture.sent.at(-1).result.resources, [
+    {
+      uri: "ui://weather/dashboard",
+      name: "ui://weather/dashboard",
+      mimeType: MCP_APPS_MIME_TYPE,
+      _meta: { ui: createResolvedResource().meta },
+    },
+  ]);
+  await fixture.bridge.sendToolsListChanged();
+  assert.equal(fixture.sent.at(-1).method, "notifications/tools/list_changed");
+  await fixture.bridge.sendResourcesListChanged();
+  assert.equal(fixture.sent.at(-1).method, "notifications/resources/list_changed");
+
+  const disabled = createBridgeFixture();
+  await initializeBridge(disabled);
+  await disabled.bridge.receive({ jsonrpc: "2.0", id: 22, method: "tools/list", params: {} });
+  assert.equal(disabled.sent.at(-1).error.code, -32601);
+  await assert.rejects(() => disabled.bridge.sendToolsListChanged(), /not enabled/);
+  assert.throws(
+    () => createMcpAppsServerMethods({ toolsListChanged: true }),
+    /require tools\/list/,
+  );
+  assert.throws(
+    () =>
+      createBridgeFixture({
+        options: { serverMethods: { ...profile } },
+      }),
+    /opaque/,
+  );
+
+  const mutableTool = structuredClone(appTool);
+  const snapshotted = createBridgeFixture({
+    options: { serverMethods: profile, tools: [mutableTool] },
+  });
+  mutableTool.name = "mutated";
+  mutableTool["_meta"].ui.visibility[0] = "model";
+  await initializeBridge(snapshotted);
+  await snapshotted.bridge.receive({
+    jsonrpc: "2.0",
+    id: 23,
+    method: "tools/list",
+    params: {},
+  });
+  assert.deepEqual(
+    snapshotted.sent.at(-1).result.tools.map((tool) => tool.name),
+    ["refresh"],
+  );
+  assert.throws(
+    () => createBridgeFixture({ options: { tools: [{ name: "bad", inputSchema: [] }] } }),
+    /inputSchema/,
+  );
 });
 
 test("bridge bounds concurrent inbound work before invoking more host callbacks", async () => {
