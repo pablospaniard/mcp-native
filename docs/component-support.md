@@ -86,7 +86,7 @@ platforms explicitly. A successful render alone does not establish behavioral or
 The existing [support matrix](support-matrix.md) continues to describe package requirements and
 integration evidence; it does not certify unlisted third-party adapters.
 
-The extension and capability-provider frameworks are available in the `1.2.0` release candidate.
+The extension and capability-provider frameworks are available in the `1.2.0` release.
 The maintained extended catalog, additional audited native providers, and later protocol-profile
 adoptions remain future work. None changes the pinned basic catalog or automatically expands what
 an installed app advertises.

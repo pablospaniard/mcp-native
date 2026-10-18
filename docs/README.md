@@ -83,8 +83,8 @@ Runnable examples:
 ## Current status
 
 MCP Native `1.1.0` was published on 2026-09-15 across the seven packages that existed in that
-release. The `1.2.0` release candidate coordinates all eight npm workspaces with the SwiftUI package
-and Compose Maven artifact, including renderer-core's first npm publication.
+release. The `1.2.0` release was published on 2026-10-18 across all eight npm workspaces, the SwiftUI
+package, and the Compose Maven artifact, including renderer-core's first npm publication.
 See [release status](releasing.md#120-release-preparation) and the
 [1.2 migration guide](migration-to-1.2.md). The public API is finalized across the high-level host,
 the three native renderer paths, and the independently usable low-level packages. The

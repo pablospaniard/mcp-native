@@ -1,8 +1,8 @@
 # Roadmap
 
 MCP Native shipped `1.0.0` on 2026-09-06, the documentation-only `1.0.1` patch on 2026-09-07,
-and the additive `1.1.0` inline contract release on 2026-09-15. The coordinated `1.2.0` release
-candidate contains the completed Milestones 12–16; publication is still pending.
+and the additive `1.1.0` inline contract release on 2026-09-15. The coordinated `1.2.0` release,
+published on 2026-10-18, contains the completed Milestones 12–16.
 Milestones 0–9 and the Milestone 10 implementation, validation, independent-review, documentation,
 API-finalization, and publication steps are complete. The high-level host
 provides the connect-call-render workflow above the independently usable protocol, runtime,
@@ -75,7 +75,7 @@ The release sequence records the shipped foundations, finalized v1 scope, and po
   `1.0.0`; v1 never guesses or silently converts an unknown server format.
 - Compatibility is reported against exact pinned MCP, A2UI, and MCP Apps profiles plus the React
   peer requirement and automated native-host, iOS, and Android integration fixtures.
-- First-class SwiftUI and Jetpack Compose renderers are complete in the `1.2.0` release candidate.
+- First-class SwiftUI and Jetpack Compose renderers are available in the `1.2.0` release.
 
 UIKit, Android View, SwiftUI, and Compose implementations may still be used when the application
 deliberately exposes them to React Native through a locally compiled Fabric component and maps that

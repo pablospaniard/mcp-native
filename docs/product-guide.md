@@ -121,7 +121,7 @@ an explicit policy callback. Unknown or unnegotiated extensions fail closed.
 
 Camera, location, files, payments, biometrics, and similar capabilities are not ordinary component
 props. They require a typed installed provider, application policy, and any necessary platform and
-user approval. The native-capability framework in the `1.2.0` release candidate provides that
+user approval. The native-capability framework in the `1.2.0` release provides that
 closed seam without creating a generic server-to-device command channel; its exact matrix lists
 only the app-bound haptics reference provider today.
 

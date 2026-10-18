@@ -78,5 +78,5 @@ authority.
 ## Verification
 
 Before upgrading production applications, run the repository's package smoke test and the relevant
-native integration suite. The release is not available until the `v1.2.0` GitHub Release workflow
-has successfully published the npm packages and Compose artifact.
+native integration suite. The `v1.2.0` GitHub Release workflow has published the coordinated npm,
+Swift Package Manager, and Maven Central artifacts.
