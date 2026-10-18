@@ -1,0 +1,53 @@
+name: SwiftUI renderer
+
+on:
+  pull_request:
+    paths:
+      [
+        .github/workflows/swiftui.yml,
+        Package.swift,
+        packages/swiftui/**,
+        packages/a2ui/**,
+        packages/core/**,
+        packages/renderer-core/**,
+        package.json,
+        package-lock.json,
+      ]
+  push:
+    branches: [main]
+    paths:
+      [
+        .github/workflows/swiftui.yml,
+        Package.swift,
+        packages/swiftui/**,
+        packages/a2ui/**,
+        packages/core/**,
+        packages/renderer-core/**,
+        package.json,
+        package-lock.json,
+      ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swiftui-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.4"
+      - run: npm ci
+      - run: npm run build
+      - run: npm run apple:test
+      - run: git diff --exit-code -- packages/swiftui/Sources/MCPNativeSwiftUI/Resources/runtime.js

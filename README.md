@@ -36,7 +36,7 @@ Build the catalog and policy boundary once, then tools can compose forms, cards,
 flows from that approved vocabulary—without a bespoke screen for every result, downloaded
 JavaScript, or server-selected components. The maintained renderer today is React Native; the core
 runtime and protocol boundaries are UI-framework independent. First-class SwiftUI and Jetpack
-Compose renderers are not included yet.
+Compose renderers reuse that platform-neutral semantic session behind native host integrations.
 
 ### What this changes in practice
 
@@ -204,6 +204,8 @@ application-owned responsibilities.
 | [`@mcp-native/a2ui`](packages/a2ui)                   | A2UI negotiation, parsing, surface state, validation, and action envelopes                |
 | [`@mcp-native/renderer-core`](packages/renderer-core) | Platform-neutral trusted render plans, reconciliation, sessions, and renderer fixtures    |
 | [`@mcp-native/react-native`](packages/react-native)   | Trusted A2UI render plans and host-owned native component adapters                        |
+| [`MCPNativeSwiftUI`](packages/swiftui)                | Direct SwiftUI renderer and closed Apple host integration                                 |
+| [`MCPNativeCompose`](packages/compose)                | Direct Jetpack Compose renderer and closed Android host integration                       |
 | [`@mcp-native/webview`](packages/webview)             | MCP Apps validation, native WebView policy, sandbox, and bridge lifecycle                 |
 | [`mcp-native`](packages/mcp-native)                   | Convenience re-export of core, A2UI, React Native, WebView, and mixed-surface APIs        |
 
@@ -256,7 +258,7 @@ npm start
 | A2UI                   | Feature-scoped v1.0 Candidate profile pinned to commit `8ff4651232ab0e02b0123730b502711170637a3a`   |
 | MCP Apps               | Stable `2026-01-26` native host-adapter profile with `@modelcontextprotocol/ext-apps@1.7.5` schemas |
 | React                  | Peer dependency `>=18.1.0`                                                                          |
-| Direct native renderer | React Native; the package does not claim a React Native version range                               |
+| Direct native renderer | React Native, SwiftUI, and Jetpack Compose within their documented platform matrices                |
 
 As of 2026-09-07, [upstream A2UI versions](https://a2ui.org/#specification-versions) identify
 v1.0 as Candidate and v0.9.1 as the current production release. MCP Native supports a pinned,
@@ -265,8 +267,8 @@ compatibility, or automatic compatibility with later upstream revisions. See the
 [implemented profile](docs/a2ui-v1-conformance.md) for supported features and exclusions.
 
 Read the [support matrix](docs/support-matrix.md) and [standards inventory](docs/standards-compatibility.md)
-for the exact tested boundaries and exclusions. First-class SwiftUI, Jetpack Compose, capability
-providers and later protocol profiles remain future work without assigned release dates.
+for the exact tested boundaries and exclusions. Native capability providers and later protocol
+profiles remain future work without assigned release dates.
 
 The `1.1.0` release includes Milestone 11: [custom inline contracts](docs/custom-contracts.md),
 [maintained standard selection](docs/standard-contracts.md), [separately packaged reviewed inline

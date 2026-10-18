@@ -1,8 +1,10 @@
 # Releasing packages
 
-MCP Native publishes with npm trusted publishing. GitHub Actions exchanges its short-lived OIDC
+MCP Native publishes JavaScript packages with npm trusted publishing. GitHub Actions exchanges its short-lived OIDC
 identity for package-specific npm credentials, and npm attaches provenance to the published
-artifacts. The repository does not use long-lived npm write tokens.
+artifacts. The Compose AAR is signed and published to Maven Central from the same immutable release
+commit. Maven Central currently requires a Portal user token and PGP signing key; both are confined
+to the protected `npm-release` GitHub environment.
 
 <a id="110-release-preparation"></a>
 
@@ -39,9 +41,12 @@ Before creating a release:
    that version.
 2. Confirm every package has `pablospaniard/mcp-native` and `release.yml` configured as its npm
    trusted publisher, with the `npm-release` environment and `npm publish` allowed.
-3. Run `npm run release:verify` and verify the stable or prerelease tag with
+3. Confirm the `io.github.pablospaniard` Maven Central namespace and the four protected environment
+   secrets `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `MAVEN_SIGNING_KEY`, and
+   `MAVEN_SIGNING_PASSWORD`. Publish the signing key's public half to a supported key server.
+4. Run `npm run release:verify`, `npm run android:package:smoke`, and verify the stable or prerelease tag with
    `GITHUB_REF_NAME=v<version> node scripts/verify-release-version.mjs`.
-4. Merge the release pull request and publish the matching GitHub Release.
+5. Merge the release pull request and publish the matching GitHub Release.
 
 `npm run release:verify` covers repository checks, exact version verification, and package smoke
 installation. Package smoke verifies every declared export, runtime and declaration source map,
@@ -57,12 +62,25 @@ from completed readiness decisions and registry checks required for publication.
 result in the pull request or release. Do not commit raw logs, screenshots, generated applications,
 review reports, matrices, or transcripts solely to serve as release evidence.
 
-The release workflow publishes packages in dependency order. Stable versions use the explicit npm
+The release workflow publishes npm packages in dependency order. Stable versions use the explicit npm
 `latest` dist-tag. The recognized `alpha`, `beta`, and `rc` prerelease channels use their matching
 tag; every other prerelease uses `next`, so prereleases never replace `latest`. The workflow first
 checks whether each exact version already exists, so an interrupted release can be resumed without
 attempting to overwrite immutable npm versions. A maintainer can manually dispatch the same
-workflow with the existing release tag to resume publication.
+workflow with the existing release tag to resume npm publication. A Maven-only resume uses the
+deployment ID as described below and does not rerun npm publication or Android builds.
+
+In parallel with npm publication, a credential-free job builds
+`io.github.pablospaniard:mcp-native-compose` with the same release version, verifies its POM and
+artifacts, and transfers only that unsigned publication through GitHub's artifact service. It
+installs the pinned Android SDK explicitly. The separate protected job checks out trusted automation
+only; it rejects extra, empty, or non-regular build outputs before creating detached PGP signatures,
+checksums, and the Maven-layout bundle. It uploads through the official Portal API with automatic
+publication and waits for a documented terminal result. Status requests retry bounded transient
+failures. Because repository mirrors are not an authoritative deployment ledger, the automation
+does not guess publication state from a CDN lookup. If a workflow stops after upload, copy its
+printed deployment ID into the manual `maven_deployment_id` input to resume status polling without
+rebuilding, rerunning npm publication, or uploading the immutable coordinate again.
 
 Release version verification uses the same package inventory as the publisher. Recovery permits
 renderer-core to be absent in a historical release only when no package in that checkout requires

@@ -83,15 +83,11 @@ or unchecked-prop channel.
 
 ## React Native, SwiftUI, and Compose
 
-React Native is the first-class renderer in v1. A React Native host may already use a
-locally compiled UIKit, Android View, SwiftUI, or Compose wrapper when the host owns the typed
-adapter. Direct SwiftUI and Jetpack Compose renderers and cross-renderer parity are post-v1 scope.
-
-Direct SwiftUI and Jetpack Compose renderers are tracked after `1.0.0`, with a platform-neutral
-renderer foundation as their prerequisite. The post-`1.0.0` roadmap also tracks typed, advertised,
-policy-gated providers for the wider native platform capability space. No release numbers or dates
-are assigned. “All native capabilities” means an extensible host-provider model, not exposing
-arbitrary platform APIs or commands to a server.
+React Native, SwiftUI, and Jetpack Compose are first-class renderers for the pinned semantic profile.
+Each renderer accepts only locally compiled host extensions through its typed, policy-gated seam.
+The roadmap separately tracks typed, advertised, policy-gated providers for the wider native
+platform capability space. “All native capabilities” means an extensible host-provider model, not
+exposing arbitrary platform APIs or commands to a server.
 
 ## WebViews and mixed screens
 

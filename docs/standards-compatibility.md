@@ -32,14 +32,14 @@ It ran on React Native and two [scoped iOS evaluation paths](native-runtime-eval
 JavaScriptCore semantics and independent Swift form semantics, using the same SwiftUI views.
 Experiment boundary probes also cover nested layouts through their common 64-component path limit
 and malformed envelopes that preserve session state.
-The latter have narrower declared inputs and simulator evidence only; supported SDK, full native
-profile, physical-device and Compose compatibility claims are unchanged.
+The latter have narrower declared inputs and simulator evidence only; they do not establish the
+separate supported native renderer matrices.
 The [preserved Android engine evaluation](native-runtime-evaluation-android.md) also executed the exact
 shared JavaScript bundle and corpus on one Android 37 emulator/WebView provider. The corpus includes
 array-update parity; Android boundary probes reject malformed JSON lexemes and close invalid-response
 sessions. This adds engine,
-JSON-bridge and termination evidence only; there is no Compose renderer or independent Kotlin
-conformance implementation.
+JSON-bridge and termination evidence only. The later [Compose renderer](compose.md) adds the supported
+Kotlin host boundary and API 37 UI/conformance evidence.
 
 The [native session contract](RFC-0004-native-session-contract.md) is implemented in renderer-core.
 Its async identity, authorization, lifecycle, and bounded-work tests are project evidence rather than

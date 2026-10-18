@@ -3,6 +3,15 @@
   "printWidth": 100,
   "tabWidth": 2,
   "useTabs": false,
+  "ignorePatterns": [
+    "packages/swiftui/.build/**",
+    "packages/compose/.gradle/**",
+    "packages/compose/library/build/**",
+    "tests/fixtures/compose-consumer/.gradle/**",
+    "tests/fixtures/compose-consumer/build/**",
+    "packages/swiftui/Sources/MCPNativeSwiftUI/Resources/runtime.js",
+    "packages/compose/src/main/assets/mcp-native-runtime.js"
+  ],
   "semi": true,
   "singleQuote": false,
   "trailingComma": "all"

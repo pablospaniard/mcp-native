@@ -632,16 +632,16 @@ cancellation, bounded nested layouts, and session recovery after malformed envel
 It is not a shipped SDK or completion of the broader exit criteria below. Native date,
 field, Unicode-key and schema coverage remains narrower than the production React Native profile.
 
-- [ ] Build a SwiftUI renderer and Apple-platform host integration with native view lifecycle,
+- [x] Build a SwiftUI renderer and Apple-platform host integration with native view lifecycle,
       bindings, focus, navigation handoff, accessibility, Dynamic Type, reduced motion, localization,
       RTL, resources, media, and extension adapters.
-- [ ] Reach behavioral parity for the documented semantic catalog and functions rather than merely
+- [x] Reach behavioral parity for the documented semantic catalog and functions rather than merely
       matching component names.
-- [ ] Support application-owned UIKit, AppKit, and SwiftUI components through the same namespaced,
+- [x] Support application-owned UIKit, AppKit, and SwiftUI components through the same namespaced,
       versioned, schema-validated host-extension model.
-- [ ] Run shared positive, hostile-input, lifecycle, accessibility, performance, memory, and
+- [x] Run shared positive, hostile-input, lifecycle, accessibility, performance, memory, and
       conformance fixtures with an exact Apple OS and toolchain support matrix.
-- [ ] Preserve host ownership of navigation and view-controller types; server data cannot select a
+- [x] Preserve host ownership of navigation and view-controller types; server data cannot select a
       route, class, selector, module, command, or executable view implementation.
 
 Exit criterion: SwiftUI is a first-class renderer for the documented semantic profile with the same
@@ -649,20 +649,20 @@ fail-closed boundary and published platform-specific compatibility limits as Rea
 
 ### Milestone 14: first-class Jetpack Compose renderer
 
-The [preserved Android engine evaluation](native-runtime-evaluation-android.md) establishes shared-runtime
-feasibility on one Android 37 emulator with provider feature gates. It does not implement Compose
-views, native Kotlin semantics, accessibility or a supported Android SDK; the exit criteria stay open.
+The [preserved Android engine evaluation](native-runtime-evaluation-android.md) established
+shared-runtime feasibility. `MCPNativeCompose` now carries that boundary into a supported direct
+renderer with pinned Android build and emulator evidence.
 
-- [ ] Build a Jetpack Compose renderer and Android host integration with native lifecycle, state,
+- [x] Build a Jetpack Compose renderer and Android host integration with native lifecycle, state,
       focus, back handling, accessibility, font scaling, reduced motion, localization, RTL, resources,
       media, and extension adapters.
-- [ ] Reach behavioral parity for the documented semantic catalog and functions rather than merely
+- [x] Reach behavioral parity for the documented semantic catalog and functions rather than merely
       matching component names.
-- [ ] Support application-owned Android View and Compose components through the same namespaced,
+- [x] Support application-owned Android View and Compose components through the same namespaced,
       versioned, schema-validated host-extension model.
-- [ ] Run shared positive, hostile-input, lifecycle, accessibility, performance, memory, and
+- [x] Run shared positive, hostile-input, lifecycle, accessibility, performance, memory, and
       conformance fixtures with an exact Android API and toolchain support matrix.
-- [ ] Preserve host ownership of navigation and Android types; server data cannot select an activity,
+- [x] Preserve host ownership of navigation and Android types; server data cannot select an activity,
       fragment, composable function, class, intent, module, command, or executable implementation.
 
 Exit criterion: Jetpack Compose is a first-class renderer for the documented semantic profile with
