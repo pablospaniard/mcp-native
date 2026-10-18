@@ -87,7 +87,7 @@
       }
     },
     "@mcp-native/host": {
-      "declarationSha256": "29c3ded793612266bb45661e1b9965d12f00b7de10d2677ff21cf15b5390b0fc",
+      "declarationSha256": "0c0612d1601888862a1fde735aeee87584e528d1290b4678f38c087bd32b3f60",
       "exports": {
         ".": {
           "import": "./dist/index.js",
@@ -113,6 +113,11 @@
           "import": "./dist/contracts-authoring.js",
           "runtimeSha256": "1688b7ae4c3d3074f980f38f2e0871444234e6959e5626075ea0f7d01d650b47",
           "types": "./dist/contracts-authoring.d.ts"
+        },
+        "./capabilities": {
+          "import": "./dist/capabilities.js",
+          "runtimeSha256": "347074c64771b957702f7a56cefd1cc4b08de8c0c9055fca302d804daed2e76d",
+          "types": "./dist/capabilities.d.ts"
         }
       }
     },

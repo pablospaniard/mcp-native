@@ -44,8 +44,8 @@ release notes must identify the affected boundary and safe replacement.
 
 Additive exports, optional fields, components, negotiated features, and platform adapters may ship
 in minor releases when old callers retain their behavior. Patch releases contain compatible fixes
-within a minor line. Post-`1.0.0` SwiftUI, Compose, and capability-provider packages will use their
-own documented profiles and will not silently expand the React Native server contract.
+within a minor line. Post-`1.0.0` SwiftUI, Compose, and capability-provider entry points use their
+own documented profiles and do not silently expand the React Native server contract.
 
 The host result surface is a closed union: `a2ui`, `mcp-app`, `ordinary`, or `invalid`.
 The two executable UI outcomes require exact mutual extension negotiation. A result claimed by both

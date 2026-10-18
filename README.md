@@ -212,6 +212,11 @@ application-owned responsibilities.
 The split is a security and dependency boundary. In particular, `@mcp-native/core` has no MCP SDK,
 A2UI, React, React Native, or WebView dependency.
 
+Audited device behavior can be installed through the optional
+[`@mcp-native/host/capabilities`](docs/native-capabilities.md) entry point. Exact manifests, opaque
+negotiation grants, policy and permission checks, cumulative limits, cancellation, cleanup, and
+redacted audit events preserve host ownership without adding generic native invocation to core.
+
 ## API names and protocol versions
 
 Package names provide the implementation context, so current APIs use concise identifiers:
@@ -267,8 +272,9 @@ compatibility, or automatic compatibility with later upstream revisions. See the
 [implemented profile](docs/a2ui-v1-conformance.md) for supported features and exclusions.
 
 Read the [support matrix](docs/support-matrix.md) and [standards inventory](docs/standards-compatibility.md)
-for the exact tested boundaries and exclusions. Native capability providers and later protocol
-profiles remain future work without assigned release dates.
+for the exact tested boundaries and exclusions. The
+[native-capability provider matrix](docs/native-capabilities.md#exact-provider-matrix) separately
+records installed and unavailable device providers. Later protocol profiles remain future work.
 
 The `1.1.0` release includes Milestone 11: [custom inline contracts](docs/custom-contracts.md),
 [maintained standard selection](docs/standard-contracts.md), [separately packaged reviewed inline
