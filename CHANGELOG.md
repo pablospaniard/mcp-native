@@ -8,7 +8,7 @@ patch and minor releases remain compatible within their release line.
 
 No changes yet.
 
-## 1.2.0 - pending publication
+## 1.2.0 - 2026-10-18
 
 Coordinated minor release of all eight npm packages plus the SwiftUI package and Compose Maven
 artifact. This release adds the shared renderer session, first-class Apple and Android renderers,
