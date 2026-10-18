@@ -167,6 +167,7 @@ test("capability manifests are closed, namespaced, versioned and bounded", () =>
     { execution: "foreground-or-background" },
     { execution: "background" },
     { sensitivity: ["unknown"] },
+    { sensitivity: [], activation: "none", consent: "none" },
     { cancellation: "ignore" },
     { cleanup: "optional" },
     { fallback: "native-command" },
@@ -319,6 +320,17 @@ test("activation, foreground, policy and permission boundaries fail before provi
   }
 });
 
+test("failed admission does not consume the call quota or replay identifier", async () => {
+  const context = setup({
+    provider: { manifest: { limits: { ...manifest().limits, maxCallsPerSession: 1 } } },
+  });
+  assert.deepEqual(await context.invoke({ userActivated: false }), {
+    kind: "capability-error",
+    code: "activation-required",
+  });
+  assert.equal((await context.invoke()).kind, "result");
+});
+
 test("unknown, forged and replayed invocation authority fails closed", async () => {
   const context = setup();
   assert.deepEqual(await context.invoke({ grant: { ...context.grant } }), {
@@ -389,6 +401,7 @@ test("hostile requests and provider output never cross unchecked", async () => {
     kind: "capability-error",
     code: "invalid-result",
   });
+  assert.deepEqual(invalidResult.calls.cleanup, [["request-1", "completed"]]);
 
   const invalidError = setup({
     provider: { invoke: async () => ({ kind: "error", error: { code: "native-stack" } }) },
@@ -397,6 +410,16 @@ test("hostile requests and provider output never cross unchecked", async () => {
     kind: "capability-error",
     code: "invalid-provider-error",
   });
+  assert.deepEqual(invalidError.calls.cleanup, [["request-1", "provider-error"]]);
+
+  const malformedOutcome = setup({
+    provider: { invoke: async () => null },
+  });
+  assert.deepEqual(await malformedOutcome.invoke(), {
+    kind: "capability-error",
+    code: "provider-failed",
+  });
+  assert.deepEqual(malformedOutcome.calls.cleanup, [["request-1", "provider-error"]]);
 });
 
 test("event count, event schema and cumulative work are bounded", async () => {
@@ -587,6 +610,30 @@ test("provider deadlines suppress late results and record timeout cleanup", asyn
   });
   assert.deepEqual(await context.invoke(), { kind: "capability-error", code: "timed-out" });
   assert.deepEqual(context.calls.cleanup, [["request-1", "timed-out"]]);
+});
+
+test("cancelled provider work retains its concurrency slot until settlement", async () => {
+  let release;
+  let invocations = 0;
+  const context = setup({
+    provider: {
+      manifest: { limits: { ...manifest().limits, maxDurationMs: 5 } },
+      invoke: () => {
+        invocations += 1;
+        return invocations === 1
+          ? new Promise((resolve) => (release = resolve))
+          : Promise.resolve({ kind: "result", value: { accepted: true } });
+      },
+    },
+  });
+  assert.deepEqual(await context.invoke(), { kind: "capability-error", code: "timed-out" });
+  assert.deepEqual(await context.invoke({ requestId: "request-2" }), {
+    kind: "capability-error",
+    code: "limit-exceeded",
+  });
+  release({ kind: "result", value: { accepted: true } });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal((await context.invoke({ requestId: "request-3" })).kind, "result");
 });
 
 test("cancellation suppresses late provider results and cleanup runs exactly once", async () => {

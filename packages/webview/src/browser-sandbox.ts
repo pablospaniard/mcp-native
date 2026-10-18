@@ -2,7 +2,7 @@ import { parseJsonObject } from "@mcp-native/core";
 import type { JsonObject } from "@mcp-native/core";
 
 import { MCP_APPS_MAX_BRIDGE_MESSAGE_LENGTH, McpAppsBridgeError } from "./bridge.js";
-import { McpAppsError } from "./apps.js";
+import { MCP_APPS_MAX_HTML_LENGTH, McpAppsError } from "./apps.js";
 import type { McpAppsPermission, McpAppsResource } from "./apps.js";
 
 export const MCP_APPS_SANDBOX_PROXY_READY_METHOD = "ui/notifications/sandbox-proxy-ready" as const;
@@ -28,6 +28,7 @@ export interface McpAppsBrowserSandboxConfiguration {
     readonly src: string;
     readonly origin: string;
     readonly sandbox: typeof OUTER_SANDBOX;
+    readonly allow: string;
     readonly referrerPolicy: "strict-origin";
   };
   readonly viewFrame: {
@@ -75,31 +76,19 @@ export function createMcpAppsBrowserSandbox(
     policy.grantedPermissions ?? [],
   );
   const permissions = Object.fromEntries(grantedPermissions.map((permission) => [permission, {}]));
-  const resourceReady = freezeJson(
-    parseBrowserMessage(
-      {
-        jsonrpc: "2.0",
-        method: MCP_APPS_SANDBOX_RESOURCE_READY_METHOD,
-        params: {
-          html: resource.html,
-          sandbox: INNER_SANDBOX,
-          ...(resource.meta.csp === undefined ? {} : { csp: resource.meta.csp }),
-          ...(grantedPermissions.length === 0 ? {} : { permissions }),
-        },
-      },
-      "sandbox resource-ready notification",
-    ),
-  );
+  const allow = grantedPermissions.map(toPermissionsPolicyName).join("; ");
+  const resourceReady = createResourceReady(resource, permissions);
   const configuration: McpAppsBrowserSandboxConfiguration = Object.freeze({
     proxyFrame: Object.freeze({
       src: proxy.href,
       origin: proxy.origin,
       sandbox: OUTER_SANDBOX,
+      allow,
       referrerPolicy: "strict-origin" as const,
     }),
     viewFrame: Object.freeze({
       sandbox: INNER_SANDBOX,
-      allow: grantedPermissions.map(toPermissionsPolicyName).join("; "),
+      allow,
     }),
     grantedPermissions,
     resourceReady,
@@ -138,10 +127,10 @@ export function createMcpAppsBrowserMessageRouter(
   const proxySource = callbacks.proxySource;
   const postToProxy = callbacks.postToProxy;
   const receiveFromView = callbacks.receiveFromView;
-  let ready = false;
+  let state: "awaiting-proxy" | "sending-resource" | "ready" = "awaiting-proxy";
   return {
     get ready() {
-      return ready;
+      return state === "ready";
     },
     async receive(event) {
       if (
@@ -155,10 +144,19 @@ export function createMcpAppsBrowserMessageRouter(
         );
       }
       const message = parseBrowserMessage(event.data, "browser sandbox message");
-      if (!ready) {
+      if (state !== "ready") {
+        if (state === "sending-resource") {
+          throw new McpAppsBridgeError("MCP Apps sandbox resource delivery is already pending");
+        }
         expectProxyReady(message);
-        ready = true;
-        await postToProxy(browserResourceReady.get(sandbox)!, sandbox.proxyFrame.origin);
+        state = "sending-resource";
+        try {
+          await postToProxy(browserResourceReady.get(sandbox)!, sandbox.proxyFrame.origin);
+          state = "ready";
+        } catch (error) {
+          state = "awaiting-proxy";
+          throw error;
+        }
         return;
       }
       if (isSandboxMethod(message.method)) {
@@ -167,7 +165,7 @@ export function createMcpAppsBrowserMessageRouter(
       await receiveFromView(message);
     },
     async send(value) {
-      if (!ready) {
+      if (state !== "ready") {
         throw new McpAppsBridgeError("MCP Apps sandbox proxy is not ready", -32002);
       }
       const message = parseBrowserMessage(value, "browser host message");
@@ -179,6 +177,45 @@ export function createMcpAppsBrowserMessageRouter(
       await postToProxy(message, sandbox.proxyFrame.origin);
     },
   };
+}
+
+function createResourceReady(resource: McpAppsResource, permissions: JsonObject): JsonObject {
+  if (
+    typeof resource.html !== "string" ||
+    resource.html.length === 0 ||
+    resource.html.length > MCP_APPS_MAX_HTML_LENGTH ||
+    resource.html.includes("\0")
+  ) {
+    throw new McpAppsBridgeError("Invalid sandbox resource HTML");
+  }
+  let envelope: JsonObject;
+  try {
+    envelope = parseJsonObject(
+      {
+        jsonrpc: "2.0",
+        method: MCP_APPS_SANDBOX_RESOURCE_READY_METHOD,
+        params: {
+          sandbox: INNER_SANDBOX,
+          ...(resource.meta.csp === undefined ? {} : { csp: resource.meta.csp }),
+          ...(Object.keys(permissions).length === 0 ? {} : { permissions }),
+        },
+      },
+      "sandbox resource-ready notification",
+      { maxTotalStringCodeUnits: MCP_APPS_MAX_BRIDGE_MESSAGE_LENGTH },
+    );
+  } catch (error) {
+    throw new McpAppsBridgeError("Invalid sandbox resource-ready notification", -32600, {
+      cause: error,
+    });
+  }
+  const params = envelope.params as JsonObject;
+  Object.defineProperty(params, "html", {
+    value: resource.html,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
+  return freezeJson(envelope);
 }
 
 function expectProxyReady(message: JsonObject): void {

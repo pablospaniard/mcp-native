@@ -57,7 +57,7 @@
       }
     },
     "@mcp-native/webview": {
-      "declarationSha256": "6879b5feb80641eaa2a8a848967cce5a3efb9a0fd4359955879ad5a5d74dcd63",
+      "declarationSha256": "0d3d2bf39bae01acf8153e629f8561782c3b2e86d60644f12263f3140ebffd21",
       "exports": {
         ".": {
           "import": "./dist/index.js",

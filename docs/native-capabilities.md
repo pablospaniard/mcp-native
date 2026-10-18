@@ -25,8 +25,9 @@ reviewed interoperable standard.
 
 For each invocation the broker:
 
-1. verifies the opaque grant, exact descriptor, unique bounded request ID, activation, foreground
-   state, concurrency, and session call allowance;
+1. verifies the opaque grant, exact descriptor, bounded request ID, activation, foreground state,
+   concurrency, and session call allowance, reserving the replay ID and call charge only after
+   admission succeeds;
 2. reconstructs owned JSON and validates it against the local request schema;
 3. asks the application policy for a fresh decision and then asks the platform permission boundary;
 4. invokes only the locally registered provider with a bounded work charger and abort signal;
@@ -38,6 +39,8 @@ number, and a stable local error category. They never contain the server request
 result, native exception, permission response, or sensitive values. A provider result arriving after
 abort, timeout, or broker close is suppressed. Malformed calls that cannot be associated with a
 negotiated descriptor use the fixed `unresolved` audit identity rather than copying server input.
+Cancelled provider work retains its concurrency slot until its invocation promise settles, even
+after logical cleanup, so a provider that ignores its abort signal cannot create overlapping work.
 
 Policy and permission callbacks are both mandatory. A server declaration cannot satisfy either one.
 The broker does not retain consent between calls. App-defined providers use the same closed manifest,
@@ -52,7 +55,9 @@ communication, payments/wallets, and background work. These profiles advertise n
 concrete provider still needs an exact manifest, threat model, platform implementation, and matrix
 entry. Registration enforces the shared floor: sensitive capabilities require current user
 activation, per-request consent, and foreground-only execution; any background-capable provider
-also requires current user activation and per-request consent.
+also requires current user activation and per-request consent. Declaring any platform permission or
+entitlement applies the same activation and per-request-consent floor even when the manifest has no
+sensitivity label.
 
 The first reference provider is `createHapticsProvider`. It binds a host-supplied `impact` callback
 to the fixed `HAPTICS_CAPABILITY_MANIFEST`; the callback receives only the closed effect enum and an

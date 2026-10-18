@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { A2UI_MCP_SCHEMA_REVISION } from "../packages/a2ui/dist/index.js";
+import { MCP_NATIVE_PROTOCOL_REVISION } from "../packages/mcp/dist/index.js";
+import {
+  MCP_APPS_PROTOCOL_VERSION,
+  MCP_APPS_SOURCE_REVISION,
+} from "../packages/webview/dist/index.js";
+
 const audit = JSON.parse(readFileSync("docs/protocol-profile-audit.json", "utf8"));
 const manifest = JSON.parse(readFileSync("package.json", "utf8"));
 const lock = JSON.parse(readFileSync("package-lock.json", "utf8"));
@@ -25,19 +32,10 @@ assert.equal(
   apps.selectedPackage,
 );
 
-const sources = [
-  readFileSync("packages/mcp/src/index.ts", "utf8"),
-  readFileSync("packages/a2ui/src/schema-revision.ts", "utf8"),
-  readFileSync("packages/webview/src/apps.ts", "utf8"),
-];
-for (const [value, source] of [
-  [mcp.selectedProtocol, sources[0]],
-  [a2ui.selectedSource, sources[1]],
-  [apps.selectedProtocol, sources[2]],
-  [apps.selectedSource, sources[2]],
-]) {
-  assert.ok(source.includes(value), `Runtime source is missing audited profile value ${value}`);
-}
+assert.equal(MCP_NATIVE_PROTOCOL_REVISION, mcp.selectedProtocol);
+assert.equal(A2UI_MCP_SCHEMA_REVISION, a2ui.selectedSource);
+assert.equal(MCP_APPS_PROTOCOL_VERSION, apps.selectedProtocol);
+assert.equal(MCP_APPS_SOURCE_REVISION, apps.selectedSource);
 
 const a2uiConformance = readFileSync("docs/a2ui-v1-conformance.md", "utf8");
 for (const unsupported of ["callRendererFunction", "agentFunctionResponse"]) {

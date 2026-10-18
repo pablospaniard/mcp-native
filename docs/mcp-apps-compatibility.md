@@ -46,9 +46,12 @@ document plus the changelog to change in the same pull request.
 
 The list profile is disabled unless the host passes an opaque `createMcpAppsServerMethods()` result.
 It lists only the bounded tool snapshot already supplied to the bridge, filters model-only tools,
-and exposes only the exact bound UI resource. Its separate list-change flags control both advertised
-`listChanged` capabilities and the corresponding standard notifications. Sampling, prompts,
-resource templates, app-owned tools, and other methods remain unsupported.
+and exposes only the exact bound UI resource. Both methods accept the standard `cursor` and `_meta`
+request shape; because each immutable snapshot is a single page, a cursor returns an empty terminal
+page. The bridge does not advertise `listChanged` or emit list-change notifications because it has
+no mutable discovery source. Sampling, prompts, resource templates, app-owned tools, and other
+methods remain unsupported. Tool descriptors preserve bounded unknown JSON fields for forward
+compatibility while requiring object-root input and output schemas for the fields the host uses.
 
 ## Browser double-iframe contract
 
@@ -56,14 +59,19 @@ resource templates, app-owned tools, and other methods remain unsupported.
 native descriptor. It requires a host-controlled HTTPS (or loopback HTTP) proxy URL on an origin
 different from the host, emits fixed outer `allow-scripts allow-same-origin` and inner
 `allow-scripts allow-forms` sandbox policies, and intersects requested browser permissions with an
-explicit host grant. The inner View never receives `allow-same-origin` or top-navigation authority.
+explicit host grant. The same Permissions Policy `allow` value is applied to both frames so an
+approved feature can traverse the proxy without granting anything extra. The inner View never
+receives `allow-same-origin` or top-navigation authority.
 
 `createMcpAppsBrowserMessageRouter()` accepts traffic only from the exact proxy window object and
 origin. The first message must be the exact `sandbox-proxy-ready` notification, after which the
 adapter sends one bounded `sandbox-resource-ready` notification containing owned HTML, CSP,
 permission grants, and the fixed inner policy. Later `ui/notifications/sandbox-*` traffic is
 rejected in both directions so the untrusted View cannot impersonate the proxy handshake. All
-forwarded values pass the same JSON graph and one-MiB serialized-size bounds as the native bridge.
+ordinary forwarded values pass the same JSON graph and one-MiB serialized-size bounds as the native
+bridge. The resource-ready envelope instead retains the separately validated two-MiB HTML allowance
+without applying the core 64-KiB per-string limit a second time. A failed resource post leaves the
+router retryable and does not report readiness.
 The package provides descriptors and routing rather than downloading or evaluating proxy code; the
 host owns and audits the proxy document it installs.
 

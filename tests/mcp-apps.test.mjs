@@ -72,7 +72,10 @@ const modelOnlyTool = {
   _meta: { ui: { visibility: ["model"] } },
 };
 
-function createResolvedResource(overrides = {}) {
+function createResolvedResource(
+  overrides = {},
+  html = '<!doctype html><html lang="en"><head><title>Weather</title></head><body>ok</body></html>',
+) {
   const grant = negotiateMcpApps(MCP_APPS_EXTENSION_CAPABILITIES, MCP_APPS_EXTENSION_CAPABILITIES);
   assert.equal(grant.kind, "negotiated");
   return resolveMcpAppsResource(
@@ -82,7 +85,7 @@ function createResolvedResource(overrides = {}) {
         {
           uri: "ui://weather/dashboard",
           mimeType: MCP_APPS_MIME_TYPE,
-          text: '<!doctype html><html lang="en"><head><title>Weather</title></head><body>ok</body></html>',
+          text: html,
           _meta: {
             ui: {
               csp: {
@@ -709,6 +712,7 @@ test("browser sandbox uses a cross-origin proxy and rejects message smuggling", 
   assert.equal(isMcpAppsBrowserSandboxConfiguration({ ...sandbox }), false);
   assert.deepEqual(sandbox.grantedPermissions, ["camera", "clipboardWrite"]);
   assert.equal(sandbox.proxyFrame.sandbox, "allow-scripts allow-same-origin");
+  assert.equal(sandbox.proxyFrame.allow, "camera; clipboard-write");
   assert.equal(sandbox.viewFrame.sandbox, "allow-scripts allow-forms");
   assert.equal(sandbox.viewFrame.allow, "camera; clipboard-write");
   assert.equal(Object.isFrozen(sandbox.resourceReady), true);
@@ -800,6 +804,30 @@ test("browser sandbox uses a cross-origin proxy and rejects message smuggling", 
       ),
     /opaque/,
   );
+
+  let deliveryAttempts = 0;
+  const retrying = createMcpAppsBrowserMessageRouter(sandbox, {
+    proxySource,
+    postToProxy() {
+      deliveryAttempts += 1;
+      if (deliveryAttempts === 1) throw new Error("transport failed");
+    },
+    receiveFromView() {},
+  });
+  await assert.rejects(
+    () => retrying.receive({ origin: sandbox.proxyFrame.origin, source: proxySource, data: ready }),
+    /transport failed/,
+  );
+  assert.equal(retrying.ready, false);
+  await retrying.receive({ origin: sandbox.proxyFrame.origin, source: proxySource, data: ready });
+  assert.equal(retrying.ready, true);
+
+  const largeHtml = `<!doctype html><body>${"x".repeat(70_000)}</body>`;
+  const largeSandbox = createMcpAppsBrowserSandbox(createResolvedResource({}, largeHtml), {
+    hostOrigin: "https://host.example",
+    proxyUrl: "https://sandbox.example/proxy.html",
+  });
+  assert.equal(largeSandbox.resourceReady.params.html, largeHtml);
 });
 
 function createBridgeFixture(overrides = {}) {
@@ -925,13 +953,11 @@ test("bridge exposes optional MCP lists only through an explicit profile", async
   const profile = createMcpAppsServerMethods({
     tools: true,
     resources: true,
-    toolsListChanged: true,
-    resourcesListChanged: true,
   });
   const fixture = createBridgeFixture({ options: { serverMethods: profile } });
   await initializeBridge(fixture);
-  assert.deepEqual(fixture.bridge.hostCapabilities.serverTools, { listChanged: true });
-  assert.deepEqual(fixture.bridge.hostCapabilities.serverResources, { listChanged: true });
+  assert.deepEqual(fixture.bridge.hostCapabilities.serverTools, {});
+  assert.deepEqual(fixture.bridge.hostCapabilities.serverResources, {});
 
   await fixture.bridge.receive({ jsonrpc: "2.0", id: 20, method: "tools/list", params: {} });
   assert.deepEqual(
@@ -947,20 +973,26 @@ test("bridge exposes optional MCP lists only through an explicit profile", async
       _meta: { ui: createResolvedResource().meta },
     },
   ]);
-  await fixture.bridge.sendToolsListChanged();
-  assert.equal(fixture.sent.at(-1).method, "notifications/tools/list_changed");
-  await fixture.bridge.sendResourcesListChanged();
-  assert.equal(fixture.sent.at(-1).method, "notifications/resources/list_changed");
+  await fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 24,
+    method: "tools/list",
+    params: { cursor: "end", _meta: { progressToken: 1 } },
+  });
+  assert.deepEqual(fixture.sent.at(-1).result.tools, []);
+  await fixture.bridge.receive({
+    jsonrpc: "2.0",
+    id: 25,
+    method: "resources/list",
+    params: { cursor: "end", _meta: {} },
+  });
+  assert.deepEqual(fixture.sent.at(-1).result.resources, []);
 
   const disabled = createBridgeFixture();
   await initializeBridge(disabled);
   await disabled.bridge.receive({ jsonrpc: "2.0", id: 22, method: "tools/list", params: {} });
   assert.equal(disabled.sent.at(-1).error.code, -32601);
-  await assert.rejects(() => disabled.bridge.sendToolsListChanged(), /not enabled/);
-  assert.throws(
-    () => createMcpAppsServerMethods({ toolsListChanged: true }),
-    /require tools\/list/,
-  );
+  assert.throws(() => createMcpAppsServerMethods({ toolsListChanged: true }), /Unsupported field/);
   assert.throws(
     () =>
       createBridgeFixture({
@@ -989,6 +1021,35 @@ test("bridge exposes optional MCP lists only through an explicit profile", async
   assert.throws(
     () => createBridgeFixture({ options: { tools: [{ name: "bad", inputSchema: [] }] } }),
     /inputSchema/,
+  );
+  assert.throws(
+    () => createBridgeFixture({ options: { tools: [{ name: "bad", inputSchema: {} }] } }),
+    /object-root schema/,
+  );
+
+  const extendedTool = {
+    ...appTool,
+    execution: { taskSupport: "optional" },
+  };
+  const extended = createBridgeFixture({
+    options: { serverMethods: profile, tools: [extendedTool] },
+  });
+  await initializeBridge(extended);
+  await extended.bridge.receive({ jsonrpc: "2.0", id: 26, method: "tools/list", params: {} });
+  assert.deepEqual(extended.sent.at(-1).result.tools[0].execution, extendedTool.execution);
+
+  assert.throws(
+    () =>
+      createBridgeFixture({
+        options: {
+          tools: Array.from({ length: 17 }, (_, index) => ({
+            name: `tool-${index}`,
+            description: "x".repeat(64_000),
+            inputSchema: { type: "object" },
+          })),
+        },
+      }),
+    /bridge tool snapshot/,
   );
 });
 
